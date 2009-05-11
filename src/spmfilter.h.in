@@ -1,0 +1,56 @@
+#include <glib.h>
+
+#define QUEUE_DIR "@SPMFILTER_QUEUE_DIR@"
+#define LIB_DIR "@LIBDIR@"
+
+typedef struct {
+	gboolean debug;
+	char *config_file;
+	char *engine;
+	char *spool_dir;
+	gchar **modules;
+	
+} SETTINGS;
+
+typedef struct {
+	char *from;
+	GSList *rcpt;
+	char *message_file;
+	char *auth_user;
+	char *auth_pass;
+	char *nexthop;
+} MESSAGE;
+
+typedef struct {
+	/* hello we received */
+	char *helo;
+	
+	/* recipients */
+	GSList *rcpt;
+	
+	/* sender */
+	char *from;
+	
+	/* size of message body */
+	size_t msgbodysize;
+	
+	/* this is our spooling file */
+	char *queue_file;
+	
+	/* xfoward */
+	char *xforward_addr;
+
+	/* hash table for headers */
+	GHashTable *header_checks;
+	
+	char *nexthop;
+	
+} MAILCONN;
+
+typedef struct {
+	char *name;
+	char *value;
+} HEADER;
+
+char* get_substring(const char *pattern, const char *line, int pos);
+int smtp_devlier(SETTINGS *settings, MESSAGE *msg_data);

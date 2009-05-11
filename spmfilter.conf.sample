@@ -1,0 +1,8 @@
+[global]
+engine = libsmtpd
+debug = true
+modules=libdkim;libspam
+nexthop = localhost:2525
+
+[header_cheks]
+example=X-Example
