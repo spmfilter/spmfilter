@@ -1,0 +1,33 @@
+.TH "spmfilter" "1" "21 May 2009" "" ""
+
+.SH "NAME"
+spmfilter - spmfilter control program
+.SH "SYNOPSIS" 
+.P
+\fBspmfilter\fR [\fB-d\fR] [\fB-f \fIconfig_file\fR]
+
+.SH "DESCRIPTION"
+.P
+The \fBspmfilter\fR(1) command controls the operation
+of the spmfilter framework.
+
+.SH "OPTIONS"
+.P
+The following command-line options are implemented:
+.IP "\fB-f \fIconfig_file\fR (or --file)"
+Read an alternate configuration file instead of the default 
+configuration file (/etc/spmfilter.conf). Use this to
+distinguish between multiple spmfilter instances on the same
+host.
+.IP "\fB-d\fR (or --debug)"
+Enable verbose logging for debugging purposes.
+.IP "\fB-?\fR (or --help)"
+Print spmfilter usage.
+
+.SH "SEE ALSO"
+.P
+spmfilter.conf(5), spmfilter(3)
+
+.SH "AUTHOR(S)"
+.P
+spmfilter was written by Axel Steiner <ast@treibsand.com>
