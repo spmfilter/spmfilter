@@ -257,7 +257,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'rcpt to' received");
 			state = ST_RCPT;
-			mconn->rcpt = g_slist_append(mconn->rcpt,get_substring("^RCPT TO:[ <]*(.*?)>.*$", line, 1));
+			mconn->rcpt = g_slist_append(mconn->rcpt,get_substring("^RCPT TO:[ <]*(.*?)>*$", line, 1));
 			smtp_chat_reply("250 Ok\r\n");
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->rcpt[%d]: %s",
