@@ -118,6 +118,9 @@ int main (int argc, char *argv[]) {
 
 	g_strfreev(header_keys);
 	
+	/* initialize runtime_data hashtable */
+	mconn->runtime_data = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
+	
 	if (settings->debug) 
 		start_process = clock();
 	
@@ -133,7 +136,7 @@ int main (int argc, char *argv[]) {
 		printf("%s", g_module_error ());
 		return -1;
 	}
-	
+
 	load_engine(settings,mconn);
 	
 	if (settings->debug) {

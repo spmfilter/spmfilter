@@ -45,6 +45,8 @@ typedef struct {
 	
 	char *nexthop;
 	
+	/* hash table for runtime data */
+	GHashTable *runtime_data;
 } MAILCONN;
 
 typedef struct {
