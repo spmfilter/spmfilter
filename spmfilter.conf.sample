@@ -1,7 +1,7 @@
 [global]
-engine = libsmtpd
+engine = smtpd
 debug = true
-modules=libdkim;libspam
+modules = dkim;spam
 nexthop = localhost:2525
 
 # The fail code is used as response code for the 
@@ -11,6 +11,12 @@ nexthop_fail_code = 451
 # If delivery to nexthop fails, this message will be reported 
 # to the sending MTA with fail code. 
 nexthop_fail_msg = Requested action aborted: local error in processing
+
+# If one module fails, there are 3 options:
+# 1 = proceed and ignore
+# 2 = cancel further processing and return permanet error
+# 3 = cancel further processing and return temporary error (default)
+module_fail = 2
 
 [header_cheks]
 example=X-Example

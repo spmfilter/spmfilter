@@ -1,4 +1,4 @@
-AC_INIT(spmfilter, 0.1, ast@space.net, spmfilter)
+AC_INIT(spmfilter, 0.1, ast@treibsand.com, spmfilter)
 AC_CONFIG_AUX_DIR(buildtools)
 AC_PREREQ(2.53)
 AC_COPYRIGHT(GNU General Public License)
