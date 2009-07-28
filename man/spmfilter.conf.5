@@ -65,6 +65,15 @@ This parameter specifies the final destination, after a mail is processed
 by spmfilter. The value can be a hostname or IP address, with a port number,
 e.g. localhost:2525 to send filtered mails to localhost at port 2525.
 
+.IP "\fBnexthop_fail_code\fR"
+If the delivery to the final destination fails for any reason, this code is 
+used as response to the sending MTA (default 451).
+
+.IP "\fBnexthop_fail_msg\fR"
+If the delivery to the final destination fails for any reason, this message 
+is used as reponse for the sending MTA.
+(default "Requested action aborted: local error in processing").
+
 
 .SS "The [header_checks] section"
 .P
