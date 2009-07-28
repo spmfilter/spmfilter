@@ -91,9 +91,9 @@ What follows is a sample configuration file:
 
 .nf
 [global]
-engine = libsmtpd
+engine = smtpd
 debug = true
-modules=libdkim;libspam
+modules=dkim;spam
 nexthop = localhost:2525
 
 [header_cheks]
@@ -101,8 +101,8 @@ example=X-Example
 .fi 
  
 
-The \fBglobal\fR section specifies that libsmtp module should be used as engine; debugging is active;
-the modules libdkim and libspam should be loaded; and filtered mails are delivered
+The \fBglobal\fR section specifies that smtpd module should be used as engine; debugging is active;
+the modules dkim and spam should be loaded; and filtered mails are delivered
 to localhost port 2525.
 
 .SH "FILES" 
