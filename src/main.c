@@ -124,7 +124,12 @@ int main (int argc, char *argv[]) {
 	if (settings->debug) 
 		start_process = clock();
 	
-	engine_path = g_module_build_path(LIB_DIR,settings->engine);
+	/* check if engine module starts with lib */
+	if (g_str_has_prefix(settings->engine,"lib")) {
+		engine_path = g_module_build_path(LIB_DIR,settings->engine);
+	} else {
+		engine_path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",settings->engine));
+	}
 	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
 	if (!module) {
 		printf("%s\n", g_module_error ());

@@ -51,7 +51,11 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		if (settings->debug)
 			syslog(LOG_DEBUG,"loading module %s",settings->modules[i]);
 		
-		path = g_module_build_path(LIB_DIR,settings->modules[i]);
+		if (g_str_has_prefix(settings->modules[i],"lib")) {
+			path = g_module_build_path(LIB_DIR,settings->modules[i]);
+		} else {
+			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",settings->modules[i]));
+		}
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
 			syslog(LOG_DEBUG,"%s\n", g_module_error ());
