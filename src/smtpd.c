@@ -58,32 +58,52 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		}
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
-			syslog(LOG_DEBUG,"%s\n", g_module_error ());
-			smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+			if (settings->debug)
+				syslog(LOG_DEBUG,"%s\n", g_module_error ());
+			switch (settings->module_fail) {
+				case 1: continue;
+				case 2: smtp_chat_reply("552 - Requested action aborted: local error in processing\r\n");
+						return;
+				case 3: smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+						return;
+			}
 			return;
 		}
 
 
 		if (!g_module_symbol (module, "load", (gpointer *)&load_module)) {
-			syslog(LOG_DEBUG,"%s\n", g_module_error ());
-			smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+			if (settings->debug)
+				syslog(LOG_DEBUG,"%s\n", g_module_error ());
+			switch (settings->module_fail) {
+				case 1: continue;
+				case 2: smtp_chat_reply("552 - Requested action aborted: local error in processing\r\n");
+						return;
+				case 3: smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+						return;
+			}
 			return;
 		}
 
 		ret = load_module(settings,mconn); 
 		if (ret == -1) {
 			g_module_close (module);
-			smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+			switch (settings->module_fail) {
+				case 1: continue;
+				case 2: smtp_chat_reply("552 - Requested action aborted: local error in processing\r\n");
+						return;
+				case 3: smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+						return;
+			}
 			return;
 		} else if (ret == 1) {
 			g_module_close (module);
 			smtp_chat_reply("250 OK - message accepted\r\n");
-			return;
+			break;
 		}
 
 		if (!g_module_close (module)) {
-			syslog(LOG_DEBUG,"%s\n", g_module_error ());
-			return;
+			if (settings->debug)
+				syslog(LOG_DEBUG,"%s\n", g_module_error ());
 		}
 		
 		g_free(path);
@@ -97,7 +117,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		msg->nexthop = g_strup(mconn->nexthop);
 		if (smtp_delivery(settings, msg) != 0) {
 			syslog(LOG_ERR,"delivery to %s failed!",mconn->nexthop);
-			smtp_chat_reply(g_strdup_printf("%d %s\r\n",mconn->nexthop_fail_code,mconn->nexthop_fail_msg));
+			smtp_chat_reply(g_strdup_printf("%d - %s\r\n",mconn->nexthop_fail_code,mconn->nexthop_fail_msg));
 			return;
 		}
 		g_slice_free(MESSAGE,msg);
