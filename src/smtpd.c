@@ -97,7 +97,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		msg->nexthop = g_strup(mconn->nexthop);
 		if (smtp_delivery(settings, msg) != 0) {
 			syslog(LOG_ERR,"delivery to %s failed!",mconn->nexthop);
-			smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+			smtp_chat_reply(g_strdup_printf("%d %s\r\n",mconn->nexthop_fail_code,mconn->nexthop_fail_msg));
 			return;
 		}
 		g_slice_free(MESSAGE,msg);

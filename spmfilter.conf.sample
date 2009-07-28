@@ -4,5 +4,13 @@ debug = true
 modules=libdkim;libspam
 nexthop = localhost:2525
 
+# The fail code is used as response code for the 
+# sending MTA, if delivery to nexthop fails (default 451) 
+nexthop_fail_code = 451
+
+# If delivery to nexthop fails, this message will be reported 
+# to the sending MTA with fail code. 
+nexthop_fail_msg = Requested action aborted: local error in processing
+
 [header_cheks]
 example=X-Example
