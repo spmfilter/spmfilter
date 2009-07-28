@@ -111,6 +111,11 @@ int main (int argc, char *argv[]) {
 		}
 	} 
 	
+	settings->module_fail = g_key_file_get_integer(keyfile, "global", "module_fail",NULL);
+	if (!settings->module_fail) {
+		settings->module_fail = 3;
+	}
+
 	header_keys = g_key_file_get_keys(keyfile,"header_checks",&header_length,NULL);
 	mconn->header_checks = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 	

@@ -60,6 +60,16 @@ Specifies all modules, which will be loaded at runtime. All modules
 will be process in the same order, as listed. Modules names have to
 be separated by a semicolon.
 
+.IP "\fBmodule_fail\fR"
+If one module fails, the behaviour of spmfilter can be configured. 
+Possible values are:
+
+.nf
+1 = proceed and ignore
+2 = cancel further processing and return permanet error
+3 = cancel further processing and return temporary error (default)
+.fi
+
 .IP "\fBnexthop\fR"
 This parameter specifies the final destination, after a mail is processed
 by spmfilter. The value can be a hostname or IP address, with a port number,

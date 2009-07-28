@@ -9,6 +9,7 @@ typedef struct {
 	char *engine;
 	char *spool_dir;
 	gchar **modules;
+	int module_fail;
 	
 } SETTINGS;
 
