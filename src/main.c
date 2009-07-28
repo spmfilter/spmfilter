@@ -83,6 +83,19 @@ int main (int argc, char *argv[]) {
 		return -1;
 	}
 	
+	mconn->nexthop_fail_code = g_key_file_get_integer(keyfile, "global", "nexthop_fail_code", NULL);
+	if (!mconn->nexthop_fail_code) {
+		/* nexthop_fail_code not configured, now we use default vaules */
+		mconn->nexthop_fail_code = 451;
+	}
+	
+	mconn->nexthop_fail_msg = g_key_file_get_string(keyfile, "global", "nexthop_fail_msg", NULL);
+	if (mconn->nexthop_fail_msg == NULL) {
+		/* nexthop_fail_msg not configured, now we use default vaules */
+		mconn->nexthop_fail_msg = "Requested action aborted: local error in processing";
+	}
+	
+	
 	settings->spool_dir = g_key_file_get_string(keyfile, "global", "spool_dir",NULL);
 	if (settings->spool_dir == NULL) 
 		settings->spool_dir = "/var/spool/spmfilter";

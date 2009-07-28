@@ -44,6 +44,8 @@ typedef struct {
 	GHashTable *header_checks;
 	
 	char *nexthop;
+	int nexthop_fail_code;
+	char *nexthop_fail_msg;
 	
 	/* hash table for runtime data */
 	GHashTable *runtime_data;
