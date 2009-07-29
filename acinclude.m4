@@ -31,26 +31,6 @@ else
 fi
 ])
 
-AC_DEFUN([SPMFILTER_CHECK_PCRE], [
-AC_PATH_PROG(pcreconfig,pcre-config)
-if test [ -z "$pcreconfig" ]
-then
-	AC_MSG_ERROR([pcre-config executable not found. Make sure pcre-config is in your path])
-else
-	AC_MSG_CHECKING([pcre])
-	ac_pcre_libs=`${pcreconfig} --libs`
-	if test -z "$ac_pcre_libs"
-	then
-		AC_MSG_RESULT([no])
-		AC_MSG_ERROR([Unable to locate pcre libary])
-	fi
- 
-	LDFLAGS="$LDFLAGS $ac_pcre_libs"
-	AC_MSG_RESULT([yes])
-fi
-])
-
-
 AC_DEFUN([SPMFILTER_QUEUE_CHECK], [
 
 AC_ARG_WITH(queuedir,
