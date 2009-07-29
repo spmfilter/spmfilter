@@ -68,6 +68,6 @@ typedef struct {
 	GMimeMessage *message;
 } HL;
 
-char* get_substring(const char *pattern, const char *line, int pos);
+char* get_substring(const char *pattern, const char *haystack, int pos);
 void header_check(gpointer k, gpointer v, gpointer user_data);
 int smtp_devlier(SETTINGS *settings, MESSAGE *msg_data);
