@@ -6,7 +6,7 @@
 
 #include "spmfilter.h"
 
-typedef void (*LoadEngine) (SETTINGS *settings, MAILCONN *mconn);
+typedef int (*LoadEngine) (SETTINGS *settings, MAILCONN *mconn);
 
 int main (int argc, char *argv[]) {
 	GError *error = NULL;
@@ -22,7 +22,7 @@ int main (int argc, char *argv[]) {
 	gchar *engine_path;
 	gchar **header_keys;
 	gsize header_length = 0;
-	int i;
+	int i, ret;
 	
 	openlog("spmfilter", LOG_PID,LOG_MAIL);
 	
@@ -160,7 +160,7 @@ int main (int argc, char *argv[]) {
 		return -1;
 	}
 
-	load_engine(settings,mconn);
+	ret = load_engine(settings,mconn);
 	
 	if (settings->debug) {
 		stop_process = clock();
@@ -175,5 +175,10 @@ int main (int argc, char *argv[]) {
 	g_slist_free(mconn->rcpt);
 	g_slice_free(MAILCONN,mconn);
 	g_free(engine_path);
-	return 0;
+	
+	if (ret != 0) {
+		return -1;
+	} else {
+		return 0;
+	}
 }

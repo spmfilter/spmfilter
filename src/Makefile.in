@@ -57,16 +57,23 @@ am__installdirs = "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(bindir)" \
 	"$(DESTDIR)$(pkgconfigdir)" "$(DESTDIR)$(pkgincludedir)"
 pkglibLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(pkglib_LTLIBRARIES)
+libpipe_la_DEPENDENCIES = @LTLIBOBJS@
+am__objects_1 = pipe.lo
+am_libpipe_la_OBJECTS = $(am__objects_1)
+libpipe_la_OBJECTS = $(am_libpipe_la_OBJECTS)
+libpipe_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(libpipe_la_LDFLAGS) $(LDFLAGS) -o $@
 libsmtpd_la_DEPENDENCIES = @LTLIBOBJS@
-am__objects_1 = smtpd.lo
-am_libsmtpd_la_OBJECTS = $(am__objects_1)
+am__objects_2 = smtpd.lo
+am_libsmtpd_la_OBJECTS = $(am__objects_2)
 libsmtpd_la_OBJECTS = $(am_libsmtpd_la_OBJECTS)
 libsmtpd_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(libsmtpd_la_LDFLAGS) $(LDFLAGS) -o $@
 libspmfilter_la_DEPENDENCIES = @LTLIBOBJS@
-am__objects_2 = spmutils.lo smtp.lo
-am_libspmfilter_la_OBJECTS = $(am__objects_2)
+am__objects_3 = spmutils.lo smtp.lo
+am_libspmfilter_la_OBJECTS = $(am__objects_3)
 libspmfilter_la_OBJECTS = $(am_libspmfilter_la_OBJECTS)
 libspmfilter_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -88,10 +95,10 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libsmtpd_la_SOURCES) $(libspmfilter_la_SOURCES) \
-	$(spmfilter_SOURCES)
-DIST_SOURCES = $(libsmtpd_la_SOURCES) $(libspmfilter_la_SOURCES) \
-	$(spmfilter_SOURCES)
+SOURCES = $(libpipe_la_SOURCES) $(libsmtpd_la_SOURCES) \
+	$(libspmfilter_la_SOURCES) $(spmfilter_SOURCES)
+DIST_SOURCES = $(libpipe_la_SOURCES) $(libsmtpd_la_SOURCES) \
+	$(libspmfilter_la_SOURCES) $(spmfilter_SOURCES)
 pkgconfigDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(pkgconfig_DATA)
 pkgincludeHEADERS_INSTALL = $(INSTALL_HEADER)
@@ -151,6 +158,7 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -183,6 +191,10 @@ docdir = @docdir@
 dvidir = @dvidir@
 esmtpconfig = @esmtpconfig@
 exec_prefix = @exec_prefix@
+glib_CFLAGS = @glib_CFLAGS@
+glib_LIBS = @glib_LIBS@
+gmime_CFLAGS = @gmime_CFLAGS@
+gmime_LIBS = @gmime_LIBS@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -201,7 +213,6 @@ mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
 pcreconfig = @pcreconfig@
 pdfdir = @pdfdir@
-pkgconfig = @pkgconfig@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
@@ -217,7 +228,7 @@ AUTOMAKE_OPTIONS = gnu
 spmfilter_SOURCES = main.c
 spmfilter_LDADD = libspmfilter.la
 AM_LDFLAGS = -export-dynamic
-pkglib_LTLIBRARIES = libspmfilter.la libsmtpd.la
+pkglib_LTLIBRARIES = libspmfilter.la libsmtpd.la libpipe.la
 pkginclude_HEADERS = spmfilter.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libspmfilter.pc
@@ -229,6 +240,10 @@ SMTPD = smtpd.c smtpd.h
 libsmtpd_la_SOURCES = $(SMTPD)
 libsmtpd_la_LDFLAGS = $(AM_LDFLAGS)
 libsmtpd_la_LIBADD = @LTLIBOBJS@
+PIPE = pipe.c
+libpipe_la_SOURCES = $(PIPE)
+libpipe_la_LDFLAGS = $(AM_LDFLAGS)
+libpipe_la_LIBADD = @LTLIBOBJS@
 all: all-am
 
 .SUFFIXES:
@@ -293,6 +308,8 @@ clean-pkglibLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
+libpipe.la: $(libpipe_la_OBJECTS) $(libpipe_la_DEPENDENCIES) 
+	$(libpipe_la_LINK) -rpath $(pkglibdir) $(libpipe_la_OBJECTS) $(libpipe_la_LIBADD) $(LIBS)
 libsmtpd.la: $(libsmtpd_la_OBJECTS) $(libsmtpd_la_DEPENDENCIES) 
 	$(libsmtpd_la_LINK) -rpath $(pkglibdir) $(libsmtpd_la_OBJECTS) $(libsmtpd_la_LIBADD) $(LIBS)
 libspmfilter.la: $(libspmfilter_la_OBJECTS) $(libspmfilter_la_DEPENDENCIES) 
@@ -336,6 +353,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pipe.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smtp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smtpd.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spmutils.Plo@am__quote@
