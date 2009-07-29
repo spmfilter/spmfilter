@@ -1,37 +1,6 @@
-AC_DEFUN([SPMFILTER_PKGCONFIG],[
-AC_PATH_PROG(pkgconfig,pkg-config)
-if test [ -z "$pkgconfig" ]
-then
-	AC_MSG_ERROR([pkg-config executable not found. Make sure pkg-config is in your path])
-fi
-])
-
 AC_DEFUN([SPMFILTER_SET_VERSION], [
 	spmfilter_version=`cat VERSION`
 	AC_DEFINE_UNQUOTED([SPMFILTER_VERSION], "$spmfilter_version", [Includes the micro version])
-])
-
-AC_DEFUN([SPMFILTER_CHECK_GLIB], [
-AC_MSG_CHECKING([GLib headers])
-ac_glib_cflags=`${pkgconfig} --cflags glib-2.0`
-if test -z "$ac_glib_cflags"
-then
-	AC_MSG_RESULT([no])
-	AC_MSG_ERROR([Unable to locate glib development files])
-fi
- 
-CFLAGS="$CFLAGS $ac_glib_cflags"
-AC_MSG_RESULT([$ac_glib_cflags])
-AC_MSG_CHECKING([Glib libraries])
-ac_glib_libs=`${pkgconfig} --libs glib-2.0 gmodule-2.0`
-if test -z "$ac_glib_libs"
-then
-	AC_MSG_RESULT([no])
-	AC_MSG_ERROR([Unable to locate glib libaries])
-fi
-
-LDFLAGS="$LDFLAGS $ac_glib_libs"
-AC_MSG_RESULT([$ac_glib_libs])
 ])
 
 AC_DEFUN([SPMFILTER_CHECK_ESMTP], [
@@ -40,7 +9,7 @@ if test [ -z "$esmtpconfig" ]
 then
 	AC_MSG_ERROR([libesmtp-config executable not found. Make sure pkg-config is in your path])
 else
-	AC_MSG_CHECKING([libesmtp headers])
+	AC_MSG_CHECKING([libesmtp])
 	ac_esmtp_cflags=`$esmtpconfig --cflags`
 	if test -z "$ac_esmtp_cflags"
 	then
@@ -49,8 +18,7 @@ else
 	fi
 	
 	CFLAGS="$CFLAGS $ac_esmtp_cflags"
-	AC_MSG_RESULT([$ac_esmtp_cflags])
-	AC_MSG_CHECKING([libesmtp libraries])
+
 	ac_esmtp_libs=`${esmtpconfig} --libs`
 	if test -z "$ac_esmtp_libs"
 	then
@@ -59,7 +27,7 @@ else
 	fi
  
 	LDFLAGS="$LDFLAGS $ac_esmtp_libs"
-	AC_MSG_RESULT([$ac_esmtp_libs])
+	AC_MSG_RESULT([yes])
 fi
 ])
 
@@ -69,7 +37,7 @@ if test [ -z "$pcreconfig" ]
 then
 	AC_MSG_ERROR([pcre-config executable not found. Make sure pcre-config is in your path])
 else
-	AC_MSG_CHECKING([pcre libraries])
+	AC_MSG_CHECKING([pcre])
 	ac_pcre_libs=`${pcreconfig} --libs`
 	if test -z "$ac_pcre_libs"
 	then
@@ -78,7 +46,7 @@ else
 	fi
  
 	LDFLAGS="$LDFLAGS $ac_pcre_libs"
-	AC_MSG_RESULT([$ac_pcre_libs])
+	AC_MSG_RESULT([yes])
 fi
 ])
 

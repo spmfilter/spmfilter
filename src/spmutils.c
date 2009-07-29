@@ -32,3 +32,18 @@ char *get_substring(const char *pattern, const char *line, int pos) {
 	return value;
 }
 
+void header_check (gpointer k, gpointer v, gpointer user_data) {
+	HL *header_lookup = user_data;
+	gchar *key = k;
+	GList *keys, *l;
+	HEADER *header;
+
+	header = g_hash_table_lookup(header_lookup->mconn->header_checks,k);
+	header->value = g_mime_message_get_header(header_lookup->message,header->name);
+	if (header->value != NULL) {
+		if (header_lookup->settings->debug) {
+			syslog(LOG_DEBUG,"found header: %s",header->name);
+			syslog(LOG_DEBUG,"mconn->header_results: added %s:%s", k,header->value);
+		}
+	}
+}

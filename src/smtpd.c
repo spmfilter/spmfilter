@@ -4,18 +4,13 @@
 #include <syslog.h>
 #include <glib.h>
 #include <gmodule.h>
+#include <gmime/gmime.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
 
 #include "spmfilter.h"
 #include "smtpd.h"
-
-typedef struct {
-	SETTINGS *settings;
-	MAILCONN *mconn;
-	gchar *line;
-} LOOKUP;
 
 /* dot-stuffing */
 void stuffing(char chain[]) {
@@ -127,33 +122,18 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	return;
 }
 
-static void header_func (gpointer k, gpointer v, gpointer user_data) {
-	LOOKUP *header_lookup = user_data;
-	gchar *key = k;
-	GList *keys, *l;
-	HEADER *header;
-	
-
-	header = g_hash_table_lookup(header_lookup->mconn->header_checks,k);
-	if (g_ascii_strncasecmp(header_lookup->line,header->name,strlen(header->name))==0) {
-		if (header_lookup->settings->debug)
-			syslog(LOG_DEBUG,"found header: %s",header->name);
-	
-		header->value = get_substring("^.*:\\W?(.*)$",header_lookup->line,1);
-
-		if (header_lookup->settings->debug)
-			syslog(LOG_DEBUG,"mconn->header_results: added %s:%s", k,header->value);
-	}
-}
-
 void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	char *tempname;
 	GIOChannel *in, *out;
+	GMimeStream *gmin;
+	GMimeMessage *message;
+	GMimeParser *parser;
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
-	gboolean header_done = FALSE;
-	LOOKUP *user_data;
+	HL *d;
+	InternetAddressList *ia;
+	InternetAddress *addr;
 	
 	/* create spooling file */
 	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",QUEUE_DIR);
@@ -178,22 +158,14 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	}
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_encoding(out, NULL, NULL);
-	
-	user_data = g_slice_new(LOOKUP);
-	user_data->mconn = mconn;
-	user_data->settings = settings;
+
+	/* initialize GMime */
+	g_mime_init (0);
+	gmin = g_mime_stream_mem_new();
 	
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
-		
-		if((g_ascii_strcasecmp(line, "\r\n") == 0) || g_ascii_strcasecmp(line, "\n") == 0) 
-			header_done = TRUE;
-			
-		if (!header_done) {
-			user_data->line = line;
-			g_hash_table_foreach(mconn->header_checks,header_func,user_data);
-		}
 		
 		if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
 			smtp_chat_reply("452 - %s\r\n",error->message);
@@ -205,6 +177,7 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 			return;
 		}
 		mconn->msgbodysize+=strlen(line);
+		g_mime_stream_write_string(gmin,line);
 		g_free(line);
 	}
 	g_io_channel_shutdown(out,TRUE,NULL);
@@ -213,6 +186,18 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 
 	if (settings->debug)
 		syslog(LOG_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
+		
+	g_mime_stream_seek(gmin,0,0);
+	parser = g_mime_parser_new_with_stream (gmin);
+	g_object_unref(gmin);
+	
+	/* check header */
+	d = g_slice_new(HL);
+	d->mconn = mconn;
+	d->settings = settings;
+	d->message = message;
+	g_hash_table_foreach(mconn->header_checks,header_check,d);
+	g_slice_free(HL,d);
 		
 	load_modules(settings,mconn);
 	
@@ -273,7 +258,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'mail from' received");
 			state = ST_MAIL;
-			mconn->from = get_substring("^MAIL FROM:[ <]*(.*?)>*$", line, 1);
+			mconn->from = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
 			smtp_chat_reply("250 Ok\r\n");
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->from: %s",mconn->from);
@@ -281,7 +266,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'rcpt to' received");
 			state = ST_RCPT;
-			mconn->rcpt = g_slist_append(mconn->rcpt,get_substring("^RCPT TO:[ <]*(.*?)>*$", line, 1));
+			mconn->rcpt = g_slist_append(mconn->rcpt,get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1));
 			smtp_chat_reply("250 Ok\r\n");
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->rcpt[%d]: %s",

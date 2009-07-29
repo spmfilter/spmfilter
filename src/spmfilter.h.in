@@ -1,7 +1,10 @@
 #include <glib.h>
+#include <gmime/gmime.h>
 
 #define QUEUE_DIR "@SPMFILTER_QUEUE_DIR@"
 #define LIB_DIR "@LIBDIR@"
+
+#define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
 typedef struct {
 	gboolean debug;
@@ -53,9 +56,18 @@ typedef struct {
 } MAILCONN;
 
 typedef struct {
-	char *name;
-	char *value;
+	const char *name;
+	const char *value;
 } HEADER;
 
+
+typedef struct {
+	SETTINGS *settings;
+	MAILCONN *mconn;
+	gchar *line;
+	GMimeMessage *message;
+} HL;
+
 char* get_substring(const char *pattern, const char *line, int pos);
+void header_check(gpointer k, gpointer v, gpointer user_data);
 int smtp_devlier(SETTINGS *settings, MESSAGE *msg_data);
