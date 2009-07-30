@@ -1,4 +1,4 @@
-.TH "spmfilter.conf" "5" "20 May 2009" "" ""
+.TH "spmfilter.conf" "5" "30 July 2009" "" ""
 
 .SH "NAME"
 .P
@@ -47,9 +47,18 @@ Parameters in this section are global and do not affect any modules.
 
 .IP "\fBengine \fR" 
 The "engine" option allows you to specify the spmfilter engine. It's
-possible to switch the engine for receiving mails. At the moment, only
-a smtpd engine is available, but it's possible to use a own engine
-for e.g. lmtp.
+possible to switch the engine for receiving mails. There are two engines
+in spmfilter for receiving emails:
+
+.nf
+\fBsmtpd\fR - This engine allows to inject emails via smtp to
+spmfilter. But please note, with this engine, spmfilter has to be
+started with inetd, Postfix or similar TCP server programs.
+
+\fBpipe\fR - The pipe engine lets you inject emails via shell
+pipe to spmfilter. This is usefully, when you don't need a full
+smtp server.
+.fi
 
 .IP "\fBdebug\fR" 
 Enables verbose debugging output. Debugging output will be written to
