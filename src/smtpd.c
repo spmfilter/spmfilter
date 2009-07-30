@@ -26,12 +26,42 @@ void stuffing(char chain[]) {
 	chain[j]='\0';
 }
 
-/* smtp answer */
-void smtp_chat_reply(const char *format, ...) {
+/* smtp answer with format string as arg */
+void smtp_string_reply(const char *format, ...) {
 	va_list ap;
 	va_start(ap, format);
 	vfprintf(stdout,format,ap);
 	va_end(ap);
+	fflush(stdout);
+}
+
+/* smtp answer with smtp code as arg */
+void smtp_code_reply(SETTINGS *settings, int code) {
+	char *code_msg;
+	char *str_code;
+	str_code = g_strdup_printf("%d",code);
+	code_msg = g_hash_table_lookup(settings->smtp_codes,str_code);
+	if (code_msg!=NULL) {
+		fprintf(stdout,"%d %s\r\n",code,code_msg);  
+	} else {
+		switch(code) {
+			case 221: 
+				fprintf(stdout,CODE_221);
+				break;
+			case 250: 
+				fprintf(stdout,CODE_250);
+				break;
+			case 451: 
+				fprintf(stdout,CODE_451);
+				break;
+			case 500:
+				fprintf(stdout,CODE_500);
+				break;
+			case 552:
+				fprintf(stdout,CODE_552);
+				break;
+		}
+	}
 	fflush(stdout);
 }
 
@@ -57,9 +87,9 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			syslog(LOG_ERR,"%s\n", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
-				case 2: smtp_chat_reply(CODE_552);
+				case 2: smtp_code_reply(settings,552);
 						return;
-				case 3: smtp_chat_reply(CODE_451);
+				case 3: smtp_code_reply(settings,451);
 						return;
 			}
 			return;
@@ -70,9 +100,9 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			syslog(LOG_ERR,"%s\n", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
-				case 2: smtp_chat_reply(CODE_552);
+				case 2: smtp_code_reply(settings,552);
 						return;
-				case 3: smtp_chat_reply(CODE_451);
+				case 3: smtp_code_reply(settings,451);
 						return;
 			}
 			return;
@@ -93,9 +123,9 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			g_free(path);
 			switch (settings->module_fail) {
 				case 1: continue;
-				case 2: smtp_chat_reply(CODE_552);
+				case 2: smtp_code_reply(settings,552);
 						return;
-				case 3: smtp_chat_reply(CODE_451);
+				case 3: smtp_code_reply(settings,451);
 						return;
 			}
 			return;
@@ -103,13 +133,13 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			if (!g_module_close(module))
 				syslog(LOG_ERR,"%s\n", g_module_error());
 			g_free(path);
-			smtp_chat_reply(CODE_250_ACCEPTED);
+			smtp_string_reply(CODE_250_ACCEPTED);
 			break;
 		} else if (ret == 2) {
 			if (!g_module_close(module))
 				syslog(LOG_ERR,"%s\n", g_module_error());
 			g_free(path);
-			smtp_chat_reply(CODE_250_ACCEPTED);
+			smtp_string_reply(CODE_250_ACCEPTED);
 			return;
 		}
 
@@ -119,21 +149,21 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		g_free(path);
 	}
 	
-	if (mconn->nexthop != NULL ) {
+	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
 		msg->from = g_strdup(mconn->from);
 		msg->rcpt = mconn->rcpt;
 		msg->message_file = g_strdup(mconn->queue_file);
-		msg->nexthop = g_strup(mconn->nexthop);
+		msg->nexthop = g_strup(settings->nexthop);
 		if (smtp_delivery(settings, msg) != 0) {
-			syslog(LOG_ERR,"delivery to %s failed!",mconn->nexthop);
-			smtp_chat_reply(g_strdup_printf("%d - %s\r\n",mconn->nexthop_fail_code,mconn->nexthop_fail_msg));
+			syslog(LOG_ERR,"delivery to %s failed!",settings->nexthop);
+			smtp_string_reply(g_strdup_printf("%d %s\r\n",settings->nexthop_fail_code,settings->nexthop_fail_msg));
 			return;
 		}
 		g_slice_free(MESSAGE,msg);
 	}
 	
-	smtp_chat_reply(CODE_250_ACCEPTED);
+	smtp_string_reply(CODE_250_ACCEPTED);
 	return;
 }
 
@@ -155,7 +185,7 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	if (g_mkstemp(tempname) == -1) {
 		g_free(tempname);
 		syslog(LOG_ERR,"Can't create spooling file");
-		smtp_chat_reply(CODE_451);
+		smtp_code_reply(settings,451);
 		return;
 	}
 	mconn->queue_file = g_strdup(tempname);
@@ -163,12 +193,12 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	if (settings->debug)
 		syslog(LOG_DEBUG,"using spool file: '%s'", mconn->queue_file);
 		
-	smtp_chat_reply("354 End data with <CR><LF>.<CR><LF>\r\n");
+	smtp_string_reply("354 End data with <CR><LF>.<CR><LF>\r\n");
 	
 	/* start receiving data */
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	if ((out = g_io_channel_new_file(mconn->queue_file,"w", &error)) == NULL) {
-		smtp_chat_reply("552 - %s\r\n",error->message);
+		smtp_string_reply("552 %s\r\n",error->message);
 		return;
 	}
 	g_io_channel_set_encoding(in, NULL, NULL);
@@ -183,7 +213,7 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
 		
 		if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
-			smtp_chat_reply("452 - %s\r\n",error->message);
+			smtp_string_reply("452 %s\r\n",error->message);
 			g_io_channel_shutdown(out,TRUE,NULL);
 			g_io_channel_unref(in);
 			g_io_channel_unref(out);
@@ -208,10 +238,9 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	
 	/* check header */
 	d = g_slice_new(HL);
-	d->mconn = mconn;
 	d->settings = settings;
 	d->message = message;
-	g_hash_table_foreach(mconn->header_checks,header_check,d);
+	g_hash_table_foreach(settings->header_checks,header_check,d);
 	g_slice_free(HL,d);
 		
 	load_modules(settings,mconn);
@@ -229,7 +258,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	
 	gethostname(hostname,256);
 
-	smtp_chat_reply("220 %s spmfilter\r\n",hostname);
+	smtp_string_reply("220 %s spmfilter\r\n",hostname);
 	
 	do {
 		memset(line, 0, sizeof(line));
@@ -242,7 +271,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 		if (g_ascii_strncasecmp(line,"quit",4)==0) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'quit' received"); 
-			smtp_chat_reply(CODE_221);
+			smtp_code_reply(settings,221);
 			break;
 		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
 			if (settings->debug)
@@ -250,7 +279,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			mconn->helo = get_substring("^HELO\\s(.*)$",line, 1);
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->helo: %s",mconn->helo);
-			smtp_chat_reply("250 %s\r\n",hostname);
+			smtp_string_reply("250 %s\r\n",hostname);
 			state = ST_HELO;
 		} else if (g_ascii_strncasecmp(line, "ehlo", 4)==0) {
 			if (settings->debug)
@@ -258,7 +287,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			mconn->helo = get_substring("^EHLO\\s(.*)$",line,1);
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->helo: %s",mconn->helo);
-			smtp_chat_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 DSN\r\n",hostname);
+			smtp_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 DSN\r\n",hostname);
 			state = ST_HELO;
 		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
 			if (settings->debug)
@@ -266,15 +295,15 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			mconn->xforward_addr = get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->xforward_addr: %s",mconn->xforward_addr);
-			smtp_chat_reply(CODE_250);
+			smtp_code_reply(settings,250);
 		} else if (g_ascii_strncasecmp(line, "xforward proto", 13)==0) {
-			smtp_chat_reply(CODE_250);
+			smtp_code_reply(settings,250);
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'mail from' received");
 			state = ST_MAIL;
 			mconn->from = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
-			smtp_chat_reply(CODE_250);
+			smtp_code_reply(settings,250);
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->from: %s",mconn->from);
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
@@ -282,7 +311,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 				syslog(LOG_DEBUG,"SMTP: 'rcpt to' received");
 			state = ST_RCPT;
 			mconn->rcpt = g_slist_append(mconn->rcpt,get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1));
-			smtp_chat_reply(CODE_250);
+			smtp_code_reply(settings,250);
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->rcpt[%d]: %s",
 					g_slist_length(mconn->rcpt)-1,
@@ -298,15 +327,15 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			g_slice_free(MAILCONN,mconn);
 			mconn = g_slice_new (MAILCONN);
 			state = ST_INIT;
-			smtp_chat_reply(CODE_250);
+			smtp_code_reply(settings,250);
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'noop' received");
-			smtp_chat_reply(CODE_250);
+			smtp_code_reply(settings,250);
 		} else if (g_ascii_strcasecmp(line,"")!=0){
 			if(settings->debug)
 				syslog(LOG_DEBUG,"got wtf");
-			smtp_chat_reply(CODE_500);
+			smtp_code_reply(settings,500);
 		} else {
 			break;
 		}

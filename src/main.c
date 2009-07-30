@@ -8,21 +8,130 @@
 
 typedef int (*LoadEngine) (SETTINGS *settings, MAILCONN *mconn);
 
-int main (int argc, char *argv[]) {
+int parse_config(SETTINGS *settings) {
+	GError *error = NULL;
+	GKeyFile *keyfile;
+	HEADER *header;
+	gchar **header_keys, **code_keys;
+	gsize modules_length = 0;
+	gsize header_length = 0;
+	gsize codes_length = 0;
+	char *code_msg;
+	int i;
+
+	if (settings->config_file == NULL) {
+		settings->config_file = "/etc/spmfilter.conf";
+	}
+	keyfile = g_key_file_new ();
+	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
+		printf("Error loading config: %s\n",error->message);
+		return -1;
+	}
+	
+	if (!settings->debug) 
+		settings->debug = g_key_file_get_boolean(keyfile, "global", "debug", NULL);
+	
+	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
+	if (settings->engine == NULL) {
+		printf("%s\n", error->message);
+		return -1;
+	}
+	
+	settings->spool_dir = g_key_file_get_string(keyfile, "global", "spool_dir",NULL);
+	if (settings->spool_dir == NULL) 
+		settings->spool_dir = "/var/spool/spmfilter";
+	
+	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
+	if (settings->modules == NULL) {
+		printf("%s\n",error->message);
+		return -1;
+	} 
+	
+	settings->module_fail = g_key_file_get_integer(keyfile, "global", "module_fail",NULL);
+	if (!settings->module_fail) {
+		settings->module_fail = 3;
+	}
+	
+	settings->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
+	if (settings->nexthop == NULL) {
+		printf("%s\n", error->message);
+		return -1;
+	}
+	
+	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "global", "nexthop_fail_code", NULL);
+	if (!settings->nexthop_fail_code) {
+		/* nexthop_fail_code not configured, now we use default vaules */
+		settings->nexthop_fail_code = 451;
+	}
+	
+	settings->nexthop_fail_msg = g_key_file_get_string(keyfile, "global", "nexthop_fail_msg", NULL);
+	if (settings->nexthop_fail_msg == NULL) {
+		/* nexthop_fail_msg not configured, now we use default vaules */
+		settings->nexthop_fail_msg = "Requested action aborted: local error in processing";
+	}
+
+	if (settings->debug) {
+		syslog(LOG_DEBUG, "settings->debug: %d", settings->debug);
+		syslog(LOG_DEBUG, "settings->engine: %s", settings->engine);
+		syslog(LOG_DEBUG, "settings->spool_dir: %s", settings->spool_dir);
+		for(i = 0; settings->modules[i] != NULL; i++) {
+			syslog(LOG_DEBUG, "settings->modules: %s", settings->modules[i]);
+		}
+		syslog(LOG_DEBUG, "settings->module_fail: %d", settings->module_fail);
+		syslog(LOG_DEBUG, "settings->nexthop: %s", settings->nexthop);
+		syslog(LOG_DEBUG, "settings->nexthop_fail_code: %d", settings->nexthop_fail_code);
+		syslog(LOG_DEBUG, "settings->nexthop_fail_msg: %s", settings->nexthop_fail_msg);
+	}
+
+	/* search all header checks values */
+	header_keys = g_key_file_get_keys(keyfile,"header_checks",&header_length,NULL);
+	settings->header_checks = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
+	
+	while (header_length--) {
+		header = g_slice_new (HEADER);
+		header->name = g_key_file_get_string(keyfile, "header_checks", header_keys[header_length],NULL);
+
+		g_hash_table_insert(
+			settings->header_checks,
+			g_strdup(header_keys[header_length]),
+			header);
+		if (settings->debug) 
+			syslog(LOG_DEBUG,
+				"settings->header_checks: append %s=%s",
+				header_keys[header_length],
+				header->name);
+	}
+	g_strfreev(header_keys);
+	
+	code_keys = g_key_file_get_keys(keyfile,"smtp_codes",&codes_length,NULL);
+	settings->smtp_codes = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
+	while (codes_length--) {
+		code_msg = g_key_file_get_string(keyfile, "smtp_codes", code_keys[codes_length],NULL);
+		g_hash_table_insert(
+			settings->smtp_codes,
+			g_strdup(code_keys[codes_length]),
+			code_msg
+			);
+		if (settings->debug)
+			syslog(LOG_DEBUG,
+			"settings->smtp_codes: append %s=%s",
+			code_keys[codes_length],code_msg);
+		free(code_msg);
+	}
+	g_strfreev(code_keys);
+	return 0;
+}
+
+int main(int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *context;
-	GKeyFile *keyfile;
-	gsize modules_length = 0;
 	SETTINGS *settings;
 	MAILCONN *mconn;
-	HEADER *header;
 	clock_t start_process, stop_process;
 	GModule *module;
 	LoadEngine load_engine;
 	gchar *engine_path;
-	gchar **header_keys;
-	gsize header_length = 0;
-	int i, ret;
+	int ret;
 	
 	openlog("spmfilter", LOG_PID,LOG_MAIL);
 	
@@ -57,84 +166,8 @@ int main (int argc, char *argv[]) {
 		return 0;
 	}
 	
-	
-	/* read config */
-	if (settings->config_file == NULL) {
-		settings->config_file = "/etc/spmfilter.conf";
-	}
-	keyfile = g_key_file_new ();
-	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
-		printf("Error loading config: %s\n",error->message);
+	if (parse_config(settings)!=0) 
 		return -1;
-	}
-	
-	if (!settings->debug) 
-		settings->debug = g_key_file_get_boolean(keyfile, "global", "debug", NULL);
-	
-	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
-	if (settings->engine == NULL) {
-		printf("%s\n", error->message);
-		return -1;
-	}
-	
-	mconn->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
-	if (mconn->nexthop == NULL) {
-		printf("%s\n", error->message);
-		return -1;
-	}
-	
-	mconn->nexthop_fail_code = g_key_file_get_integer(keyfile, "global", "nexthop_fail_code", NULL);
-	if (!mconn->nexthop_fail_code) {
-		/* nexthop_fail_code not configured, now we use default vaules */
-		mconn->nexthop_fail_code = 451;
-	}
-	
-	mconn->nexthop_fail_msg = g_key_file_get_string(keyfile, "global", "nexthop_fail_msg", NULL);
-	if (mconn->nexthop_fail_msg == NULL) {
-		/* nexthop_fail_msg not configured, now we use default vaules */
-		mconn->nexthop_fail_msg = "Requested action aborted: local error in processing";
-	}
-	
-	
-	settings->spool_dir = g_key_file_get_string(keyfile, "global", "spool_dir",NULL);
-	if (settings->spool_dir == NULL) 
-		settings->spool_dir = "/var/spool/spmfilter";
-	
-	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
-	if (settings->modules == NULL) {
-		printf("%s\n",error->message);
-		return -1;
-	} else {
-		if (settings->debug) {
-			for(i = 0; settings->modules[i] != NULL; i++)
-				syslog(LOG_DEBUG,"added module %s\n",settings->modules[i]);
-		}
-	} 
-	
-	settings->module_fail = g_key_file_get_integer(keyfile, "global", "module_fail",NULL);
-	if (!settings->module_fail) {
-		settings->module_fail = 3;
-	}
-
-	header_keys = g_key_file_get_keys(keyfile,"header_checks",&header_length,NULL);
-	mconn->header_checks = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
-	
-	while (header_length--) {
-		header = g_slice_new (HEADER);
-		header->name = g_key_file_get_string(keyfile, "header_checks", header_keys[header_length],NULL);
-
-		g_hash_table_insert(
-			mconn->header_checks,
-			g_strdup(header_keys[header_length]),
-			header);
-		if (settings->debug) 
-			syslog(LOG_DEBUG,
-				"mconn->header_checks: added %s:%s",
-				header_keys[header_length],
-				header->name);
-	}
-
-	g_strfreev(header_keys);
 	
 	/* initialize runtime_data hashtable */
 	mconn->runtime_data = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
@@ -154,8 +187,7 @@ int main (int argc, char *argv[]) {
 		return -1;
 	}
 	
-	
-	if (!g_module_symbol (module, "load", (gpointer *)&load_engine)) {
+	if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
 		printf("%s", g_module_error ());
 		return -1;
 	}
