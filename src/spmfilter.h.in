@@ -13,7 +13,6 @@
 #define CODE_500 "500 Eh? WTF was that?\r\n"
 #define CODE_552 "552 Requested action aborted: local error in processing\r\n"
 
-
 typedef struct {
 	gboolean debug;
 	char *config_file;
