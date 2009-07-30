@@ -79,23 +79,15 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 
 		ret = load_module(settings,mconn); 
 		if (ret == -1) {
-			g_module_close (module);
+			if (!g_module_close(module))
+				syslog(LOG_ERR,"%s\n", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
 				case 2: smtp_chat_reply(CODE_552);
-						if (!g_module_close(module))
-							syslog(LOG_ERR,"%s\n", g_module_error());
-						g_free(path);
 						return;
 				case 3: smtp_chat_reply(CODE_451);
-						if (!g_module_close(module))
-							syslog(LOG_ERR,"%s\n", g_module_error());
-						g_free(path);
 						return;
 				case 4: smtp_chat_reply(CODE_250_ACCEPTED);
-						if (!g_module_close(module))
-							syslog(LOG_ERR,"%s\n", g_module_error());
-						g_free(path);
 						return;
 			}
 			return;
