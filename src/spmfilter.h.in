@@ -6,7 +6,7 @@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
-#define CODE_221 "221 Goodbye. Please recommend us to others!\r\n";
+#define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
 #define CODE_250 "250 OK\r\n"
 #define CODE_250_ACCEPTED "250 OK message accepted\r\n"
 #define CODE_451 "451 Requested action aborted: local error in processing\r\n"
