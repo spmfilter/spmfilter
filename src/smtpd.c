@@ -53,27 +53,25 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		}
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"%s\n", g_module_error ());
+			syslog(LOG_ERR,"%s\n", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
-				case 2: smtp_chat_reply("552 - Requested action aborted: local error in processing\r\n");
+				case 2: smtp_chat_reply(CODE_552);
 						return;
-				case 3: smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+				case 3: smtp_chat_reply(CODE_451);
 						return;
 			}
 			return;
 		}
 
 
-		if (!g_module_symbol (module, "load", (gpointer *)&load_module)) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"%s\n", g_module_error ());
+		if (!g_module_symbol(module, "load", (gpointer *)&load_module)) {
+			syslog(LOG_ERR,"%s\n", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
-				case 2: smtp_chat_reply("552 - Requested action aborted: local error in processing\r\n");
+				case 2: smtp_chat_reply(CODE_552);
 						return;
-				case 3: smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+				case 3: smtp_chat_reply(CODE_451);
 						return;
 			}
 			return;
@@ -84,22 +82,32 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			g_module_close (module);
 			switch (settings->module_fail) {
 				case 1: continue;
-				case 2: smtp_chat_reply("552 - Requested action aborted: local error in processing\r\n");
+				case 2: smtp_chat_reply(CODE_552);
+						if (!g_module_close(module))
+							syslog(LOG_ERR,"%s\n", g_module_error());
+						g_free(path);
 						return;
-				case 3: smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+				case 3: smtp_chat_reply(CODE_451);
+						if (!g_module_close(module))
+							syslog(LOG_ERR,"%s\n", g_module_error());
+						g_free(path);
+						return;
+				case 4: smtp_chat_reply(CODE_250_ACCEPTED);
+						if (!g_module_close(module))
+							syslog(LOG_ERR,"%s\n", g_module_error());
+						g_free(path);
 						return;
 			}
 			return;
 		} else if (ret == 1) {
-			g_module_close (module);
-			smtp_chat_reply("250 OK - message accepted\r\n");
+			if (!g_module_close(module))
+				syslog(LOG_ERR,"%s\n", g_module_error());
+			smtp_chat_reply(CODE_250_ACCEPTED);
 			break;
 		}
 
-		if (!g_module_close (module)) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"%s\n", g_module_error ());
-		}
+		if (!g_module_close(module))
+			syslog(LOG_ERR,"%s\n", g_module_error());
 		
 		g_free(path);
 	}
@@ -118,7 +126,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		g_slice_free(MESSAGE,msg);
 	}
 	
-	smtp_chat_reply("250 OK - message accepted\r\n");
+	smtp_chat_reply(CODE_250_ACCEPTED);
 	return;
 }
 
@@ -140,7 +148,7 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	if (g_mkstemp(tempname) == -1) {
 		g_free(tempname);
 		syslog(LOG_ERR,"Can't create spooling file");
-		smtp_chat_reply("451 - Requested action aborted: local error in processing\r\n");
+		smtp_chat_reply(CODE_451);
 		return;
 	}
 	mconn->queue_file = g_strdup(tempname);
@@ -227,7 +235,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 		if (g_ascii_strncasecmp(line,"quit",4)==0) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'quit' received");
-			smtp_chat_reply("221 Goodbye. Please recommend us to others!\r\n");
+			smtp_chat_reply(CODE_221);
 			break;
 		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
 			if (settings->debug)
@@ -251,15 +259,15 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			mconn->xforward_addr = get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->xforward_addr: %s",mconn->xforward_addr);
-			smtp_chat_reply("250 Ok\r\n");
+			smtp_chat_reply(CODE_250);
 		} else if (g_ascii_strncasecmp(line, "xforward proto", 13)==0) {
-			smtp_chat_reply("250 Ok\r\n");
+			smtp_chat_reply(CODE_250);
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'mail from' received");
 			state = ST_MAIL;
 			mconn->from = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
-			smtp_chat_reply("250 Ok\r\n");
+			smtp_chat_reply(CODE_250);
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->from: %s",mconn->from);
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
@@ -267,7 +275,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 				syslog(LOG_DEBUG,"SMTP: 'rcpt to' received");
 			state = ST_RCPT;
 			mconn->rcpt = g_slist_append(mconn->rcpt,get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1));
-			smtp_chat_reply("250 Ok\r\n");
+			smtp_chat_reply(CODE_250);
 			if (settings->debug)
 				syslog(LOG_DEBUG,"mconn->rcpt[%d]: %s",
 					g_slist_length(mconn->rcpt)-1,
@@ -283,15 +291,15 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			g_slice_free(MAILCONN,mconn);
 			mconn = g_slice_new (MAILCONN);
 			state = ST_INIT;
-			smtp_chat_reply("250 Reset OK\r\n");
+			smtp_chat_reply(CODE_250);
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
 			if (settings->debug)
 				syslog(LOG_DEBUG,"SMTP: 'noop' received");
-			smtp_chat_reply("220 OK\r\n");
+			smtp_chat_reply(CODE_250);
 		} else if (g_ascii_strcasecmp(line,"")!=0){
 			if(settings->debug)
 				syslog(LOG_DEBUG,"got wtf");
-			smtp_chat_reply("500 Eh? WTF was that?\r\n");
+			smtp_chat_reply(CODE_500);
 		} else {
 			break;
 		}
