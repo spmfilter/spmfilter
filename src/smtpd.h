@@ -9,9 +9,17 @@
 #define ST_DATA 4
 #define ST_QUIT 5
 
+#define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
+#define CODE_250 "250 OK\r\n"
+#define CODE_250_ACCEPTED "250 OK message accepted\r\n"
+#define CODE_451 "451 Requested action aborted: local error in processing\r\n"
+#define CODE_500 "500 Eh? WTF was that?\r\n"
+#define CODE_552 "552 Requested action aborted: local error in processing\r\n"
+
 typedef int (*LoadMod) (SETTINGS *settings, MAILCONN *mconn);
 
 int load(SETTINGS *settings, MAILCONN *mconn);
-void smtp_chat_reply(const char *format, ...);
+void smtp_string_reply(const char *format, ...);
+void smtp_code_reply(SETTINGS *settings,int code);
 
 #endif /* __SMTPD_H */
