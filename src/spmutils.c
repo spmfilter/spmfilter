@@ -27,7 +27,7 @@ void header_check (gpointer k, gpointer v, gpointer user_data) {
 	GList *keys, *l;
 	HEADER *header;
 
-	header = g_hash_table_lookup(header_lookup->mconn->header_checks,k);
+	header = g_hash_table_lookup(header_lookup->settings->header_checks,k);
 	header->value = g_mime_message_get_header(header_lookup->message,header->name);
 	if (header->value != NULL) {
 		if (header_lookup->settings->debug) {

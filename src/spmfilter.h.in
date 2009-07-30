@@ -6,13 +6,6 @@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
-#define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
-#define CODE_250 "250 OK\r\n"
-#define CODE_250_ACCEPTED "250 OK message accepted\r\n"
-#define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_500 "500 Eh? WTF was that?\r\n"
-#define CODE_552 "552 Requested action aborted: local error in processing\r\n"
-
 typedef struct {
 	gboolean debug;
 	char *config_file;
@@ -20,7 +13,15 @@ typedef struct {
 	char *spool_dir;
 	gchar **modules;
 	int module_fail;
+	char *nexthop;
+	int nexthop_fail_code;
+	char *nexthop_fail_msg;
 	
+	/* hash table for headers */
+	GHashTable *header_checks;
+	
+	/* hash table for smtp codes */
+	GHashTable *smtp_codes;
 } SETTINGS;
 
 typedef struct {
@@ -50,16 +51,10 @@ typedef struct {
 	
 	/* xfoward */
 	char *xforward_addr;
-
-	/* hash table for headers */
-	GHashTable *header_checks;
-	
-	char *nexthop;
-	int nexthop_fail_code;
-	char *nexthop_fail_msg;
 	
 	/* hash table for runtime data */
 	GHashTable *runtime_data;
+	
 } MAILCONN;
 
 typedef struct {
@@ -70,7 +65,6 @@ typedef struct {
 
 typedef struct {
 	SETTINGS *settings;
-	MAILCONN *mconn;
 	gchar *line;
 	GMimeMessage *message;
 } HL;

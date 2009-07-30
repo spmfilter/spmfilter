@@ -70,14 +70,14 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		g_free(path);
 	}
 	
-	if (mconn->nexthop != NULL ) {
+	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
 		msg->from = g_strdup(mconn->from);
 		msg->rcpt = mconn->rcpt;
 		msg->message_file = g_strdup(mconn->queue_file);
-		msg->nexthop = g_strup(mconn->nexthop);
+		msg->nexthop = g_strup(settings->nexthop);
 		if (smtp_delivery(settings, msg) != 0) {
-			syslog(LOG_ERR,"delivery to %s failed!",mconn->nexthop);
+			syslog(LOG_ERR,"delivery to %s failed!",settings->nexthop);
 			return -1;
 		}
 		g_slice_free(MESSAGE,msg);
@@ -168,10 +168,9 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	
 	/* check header */
 	d = g_slice_new(HL);
-	d->mconn = mconn;
 	d->settings = settings;
 	d->message = message;
-	g_hash_table_foreach(mconn->header_checks,header_check,d);
+	g_hash_table_foreach(settings->header_checks,header_check,d);
 	g_slice_free(HL,d);
 	
 	if (load_modules(settings,mconn) != 0) {
