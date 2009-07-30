@@ -53,6 +53,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		}
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
+			g_free(path);
 			syslog(LOG_ERR,"%s\n", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
@@ -63,9 +64,9 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			}
 			return;
 		}
-
 
 		if (!g_module_symbol(module, "load", (gpointer *)&load_module)) {
+			g_free(path);
 			syslog(LOG_ERR,"%s\n", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
@@ -77,25 +78,39 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			return;
 		}
 
+		/* module return codes:
+		 * -1 = Error in processing, spmfilter will send 4xx Error to MTA
+		 * 0 = All ok, the next plugin will be started.
+		 * 1 = Further processing will be stopped, no other plugin will 
+		 *     be startet. spmfilter sends a 250 code
+		 * 2 = Further processing will be stopped. Email is not going
+		 *     to be delivered to nexthop!
+		 */
 		ret = load_module(settings,mconn); 
 		if (ret == -1) {
 			if (!g_module_close(module))
 				syslog(LOG_ERR,"%s\n", g_module_error());
+			g_free(path);
 			switch (settings->module_fail) {
 				case 1: continue;
 				case 2: smtp_chat_reply(CODE_552);
 						return;
 				case 3: smtp_chat_reply(CODE_451);
-						return;
-				case 4: smtp_chat_reply(CODE_250_ACCEPTED);
 						return;
 			}
 			return;
 		} else if (ret == 1) {
 			if (!g_module_close(module))
 				syslog(LOG_ERR,"%s\n", g_module_error());
+			g_free(path);
 			smtp_chat_reply(CODE_250_ACCEPTED);
 			break;
+		} else if (ret == 2) {
+			if (!g_module_close(module))
+				syslog(LOG_ERR,"%s\n", g_module_error());
+			g_free(path);
+			smtp_chat_reply(CODE_250_ACCEPTED);
+			return;
 		}
 
 		if (!g_module_close(module))
@@ -226,7 +241,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 		
 		if (g_ascii_strncasecmp(line,"quit",4)==0) {
 			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'quit' received");
+				syslog(LOG_DEBUG,"SMTP: 'quit' received"); 
 			smtp_chat_reply(CODE_221);
 			break;
 		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
