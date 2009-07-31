@@ -141,6 +141,13 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			g_free(path);
 			smtp_string_reply(CODE_250_ACCEPTED);
 			return;
+		} else if (ret >= 400) {
+			if (!g_module_close(module))
+				syslog(LOG_ERR,"%s\n", g_module_error());
+			g_free(path);
+				
+			smtp_code_reply(settings,ret);
+			return;
 		}
 
 		if (!g_module_close(module))
@@ -334,7 +341,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 			smtp_code_reply(settings,250);
 		} else if (g_ascii_strcasecmp(line,"")!=0){
 			if(settings->debug)
-				syslog(LOG_DEBUG,"got wtf");
+				syslog(LOG_DEBUG,"SMTP: wtf?!");
 			smtp_code_reply(settings,500);
 		} else {
 			break;
