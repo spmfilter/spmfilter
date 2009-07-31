@@ -57,18 +57,6 @@ int parse_config(SETTINGS *settings) {
 		printf("%s\n", error->message);
 		return -1;
 	}
-	
-	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "global", "nexthop_fail_code", NULL);
-	if (!settings->nexthop_fail_code) {
-		/* nexthop_fail_code not configured, now we use default vaules */
-		settings->nexthop_fail_code = 451;
-	}
-	
-	settings->nexthop_fail_msg = g_key_file_get_string(keyfile, "global", "nexthop_fail_msg", NULL);
-	if (settings->nexthop_fail_msg == NULL) {
-		/* nexthop_fail_msg not configured, now we use default vaules */
-		settings->nexthop_fail_msg = "Requested action aborted: local error in processing";
-	}
 
 	if (settings->debug) {
 		syslog(LOG_DEBUG, "settings->debug: %d", settings->debug);
@@ -79,11 +67,9 @@ int parse_config(SETTINGS *settings) {
 		}
 		syslog(LOG_DEBUG, "settings->module_fail: %d", settings->module_fail);
 		syslog(LOG_DEBUG, "settings->nexthop: %s", settings->nexthop);
-		syslog(LOG_DEBUG, "settings->nexthop_fail_code: %d", settings->nexthop_fail_code);
-		syslog(LOG_DEBUG, "settings->nexthop_fail_msg: %s", settings->nexthop_fail_msg);
 	}
 
-	/* search all header checks values */
+	/* header_checks group */
 	header_keys = g_key_file_get_keys(keyfile,"header_checks",&header_length,NULL);
 	settings->header_checks = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 	
@@ -103,20 +89,41 @@ int parse_config(SETTINGS *settings) {
 	}
 	g_strfreev(header_keys);
 	
-	code_keys = g_key_file_get_keys(keyfile,"smtp_codes",&codes_length,NULL);
+	/* smtpd group */
+	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
+	if (!settings->nexthop_fail_code) {
+		/* nexthop_fail_code not configured, now we use default vaules */
+		settings->nexthop_fail_code = 451;
+	}
+	
+	settings->nexthop_fail_msg = g_key_file_get_string(keyfile, "smtpd", "nexthop_fail_msg", NULL);
+	if (settings->nexthop_fail_msg == NULL) {
+		/* nexthop_fail_msg not configured, now we use default vaules */
+		settings->nexthop_fail_msg = "Requested action aborted: local error in processing";
+	}
+	
+	if (settings->debug) {
+		syslog(LOG_DEBUG, "settings->nexthop_fail_code: %d", settings->nexthop_fail_code);
+		syslog(LOG_DEBUG, "settings->nexthop_fail_msg: %s", settings->nexthop_fail_msg);
+	}
+	
+	code_keys = g_key_file_get_keys(keyfile,"smtpd",&codes_length,NULL);
 	settings->smtp_codes = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 	while (codes_length--) {
-		code_msg = g_key_file_get_string(keyfile, "smtp_codes", code_keys[codes_length],NULL);
-		g_hash_table_insert(
-			settings->smtp_codes,
-			g_strdup(code_keys[codes_length]),
-			code_msg
-			);
-		if (settings->debug)
-			syslog(LOG_DEBUG,
-			"settings->smtp_codes: append %s=%s",
-			code_keys[codes_length],code_msg);
-		free(code_msg);
+		/* only insert smtp codes to hashtable */
+		if (g_regex_match_simple("^\\d{3}$",code_keys[codes_length],0,0)) {
+			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
+			g_hash_table_insert(
+				settings->smtp_codes,
+				g_strdup(code_keys[codes_length]),
+				code_msg
+				);
+			if (settings->debug)
+				syslog(LOG_DEBUG,
+				"settings->smtp_codes: append %s=%s",
+				code_keys[codes_length],code_msg);
+			free(code_msg);
+		}
 	}
 	g_strfreev(code_keys);
 	return 0;
