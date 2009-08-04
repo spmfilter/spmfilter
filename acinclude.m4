@@ -1,8 +1,3 @@
-AC_DEFUN([SPMFILTER_SET_VERSION], [
-	spmfilter_version=`cat VERSION`
-	AC_DEFINE_UNQUOTED([SPMFILTER_VERSION], "$spmfilter_version", [Includes the micro version])
-])
-
 AC_DEFUN([SPMFILTER_CHECK_ESMTP], [
 AC_PATH_PROG(esmtpconfig,libesmtp-config)
 if test [ -z "$esmtpconfig" ]
@@ -29,6 +24,20 @@ else
 	LDFLAGS="$LDFLAGS $ac_esmtp_libs"
 	AC_MSG_RESULT([yes])
 fi
+])
+
+AC_DEFUN([SPMFILTER_CHECK_GLIB_VERSION], [
+	GLIB2_MIN_VERSION=2.14
+	AC_MSG_CHECKING([glib is at least version $GLIB2_MIN_VERSION])
+	if $PKG_CONFIG --atleast-version $GLIB2_MIN_VERSION glib-2.0
+	then
+		AC_MSG_RESULT([yes])
+	else
+		AC_MSG_RESULT([no])
+		PKG_CHECK_MODULES([pcre],[libpcre >= 6.0])
+		CFLAGS="$CFLAGS $pcre_CFLAGS"
+		LDFLAGS="$LDFLAGS $pcre_LIBS"
+	fi
 ])
 
 AC_DEFUN([SPMFILTER_QUEUE_CHECK], [
