@@ -4,6 +4,10 @@
 #define QUEUE_DIR "@SPMFILTER_QUEUE_DIR@"
 #define LIB_DIR "@LIBDIR@"
 
+#define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
+	+ GLIB_MINOR_VERSION * 100 \
+	+ GLIB_MICRO_VERSION)
+
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
 typedef struct {
