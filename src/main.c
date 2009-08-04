@@ -17,7 +17,7 @@ int parse_config(SETTINGS *settings) {
 	gsize header_length = 0;
 	gsize codes_length = 0;
 	char *code_msg;
-	int i;
+	int i, code;
 
 	if (settings->config_file == NULL) {
 		settings->config_file = "/etc/spmfilter.conf";
@@ -111,7 +111,8 @@ int parse_config(SETTINGS *settings) {
 	settings->smtp_codes = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 	while (codes_length--) {
 		/* only insert smtp codes to hashtable */
-		if (g_regex_match_simple("^\\d{3}$",code_keys[codes_length],0,0)) {
+		code =g_ascii_strtod(code_keys[codes_length],NULL);
+		if (code > 400 & code < 600) {
 			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
 			g_hash_table_insert(
 				settings->smtp_codes,
