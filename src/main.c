@@ -11,10 +11,8 @@ typedef int (*LoadEngine) (SETTINGS *settings, MAILCONN *mconn);
 int parse_config(SETTINGS *settings) {
 	GError *error = NULL;
 	GKeyFile *keyfile;
-	HEADER *header;
-	gchar **header_keys, **code_keys;
+	gchar **code_keys;
 	gsize modules_length = 0;
-	gsize header_length = 0;
 	gsize codes_length = 0;
 	char *code_msg;
 	int i, code;
@@ -68,26 +66,6 @@ int parse_config(SETTINGS *settings) {
 		syslog(LOG_DEBUG, "settings->module_fail: %d", settings->module_fail);
 		syslog(LOG_DEBUG, "settings->nexthop: %s", settings->nexthop);
 	}
-
-	/* header_checks group */
-	header_keys = g_key_file_get_keys(keyfile,"header_checks",&header_length,NULL);
-	settings->header_checks = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
-	
-	while (header_length--) {
-		header = g_slice_new (HEADER);
-		header->name = g_key_file_get_string(keyfile, "header_checks", header_keys[header_length],NULL);
-
-		g_hash_table_insert(
-			settings->header_checks,
-			g_strdup(header_keys[header_length]),
-			header);
-		if (settings->debug) 
-			syslog(LOG_DEBUG,
-				"settings->header_checks: append %s=%s",
-				header_keys[header_length],
-				header->name);
-	}
-	g_strfreev(header_keys);
 	
 	/* smtpd group */
 	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
