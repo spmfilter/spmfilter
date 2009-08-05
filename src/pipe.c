@@ -95,7 +95,6 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
-	HL *d;
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	
@@ -165,13 +164,6 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 				g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
 		ia = internet_address_list_next(ia);
 	}
-	
-	/* check header */
-	d = g_slice_new(HL);
-	d->settings = settings;
-	d->message = message;
-	g_hash_table_foreach(settings->header_checks,header_check,d);
-	g_slice_free(HL,d);
 	
 	if (load_modules(settings,mconn) != 0) {
 		remove(mconn->queue_file);

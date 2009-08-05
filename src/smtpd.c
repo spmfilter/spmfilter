@@ -183,7 +183,6 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
-	HL *d;
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	
@@ -242,14 +241,7 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	g_mime_stream_seek(gmin,0,0);
 	parser = g_mime_parser_new_with_stream (gmin);
 	g_object_unref(gmin);
-	
-	/* check header */
-	d = g_slice_new(HL);
-	d->settings = settings;
-	d->message = message;
-	g_hash_table_foreach(settings->header_checks,header_check,d);
-	g_slice_free(HL,d);
-		
+			
 	load_modules(settings,mconn);
 	
 	remove(mconn->queue_file);
