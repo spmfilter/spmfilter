@@ -111,10 +111,10 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		/* module return codes:
 		 * -1 = Error in processing, spmfilter will send 4xx Error to MTA
 		 * 0 = All ok, the next plugin will be started.
-		 * 1 = Further processing will be stopped, no other plugin will 
-		 *     be startet. spmfilter sends a 250 code
-		 * 2 = Further processing will be stopped. Email is not going
+		 * 1 = Further processing will be stopped. Email is not going
 		 *     to be delivered to nexthop!
+		 * 2 = Further processing will be stopped, no other plugin will 
+		 *     be startet. spmfilter sends a 250 code
 		 */
 		ret = load_module(settings,mconn); 
 		if (ret == -1) {
@@ -134,13 +134,13 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 				syslog(LOG_ERR,"%s\n", g_module_error());
 			g_free(path);
 			smtp_string_reply(CODE_250_ACCEPTED);
-			break;
+			return;
 		} else if (ret == 2) {
 			if (!g_module_close(module))
 				syslog(LOG_ERR,"%s\n", g_module_error());
 			g_free(path);
 			smtp_string_reply(CODE_250_ACCEPTED);
-			return;
+			break;
 		} else if (ret >= 400) {
 			if (!g_module_close(module))
 				syslog(LOG_ERR,"%s\n", g_module_error());
