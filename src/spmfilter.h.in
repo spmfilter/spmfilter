@@ -21,9 +21,6 @@ typedef struct {
 	int nexthop_fail_code;
 	char *nexthop_fail_msg;
 	
-	/* hash table for headers */
-	GHashTable *header_checks;
-	
 	/* hash table for smtp codes */
 	GHashTable *smtp_codes;
 } SETTINGS;
@@ -62,17 +59,10 @@ typedef struct {
 } MAILCONN;
 
 typedef struct {
-	const char *name;
-	const char *value;
-} HEADER;
-
-
-typedef struct {
 	SETTINGS *settings;
 	gchar *line;
 	GMimeMessage *message;
 } HL;
 
 char* get_substring(const char *pattern, const char *haystack, int pos);
-void header_check(gpointer k, gpointer v, gpointer user_data);
 int smtp_devlier(SETTINGS *settings, MESSAGE *msg_data);
