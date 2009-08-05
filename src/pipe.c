@@ -153,8 +153,18 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	mconn->from = get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
 	if (settings->debug)
 		syslog(LOG_DEBUG,"mconn->from: %s",mconn->from);
-	
+
+
+#if (GMIME_VERSION >= 20205)	
+	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
 	ia = g_mime_message_get_all_recipients(message);
+#else
+	ia = (InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_TO);
+	internet_address_list_concat(ia,
+		(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_CC));
+	internet_address_list_concat(ia,
+		(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_BCC)); 
+#endif
 	while(ia) {
 		addr = internet_address_list_get_address(ia);
 		mconn->rcpt = g_slist_append(mconn->rcpt,get_substring(EMAIL_EXTRACT, internet_address_get_addr(addr), 1));

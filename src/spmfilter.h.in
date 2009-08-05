@@ -8,6 +8,10 @@
 	+ GLIB_MINOR_VERSION * 100 \
 	+ GLIB_MICRO_VERSION)
 
+#define GMIME_VERSION (gmime_major_version * 10000 \
+	+ gmime_minor_version * 100 \
+	+ gmime_micro_version)
+
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
 typedef struct {
