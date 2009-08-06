@@ -69,4 +69,6 @@ typedef struct {
 } HL;
 
 char* get_substring(const char *pattern, const char *haystack, int pos);
-int smtp_devlier(SETTINGS *settings, MESSAGE *msg_data);
+GMimeMessage *get_message(char *message_path);
+const char *get_header(MAILCONN *mconn, char *header_name);
+int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data);

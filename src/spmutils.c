@@ -1,9 +1,12 @@
 #include <string.h>
 #include <syslog.h>
 #include <glib.h>
+#include <stdio.h>
+#include <fcntl.h>
 #if (GLIB2_VERSION < 21400)
 #include <pcre.h>
 #endif
+#include <gmime/gmime.h>
 
 #include "spmfilter.h"
 
@@ -30,9 +33,7 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 	int ovector[30];
 	const char *strptr;
 	char *value;
-	char *line;
 
-//	line = g_strdup(haystack);
 	re = pcre_compile(pattern, PCRE_CASELESS, &error, &erroffset, NULL);
 	if(re == NULL) {
 		syslog(LOG_NOTICE, "pcre_match : failed to compile pattern %s", pattern);
@@ -48,7 +49,49 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 	if (strptr != NULL)
 		free((char *) strptr);
 
-//	g_free(line);
 	return value;
 #endif
+}
+
+GMimeMessage *get_message(char *message_path) {
+	GMimeMessage *message = NULL;
+	GMimeParser *parser;
+	GMimeStream *stream;
+	int fd;
+	
+	g_mime_init(0);
+	
+	if ((fd = open (message_path, O_RDONLY)) == -1)
+		return message;
+
+	stream = g_mime_stream_fs_new (fd);
+	parser = g_mime_parser_new_with_stream (stream);
+	g_object_unref (stream);
+
+	message = g_mime_parser_construct_message (parser);
+	
+	return message;
+}
+
+const char *get_header(MAILCONN *mconn, char *header_name) {
+	GMimeMessage *message;
+	const char *header_value = NULL;
+#if (GMIME_VERSION >= 20300)	
+	/* g_mime_message_get_header was renamed to 
+	 * g_mime_object_get_header in 2.3
+	 */
+	GMimeObject *object;
+	
+	message = get_message(mconn->queue_file);
+	object = g_mime_message_get_mime_part(message);
+	if (message!=NULL) {
+		header_value = g_mime_object_get_header(object,header_name);
+#else
+	message = get_message(mconn->queue_file);
+	if (message!=NULL) {
+		header_value = g_mime_message_get_header(message,header_name);
+#endif
+	} 
+	g_object_unref(message);
+	return header_value;
 }
