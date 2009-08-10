@@ -12,8 +12,8 @@
 
 char *get_substring(const char *pattern, const char *haystack, int pos) {
 #if (GLIB2_VERSION >= 21400)
-	GRegex *re;
-	GMatchInfo *match_info;
+	GRegex *re = NULL;
+	GMatchInfo *match_info = NULL;
 	char *value = NULL;
 
 	re = g_regex_new(pattern, G_REGEX_CASELESS, 0, NULL);
