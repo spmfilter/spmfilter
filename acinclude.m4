@@ -26,6 +26,26 @@ else
 fi
 ])
 
+AC_DEFUN([SPMFILTER_CHECK_GMIME], [
+	AC_REQUIRE([AC_PROG_AWK])
+	PKG_CHECK_MODULES(gmime24, gmime-2.4 >= 2.4, 
+	[
+		CFLAGS="$CFLAGS $gmime24_CFLAGS"
+		LDFLAGS="$LDFLAGS $gmime24_LIBS"
+		modver=`$PKG_CONFIG --modversion gmime-2.4`
+	],
+	[
+		PKG_CHECK_MODULES(gmime, gmime-2.0 >= 2.0)
+		CFLAGS="$CFLAGS $gmime_CFLAGS"
+		LDFLAGS="$LDFLAGS $gmime_LIBS"
+		modver=`$PKG_CONFIG --modversion gmime-2.0`
+	])
+	gmime_major=`echo $modver | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\1/'`
+	gmime_minor=`echo $modver | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\2/'`
+	gmime_micro=`echo $modver | sed 's/\([[0-9]]*\).\([[0-9]]*\).\([[0-9]]*\)/\3/'`
+	GMIME_VERSION=`echo $gmime_major*10000+$gmime_minor*100+$gmime_micro|bc`
+])
+
 AC_DEFUN([SPMFILTER_CHECK_GLIB_VERSION], [
 	GLIB2_MIN_VERSION=2.14
 	AC_MSG_CHECKING([glib is at least version $GLIB2_MIN_VERSION])
