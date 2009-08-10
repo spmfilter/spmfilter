@@ -20,5 +20,6 @@ SPMFILTER_LIB_DIR
 
 AC_SUBST(SPMFILTER_QUEUE_DIR)
 AC_SUBST(GMIME_VERSION)
+AC_SUBST(PKGCONFIG_GMIME)
 AC_SUBST([LIBDIR], [${pkglibdir}])
 AC_OUTPUT(Makefile src/Makefile src/spmfilter.h src/libspmfilter.pc man/Makefile)

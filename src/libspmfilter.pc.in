@@ -8,6 +8,6 @@ Name: libspmfilter
 Version: @VERSION@
 Description: Core libraries of spmfilter
 URL: http://www.space.net
-Requires: glib-2.0
+Requires: glib-2.0,@PKGCONFIG_GMIME@
 Libs: -L${libdir}/spmfilter -lspmfilter
 Cflags: -I${includedir}/spmfilter
