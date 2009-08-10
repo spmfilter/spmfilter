@@ -184,7 +184,6 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	}
 #endif
 	
-	
 	if (load_modules(settings,mconn) != 0) {
 		remove(mconn->queue_file);
 		if(settings->debug)
