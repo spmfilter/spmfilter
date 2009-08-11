@@ -83,9 +83,8 @@ const char *get_header(MAILCONN *mconn, char *header_name) {
 	GMimeObject *object;
 	
 	message = get_message(mconn->queue_file);
-	object = g_mime_message_get_mime_part(message);
 	if (message!=NULL) {
-		header_value = g_mime_object_get_header(object,header_name);
+		header_value = g_mime_object_get_header(GMIME_OBJECT(message),header_name);
 #else
 	message = get_message(mconn->queue_file);
 	if (message!=NULL) {
