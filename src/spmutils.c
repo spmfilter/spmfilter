@@ -76,7 +76,7 @@ GMimeMessage *get_message(char *msg_path) {
 const char *get_header(char *msg_path, char *header_name) {
 	GMimeMessage *message;
 	const char *header_value = NULL;
-#ifdef GMIME24
+#ifdef HAVE_GMIME24
 	/* g_mime_message_get_header was renamed to 
 	 * g_mime_object_get_header in 2.3
 	 */
