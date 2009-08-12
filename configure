@@ -20469,7 +20469,6 @@ $as_echo "yes" >&6; }
 fi
 		CFLAGS="$CFLAGS $gmime_CFLAGS"
 		LDFLAGS="$LDFLAGS $gmime_LIBS"
-		GMIME24=0
 		PKGCONFIG_GMIME=gmime-2.0
 
 elif test $pkg_failed = untried; then
@@ -20583,7 +20582,6 @@ $as_echo "yes" >&6; }
 fi
 		CFLAGS="$CFLAGS $gmime_CFLAGS"
 		LDFLAGS="$LDFLAGS $gmime_LIBS"
-		GMIME24=0
 		PKGCONFIG_GMIME=gmime-2.0
 
 else
@@ -20594,7 +20592,10 @@ $as_echo "yes" >&6; }
 
 		CFLAGS="$CFLAGS $gmime24_CFLAGS"
 		LDFLAGS="$LDFLAGS $gmime24_LIBS"
-		GMIME24=1
+		cat >>confdefs.h <<\_ACEOF
+#define HAVE_GMIME24 1
+_ACEOF
+
 		PKGCONFIG_GMIME=gmime-2.4
 
 fi
