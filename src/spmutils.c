@@ -53,7 +53,7 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 #endif
 }
 
-GMimeMessage *get_message(char *message_path) {
+GMimeMessage *get_message(char *msg_path) {
 	GMimeMessage *message = NULL;
 	GMimeParser *parser;
 	GMimeStream *stream;
@@ -61,36 +61,70 @@ GMimeMessage *get_message(char *message_path) {
 	
 	g_mime_init(0);
 	
-	if ((fd = open (message_path, O_RDONLY)) == -1)
+	if ((fd = open (msg_path, O_RDONLY)) == -1)
 		return message;
 
-	stream = g_mime_stream_fs_new (fd);
-	parser = g_mime_parser_new_with_stream (stream);
+	stream = g_mime_stream_fs_new(fd);
+	parser = g_mime_parser_new_with_stream(stream);
 	g_object_unref (stream);
 
-	message = g_mime_parser_construct_message (parser);
-	
+	message = g_mime_parser_construct_message(parser);
+	close(fd);
 	return message;
 }
 
-const char *get_header(MAILCONN *mconn, char *header_name) {
+const char *get_header(char *msg_path, char *header_name) {
 	GMimeMessage *message;
 	const char *header_value = NULL;
-#if (GMIME_VERSION >= 20300)	
+#ifdef GMIME24
 	/* g_mime_message_get_header was renamed to 
 	 * g_mime_object_get_header in 2.3
 	 */
 	GMimeObject *object;
 	
-	message = get_message(mconn->queue_file);
+	message = get_message(msg_path);
 	if (message!=NULL) {
 		header_value = g_mime_object_get_header(GMIME_OBJECT(message),header_name);
+	}
 #else
-	message = get_message(mconn->queue_file);
+	message = get_message(msg_path);
 	if (message!=NULL) {
 		header_value = g_mime_message_get_header(message,header_name);
+	}
 #endif
-	} 
+	 
 	g_object_unref(message);
 	return header_value;
+}
+
+int set_header(char *msg_path, char *header_name, char *header_value) {
+	GMimeMessage *message = NULL;
+	GMimeStream *stream;
+	int fd;
+	
+	g_mime_init(0);
+	
+	message = get_message(msg_path);
+	
+#ifdef GMIME24	
+	GMimeObject *object;
+	
+	if (message!=NULL) {
+		g_mime_object_set_header((GMimeObject *) message,header_name,header_value);
+		if ((fd = open (msg_path, O_WRONLY)) == -1)
+			return -1;
+
+		stream = g_mime_stream_fs_new(fd);
+		g_mime_object_write_to_stream((GMimeObject *) message,stream);
+		g_mime_stream_reset(stream);
+		
+		g_object_unref (stream);
+		close(fd);
+	} else 
+		return -1;
+#else
+
+#endif
+
+	return 0;
 }

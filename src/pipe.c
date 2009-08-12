@@ -156,7 +156,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 		syslog(LOG_DEBUG,"mconn->from: %s",mconn->from);
 
 	
-#if GMIME_VERSION >= 20205
+#ifdef GMIME24
 	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
 	ia = g_mime_message_get_all_recipients(message);
 	for (i=0; i < internet_address_list_length(ia); i++) {
@@ -185,12 +185,12 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 #endif
 	
 	if (load_modules(settings,mconn) != 0) {
-		remove(mconn->queue_file);
+//		remove(mconn->queue_file);
 		if(settings->debug)
 			syslog(LOG_DEBUG,"removing spool file %s",mconn->queue_file);
 		return -1;
 	} else {
-		remove(mconn->queue_file);
+//		remove(mconn->queue_file);
 		if(settings->debug)
 			syslog(LOG_DEBUG,"removing spool file %s",mconn->queue_file);
 		return 0;

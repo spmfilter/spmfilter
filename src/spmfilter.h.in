@@ -8,7 +8,7 @@
 	+ GLIB_MINOR_VERSION * 100 \
 	+ GLIB_MICRO_VERSION)
 
-#define GMIME_VERSION @GMIME_VERSION@
+#define GMIME24 @GMIME24@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
@@ -68,5 +68,8 @@ typedef struct {
 
 char* get_substring(const char *pattern, const char *haystack, int pos);
 GMimeMessage *get_message(char *message_path);
-const char *get_header(MAILCONN *mconn, char *header_name);
+
+const char *get_header(char *msg_path, char *header_name);
+int set_header(char *msg_path, char *header_name, char *header_value);
+
 int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data);
