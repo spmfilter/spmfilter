@@ -8,10 +8,6 @@
 	+ GLIB_MINOR_VERSION * 100 \
 	+ GLIB_MICRO_VERSION)
 
-#ifdef HAVE_GMIME24 
-#define GMIME24 
-#endif
-
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
 typedef struct {
