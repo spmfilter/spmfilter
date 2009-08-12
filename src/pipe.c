@@ -156,7 +156,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 		syslog(LOG_DEBUG,"mconn->from: %s",mconn->from);
 
 	
-#ifdef GMIME24
+#ifdef HAVE_GMIME24
 	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
 	ia = g_mime_message_get_all_recipients(message);
 	for (i=0; i < internet_address_list_length(ia); i++) {
