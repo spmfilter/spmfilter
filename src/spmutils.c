@@ -100,14 +100,11 @@ const char *get_header(char *msg_path, char *header_name) {
 int set_header(char *msg_path, char *header_name, char *header_value) {
 	GMimeMessage *message = NULL;
 	GMimeStream *stream;
+	GMimeObject *object;
 	int fd;
 	
 	g_mime_init(0);
-	
-	message = get_message(msg_path);
-	
-#ifdef GMIME24	
-	GMimeObject *object;
+	message = get_message(msg_path);	
 	
 	if (message!=NULL) {
 		g_mime_object_set_header((GMimeObject *) message,header_name,header_value);
@@ -122,9 +119,6 @@ int set_header(char *msg_path, char *header_name, char *header_value) {
 		close(fd);
 	} else 
 		return -1;
-#else
-
-#endif
 
 	return 0;
 }
