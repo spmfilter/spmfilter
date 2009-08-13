@@ -64,8 +64,10 @@ typedef struct {
 	GMimeMessage *message;
 } HL;
 
+char *gen_queue_file(void);
 char* get_substring(const char *pattern, const char *haystack, int pos);
-GMimeMessage *get_message(char *message_path);
+//GMimeMessage *get_message(char *message_path);
+static GMimeMessage *parse_message(int fd);
 
 const char *get_header(char *msg_path, char *header_name);
 int set_header(char *msg_path, char *header_name, char *header_value);

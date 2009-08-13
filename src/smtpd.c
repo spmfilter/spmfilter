@@ -175,7 +175,6 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 }
 
 void process_data(SETTINGS *settings, MAILCONN *mconn) {
-	char *tempname;
 	GIOChannel *in, *out;
 	GMimeStream *gmin;
 	GMimeMessage *message;
@@ -186,15 +185,7 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	
-	/* create spooling file */
-	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",QUEUE_DIR);
-	if (g_mkstemp(tempname) == -1) {
-		g_free(tempname);
-		syslog(LOG_ERR,"Can't create spooling file");
-		smtp_code_reply(settings,451);
-		return;
-	}
-	mconn->queue_file = g_strdup(tempname);
+	mconn->queue_file = gen_queue_file();
 	
 	if (settings->debug)
 		syslog(LOG_DEBUG,"using spool file: '%s'", mconn->queue_file);

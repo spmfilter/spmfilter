@@ -132,6 +132,8 @@ int main(int argc, char *argv[]) {
 		
 	}
 	
+	g_mime_init(0);
+	
 	mconn = g_slice_new(MAILCONN);
 
 	settings = g_slice_new(SETTINGS);
@@ -193,7 +195,7 @@ int main(int argc, char *argv[]) {
 	g_slist_free(mconn->rcpt);
 	g_slice_free(MAILCONN,mconn);
 	g_free(engine_path);
-	
+	g_mime_shutdown();
 	if (ret != 0) {
 		return -1;
 	} else {
