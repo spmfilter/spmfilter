@@ -185,12 +185,12 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 #endif
 	
 	if (load_modules(settings,mconn) != 0) {
-//		remove(mconn->queue_file);
+		remove(mconn->queue_file);
 		if(settings->debug)
 			syslog(LOG_DEBUG,"removing spool file %s",mconn->queue_file);
 		return -1;
 	} else {
-//		remove(mconn->queue_file);
+		remove(mconn->queue_file);
 		if(settings->debug)
 			syslog(LOG_DEBUG,"removing spool file %s",mconn->queue_file);
 		return 0;

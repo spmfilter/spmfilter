@@ -64,22 +64,35 @@ char *gen_queue_file(void) {
 	return tempname;	
 }
 
-static GMimeMessage *parse_message(int fd) {
+static GMimeMessage *parse_message(char *msg_path) {
 	GMimeMessage *message = NULL;
 	GMimeParser *parser;
 	GMimeStream *stream;
+	int fd;
+
+	if ((fd = open(msg_path, O_RDONLY)) == -1) {
+		syslog(LOG_ERR, "Cannot open message `%s': %s\n", msg_path, strerror (errno));
+		return NULL;
+	}
 	
-	stream = g_mime_stream_fs_new (dup (fd));
+	stream = g_mime_stream_fs_new(dup(fd));
 	parser = g_mime_parser_new_with_stream (stream);
-	g_object_unref (stream);
+	g_object_unref(stream);
 	message = g_mime_parser_construct_message (parser);
 	g_object_unref (parser);
-	
+	close(fd);
 	return message;
 }
 
-int write_message(int fd, GMimeMessage *message) {
+int write_message(char *msg_path, GMimeMessage *message) {
 	GMimeStream *stream;
+	int fd;
+	
+	if ((fd = open(msg_path, O_CREAT|O_WRONLY)) == -1) {
+		syslog(LOG_ERR, "Cannot open message `%s': %s", msg_path, strerror(errno));
+		return -1;
+	}
+	
 	stream = g_mime_stream_fs_new(fd);
 	if (g_mime_object_write_to_stream((GMimeObject *) message, stream) == -1) {
 		return -1;
@@ -90,53 +103,32 @@ int write_message(int fd, GMimeMessage *message) {
 	}
 	g_mime_stream_close(stream);
 	g_object_unref(stream);
-	
+	close(fd);
 	return 0;
 }
 
 const char *get_header(char *msg_path, char *header_name) {
 	GMimeMessage *message;
 	const char *header_value = NULL;
-	int fd;
-#ifdef HAVE_GMIME24
-	GMimeObject *object;
-#endif
-
-	if ((fd = open(msg_path, O_RDONLY)) == -1) {
-		syslog(LOG_ERR, "Cannot open message `%s': %s\n", msg_path, strerror (errno));
-		return NULL;
-	}
-
-#ifdef HAVE_GMIME24
-	message = parse_message(fd);
-	close (fd);
+	
+	message = parse_message(msg_path);
 	if (message!=NULL) {
+#ifdef HAVE_GMIME24
 		header_value = g_mime_object_get_header(GMIME_OBJECT(message),header_name);
-	}
 #else
-	message = parse_message(fd);
-	close (fd);
-	if (message!=NULL) {
 		header_value = g_mime_message_get_header(message,header_name);
-	}
 #endif
-	 
+	}
+	
 	g_object_unref(message);
 	return header_value;
 }
 
 int set_header(char *msg_path, char *header_name, char *header_value) {
 	GMimeMessage *message = NULL;
-	int fd;
 	char *tmp_file;
-	
-	if ((fd = open(msg_path, O_RDONLY)) == -1) {
-		syslog(LOG_ERR, "Cannot open message `%s': %s\n", msg_path, strerror (errno));
-		return -1;
-	}
-	
-	message = parse_message(fd);
-	close(fd);
+
+	message = parse_message(msg_path);
 	
 	if (message!=NULL) {
 #ifdef HAVE_GMIME24
@@ -146,17 +138,8 @@ int set_header(char *msg_path, char *header_name, char *header_value) {
 #endif
 		tmp_file = gen_queue_file();
 		
-		if ((fd = open(tmp_file, O_CREAT|O_WRONLY)) == -1) {
-			syslog(LOG_ERR, "Cannot open message `%s': %s", msg_path, strerror(errno));
+		if (write_message(tmp_file,message) != 0) 
 			return -1;
-		}
-		
-		if (write_message(fd,message) != 0) {
-			syslog(LOG_ERR, "Cannot write to stream");
-			close(fd);
-			return -1;
-		}
-		close(fd);
 	} else 
 		return -1;
 
