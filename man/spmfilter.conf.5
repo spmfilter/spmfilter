@@ -84,6 +84,10 @@ This parameter specifies the final destination, after a mail is processed
 by spmfilter. The value can be a hostname or IP address, with a port number,
 e.g. localhost:2525 to send filtered mails to localhost at port 2525.
 
+.SS "The [smtpd] section"
+.P
+Parameters in this section affect the smtpd engine and smtp delivery.
+
 .IP "\fBnexthop_fail_code\fR"
 If the delivery to the final destination fails for any reason, this code is 
 used as response to the sending MTA (default 451).
@@ -93,25 +97,14 @@ If the delivery to the final destination fails for any reason, this message
 is used as reponse for the sending MTA.
 (default "Requested action aborted: local error in processing").
 
-
-.SS "The [header_checks] section"
-.P
-If a \fB[header_checks]\fR section occurs in the configuration file, spmfilter
-will check all headers of a mail for a match. If a match is found, the 
-value will be stored. A typical \fB[header_checks]\fR entry looks like this:
+If you ever need to define SMTP response messages for other error codes, such as 500, than it's possible to configure
+these in the smtpd section. The following example will configure spmfilter to send the message "Customized error message" 
+with a 500 error code:
 
 .nf
-[header_checks]
-example=X-Example
+[smtpd]
+500=Customized error message.
 .fi
-
-spmfilter will search for a header called 
-\fBX-Example\fR
-and the value is stored in the 
-\fBheader_checks\fR
-HashTable of the 
-\fBMAILCONN\fR
-structure.
 
 .SH "EXAMPLE"
 .P
@@ -123,9 +116,6 @@ engine = smtpd
 debug = true
 modules=dkim;spam
 nexthop = localhost:2525
-
-[header_cheks]
-example=X-Example
 .fi 
  
 
@@ -144,7 +134,7 @@ http://www.spmfilter.org
 
 .SH "SEE ALSO" 
 .P
-spmfilter(1), spmfilter(3)
+spmfilter(1)
 
 .SH "AUTHOR(s)" 
 .P
