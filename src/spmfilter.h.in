@@ -64,11 +64,61 @@ typedef struct {
 	GMimeMessage *message;
 } HL;
 
+/* 
+ * Generate a new queue file name
+ */
 char *gen_queue_file(void);
+
+
 char* get_substring(const char *pattern, const char *haystack, int pos);
+
+/*
+ * Parse a message file on disk and return a GMimeMessage object
+ *
+ * msg_path: path to message file
+ */
 static GMimeMessage *parse_message(char *msg_path);
+
+/*
+ * Write a message to disk
+ *
+ * msg_path: path for the new message file
+ * message: GMimeMessage object
+ */
 int write_message(char *msg_path, GMimeMessage *message);
+
+/* 
+ * Gets the value of the requested header if it exists or NULL otherwise.
+ *
+ * msg_path: path to message or queue file
+ * header_name: name of the wanted header
+ */
 const char *get_header(char *msg_path, char *header_name);
+
+/*
+ * Adds an arbitrary header to the message, returns 0 on success.
+ * 
+ * msg_path: path to message or queue file
+ * header_name: name of the new header
+ * header_value: value for the new header
+ */
+int add_header(char *msg_path, char *header_name, char *header_value);
+
+/*
+ * Sets an arbitrary header, returns 0 on success.
+ * 
+ * msg_path: path to message or queue file
+ * header_name: name of the header
+ * header_value: new value for the header
+ */
 int set_header(char *msg_path, char *header_name, char *header_value);
+
+/*
+ * Removed the specified header if it exists, returns 0 on success
+ *
+ * msg_path: path to message or queue_file
+ * header_name: name of the header
+ */
+int remove_header(char *msg_path, char *header_name);
 
 int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data);
