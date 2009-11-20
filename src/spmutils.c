@@ -54,6 +54,9 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 #endif
 }
 
+/* 
+ * Generate a new queue file name
+ */
 char *gen_queue_file(void) {
 	char *tempname = NULL;
 	
@@ -64,6 +67,11 @@ char *gen_queue_file(void) {
 	return tempname;	
 }
 
+/*
+ * Parse a message file on disk and return a GMimeMessage object
+ *
+ * msg_path: path to message file
+ */
 static GMimeMessage *parse_message(char *msg_path) {
 	GMimeMessage *message = NULL;
 	GMimeParser *parser;
@@ -84,6 +92,12 @@ static GMimeMessage *parse_message(char *msg_path) {
 	return message;
 }
 
+/*
+ * Write a message to disk
+ *
+ * msg_path: path for the new message file
+ * message: GMimeMessage object
+ */
 int write_message(char *msg_path, GMimeMessage *message) {
 	GMimeStream *stream;
 	int fd;
@@ -107,6 +121,12 @@ int write_message(char *msg_path, GMimeMessage *message) {
 	return 0;
 }
 
+/* 
+ * Gets the value of the requested header if it exists or NULL otherwise.
+ *
+ * msg_path: path to message or queue file
+ * header_name: name of the wanted header
+ */
 const char *get_header(char *msg_path, char *header_name) {
 	GMimeMessage *message;
 	const char *header_value = NULL;
@@ -124,7 +144,14 @@ const char *get_header(char *msg_path, char *header_name) {
 	return header_value;
 }
 
-int set_header(char *msg_path, char *header_name, char *header_value) {
+/*
+ * Adds an arbitrary header to the message, returns 0 on success.
+ * 
+ * msg_path: path to message or queue file
+ * header_name: name of the new header
+ * header_value: value for the new header
+ */
+int add_header(char *msg_path, char *header_name, char *header_value) {
 	GMimeMessage *message = NULL;
 	char *tmp_file;
 
@@ -136,6 +163,69 @@ int set_header(char *msg_path, char *header_name, char *header_value) {
 #else
 		g_mime_message_add_header(message,header_name,header_value);
 #endif
+		tmp_file = gen_queue_file();
+		
+		if (write_message(tmp_file,message) != 0) 
+			return -1;
+	} else 
+		return -1;
+
+	g_remove(msg_path);
+	g_rename(tmp_file,msg_path);
+	g_free(tmp_file);
+	
+	g_object_unref(message);
+	return 0;
+}
+
+/*
+ * Sets an arbitrary header, returns 0 on success.
+ * 
+ * msg_path: path to message or queue file
+ * header_name: name of the header
+ * header_value: new value for the header
+ */
+int set_header(char *msg_path, char *header_name, char *header_value) {
+	GMimeMessage *message = NULL;
+	char *tmp_file;
+
+	message = parse_message(msg_path);
+	
+	if (message!=NULL) {
+#ifdef HAVE_GMIME24
+		g_mime_object_set_header((GMimeObject *) message,header_name,header_value);
+#else
+		g_mime_message_set_header(message,header_name,header_value);
+#endif
+		tmp_file = gen_queue_file();
+		
+		if (write_message(tmp_file,message) != 0) 
+			return -1;
+	} else 
+		return -1;
+
+	g_remove(msg_path);
+	g_rename(tmp_file,msg_path);
+	g_free(tmp_file);
+	
+	g_object_unref(message);
+	return 0;
+}
+
+/*
+ * Removed the specified header if it exists, returns 0 on success
+ *
+ * msg_path: path to message or queue_file
+ * header_name: name of the header
+ */
+int remove_header(char *msg_path, char *header_name) {
+	GMimeMessage *message = NULL;
+	char *tmp_file;
+
+	message = parse_message(msg_path);
+	
+	if (message!=NULL) {
+		g_mime_object_remove_header((GMimeObject *)message,header_name);
 		tmp_file = gen_queue_file();
 		
 		if (write_message(tmp_file,message) != 0) 
