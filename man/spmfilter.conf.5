@@ -97,6 +97,7 @@ If the delivery to the final destination fails for any reason, this message
 is used as reponse for the sending MTA.
 (default "Requested action aborted: local error in processing").
 
+.P
 If you ever need to define SMTP response messages for other error codes, such as 500, than it's possible to configure
 these in the smtpd section. The following example will configure spmfilter to send the message "Customized error message" 
 with a 500 error code:
