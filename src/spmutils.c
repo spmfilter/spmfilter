@@ -62,7 +62,8 @@ char *gen_queue_file(void) {
 	
 	/* create spooling file */
 	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",QUEUE_DIR);
-	g_mkstemp(tempname);
+	if(g_mkstemp(tempname) == -1)
+		return NULL;
 	
 	return tempname;	
 }
