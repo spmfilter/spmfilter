@@ -186,6 +186,12 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	InternetAddress *addr;
 	
 	mconn->queue_file = gen_queue_file();
+	if (mconn->queue_file == NULL) {
+		syslog(LOG_ERR,"failed to create spool file!");
+		smtp_code_reply(settings,552);
+		return;
+	}
+		
 	
 	if (settings->debug)
 		syslog(LOG_DEBUG,"using spool file: '%s'", mconn->queue_file);
