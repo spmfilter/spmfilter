@@ -70,6 +70,42 @@ fi
 ])
 
 
+AC_DEFUN([SPMFILTER_CHECK_ZDB], [
+
+AC_ARG_WITH(zdb,
+	[  --with-zdb=PATH        path to libzdb base directory (e.g. /usr/local or /usr)],
+	[lookforzdb="$withval"],[lookforzdb="no"])
+
+	
+	if test [ "x$lookforzdb" != "xno" ] ; then
+		if test [ "x$withval" = "x" ] ; then
+			CFLAGS="$CFLAGS -I${prefix}/include/zdb"
+		else
+			CFLAGS="$CFLAGS -I${lookforzdb}/include/zdb"
+		fi
+	
+		AC_CHECK_HEADERS([URL.h ResultSet.h PreparedStatement.h Connection.h ConnectionPool.h SQLException.h],
+			[ZDBLIB="-lzdb"], 
+			[ZDBLIB="failed"],
+			[[
+#include <URL.h>
+#include <ResultSet.h>
+#include <PreparedStatement.h>
+#include <Connection.h>
+#include <ConnectionPool.h>
+#include <SQLException.h>       
+			]])
+
+			
+			if test [ "x$ZDBLIB" = "xfailed" ]; then
+				AC_MSG_ERROR([Could not find ZDB library.])
+			else
+				LDFLAGS="$LDFLAGS $ZDBLIB"
+			fi
+	fi
+	
+])
+
 AC_DEFUN([SPMFILTER_LIB_DIR], [
 if test `eval echo x$libdir` != xNONE/lib
 then
