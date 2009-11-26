@@ -22,7 +22,7 @@ int parse_config(SETTINGS *settings) {
 	}
 	keyfile = g_key_file_new ();
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
-		printf("Error loading config: %s\n",error->message);
+		syslog(LOG_ERR,"Error loading config: %s\n",error->message);
 		return -1;
 	}
 	
@@ -31,7 +31,7 @@ int parse_config(SETTINGS *settings) {
 	
 	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
 	if (settings->engine == NULL) {
-		printf("%s\n", error->message);
+		syslog(LOG_ERR, "Config error: %s\n", error->message);
 		return -1;
 	}
 	
@@ -41,7 +41,7 @@ int parse_config(SETTINGS *settings) {
 	
 	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
 	if (settings->modules == NULL) {
-		printf("%s\n",error->message);
+		syslog(LOG_ERR, "Config error: %s\n", error->message);
 		return -1;
 	} 
 	
@@ -52,9 +52,23 @@ int parse_config(SETTINGS *settings) {
 	
 	settings->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
 	if (settings->nexthop == NULL) {
-		printf("%s\n", error->message);
+		syslog(LOG_ERR, "Config error: %s\n", error->message);
 		return -1;
 	}
+
+#ifdef HAVE_ZDB
+	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
+	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", NULL);
+	settings->sql_host = g_key_file_get_string(keyfile, "sql", "host", NULL);
+	settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
+	settings->sql_user = g_key_file_get_string(keyfile, "sql", "user", NULL);
+	settings->sql_pass = g_key_file_get_string(keyfile, "sql", "pass", NULL);
+	settings->sql_user_query = g_key_file_get_string(keyfile, "sql", "user_query", NULL);
+	settings->sql_encoding = g_key_file_get_string(keyfile, "sql", "encoding", NULL);
+	settings->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
+	if (!settings->sql_max_connections)
+		settings->sql_max_connections = 3;
+#endif
 
 	if (settings->debug) {
 		syslog(LOG_DEBUG, "settings->debug: %d", settings->debug);
@@ -65,6 +79,18 @@ int parse_config(SETTINGS *settings) {
 		}
 		syslog(LOG_DEBUG, "settings->module_fail: %d", settings->module_fail);
 		syslog(LOG_DEBUG, "settings->nexthop: %s", settings->nexthop);
+
+#ifdef HAVE_ZDB
+		syslog(LOG_DEBUG, "settings->sql_driver: %s", settings->sql_driver);
+		syslog(LOG_DEBUG, "settings->sql_name: %s", settings->sql_name);
+		syslog(LOG_DEBUG, "settings->sql_host: %s", settings->sql_host);
+		syslog(LOG_DEBUG, "settings->sql_port: %d", settings->sql_port);
+		syslog(LOG_DEBUG, "settings->sql_user: %s", settings->sql_user);
+		syslog(LOG_DEBUG, "settings->sql_pass: %s", settings->sql_pass);
+		syslog(LOG_DEBUG, "settings->sql_user_query: %s", settings->sql_user_query);
+		syslog(LOG_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
+		syslog(LOG_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
+#endif 	
 	}
 	
 	/* smtpd group */
@@ -105,6 +131,7 @@ int parse_config(SETTINGS *settings) {
 		}
 	}
 	g_strfreev(code_keys);
+	
 	return 0;
 }
 

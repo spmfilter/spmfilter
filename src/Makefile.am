@@ -11,7 +11,7 @@ pkginclude_HEADERS = spmfilter.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libspmfilter.pc
 
-COMMON = spmutils.c smtp.c
+COMMON = spmutils.c smtp.c sql_lookup.c
 libspmfilter_la_SOURCES = $(COMMON)
 libspmfilter_la_LDFLAGS = $(AM_LDFLAGS)
 libspmfilter_la_LIBADD = @LTLIBOBJS@

@@ -1,6 +1,15 @@
 #include <glib.h>
 #include <gmime/gmime.h>
 
+#ifdef HAVE_ZDB
+#include <URL.h>
+#include <ResultSet.h>
+#include <PreparedStatement.h>
+#include <Connection.h>
+#include <ConnectionPool.h>
+#include <SQLException.h>
+#endif
+
 #define QUEUE_DIR "@SPMFILTER_QUEUE_DIR@"
 #define LIB_DIR "@LIBDIR@"
 
@@ -9,6 +18,8 @@
 	+ GLIB_MICRO_VERSION)
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
+#define MATCH(x,y) strcasecmp((x),(y))==0
+#define FIELDSIZE 1024
 
 typedef struct {
 	gboolean debug;
@@ -23,6 +34,20 @@ typedef struct {
 	
 	/* hash table for smtp codes */
 	GHashTable *smtp_codes;
+	
+#ifdef HAVE_ZDB
+	char *sql_driver;
+	char *sql_name;
+	char *sql_host;
+	int sql_port;
+	char *sql_user;
+	char *sql_pass;
+	char *encoding;
+	char *sql_user_query;
+	char *sql_encoding;
+	int sql_max_connections;
+	ConnectionPool_T sql_pool;
+#endif
 } SETTINGS;
 
 typedef struct {
@@ -122,3 +147,7 @@ int set_header(char *msg_path, char *header_name, char *header_value);
 int remove_header(char *msg_path, char *header_name);
 
 int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data);
+
+#ifdef HAVE_ZDB
+void bla();
+#endif
