@@ -11934,16 +11934,18 @@ fi
 done
 
 
-
 			if test  "x$ZDBLIB" = "xfailed" ; then
 				{ { $as_echo "$as_me:$LINENO: error: Could not find ZDB library." >&5
 $as_echo "$as_me: error: Could not find ZDB library." >&2;}
    { (exit 1); exit 1; }; }
 			else
 				LDFLAGS="$LDFLAGS $ZDBLIB"
+				cat >>confdefs.h <<\_ACEOF
+#define HAVE_ZDB 1
+_ACEOF
+
 			fi
 	fi
-
 
 
 
