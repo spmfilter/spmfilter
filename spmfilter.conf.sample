@@ -4,6 +4,13 @@ debug = true
 modules = dkim;spam
 nexthop = localhost:2525
 
+# If one module fails, there are 3 options:
+# 1 = proceed and ignore
+# 2 = cancel further processing and return permanet error
+# 3 = cancel further processing and return temporary error (default)
+module_fail = 2
+
+[smtpd]
 # The fail code is used as response code for the 
 # sending MTA, if delivery to nexthop fails (default 451) 
 nexthop_fail_code = 451
@@ -12,8 +19,3 @@ nexthop_fail_code = 451
 # to the sending MTA with fail code. 
 nexthop_fail_msg = Requested action aborted: local error in processing
 
-# If one module fails, there are 3 options:
-# 1 = proceed and ignore
-# 2 = cancel further processing and return permanet error
-# 3 = cancel further processing and return temporary error (default)
-module_fail = 2

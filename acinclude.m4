@@ -96,11 +96,11 @@ AC_ARG_WITH(zdb,
 #include <SQLException.h>       
 			]])
 
-			
 			if test [ "x$ZDBLIB" = "xfailed" ]; then
 				AC_MSG_ERROR([Could not find ZDB library.])
 			else
 				LDFLAGS="$LDFLAGS $ZDBLIB"
+				AC_DEFINE([HAVE_ZDB])
 			fi
 	fi
 	
