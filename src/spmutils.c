@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #if (GLIB2_VERSION < 21400)
 #include <pcre.h>
 #endif
@@ -240,4 +242,26 @@ int remove_header(char *msg_path, char *header_name) {
 	
 	g_object_unref(message);
 	return 0;
+}
+
+/*
+ * Generates a unique maildir filename
+ */
+char *get_maildir_filename(void) {
+	char *filename;
+	char hostname[256];
+	struct timeval starttime;
+	struct stat attributes;
+	
+	GETTIMEOFDAY(&starttime);
+	gethostname(hostname,256);
+	
+	filename = g_strdup_printf("%lu.V%lxI%lxM%lu.%s",
+		(unsigned long) starttime.tv_sec,
+		(unsigned long) attributes.st_dev,
+		(unsigned long) attributes.st_ino,
+		(unsigned long) starttime.tv_usec,
+		hostname);
+	
+	return filename;
 }
