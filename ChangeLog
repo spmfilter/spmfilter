@@ -1,0 +1,4 @@
+2009-11-26 Axel Steiner <ast@treibsand.com>
+	* added new function get_maildir_filename()
+	* added first steps towards generic zdb backend
+	  for user verification

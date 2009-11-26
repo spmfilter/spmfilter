@@ -1,5 +1,6 @@
 #include <glib.h>
 #include <gmime/gmime.h>
+#include <sys/time.h>
 
 #ifdef HAVE_ZDB
 #include <URL.h>
@@ -20,6 +21,7 @@
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 #define MATCH(x,y) strcasecmp((x),(y))==0
 #define FIELDSIZE 1024
+#define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
 typedef struct {
 	gboolean debug;
@@ -148,6 +150,7 @@ int remove_header(char *msg_path, char *header_name);
 
 int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data);
 
-#ifdef HAVE_ZDB
-void bla();
-#endif
+/*
+ * Generates a unique maildir filename
+ */
+char *get_maildir_filename(void);
