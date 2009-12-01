@@ -26,6 +26,7 @@ int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data) {
 		syslog(LOG_DEBUG,"initializing SMTP session");
 	
 	auth_client_init ();	
+	
 	session = smtp_create_session();
 	message = smtp_add_message(session);
 	
@@ -102,14 +103,18 @@ int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data) {
 
 static int authinteract (auth_client_request_t request, char **result, int fields, void *arg) {
 	int i;
-	MESSAGE *msg_data = arg;
 	
+	MESSAGE *msg_data = arg;
 	for (i = 0; i < fields; i++) {
 		if (request[i].flags & AUTH_USER)
-			result[i] = msg_data->auth_user;	
+			result[i] = g_strdup(msg_data->auth_user);	
 		else if (request[i].flags & AUTH_PASS)
-			result[i] = msg_data->auth_pass;
+			result[i] = g_strdup(msg_data->auth_pass);
+		else
+			return 0;
 	}
 
-  return 0;
+  return 1;
 } 
+
+

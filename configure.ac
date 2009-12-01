@@ -1,4 +1,4 @@
-AC_INIT(spmfilter, m4_esyscmd([cat VERSION | tr -d '\n']), ast@treibsand.com, spmfilter)
+AC_INIT(spmfilter, [0.3.0], ast@treibsand.com, spmfilter)
 AC_CONFIG_AUX_DIR(buildtools)
 AC_PREREQ(2.53)
 AC_COPYRIGHT(GNU General Public License)
