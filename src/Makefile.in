@@ -72,7 +72,7 @@ libsmtpd_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(libsmtpd_la_LDFLAGS) $(LDFLAGS) -o $@
 libspmfilter_la_DEPENDENCIES = @LTLIBOBJS@
-am__objects_3 = spmutils.lo smtp.lo sql_lookup.lo
+am__objects_3 = spmutils.lo trace.lo smtp.lo sql_lookup.lo
 am_libspmfilter_la_OBJECTS = $(am__objects_3)
 libspmfilter_la_OBJECTS = $(am_libspmfilter_la_OBJECTS)
 libspmfilter_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
@@ -238,7 +238,7 @@ pkglib_LTLIBRARIES = libspmfilter.la libsmtpd.la libpipe.la
 pkginclude_HEADERS = spmfilter.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libspmfilter.pc
-COMMON = spmutils.c smtp.c sql_lookup.c
+COMMON = spmutils.c trace.c smtp.c sql_lookup.c
 libspmfilter_la_SOURCES = $(COMMON)
 libspmfilter_la_LDFLAGS = $(AM_LDFLAGS)
 libspmfilter_la_LIBADD = @LTLIBOBJS@
@@ -364,6 +364,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/smtpd.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spmutils.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sql_lookup.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/trace.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

@@ -3,12 +3,13 @@
 #include <string.h>
 #include <glib.h>
 #include <gmodule.h>
-#include <syslog.h>
 #include <unistd.h>
 #include <gmime/gmime.h>
 #include <fcntl.h>
 
 #include "spmfilter.h"
+
+#define THIS_MODULE "pipe"
 
 typedef int (*LoadMod) (SETTINGS *settings, MAILCONN *mconn);
 
@@ -20,8 +21,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;
-		if (settings->debug)
-			syslog(LOG_DEBUG,"loading module %s",settings->modules[i]);
+		TRACE(TRACE_DEBUG,"loading module %s",settings->modules[i]);
 		
 		if (g_str_has_prefix(settings->modules[i],"lib")) {
 			path = g_module_build_path(LIB_DIR,settings->modules[i]);
@@ -30,8 +30,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		}
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"%s\n", g_module_error ());
+			TRACE(TRACE_DEBUG,"%s", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
 				default: return -1;
@@ -40,8 +39,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		}
 
 		if (!g_module_symbol (module, "load", (gpointer *)&load_module)) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"%s\n", g_module_error ());
+			TRACE(TRACE_DEBUG,"%s", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
 				default: return -1;
@@ -62,11 +60,9 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			break;
 		}
 
-		if (!g_module_close (module)) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"%s\n", g_module_error ());
-		}
-		
+		if (!g_module_close (module))
+			TRACE(TRACE_ERR,"%s", g_module_error());
+	
 		g_free(path);
 	}
 	
@@ -76,8 +72,8 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		msg->rcpt = mconn->rcpt;
 		msg->message_file = g_strdup(mconn->queue_file);
 		msg->nexthop = g_strup(settings->nexthop);
-		if (smtp_delivery(settings, msg) != 0) {
-			syslog(LOG_ERR,"delivery to %s failed!",settings->nexthop);
+		if (smtp_delivery(msg) != 0) {
+			TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
 			return -1;
 		}
 		g_slice_free(MESSAGE,msg);
@@ -103,18 +99,17 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",QUEUE_DIR);
 	if (g_mkstemp(tempname) == -1) {
 		g_free(tempname);
-		syslog(LOG_ERR,"Can't create spooling file");
+		TRACE(TRACE_ERR,"can't create spooling file");
 		return -1;
 	}
 	mconn->queue_file = g_strdup(tempname);
 	
-	if (settings->debug)
-		syslog(LOG_DEBUG,"using spool file: '%s'", mconn->queue_file);
+	TRACE(TRACE_DEBUG,"using spool file: '%s'", mconn->queue_file);
 		
 	/* start receiving data */
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	if ((out = g_io_channel_new_file(mconn->queue_file,"w", &error)) == NULL) {
-		syslog(LOG_ERR,"%s",error->message);
+		TRACE(TRACE_ERR,"%s",error->message);
 		return -1;
 	}
 	g_io_channel_set_encoding(in, NULL, NULL);
@@ -126,7 +121,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
-			syslog(LOG_ERR,"%s\r\n",error->message);
+			TRACE(TRACE_ERR,"%s",error->message);
 			g_io_channel_shutdown(out,TRUE,NULL);
 			g_io_channel_unref(in);
 			g_io_channel_unref(out);
@@ -143,8 +138,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	g_io_channel_unref(in);
 	g_io_channel_unref(out);
 
-	if (settings->debug)
-		syslog(LOG_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
+	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
 	
 	/* parse email data and fill mconn struct*/
 	g_mime_stream_seek(gmin,0,0);
@@ -152,8 +146,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	g_object_unref(gmin);
 	message = g_mime_parser_construct_message (parser);
 	mconn->from = get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
-	if (settings->debug)
-		syslog(LOG_DEBUG,"mconn->from: %s",mconn->from);
+	TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from);
 
 	
 #ifdef HAVE_GMIME24
@@ -162,10 +155,9 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	for (i=0; i < internet_address_list_length(ia); i++) {
 		addr = internet_address_list_get_address(ia,i);
 		mconn->rcpt = g_slist_append(mconn->rcpt,get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE), 1));
-		if (settings->debug)
-			syslog(LOG_DEBUG,"mconn->rcpt[%d]: %s",
-				g_slist_length(mconn->rcpt)-1,
-				g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
+		TRACE(TRACE_DEBUG,"mconn->rcpt[%d]: %s",
+			g_slist_length(mconn->rcpt)-1,
+			g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
 	}
 #else
 	ia = (InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_TO);
@@ -176,23 +168,20 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	while(ia) {
 		addr = internet_address_list_get_address(ia);
 		mconn->rcpt = g_slist_append(mconn->rcpt,get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE), 1));
-		if (settings->debug)
-			syslog(LOG_DEBUG,"mconn->rcpt[%d]: %s",
-				g_slist_length(mconn->rcpt)-1,
-				g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
+		TRACE(TRACE_DEBUG,"mconn->rcpt[%d]: %s",
+			g_slist_length(mconn->rcpt)-1,
+			g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
 		ia = internet_address_list_next(ia);
 	}
 #endif
 	
 	if (load_modules(settings,mconn) != 0) {
 		remove(mconn->queue_file);
-		if(settings->debug)
-			syslog(LOG_DEBUG,"removing spool file %s",mconn->queue_file);
+		TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 		return -1;
 	} else {
 		remove(mconn->queue_file);
-		if(settings->debug)
-			syslog(LOG_DEBUG,"removing spool file %s",mconn->queue_file);
+		TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 		return 0;
 	}
 }

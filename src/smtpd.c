@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <glib.h>
 #include <gmodule.h>
 #include <gmime/gmime.h>
@@ -11,6 +10,8 @@
 
 #include "spmfilter.h"
 #include "smtpd.h"
+
+#define THIS_MODULE "smtpd"
 
 /* dot-stuffing */
 void stuffing(char chain[]) {
@@ -72,9 +73,8 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	MESSAGE *msg = NULL;
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
-		gchar *path;
-		if (settings->debug)
-			syslog(LOG_DEBUG,"loading module %s",settings->modules[i]);
+		gchar *path;	
+		TRACE(TRACE_DEBUG,"loading module %s",settings->modules[i]);
 		
 		if (g_str_has_prefix(settings->modules[i],"lib")) {
 			path = g_module_build_path(LIB_DIR,settings->modules[i]);
@@ -84,7 +84,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
 			g_free(path);
-			syslog(LOG_ERR,"%s\n", g_module_error());
+			TRACE(TRACE_ERR,"%s", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
 				case 2: smtp_code_reply(settings,552);
@@ -97,7 +97,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 
 		if (!g_module_symbol(module, "load", (gpointer *)&load_module)) {
 			g_free(path);
-			syslog(LOG_ERR,"%s\n", g_module_error());
+			TRACE(TRACE_ERR,"%s", g_module_error());
 			switch (settings->module_fail) {
 				case 1: continue;
 				case 2: smtp_code_reply(settings,552);
@@ -119,7 +119,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		ret = load_module(settings,mconn); 
 		if (ret == -1) {
 			if (!g_module_close(module))
-				syslog(LOG_ERR,"%s\n", g_module_error());
+				TRACE(TRACE_ERR,"%s", g_module_error());
 			g_free(path);
 			switch (settings->module_fail) {
 				case 1: continue;
@@ -131,19 +131,19 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			return;
 		} else if (ret == 1) {
 			if (!g_module_close(module))
-				syslog(LOG_ERR,"%s\n", g_module_error());
+				TRACE(TRACE_ERR,"%s", g_module_error());
 			g_free(path);
 			smtp_string_reply(CODE_250_ACCEPTED);
 			return;
 		} else if (ret == 2) {
 			if (!g_module_close(module))
-				syslog(LOG_ERR,"%s\n", g_module_error());
+				TRACE(TRACE_ERR,"%s", g_module_error());
 			g_free(path);
 			smtp_string_reply(CODE_250_ACCEPTED);
 			break;
 		} else if (ret >= 400) {
 			if (!g_module_close(module))
-				syslog(LOG_ERR,"%s\n", g_module_error());
+				TRACE(TRACE_ERR,"%s", g_module_error());
 			g_free(path);
 				
 			smtp_code_reply(settings,ret);
@@ -151,7 +151,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		}
 
 		if (!g_module_close(module))
-			syslog(LOG_ERR,"%s\n", g_module_error());
+			TRACE(TRACE_ERR,"%s", g_module_error());
 		
 		g_free(path);
 	}
@@ -162,8 +162,8 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		msg->rcpt = mconn->rcpt;
 		msg->message_file = g_strdup(mconn->queue_file);
 		msg->nexthop = g_strup(settings->nexthop);
-		if (smtp_delivery(settings, msg) != 0) {
-			syslog(LOG_ERR,"delivery to %s failed!",settings->nexthop);
+		if (smtp_delivery(msg) != 0) {
+			TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
 			smtp_string_reply(g_strdup_printf("%d %s\r\n",settings->nexthop_fail_code,settings->nexthop_fail_msg));
 			return;
 		}
@@ -187,14 +187,12 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	
 	mconn->queue_file = gen_queue_file();
 	if (mconn->queue_file == NULL) {
-		syslog(LOG_ERR,"failed to create spool file!");
+		TRACE(TRACE_ERR,"failed to create spool file!");
 		smtp_code_reply(settings,552);
 		return;
 	}
 		
-	
-	if (settings->debug)
-		syslog(LOG_DEBUG,"using spool file: '%s'", mconn->queue_file);
+	TRACE(TRACE_DEBUG,"using spool file: '%s'", mconn->queue_file);
 		
 	smtp_string_reply("354 End data with <CR><LF>.<CR><LF>\r\n");
 	
@@ -232,8 +230,7 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	g_io_channel_unref(in);
 	g_io_channel_unref(out);
 
-	if (settings->debug)
-		syslog(LOG_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
+	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
 		
 	g_mime_stream_seek(gmin,0,0);
 	parser = g_mime_parser_new_with_stream (gmin);
@@ -242,8 +239,7 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	load_modules(settings,mconn);
 	
 	remove(mconn->queue_file);
-	if(settings->debug)
-		syslog(LOG_DEBUG,"removing spool file %s",mconn->queue_file);
+	TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 	return;
 }
 
@@ -261,76 +257,60 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 		fgets(line, sizeof(line), stdin);
 		
 		g_strstrip(line);
-		if (settings->debug) 
-			syslog(LOG_DEBUG,"client smtp dialog: '%s'",line);
+		TRACE(TRACE_DEBUG,"client smtp dialog: '%s'",line);
 		
 		if (g_ascii_strncasecmp(line,"quit",4)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'quit' received"); 
+			TRACE(TRACE_DEBUG,"SMTP: 'quit' received"); 
 			smtp_code_reply(settings,221);
 			break;
 		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'helo' received");
+			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
 			mconn->helo = get_substring("^HELO\\s(.*)$",line, 1);
-			if (settings->debug)
-				syslog(LOG_DEBUG,"mconn->helo: %s",mconn->helo);
+			TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
 			smtp_string_reply("250 %s\r\n",hostname);
 			state = ST_HELO;
 		} else if (g_ascii_strncasecmp(line, "ehlo", 4)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'ehlo' received");
+			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			mconn->helo = get_substring("^EHLO\\s(.*)$",line,1);
-			if (settings->debug)
-				syslog(LOG_DEBUG,"mconn->helo: %s",mconn->helo);
+			TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
 			smtp_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 DSN\r\n",hostname);
 			state = ST_HELO;
 		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'xforward name' received");
+			TRACE(TRACE_DEBUG,"SMTP: 'xforward name' received");
 			mconn->xforward_addr = get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
-			if (settings->debug)
-				syslog(LOG_DEBUG,"mconn->xforward_addr: %s",mconn->xforward_addr);
+			TRACE(TRACE_DEBUG,"mconn->xforward_addr: %s",mconn->xforward_addr);
 			smtp_code_reply(settings,250);
 		} else if (g_ascii_strncasecmp(line, "xforward proto", 13)==0) {
 			smtp_code_reply(settings,250);
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'mail from' received");
+			TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
 			state = ST_MAIL;
 			mconn->from = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
 			smtp_code_reply(settings,250);
-			if (settings->debug)
-				syslog(LOG_DEBUG,"mconn->from: %s",mconn->from);
+			TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from);
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'rcpt to' received");
+			TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 			state = ST_RCPT;
 			mconn->rcpt = g_slist_append(mconn->rcpt,get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1));
 			smtp_code_reply(settings,250);
-			if (settings->debug)
-				syslog(LOG_DEBUG,"mconn->rcpt[%d]: %s",
-					g_slist_length(mconn->rcpt)-1,
-					g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
+			TRACE(TRACE_DEBUG,"mconn->rcpt[%d]: %s",
+				g_slist_length(mconn->rcpt)-1,
+				g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'data' received");
+			TRACE(TRACE_DEBUG,"SMTP: 'data' received");
 			state = ST_DATA;
 			process_data(settings,mconn);
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'rset' received");
+			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
 			g_slice_free(MAILCONN,mconn);
 			mconn = g_slice_new (MAILCONN);
 			state = ST_INIT;
 			smtp_code_reply(settings,250);
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
-			if (settings->debug)
-				syslog(LOG_DEBUG,"SMTP: 'noop' received");
+			TRACE(TRACE_DEBUG,"SMTP: 'noop' received");
 			smtp_code_reply(settings,250);
 		} else if (g_ascii_strcasecmp(line,"")!=0){
-			if(settings->debug)
-				syslog(LOG_DEBUG,"SMTP: wtf?!");
+			TRACE(TRACE_DEBUG,"SMTP: wtf?!");
 			smtp_code_reply(settings,500);
 		} else {
 			break;
