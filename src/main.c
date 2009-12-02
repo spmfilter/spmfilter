@@ -1,12 +1,14 @@
 #include <stdio.h>
-#include <syslog.h>
 #include <glib.h>
 #include <gmodule.h>
 #include <time.h>
 
 #include "spmfilter.h"
 
+#define THIS_MODULE "spmfilter"
+
 typedef int (*LoadEngine) (SETTINGS *settings, MAILCONN *mconn);
+int debug;
 
 int parse_config(SETTINGS *settings) {
 	GError *error = NULL;
@@ -22,16 +24,15 @@ int parse_config(SETTINGS *settings) {
 	}
 	keyfile = g_key_file_new ();
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
-		syslog(LOG_ERR,"Error loading config: %s\n",error->message);
+		TRACE(TRACE_ERR,"Error loading config: %s\n",error->message);
 		return -1;
 	}
 	
-	if (!settings->debug) 
-		settings->debug = g_key_file_get_boolean(keyfile, "global", "debug", NULL);
+	debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
 	
 	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
 	if (settings->engine == NULL) {
-		syslog(LOG_ERR, "Config error: %s\n", error->message);
+		TRACE(TRACE_ERR, "config error: %s\n", error->message);
 		return -1;
 	}
 	
@@ -41,7 +42,7 @@ int parse_config(SETTINGS *settings) {
 	
 	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
 	if (settings->modules == NULL) {
-		syslog(LOG_ERR, "Config error: %s\n", error->message);
+		TRACE(TRACE_ERR, "config error: %s\n", error->message);
 		return -1;
 	} 
 	
@@ -52,7 +53,7 @@ int parse_config(SETTINGS *settings) {
 	
 	settings->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
 	if (settings->nexthop == NULL) {
-		syslog(LOG_ERR, "Config error: %s\n", error->message);
+		TRACE(TRACE_ERR, "config error: %s\n", error->message);
 		return -1;
 	}
 
@@ -68,30 +69,30 @@ int parse_config(SETTINGS *settings) {
 	settings->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
 	if (!settings->sql_max_connections)
 		settings->sql_max_connections = 3;
+	if(sql_connect(settings) != 0) 
+		return -1;
+	
 #endif
 
-	if (settings->debug) {
-		syslog(LOG_DEBUG, "settings->debug: %d", settings->debug);
-		syslog(LOG_DEBUG, "settings->engine: %s", settings->engine);
-		syslog(LOG_DEBUG, "settings->spool_dir: %s", settings->spool_dir);
-		for(i = 0; settings->modules[i] != NULL; i++) {
-			syslog(LOG_DEBUG, "settings->modules: %s", settings->modules[i]);
-		}
-		syslog(LOG_DEBUG, "settings->module_fail: %d", settings->module_fail);
-		syslog(LOG_DEBUG, "settings->nexthop: %s", settings->nexthop);
+	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
+	TRACE(TRACE_DEBUG, "settings->spool_dir: %s", settings->spool_dir);
+	for(i = 0; settings->modules[i] != NULL; i++) {
+		TRACE(TRACE_DEBUG, "settings->modules: %s", settings->modules[i]);
+	}
+	TRACE(TRACE_DEBUG, "settings->module_fail: %d", settings->module_fail);
+	TRACE(TRACE_DEBUG, "settings->nexthop: %s", settings->nexthop);
 
 #ifdef HAVE_ZDB
-		syslog(LOG_DEBUG, "settings->sql_driver: %s", settings->sql_driver);
-		syslog(LOG_DEBUG, "settings->sql_name: %s", settings->sql_name);
-		syslog(LOG_DEBUG, "settings->sql_host: %s", settings->sql_host);
-		syslog(LOG_DEBUG, "settings->sql_port: %d", settings->sql_port);
-		syslog(LOG_DEBUG, "settings->sql_user: %s", settings->sql_user);
-		syslog(LOG_DEBUG, "settings->sql_pass: %s", settings->sql_pass);
-		syslog(LOG_DEBUG, "settings->sql_user_query: %s", settings->sql_user_query);
-		syslog(LOG_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
-		syslog(LOG_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
+	TRACE(TRACE_DEBUG, "settings->sql_driver: %s", settings->sql_driver);
+	TRACE(TRACE_DEBUG, "settings->sql_name: %s", settings->sql_name);
+	TRACE(TRACE_DEBUG, "settings->sql_host: %s", settings->sql_host);
+	TRACE(TRACE_DEBUG, "settings->sql_port: %d", settings->sql_port);
+	TRACE(TRACE_DEBUG, "settings->sql_user: %s", settings->sql_user);
+	TRACE(TRACE_DEBUG, "settings->sql_pass: %s", settings->sql_pass);
+	TRACE(TRACE_DEBUG, "settings->sql_user_query: %s", settings->sql_user_query);
+	TRACE(TRACE_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
+	TRACE(TRACE_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
 #endif 	
-	}
 	
 	/* smtpd group */
 	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
@@ -106,10 +107,8 @@ int parse_config(SETTINGS *settings) {
 		settings->nexthop_fail_msg = "Requested action aborted: local error in processing";
 	}
 	
-	if (settings->debug) {
-		syslog(LOG_DEBUG, "settings->nexthop_fail_code: %d", settings->nexthop_fail_code);
-		syslog(LOG_DEBUG, "settings->nexthop_fail_msg: %s", settings->nexthop_fail_msg);
-	}
+	TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: %d", settings->nexthop_fail_code);
+	TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: %s", settings->nexthop_fail_msg);
 	
 	code_keys = g_key_file_get_keys(keyfile,"smtpd",&codes_length,NULL);
 	settings->smtp_codes = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
@@ -123,8 +122,7 @@ int parse_config(SETTINGS *settings) {
 				g_strdup(code_keys[codes_length]),
 				code_msg
 				);
-			if (settings->debug)
-				syslog(LOG_DEBUG,
+			TRACE(TRACE_DEBUG,
 				"settings->smtp_codes: append %s=%s",
 				code_keys[codes_length],code_msg);
 			free(code_msg);
@@ -146,17 +144,14 @@ int main(int argc, char *argv[]) {
 	gchar *engine_path;
 	int ret;
 	
-	openlog("spmfilter", LOG_PID,LOG_MAIL);
-	
 	/* check queue dir */
 	if (!g_file_test (QUEUE_DIR, G_FILE_TEST_EXISTS)) {
-		syslog(LOG_INFO,"queue directory not available, will create it...");
+		TRACE(TRACE_INFO,"queue directory not available, will create it...");
 		
 		if(g_mkdir_with_parents(QUEUE_DIR,0700)!=0) {
-			syslog(LOG_ERR,"Could not create queue dir!");
+			TRACE(TRACE_ERR,"Could not create queue dir!");
 			return -1;
 		}
-		
 	}
 	
 	g_mime_init(0);
@@ -164,11 +159,11 @@ int main(int argc, char *argv[]) {
 	mconn = g_slice_new(MAILCONN);
 
 	settings = g_slice_new(SETTINGS);
-	settings->debug = FALSE;
+	debug = 0;
 	
 	/* all cmd args */
 	GOptionEntry entries[] = {
-		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &settings->debug, "verbose logging", NULL},
+		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "verbose logging", NULL},
 		{ "file", 'f', 0, G_OPTION_ARG_STRING, &settings->config_file, "alternate config file", NULL},
 		{ NULL }
 	};
@@ -187,7 +182,7 @@ int main(int argc, char *argv[]) {
 	/* initialize runtime_data hashtable */
 	mconn->runtime_data = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 	
-	if (settings->debug) 
+	if (debug) 
 		start_process = clock();
 	
 	/* check if engine module starts with lib */
@@ -198,24 +193,24 @@ int main(int argc, char *argv[]) {
 	}
 	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
 	if (!module) {
-		printf("%s\n", g_module_error ());
+		TRACE(TRACE_ERR,"%s\n", g_module_error());
 		return -1;
 	}
 	
 	if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
-		printf("%s", g_module_error ());
+		TRACE(TRACE_ERR,"%s", g_module_error());
 		return -1;
 	}
 
 	ret = load_engine(settings,mconn);
 	
-	if (settings->debug) {
+	if (debug) {
 		stop_process = clock();
-		syslog(LOG_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
+		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 	}
 	
-	if (!g_module_close (module))
-		g_warning ("%s", g_module_error ());
+	if (!g_module_close(module))
+		TRACE(TRACE_WARNING,"%s", g_module_error());
 		
 	g_strfreev(settings->modules);
 	g_slice_free(SETTINGS,settings);

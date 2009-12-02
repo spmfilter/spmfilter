@@ -1,5 +1,4 @@
 #include <string.h>
-#include <syslog.h>
 #include <glib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -13,6 +12,8 @@
 
 #include "spmfilter.h"
 
+#define THIS_MODULE "spmutils"
+
 char *get_substring(const char *pattern, const char *haystack, int pos) {
 #if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
@@ -23,9 +24,8 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 	g_regex_match(re, haystack, 0, &match_info);
 	if(g_match_info_matches(match_info)) {
 		value = g_match_info_fetch(match_info, pos);
-	} else {
-		syslog(LOG_DEBUG,"NO match");
-	}
+	} 
+	
 	g_match_info_free(match_info);
 	g_regex_unref(re);
 	return value;
@@ -39,14 +39,14 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 
 	re = pcre_compile(pattern, PCRE_CASELESS, &error, &erroffset, NULL);
 	if(re == NULL) {
-		syslog(LOG_NOTICE, "pcre_match : failed to compile pattern %s", pattern);
+		TRACE(TRACE_NOTICE, "pcre_match : failed to compile pattern %s", pattern);
 	} else {
 		rc = pcre_exec(re, NULL, haystack, strlen(haystack), 0, 0, ovector, 30);
 		if(rc > 0) {
 			pcre_get_substring(haystack,ovector,rc,pos,&strptr);
 			value = g_strdup((char *)strptr);
 		} else {
-			syslog(LOG_ERR, "pcre_match : failed to match pattern %s : code was %d", pattern, rc);
+			TRACE(TRACE_ERR, "pcre_match : failed to match pattern %s : code was %d", pattern, rc);
 		}
 	}
 	if (strptr != NULL)
@@ -82,7 +82,7 @@ static GMimeMessage *parse_message(char *msg_path) {
 	int fd;
 
 	if ((fd = open(msg_path, O_RDONLY)) == -1) {
-		syslog(LOG_ERR, "Cannot open message `%s': %s\n", msg_path, strerror (errno));
+		TRACE(TRACE_ERR, "cannot open message `%s': %s", msg_path, strerror(errno));
 		return NULL;
 	}
 	
@@ -106,7 +106,7 @@ int write_message(char *msg_path, GMimeMessage *message) {
 	int fd;
 	
 	if ((fd = open(msg_path, O_CREAT|O_WRONLY)) == -1) {
-		syslog(LOG_ERR, "Cannot open message `%s': %s", msg_path, strerror(errno));
+		TRACE(TRACE_ERR, "cannot open message `%s': %s", msg_path, strerror(errno));
 		return -1;
 	}
 	

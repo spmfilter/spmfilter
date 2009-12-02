@@ -1,8 +1,8 @@
 #ifdef HAVE_ZDB
 #include <glib.h>
-#include <syslog.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <URL.h>
 #include <ResultSet.h>
 #include <PreparedStatement.h>
@@ -12,9 +12,12 @@
 
 #include "spmfilter.h"
 
-void sql_con_close(SETTINGS *settings, Connection_T c) {
-	if (settings->debug)
-		syslog(LOG_DEBUG,"[%p] connection to pool", c);
+#define THIS_MODULE "sql_lookup"
+
+ConnectionPool_T sql_pool = NULL;
+
+void sql_con_close(Connection_T c) {
+	TRACE(TRACE_LOOKUP,"[%p] connection to pool", c);
 	Connection_close(c);
 	return;
 }
@@ -28,7 +31,7 @@ int sql_connect(SETTINGS *settings) {
 	if (settings->sql_driver != NULL) {
 		g_string_append_printf(dsn,"%s://",settings->sql_driver);
 	} else {
-		syslog(LOG_ERR,"Warning, no sql driver defined!");
+		TRACE(TRACE_ERR,"arning, no sql driver defined!");
 		return -1;
 	}
 	
@@ -45,7 +48,7 @@ int sql_connect(SETTINGS *settings) {
 				char *homedir;
 				char *db;
 				if ((homedir = getenv ("HOME")) == NULL)
-					syslog(LOG_ERR,"can't expand ~ in db name");
+					TRACE(TRACE_ERR,"can't expand ~ in db name");
 				g_snprintf(db, FIELDSIZE, "%s%s", homedir, &(settings->sql_name[1]));
 				g_strlcpy(settings->sql_name, db, FIELDSIZE);
 				g_free(db);
@@ -65,71 +68,85 @@ int sql_connect(SETTINGS *settings) {
 				g_string_append_printf(dsn,"&charset=%s", settings->sql_encoding);
 		}
 	}
+	
+	TRACE(TRACE_LOOKUP,"sql db at url: [%s]", dsn->str);	
 
-	if (settings->debug)
-		syslog(LOG_DEBUG,"sql db at url: [%s]", dsn->str);
-	
-	
 	url = URL_new(dsn->str);
 	g_string_free(dsn,TRUE);
 	
-	if (! (settings->sql_pool = ConnectionPool_new(url)))
-		syslog(LOG_ERR,"error creating database connection pool");
+	if (! (sql_pool = ConnectionPool_new(url)))
+		TRACE(TRACE_ERR,"error creating database connection pool");
 	
 	if (settings->sql_max_connections > 0) {
-		if (settings->sql_max_connections < (unsigned int)ConnectionPool_getInitialConnections(settings->sql_pool))
-			ConnectionPool_setInitialConnections(settings->sql_pool, settings->sql_max_connections);
-		ConnectionPool_setMaxConnections(settings->sql_pool, settings->sql_max_connections);
-		if (settings->debug)
-			syslog(LOG_DEBUG,"database connection pool created with maximum connections of [%d]",settings->sql_max_connections);
+		if (settings->sql_max_connections < (unsigned int)ConnectionPool_getInitialConnections(sql_pool))
+			ConnectionPool_setInitialConnections(sql_pool, settings->sql_max_connections);
+		ConnectionPool_setMaxConnections(sql_pool, settings->sql_max_connections);
+		TRACE(TRACE_LOOKUP,"database connection pool created with maximum connections of [%d]",settings->sql_max_connections);
 	}
 
-	ConnectionPool_setReaper(settings->sql_pool, sweep_interval);
-	if (settings->debug)
-		syslog(LOG_DEBUG, "run a database connection reaper thread every [%d] seconds", sweep_interval);
+	ConnectionPool_setReaper(sql_pool, sweep_interval);
+	TRACE(TRACE_LOOKUP, "run a database connection reaper thread every [%d] seconds", sweep_interval);
 
-	ConnectionPool_start(settings->sql_pool);
-	if (settings->debug)
-		syslog(LOG_DEBUG, "database connection pool started with [%d] connections, max [%d]", 
-			ConnectionPool_getInitialConnections(settings->sql_pool), ConnectionPool_getMaxConnections(settings->sql_pool));
+	ConnectionPool_start(sql_pool);
+	TRACE(TRACE_LOOKUP, "database connection pool started with [%d] connections, max [%d]", 
+			ConnectionPool_getInitialConnections(sql_pool), ConnectionPool_getMaxConnections(sql_pool));
 
-	if (! (con = ConnectionPool_getConnection(settings->sql_pool))) {
-		sql_con_close(settings,con);
-		syslog(LOG_ERR, "error getting a database connection from the pool");
+	if (! (con = ConnectionPool_getConnection(sql_pool))) {
+		sql_con_close(con);
+		TRACE(TRACE_ERR, "error getting a database connection from the pool");
 		return -1;
 	}
-	sql_con_close(settings,con);
+
+	sql_con_close(con);
 
 	return 0;
 }
 
-Connection_T db_con_get(SETTINGS *settings) {
+Connection_T sql_con_get(void) {
 	int i=0, k=0; 
 	Connection_T c;
 	while (i++<30) {
-		c = ConnectionPool_getConnection(settings->sql_pool);
+		c = ConnectionPool_getConnection(sql_pool);
 		if (c) break;
 		if((int)(i % 5)==0) {
-			syslog(LOG_WARNING, "Thread is having trouble obtaining a database connection. Try [%d]", i);
-			k = ConnectionPool_reapConnections(settings->sql_pool);
-			if (settings->debug)
-				syslog(LOG_DEBUG, "Database reaper closed [%d] stale connections", k);
+			TRACE(TRACE_WARNING, "Thread is having trouble obtaining a database connection. Try [%d]", i);
+			k = ConnectionPool_reapConnections(sql_pool);
+			TRACE(TRACE_LOOKUP, "Database reaper closed [%d] stale connections", k);
 		}
 		sleep(1);
 	}
 	if (! c) {
-		syslog(LOG_ERR,"[%p] can't get a database connection from the pool! max [%d] size [%d] active [%d]", 
-			settings->sql_pool,
-			ConnectionPool_getMaxConnections(settings->sql_pool),
-			ConnectionPool_size(settings->sql_pool),
-			ConnectionPool_active(settings->sql_pool));
+		TRACE(TRACE_ERR,"[%p] can't get a database connection from the pool! max [%d] size [%d] active [%d]", 
+			sql_pool,
+			ConnectionPool_getMaxConnections(sql_pool),
+			ConnectionPool_size(sql_pool),
+			ConnectionPool_active(sql_pool));
 	}
 
 	assert(c);
-	if (settings->debug)
-		syslog(LOG_DEBUG,"[%p] connection from pool", c);
+	TRACE(TRACE_LOOKUP,"[%p] connection from pool", c);
 	return c;
 }
 
+
+ResultSet_T sql_query(const char *q, ...) {
+	Connection_T c; 
+	ResultSet_T r;
+	va_list ap, cp;
+	char *query;
+
+	va_start(ap, q);
+	va_copy(cp, ap);
+	query = g_strdup_vprintf(q, cp);
+	va_end(cp);
+	g_strstrip(query);
+		
+	c = sql_con_get();
+	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
+	r = Connection_executeQuery(c, (const char *)query);
+	sql_con_close(c);
+	
+	return r;
+}
 
 #endif

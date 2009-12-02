@@ -1,3 +1,6 @@
+#ifndef SPMFILTER_H
+#define SPMFILTER_H
+
 #include <glib.h>
 #include <gmime/gmime.h>
 #include <sys/time.h>
@@ -24,7 +27,6 @@
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
 typedef struct {
-	gboolean debug;
 	char *config_file;
 	char *engine;
 	char *spool_dir;
@@ -48,7 +50,6 @@ typedef struct {
 	char *sql_user_query;
 	char *sql_encoding;
 	int sql_max_connections;
-	ConnectionPool_T sql_pool;
 #endif
 } SETTINGS;
 
@@ -90,6 +91,36 @@ typedef struct {
 	gchar *line;
 	GMimeMessage *message;
 } HL;
+
+/* Logging and debugging stuff */
+extern int debug;
+typedef enum {
+	TRACE_EMERG = 1,
+	TRACE_ALERT = 2,
+	TRACE_CRIT = 4,
+	TRACE_ERR = 8,
+	TRACE_WARNING = 16,
+	TRACE_NOTICE = 32,
+	TRACE_INFO = 64,
+	TRACE_DEBUG = 128,
+	TRACE_LOOKUP = 256 // Logs at Debug Level
+} trace_t;
+
+/* Define several macros for GCC specific attributes.
+ * Although the __attribute__ macro can be easily defined
+ * to nothing, these macros make them a little prettier.
+ * */
+#ifdef __GNUC__
+#define UNUSED __attribute__((__unused__))
+#define PRINTF_ARGS(X, Y) __attribute__((format(printf, X, Y)))
+#else
+#define UNUSED
+#define PRINTF_ARGS(X, Y)
+#endif
+
+#define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
+void trace(trace_t level, const char * module, const char * function, int line, const char *formatstring, ...) PRINTF_ARGS(5, 6);
+
 
 /* 
  * Generate a new queue file name
@@ -148,9 +179,14 @@ int set_header(char *msg_path, char *header_name, char *header_value);
  */
 int remove_header(char *msg_path, char *header_name);
 
-int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data);
+int smtp_delivery(MESSAGE *msg_data);
 
 /*
  * Generates a unique maildir filename
  */
 char *get_maildir_filename(void);
+
+#ifdef HAVE_ZDB
+ResultSet_T sql_query(const char *q, ...);
+#endif
+#endif
