@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <syslog.h>
 #include <glib.h>
 
 #include <auth-client.h>
@@ -11,7 +10,9 @@
 
 static int authinteract (auth_client_request_t request, char **result, int fields, void *arg);
 
-int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data) {
+#define THIS_MODULE "smtp"
+
+int smtp_delivery(MESSAGE *msg_data) {
 	smtp_session_t session;
 	smtp_message_t message;
 	smtp_recipient_t recipient;
@@ -22,8 +23,7 @@ int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data) {
 	char *nexthop = NULL;
 	GSList *rcpt;
 	
-	if (settings->debug)
-		syslog(LOG_DEBUG,"initializing SMTP session");
+	TRACE(TRACE_DEBUG,"initializing SMTP session");
 	
 	auth_client_init ();	
 	
@@ -83,9 +83,7 @@ int smtp_delivery(SETTINGS *settings, MESSAGE *msg_data) {
 		return -1;
 	} else {
 		status = smtp_message_transfer_status(message);
-		if (settings->debug) {
-			syslog(LOG_DEBUG,"smtp client got status '%d - %s'",status->code,status->text);
-		}
+		TRACE(TRACE_DEBUG,"smtp client got status '%d - %s'",status->code,status->text);
 	}
 	
 	g_free(nexthop);

@@ -1,3 +1,8 @@
+2009-12-02 Axel Steiner <ast@treibsand.com>
+	* changed logging behavior, every log 
+	  message is now done with the TRACE macro.
+	* added new function sql_query()
+	
 2009-11-26 Axel Steiner <ast@treibsand.com>
 	* added new function get_maildir_filename()
 	* added first steps towards generic zdb backend
