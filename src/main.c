@@ -7,10 +7,10 @@
 
 #define THIS_MODULE "spmfilter"
 
-typedef int (*LoadEngine) (SETTINGS *settings, MAILCONN *mconn);
-int debug;
+typedef int (*LoadEngine) (MAILCONN *mconn);
+GPrivate *settings_key = NULL;
 
-int parse_config(SETTINGS *settings) {
+int parse_config(void) {
 	GError *error = NULL;
 	GKeyFile *keyfile;
 	gchar **code_keys;
@@ -18,21 +18,23 @@ int parse_config(SETTINGS *settings) {
 	gsize codes_length = 0;
 	char *code_msg;
 	int i, code;
-
+	
+	SETTINGS *settings = g_private_get(settings_key);
+	
 	if (settings->config_file == NULL) {
 		settings->config_file = "/etc/spmfilter.conf";
 	}
 	keyfile = g_key_file_new ();
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
-		TRACE(TRACE_ERR,"Error loading config: %s\n",error->message);
+		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
 		return -1;
 	}
 	
-	debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
+	settings->debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
 	
 	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
 	if (settings->engine == NULL) {
-		TRACE(TRACE_ERR, "config error: %s\n", error->message);
+		TRACE(TRACE_ERR, "config error: %s", error->message);
 		return -1;
 	}
 	
@@ -42,7 +44,7 @@ int parse_config(SETTINGS *settings) {
 	
 	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
 	if (settings->modules == NULL) {
-		TRACE(TRACE_ERR, "config error: %s\n", error->message);
+		TRACE(TRACE_ERR, "config error: %s", error->message);
 		return -1;
 	} 
 	
@@ -53,9 +55,17 @@ int parse_config(SETTINGS *settings) {
 	
 	settings->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
 	if (settings->nexthop == NULL) {
-		TRACE(TRACE_ERR, "config error: %s\n", error->message);
+		TRACE(TRACE_ERR, "config error: %s", error->message);
 		return -1;
 	}
+
+	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
+	TRACE(TRACE_DEBUG, "settings->spool_dir: %s", settings->spool_dir);
+	for(i = 0; settings->modules[i] != NULL; i++) {
+		TRACE(TRACE_DEBUG, "settings->modules: %s", settings->modules[i]);
+	}
+	TRACE(TRACE_DEBUG, "settings->module_fail: %d", settings->module_fail);
+	TRACE(TRACE_DEBUG, "settings->nexthop: %s", settings->nexthop);
 
 #ifdef HAVE_ZDB
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
@@ -71,18 +81,7 @@ int parse_config(SETTINGS *settings) {
 		settings->sql_max_connections = 3;
 	if(sql_connect(settings) != 0) 
 		return -1;
-	
-#endif
 
-	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
-	TRACE(TRACE_DEBUG, "settings->spool_dir: %s", settings->spool_dir);
-	for(i = 0; settings->modules[i] != NULL; i++) {
-		TRACE(TRACE_DEBUG, "settings->modules: %s", settings->modules[i]);
-	}
-	TRACE(TRACE_DEBUG, "settings->module_fail: %d", settings->module_fail);
-	TRACE(TRACE_DEBUG, "settings->nexthop: %s", settings->nexthop);
-
-#ifdef HAVE_ZDB
 	TRACE(TRACE_DEBUG, "settings->sql_driver: %s", settings->sql_driver);
 	TRACE(TRACE_DEBUG, "settings->sql_name: %s", settings->sql_name);
 	TRACE(TRACE_DEBUG, "settings->sql_host: %s", settings->sql_host);
@@ -93,6 +92,38 @@ int parse_config(SETTINGS *settings) {
 	TRACE(TRACE_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
 	TRACE(TRACE_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
 #endif 	
+
+#ifdef HAVE_LDAP
+	settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
+	settings->ldap_host = g_key_file_get_string(keyfile,"ldap","host",NULL);
+	
+	if (settings->ldap_uri == NULL & settings->ldap_host == NULL) {
+		TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
+		return -1;
+	}
+	
+	settings->ldap_port = g_key_file_get_integer(keyfile,"ldap","port",NULL);
+	if (!settings->ldap_port)
+		settings->ldap_port = 389;
+	settings->ldap_binddn = g_key_file_get_string(keyfile,"ldap","binddn",NULL);
+	settings->ldap_bindpw = g_key_file_get_string(keyfile,"ldap","bindpw",NULL);
+
+	settings->ldap_base = g_key_file_get_string(keyfile,"ldap","base",&error);
+	if (settings->ldap_base == NULL) {
+		TRACE(TRACE_ERR, "config error: %s", error->message);
+		return -1;
+	}
+	
+	settings->ldap_referrals = g_key_file_get_boolean(keyfile, "ldap","referrals",NULL);
+	
+	TRACE(TRACE_DEBUG, "settings->ldap_uri: %s", settings->ldap_uri);
+	TRACE(TRACE_DEBUG, "settings->ldap_host: %s", settings->ldap_host);
+	TRACE(TRACE_DEBUG, "settings->ldap_port: %d", settings->ldap_port);
+	TRACE(TRACE_DEBUG, "settings->ldap_binddn: %s", settings->ldap_binddn);
+	TRACE(TRACE_DEBUG, "settings->ldap_bindpw: %s", settings->ldap_bindpw);
+	TRACE(TRACE_DEBUG, "settings->ldap_base: %s", settings->ldap_base);
+	TRACE(TRACE_DEBUG, "settings->ldap_referrals: %d", settings->ldap_referrals);
+#endif
 	
 	/* smtpd group */
 	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
@@ -129,6 +160,7 @@ int parse_config(SETTINGS *settings) {
 		}
 	}
 	g_strfreev(code_keys);
+	g_private_set(settings_key, settings);
 	
 	return 0;
 }
@@ -157,16 +189,20 @@ int main(int argc, char *argv[]) {
 	g_mime_init(0);
 	
 	mconn = g_slice_new(MAILCONN);
-
 	settings = g_slice_new(SETTINGS);
-	debug = 0;
+	settings->debug = 0;
+	
+	if (!g_thread_supported()) g_thread_init(NULL);
+	if (!settings_key) settings_key = g_private_new(g_free);
 	
 	/* all cmd args */
 	GOptionEntry entries[] = {
-		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "verbose logging", NULL},
+		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &settings->debug, "verbose logging", NULL},
 		{ "file", 'f', 0, G_OPTION_ARG_STRING, &settings->config_file, "alternate config file", NULL},
 		{ NULL }
 	};
+	
+	g_private_set(settings_key, settings);
 	
 	/* parse cmd args */
 	context = g_option_context_new ("- spmfilter options");
@@ -176,13 +212,13 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 	
-	if (parse_config(settings)!=0) 
+	if (parse_config()!=0) 
 		return -1;
-	
+
 	/* initialize runtime_data hashtable */
 	mconn->runtime_data = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 	
-	if (debug) 
+	if (settings->debug) 
 		start_process = clock();
 	
 	/* check if engine module starts with lib */
@@ -202,9 +238,9 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	ret = load_engine(settings,mconn);
+	ret = load_engine(mconn);
 	
-	if (debug) {
+	if (settings->debug) {
 		stop_process = clock();
 		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 	}

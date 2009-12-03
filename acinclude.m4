@@ -69,6 +69,25 @@ else
 fi
 ])
 
+AC_DEFUN([SPMFILTER_CHECK_LDAP], [
+AC_ARG_WITH(ldap,
+	[  --with-ldap=PATH        path to ldap base directory (e.g. /usr/local or /usr)],
+	[lookforldap="$withval"],[lookforldap="no"])
+	
+	if test [ "x$lookforldap" != "xno" ] ; then
+		if test [ "x$withval" = "x" ] ; then
+			CFLAGS="$CFLAGS -I${prefix}/include"
+		else
+			CFLAGS="$CFLAGS -I${lookforldap}/include"
+		fi
+		
+		AC_CHECK_HEADERS(ldap.h, ,AC_MSG_ERROR([Unable to locate OpenLDAP development files]))
+		AC_CHECK_LIB(ldap, ldap_initialize, [], AC_MSG_ERROR([Unable to locate OpenLDAP libraries]))
+		
+		AC_DEFINE([HAVE_LDAP])
+	fi
+])
+
 
 AC_DEFUN([SPMFILTER_CHECK_ZDB], [
 

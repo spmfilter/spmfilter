@@ -28,6 +28,7 @@ static const char * trace_to_text(trace_t level) {
 void trace(trace_t level, const char * module, const char * function, int line, const char *formatstring, ...) {	
 	trace_t syslog_level;
 	va_list ap, cp;
+	SETTINGS *settings = g_private_get(settings_key);
 
 	gchar *message;
 	static int configured=0;
@@ -84,7 +85,7 @@ void trace(trace_t level, const char * module, const char * function, int line, 
 		size_t w = min(l,maxlen);
 		message[w] = '\0';
 		
-		if (level >= 128 & debug == 1) 
+		if (level >= 128 & settings->debug == 1) 
 			syslog(syslog_level, SYSLOGFORMAT, g_thread_self(), trace_to_text(level), module, function, line, message);
 		else if (level < 128)
 			syslog(syslog_level, SYSLOGFORMAT, g_thread_self(), trace_to_text(level), module, function, line, message);
