@@ -14,6 +14,10 @@
 #include <SQLException.h>
 #endif
 
+#ifdef HAVE_LDAP
+#include <ldap.h>
+#endif
+
 #define QUEUE_DIR "@SPMFILTER_QUEUE_DIR@"
 #define LIB_DIR "@LIBDIR@"
 
@@ -27,6 +31,7 @@
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
 typedef struct {
+	int debug;
 	char *config_file;
 	char *engine;
 	char *spool_dir;
@@ -51,7 +56,18 @@ typedef struct {
 	char *sql_encoding;
 	int sql_max_connections;
 #endif
+
+#ifdef HAVE_LDAP
+	char *ldap_uri;
+	char *ldap_host;
+	int ldap_port;
+	char *ldap_binddn;
+	char *ldap_bindpw;
+	char *ldap_base;
+	gboolean ldap_referrals;
+#endif
 } SETTINGS;
+extern GPrivate *settings_key;
 
 typedef struct {
 	char *from;
@@ -93,7 +109,6 @@ typedef struct {
 } HL;
 
 /* Logging and debugging stuff */
-extern int debug;
 typedef enum {
 	TRACE_EMERG = 1,
 	TRACE_ALERT = 2,
@@ -189,4 +204,8 @@ char *get_maildir_filename(void);
 #ifdef HAVE_ZDB
 ResultSet_T sql_query(const char *q, ...);
 #endif
+#endif
+
+#ifdef HAVE_LDAP
+int ldap_query(SETTINGS *settings);
 #endif

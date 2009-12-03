@@ -66,11 +66,12 @@ void smtp_code_reply(SETTINGS *settings, int code) {
 	fflush(stdout);
 }
 
-void load_modules(SETTINGS *settings, MAILCONN *mconn) {
+void load_modules(MAILCONN *mconn) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
 	MESSAGE *msg = NULL;
+	SETTINGS *settings = g_private_get(settings_key);
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;	
@@ -116,7 +117,7 @@ void load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		 * 2 = Further processing will be stopped, no other plugin will 
 		 *     be startet. spmfilter sends a 250 code
 		 */
-		ret = load_module(settings,mconn); 
+		ret = load_module(mconn); 
 		if (ret == -1) {
 			if (!g_module_close(module))
 				TRACE(TRACE_ERR,"%s", g_module_error());
@@ -236,18 +237,18 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	parser = g_mime_parser_new_with_stream (gmin);
 	g_object_unref(gmin);
 			
-	load_modules(settings,mconn);
+	load_modules(mconn);
 	
 	remove(mconn->queue_file);
 	TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 	return;
 }
 
-int load(SETTINGS *settings,MAILCONN *mconn) {
+int load(MAILCONN *mconn) {
 	int state=ST_INIT;
 	char hostname[256];
 	char line[512];
-	
+	SETTINGS *settings = g_private_get(settings_key);
 	gethostname(hostname,256);
 
 	smtp_string_reply("220 %s spmfilter\r\n",hostname);

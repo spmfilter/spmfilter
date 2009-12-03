@@ -82,7 +82,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 }
 
 
-int load(SETTINGS *settings,MAILCONN *mconn) {
+int load(MAILCONN *mconn) {
 	char *tempname;
 	GIOChannel *in, *out;
 	GMimeStream *gmin;
@@ -94,6 +94,7 @@ int load(SETTINGS *settings,MAILCONN *mconn) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	int i;
+	SETTINGS *settings = g_private_get(settings_key);
 	
 	/* create spooling file */
 	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",QUEUE_DIR);
