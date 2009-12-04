@@ -1,6 +1,7 @@
 #ifdef HAVE_LDAP
 #include <glib.h>
 #include <ldap.h>
+#include <stdarg.h>
 
 #include "spmfilter.h"
 
@@ -71,10 +72,28 @@ int ldap_disconnect(void) {
 	}
 }
 
-int ldap_query(SETTINGS *settings) {
-	ldap_get_con();
-	ldap_disconnect();
-	return 0;
+LDAPMessage *ldap_query(const char *q, ...) {
+	va_list ap, cp;
+	char *query;
+	LDAPMessage *msg = NULL;
+	SETTINGS *settings = g_private_get(settings_key);
+	LDAP *ld = ldap_get_con();
+	
+	va_start(ap, q);
+	va_copy(cp, ap);
+	query = g_strdup_vprintf(q, cp);
+	va_end(cp);
+	g_strstrip(query);
+	
+	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
+	
+	if (ldap_search_s(ld,settings->ldap_base,LDAP_SCOPE_SUBTREE,query,NULL,0,&msg) != LDAP_SUCCESS) 
+		TRACE(TRACE_ERR,"[%p] query [%s] failed",ld, query);
+	
+	if(ldap_count_entries(ld,msg) <= 0)
+		TRACE(TRACE_LOOKUP,"[%p] nothing found",ld);
+	
+	return msg;
 }
 
 #endif
