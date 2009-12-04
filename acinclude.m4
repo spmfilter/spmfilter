@@ -125,6 +125,16 @@ AC_ARG_WITH(zdb,
 	
 ])
 
+AC_DEFUN([SPMFILTER_CHECK_MATH], [dnl
+	AC_CHECK_HEADERS([math.h],[MATHLIB="-lm"], [MATHLIB="failed"])
+	if test [ "x$MATHLIB" = "xfailed" ]; then
+		AC_MSG_ERROR([Could not find MATH library.])
+	else
+		LDFLAGS="$LDFLAGS $MATHLIB"
+	fi
+])
+
+
 AC_DEFUN([SPMFILTER_LIB_DIR], [
 if test `eval echo x$libdir` != xNONE/lib
 then
