@@ -202,10 +202,22 @@ int smtp_delivery(MESSAGE *msg_data);
 char *get_maildir_filename(void);
 
 #ifdef HAVE_ZDB
+/*
+ * Query database, returns ResultSet_T
+ *
+ * q: format query
+ * .... query args
+ */
 ResultSet_T sql_query(const char *q, ...);
 #endif
 #endif
 
 #ifdef HAVE_LDAP
-int ldap_query(SETTINGS *settings);
+/*
+ * Query LDAP directory, returns LDAPMessage
+ *
+ * q: format query
+ * .... query args
+ */
+LDAPMessage *ldap_query(const char *q, ...);
 #endif
