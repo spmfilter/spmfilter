@@ -22,11 +22,12 @@ void sql_con_close(Connection_T c) {
 	return;
 }
 
-int sql_connect(SETTINGS *settings) {
+int sql_connect(void) {
 	URL_T url = NULL;
 	Connection_T con = NULL;
 	GString *dsn = g_string_new("");
 	int sweep_interval = 60;
+	SETTINGS *settings = g_private_get(settings_key);
 
 	if (settings->sql_driver != NULL) {
 		g_string_append_printf(dsn,"%s://",settings->sql_driver);

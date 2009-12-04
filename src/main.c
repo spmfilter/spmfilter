@@ -79,7 +79,7 @@ int parse_config(void) {
 	settings->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
 	if (!settings->sql_max_connections)
 		settings->sql_max_connections = 3;
-	if(sql_connect(settings) != 0) 
+	if(sql_connect() != 0) 
 		return -1;
 
 	TRACE(TRACE_DEBUG, "settings->sql_driver: %s", settings->sql_driver);

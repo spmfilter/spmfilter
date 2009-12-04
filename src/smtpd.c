@@ -117,7 +117,7 @@ void load_modules(MAILCONN *mconn) {
 		 * 2 = Further processing will be stopped, no other plugin will 
 		 *     be startet. spmfilter sends a 250 code
 		 */
-		ret = load_module(mconn); 
+		ret = load_module(settings,mconn); 
 		if (ret == -1) {
 			if (!g_module_close(module))
 				TRACE(TRACE_ERR,"%s", g_module_error());
