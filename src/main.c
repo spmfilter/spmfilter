@@ -79,8 +79,6 @@ int parse_config(void) {
 	settings->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
 	if (!settings->sql_max_connections)
 		settings->sql_max_connections = 3;
-	if(sql_connect() != 0) 
-		return -1;
 
 	TRACE(TRACE_DEBUG, "settings->sql_driver: %s", settings->sql_driver);
 	TRACE(TRACE_DEBUG, "settings->sql_name: %s", settings->sql_name);
@@ -91,6 +89,9 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->sql_user_query: %s", settings->sql_user_query);
 	TRACE(TRACE_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
 	TRACE(TRACE_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
+
+	if(sql_connect() != 0) 
+		return -1;
 #endif 	
 
 #ifdef HAVE_LDAP
@@ -123,6 +124,10 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->ldap_bindpw: %s", settings->ldap_bindpw);
 	TRACE(TRACE_DEBUG, "settings->ldap_base: %s", settings->ldap_base);
 	TRACE(TRACE_DEBUG, "settings->ldap_referrals: %d", settings->ldap_referrals);
+	
+	if(ldap_connect() != 0) 
+		return -1;
+	
 #endif
 	
 	/* smtpd group */
@@ -239,7 +244,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	ret = load_engine(mconn);
-	
+
 	if (settings->debug) {
 		stop_process = clock();
 		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
@@ -247,9 +252,10 @@ int main(int argc, char *argv[]) {
 	
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
-		
+
 	g_strfreev(settings->modules);
 	g_slice_free(SETTINGS,settings);
+	g_private_set(settings_key, NULL);
 	g_slist_free(mconn->rcpt);
 	g_slice_free(MAILCONN,mconn);
 	g_free(engine_path);

@@ -17,7 +17,7 @@
 ConnectionPool_T sql_pool = NULL;
 
 void sql_con_close(Connection_T c) {
-	TRACE(TRACE_LOOKUP,"[%p] connection to pool", c);
+	TRACE(TRACE_LOOKUP,"closing pool connection");
 	Connection_close(c);
 	return;
 }
@@ -145,7 +145,6 @@ ResultSet_T sql_query(const char *q, ...) {
 	c = sql_con_get();
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 	r = Connection_executeQuery(c, (const char *)query);
-	sql_con_close(c);
 	
 	return r;
 }
