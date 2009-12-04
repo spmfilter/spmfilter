@@ -105,7 +105,7 @@ int write_message(char *msg_path, GMimeMessage *message) {
 	GMimeStream *stream;
 	int fd;
 	
-	if ((fd = open(msg_path, O_CREAT|O_WRONLY)) == -1) {
+	if ((fd = g_open(msg_path, O_CREAT|O_WRONLY, S_IRWXU|S_IRGRP|S_IROTH)) == -1) {
 		TRACE(TRACE_ERR, "cannot open message `%s': %s", msg_path, strerror(errno));
 		return -1;
 	}
