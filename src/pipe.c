@@ -83,7 +83,6 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 
 
 int load(MAILCONN *mconn) {
-	char *tempname;
 	GIOChannel *in, *out;
 	GMimeStream *gmin;
 	GMimeMessage *message;
@@ -96,14 +95,7 @@ int load(MAILCONN *mconn) {
 	int i;
 	SETTINGS *settings = g_private_get(settings_key);
 	
-	/* create spooling file */
-	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",QUEUE_DIR);
-	if (g_mkstemp(tempname) == -1) {
-		g_free(tempname);
-		TRACE(TRACE_ERR,"can't create spooling file");
-		return -1;
-	}
-	mconn->queue_file = g_strdup(tempname);
+	mconn->queue_file = gen_queue_file();
 	
 	TRACE(TRACE_DEBUG,"using spool file: '%s'", mconn->queue_file);
 		

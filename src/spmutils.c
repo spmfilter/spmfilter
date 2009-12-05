@@ -61,9 +61,10 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
  */
 char *gen_queue_file(void) {
 	char *tempname = NULL;
+	SETTINGS *settings = g_private_get(settings_key);
 	
 	/* create spooling file */
-	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",QUEUE_DIR);
+	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",settings->queue_dir);
 	if(g_mkstemp(tempname) == -1)
 		return NULL;
 	
