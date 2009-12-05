@@ -56,19 +56,6 @@ AC_DEFUN([SPMFILTER_CHECK_GLIB_VERSION], [
 	fi
 ])
 
-AC_DEFUN([SPMFILTER_QUEUE_CHECK], [
-
-AC_ARG_WITH(queuedir,
-	[  --with-queuedir         set path of spmfilter queue dir (default /var/spool/spmfilter)],
-	queuedirname="$withval")
-
-if test [ "$queuedirname" = "" ]; then
-	SPMFILTER_QUEUE_DIR=/var/spool/spmfilter
-else
-	SPMFILTER_QUEUE_DIR=$queuedirname
-fi
-])
-
 AC_DEFUN([SPMFILTER_CHECK_LDAP], [
 AC_ARG_WITH(ldap,
 	[  --with-ldap=PATH        path to ldap base directory (e.g. /usr/local or /usr)],

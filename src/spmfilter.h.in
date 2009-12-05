@@ -18,7 +18,6 @@
 #include <ldap.h>
 #endif
 
-#define QUEUE_DIR "@SPMFILTER_QUEUE_DIR@"
 #define LIB_DIR "@LIBDIR@"
 
 #define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
@@ -33,6 +32,7 @@
 typedef struct {
 	int debug;
 	char *config_file;
+	char *queue_dir;
 	char *engine;
 	char *spool_dir;
 	gchar **modules;

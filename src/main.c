@@ -32,6 +32,12 @@ int parse_config(void) {
 	
 	settings->debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
 	
+	settings->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", &error);
+	if (settings->queue_dir == NULL) {
+		TRACE(TRACE_ERR, "config error: %s", error->message);
+		return -1;
+	}
+	
 	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
 	if (settings->engine == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
@@ -181,16 +187,6 @@ int main(int argc, char *argv[]) {
 	gchar *engine_path;
 	int ret;
 	
-	/* check queue dir */
-	if (!g_file_test (QUEUE_DIR, G_FILE_TEST_EXISTS)) {
-		TRACE(TRACE_INFO,"queue directory not available, will create it...");
-		
-		if(g_mkdir_with_parents(QUEUE_DIR,0700)!=0) {
-			TRACE(TRACE_ERR,"Could not create queue dir!");
-			return -1;
-		}
-	}
-	
 	g_mime_init(0);
 	
 	mconn = g_slice_new(MAILCONN);
@@ -219,6 +215,16 @@ int main(int argc, char *argv[]) {
 	
 	if (parse_config()!=0) 
 		return -1;
+
+	/* check queue dir */
+	if (!g_file_test (settings->queue_dir, G_FILE_TEST_EXISTS)) {
+		TRACE(TRACE_INFO,"queue directory not available, will create it...");
+		
+		if(g_mkdir_with_parents(settings->queue_dir,0700)!=0) {
+			TRACE(TRACE_ERR,"Could not create queue dir!");
+			return -1;
+		}
+	}
 
 	/* initialize runtime_data hashtable */
 	mconn->runtime_data = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
