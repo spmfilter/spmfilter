@@ -82,7 +82,7 @@ static GMimeMessage *parse_message(char *msg_path) {
 	GMimeStream *stream;
 	int fd;
 
-	if ((fd = open(msg_path, O_RDONLY)) == -1) {
+	if ((fd = g_open(msg_path, O_RDONLY)) == -1) {
 		TRACE(TRACE_ERR, "cannot open message `%s': %s", msg_path, strerror(errno));
 		return NULL;
 	}
