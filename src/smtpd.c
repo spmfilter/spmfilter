@@ -287,6 +287,12 @@ int load(MAILCONN *mconn) {
 			TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
 			state = ST_MAIL;
 			mconn->from = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
+#ifdef HAVE_ZDB
+			if (settings->sql_user_query != NULL) {
+				mconn->sender_is_local = sql_user_exists(mconn->from);
+				TRACE(TRACE_DEBUG,"mconn->sender_is_local: %d", mconn->sender_is_local);
+			}
+#endif
 			smtp_code_reply(settings,250);
 			TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from);
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {

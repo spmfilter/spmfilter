@@ -149,4 +149,27 @@ ResultSet_T sql_query(const char *q, ...) {
 	return r;
 }
 
+int sql_user_exists(char *addr) {
+	Connection_T c;
+	ResultSet_T r;
+	char *query;
+	int count;
+	SETTINGS *settings = g_private_get(settings_key);
+	
+	c = sql_con_get();
+	query = g_strdup_printf(settings->sql_user_query,addr);
+	g_strstrip(query);
+	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
+	r = Connection_executeQuery(c,(const char *)query);
+
+	count = ResultSet_getColumnCount(r);
+	if (count == 1) {
+		TRACE(TRACE_LOOKUP, "found user [%s]",addr);
+		return 1;
+	} else {
+		TRACE(TRACE_LOOKUP, "user [%s] does not exist", addr);
+		return 0;
+	}
+}
+
 #endif
