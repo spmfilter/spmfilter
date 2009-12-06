@@ -40,7 +40,7 @@ typedef struct {
 	char *nexthop;
 	int nexthop_fail_code;
 	char *nexthop_fail_msg;
-	
+	char *backend;
 	/* hash table for smtp codes */
 	GHashTable *smtp_codes;
 	
@@ -87,6 +87,7 @@ typedef struct {
 	
 	/* sender */
 	char *from;
+	int sender_is_local;
 	
 	/* size of message body */
 	size_t msgbodysize;
@@ -96,10 +97,6 @@ typedef struct {
 	
 	/* xfoward */
 	char *xforward_addr;
-	
-	/* hash table for runtime data */
-	GHashTable *runtime_data;
-	
 } MAILCONN;
 
 typedef struct {
@@ -208,6 +205,7 @@ char *get_maildir_filename(void);
  * q: format query
  * .... query args
  */
+int sql_user_exists(char *addr); 
 ResultSet_T sql_query(const char *q, ...);
 #endif
 #endif

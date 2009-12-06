@@ -1,3 +1,8 @@
+2009-12-06 Axel Steiner <ast@treibsand.com>
+	* added new function sql_user_exists()
+	* removed runtime_data hashtable
+	* added new config option 'backend'
+	
 2009-12-04 Axel Steiner <ast@treibsand.com>
 	* added new ldap backend
 	* reengineered settings behavior

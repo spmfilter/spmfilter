@@ -65,6 +65,8 @@ int parse_config(void) {
 		return -1;
 	}
 
+	settings->backend = g_key_file_get_string(keyfile, "global", "backend", NULL);
+
 	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
 	TRACE(TRACE_DEBUG, "settings->spool_dir: %s", settings->spool_dir);
 	for(i = 0; settings->modules[i] != NULL; i++) {
@@ -72,6 +74,7 @@ int parse_config(void) {
 	}
 	TRACE(TRACE_DEBUG, "settings->module_fail: %d", settings->module_fail);
 	TRACE(TRACE_DEBUG, "settings->nexthop: %s", settings->nexthop);
+	TRACE(TRACE_DEBUG, "settings->backend: %s", settings->backend);
 
 #ifdef HAVE_ZDB
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
@@ -226,9 +229,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	/* initialize runtime_data hashtable */
-	mconn->runtime_data = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
-	
 	if (settings->debug) 
 		start_process = clock();
 	
