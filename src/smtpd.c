@@ -159,7 +159,7 @@ void load_modules(MAILCONN *mconn) {
 	
 	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
-		msg->from = g_strdup(mconn->from);
+		msg->from = g_strdup(mconn->from->addr);
 		msg->rcpt = mconn->rcpt;
 		msg->message_file = g_strdup(mconn->queue_file);
 		msg->nexthop = g_strup(settings->nexthop);
@@ -249,6 +249,7 @@ int load(MAILCONN *mconn) {
 	char hostname[256];
 	char line[512];
 	SETTINGS *settings = g_private_get(settings_key);
+	EMLADDR *addr_from, *addr_rcptto;
 	gethostname(hostname,256);
 
 	smtp_string_reply("220 %s spmfilter\r\n",hostname);
@@ -286,23 +287,33 @@ int load(MAILCONN *mconn) {
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
 			state = ST_MAIL;
-			mconn->from = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
+			addr_from = g_slice_new(EMLADDR);
+			addr_from->addr = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
 #ifdef HAVE_ZDB
 			if (settings->sql_user_query != NULL) {
-				mconn->sender_is_local = sql_user_exists(mconn->from);
-				TRACE(TRACE_DEBUG,"mconn->sender_is_local: %d", mconn->sender_is_local);
+				addr_from->is_local = sql_user_exists(addr_from->addr);
+				TRACE(TRACE_DEBUG,"[%s] is local [%d]", addr_from->addr,addr_from->is_local);
 			}
 #endif
+			mconn->from = addr_from;
 			smtp_code_reply(settings,250);
-			TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from);
+			TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 			state = ST_RCPT;
-			mconn->rcpt = g_slist_append(mconn->rcpt,get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1));
+			addr_rcptto = g_slice_new(EMLADDR);	
+			addr_rcptto->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
+#ifdef HAVE_ZDB
+			if (settings->sql_user_query != NULL) {
+				addr_rcptto->is_local = sql_user_exists(addr_rcptto->addr);
+				TRACE(TRACE_DEBUG,"[%s] is local [%d]", addr_rcptto->addr,addr_rcptto->is_local);
+			}
+#endif
+			mconn->rcpt = g_slist_append(mconn->rcpt,addr_rcptto);
 			smtp_code_reply(settings,250);
 			TRACE(TRACE_DEBUG,"mconn->rcpt[%d]: %s",
 				g_slist_length(mconn->rcpt)-1,
-				g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
+				((EMLADDR *)g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1))->addr);
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'data' received");
 			state = ST_DATA;

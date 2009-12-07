@@ -79,6 +79,11 @@ typedef struct {
 } MESSAGE;
 
 typedef struct {
+	char *addr;
+	int is_local;
+} EMLADDR;
+
+typedef struct {
 	/* hello we received */
 	char *helo;
 	
@@ -86,8 +91,7 @@ typedef struct {
 	GSList *rcpt;
 	
 	/* sender */
-	char *from;
-	int sender_is_local;
+	EMLADDR *from;
 	
 	/* size of message body */
 	size_t msgbodysize;
