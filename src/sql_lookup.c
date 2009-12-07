@@ -153,7 +153,6 @@ int sql_user_exists(char *addr) {
 	Connection_T c;
 	ResultSet_T r;
 	char *query;
-	int count;
 	SETTINGS *settings = g_private_get(settings_key);
 	
 	c = sql_con_get();
@@ -162,8 +161,7 @@ int sql_user_exists(char *addr) {
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 	r = Connection_executeQuery(c,(const char *)query);
 
-	count = ResultSet_getColumnCount(r);
-	if (count == 1) {
+	if (ResultSet_next(r)) {
 		TRACE(TRACE_LOOKUP, "found user [%s]",addr);
 		return 1;
 	} else {

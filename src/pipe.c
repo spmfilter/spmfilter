@@ -68,7 +68,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	
 	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
-		msg->from = g_strdup(mconn->from);
+		msg->from = g_strdup(mconn->from->addr);
 		msg->rcpt = mconn->rcpt;
 		msg->message_file = g_strdup(mconn->queue_file);
 		msg->nexthop = g_strup(settings->nexthop);
@@ -93,6 +93,7 @@ int load(MAILCONN *mconn) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	int i;
+	EMLADDR *addr_from, *addr_rcptto;
 	SETTINGS *settings = g_private_get(settings_key);
 	
 	mconn->queue_file = gen_queue_file();
@@ -138,8 +139,16 @@ int load(MAILCONN *mconn) {
 	parser = g_mime_parser_new_with_stream (gmin);
 	g_object_unref(gmin);
 	message = g_mime_parser_construct_message (parser);
-	mconn->from = get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
-	TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from);
+	addr_from = g_slice_new(EMLADDR);
+	addr_from->addr = get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
+#ifdef HAVE_ZDB
+	if (settings->sql_user_query != NULL) {
+		addr_from->is_local = sql_user_exists(addr_from->addr);
+		TRACE(TRACE_DEBUG,"[%s] is local [%d]", addr_from->addr,addr_from->is_local);
+	}
+#endif
+	mconn->from = addr_from;
+	TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
 
 	
 #ifdef HAVE_GMIME24

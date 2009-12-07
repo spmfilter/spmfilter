@@ -69,7 +69,7 @@ int smtp_delivery(MESSAGE *msg_data) {
 	
 	if (msg_data->rcpt != NULL) {
 		for (rcpt = msg_data->rcpt; rcpt; rcpt = g_slist_next(rcpt)) {
-			recipient = smtp_add_recipient(message,rcpt->data);
+			recipient = smtp_add_recipient(message,((EMLADDR *)rcpt->data)->addr);
 		}
 	} else {
 		smtp_destroy_session(session);
