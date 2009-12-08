@@ -221,6 +221,7 @@ ResultSet_T sql_query(const char *q, ...);
  * .... query args
  */
 LDAPMessage *ldap_query(const char *q, ...);
+int ldap_user_exists(char *addr);
 #endif
 
 /** expands placeholders in a user querystring
