@@ -156,8 +156,7 @@ int sql_user_exists(char *addr) {
 	SETTINGS *settings = g_private_get(settings_key);
 	
 	c = sql_con_get();
-	query = g_strdup_printf(settings->sql_user_query,addr);
-	g_strstrip(query);
+	expand_query(settings->sql_user_query, addr, &query);
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 	r = Connection_executeQuery(c,(const char *)query);
 
