@@ -8,6 +8,11 @@ AC_PROG_CC
 AM_PROG_LIBTOOL
 
 
+AC_PATH_PROG(pkgconfig,pkg-config)
+if test [ -z "$pkgconfig" ] ; then
+	AC_MSG_ERROR([pkg-config executable not found. Make sure pkg-config is in your path])
+fi
+
 SPMFILTER_CHECK_MATH
 SPMFILTER_CHECK_GLIB
 SPMFILTER_CHECK_GMIME

@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#if (GLIB2_VERSION < 21400)
+#ifdef HAVE_PCRE
 #include <pcre.h>
 #endif
 #include <gmime/gmime.h>
