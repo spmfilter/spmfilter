@@ -54,7 +54,7 @@ int ldap_connect(void) {
 	return 0;
 }
 
-LDAP * ldap_get_con(void) {
+LDAP * ldap_con_get(void) {
 	LDAP * c = g_private_get(ldap_conn_key);
 	if (!c) {
 		ldap_connect();
@@ -64,7 +64,7 @@ LDAP * ldap_get_con(void) {
 }
 
 int ldap_disconnect(void) {
-	LDAP *ld = ldap_get_con();
+	LDAP *ld = ldap_con_get();
 	if (ld != NULL) {
 		ldap_unbind(ld);
 		g_private_set(ldap_conn_key, NULL);
@@ -77,7 +77,7 @@ LDAPMessage *ldap_query(const char *q, ...) {
 	char *query;
 	LDAPMessage *msg = NULL;
 	SETTINGS *settings = g_private_get(settings_key);
-	LDAP *ld = ldap_get_con();
+	LDAP *ld = ldap_con_get();
 	
 	va_start(ap, q);
 	va_copy(cp, ap);
@@ -94,6 +94,15 @@ LDAPMessage *ldap_query(const char *q, ...) {
 		TRACE(TRACE_LOOKUP,"[%p] nothing found",ld);
 	
 	return msg;
+}
+
+int ldap_user_exists(char *addr) {
+	char *query;
+	SETTINGS *settings = g_private_get(settings_key);
+	LDAP *ld = ldap_con_get();
+
+	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
+	
 }
 
 #endif
