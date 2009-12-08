@@ -212,7 +212,6 @@ char *get_maildir_filename(void);
 int sql_user_exists(char *addr); 
 ResultSet_T sql_query(const char *q, ...);
 #endif
-#endif
 
 #ifdef HAVE_LDAP
 /*
@@ -222,4 +221,17 @@ ResultSet_T sql_query(const char *q, ...);
  * .... query args
  */
 LDAPMessage *ldap_query(const char *q, ...);
+#endif
+
+/** expands placeholders in a user querystring
+ *
+ * \param format format string to use as input
+ * \param addr email address to use for replacements
+ * \buf pointer to unallocated buffer for expanded format string, needs to
+ *      free'd by caller if not required anymore
+ *
+ * \returns the number of replacements made or -1 in case of error
+ */
+int expand_query(char *format, char *addr, char **buf);
+
 #endif
