@@ -20,3 +20,4 @@ src/spmfilter.h
 *.la*
 *.P*
 *.libs*
+build*
