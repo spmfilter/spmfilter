@@ -70,7 +70,8 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
 		msg->from = g_strdup(mconn->from->addr);
-		for (i = 0; i <= mconn->num_rcpts; i++) {
+		msg->rcpts = malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
+		for (i = 0; i < mconn->num_rcpts; i++) {
 			rcpts[i] = calloc(strlen(mconn->rcpts[i]->addr), sizeof(char));
 			rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
 		}

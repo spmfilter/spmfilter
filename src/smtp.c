@@ -68,7 +68,7 @@ int smtp_delivery(MESSAGE *msg_data) {
 	smtp_set_message_fp(message, fp);
 	
 	if (msg_data->rcpts != NULL) {
-		for (i = 0; i <= msg_data->num_rcpts; i++) {
+		for (i = 0; i < msg_data->num_rcpts; i++) {
 			recipient = smtp_add_recipient(message,msg_data->rcpts[i]);
 		}
 	} else {
