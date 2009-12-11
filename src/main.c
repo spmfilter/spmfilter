@@ -262,7 +262,7 @@ int main(int argc, char *argv[]) {
 	g_strfreev(settings->modules);
 	g_slice_free(SETTINGS,settings);
 	g_private_set(settings_key, NULL);
-	g_slist_free(mconn->rcpt);
+//	g_slist_free(mconn->rcpt);
 	g_slice_free(MAILCONN,mconn);
 	g_free(engine_path);
 	g_mime_shutdown();
