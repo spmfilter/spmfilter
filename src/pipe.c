@@ -17,6 +17,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
+	char **rcpts;
 	MESSAGE *msg = NULL;
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
@@ -69,7 +70,12 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
 		msg->from = g_strdup(mconn->from->addr);
-		msg->rcpt = mconn->rcpt;
+		for (i = 0; i <= mconn->num_rcpts; i++) {
+			rcpts[i] = calloc(strlen(mconn->rcpts[i]->addr), sizeof(char));
+			rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
+		}
+		msg->rcpts = rcpts;
+		msg->num_rcpts = mconn->num_rcpts;
 		msg->message_file = g_strdup(mconn->queue_file);
 		msg->nexthop = g_strup(settings->nexthop);
 		if (smtp_delivery(msg) != 0) {
@@ -93,11 +99,10 @@ int load(MAILCONN *mconn) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	int i;
-	EMLADDR *addr_from, *addr_rcptto;
 	SETTINGS *settings = g_private_get(settings_key);
 	
 	mconn->queue_file = gen_queue_file();
-	
+
 	TRACE(TRACE_DEBUG,"using spool file: '%s'", mconn->queue_file);
 		
 	/* start receiving data */
@@ -133,21 +138,21 @@ int load(MAILCONN *mconn) {
 	g_io_channel_unref(out);
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
+	mconn->num_rcpts = 0;
 	
 	/* parse email data and fill mconn struct*/
 	g_mime_stream_seek(gmin,0,0);
 	parser = g_mime_parser_new_with_stream (gmin);
 	g_object_unref(gmin);
 	message = g_mime_parser_construct_message (parser);
-	addr_from = g_slice_new(EMLADDR);
-	addr_from->addr = get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
+	mconn->from = g_slice_new(EMLADDR);
+	mconn->from->addr = get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
 #ifdef HAVE_ZDB
 	if (settings->sql_user_query != NULL) {
-		addr_from->is_local = sql_user_exists(addr_from->addr);
-		TRACE(TRACE_DEBUG,"[%s] is local [%d]", addr_from->addr,addr_from->is_local);
+		mconn->from->is_local = sql_user_exists(mconn->from->addr);
+		TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
 	}
 #endif
-	mconn->from = addr_from;
 	TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
 
 	
@@ -156,10 +161,11 @@ int load(MAILCONN *mconn) {
 	ia = g_mime_message_get_all_recipients(message);
 	for (i=0; i < internet_address_list_length(ia); i++) {
 		addr = internet_address_list_get_address(ia,i);
-		mconn->rcpt = g_slist_append(mconn->rcpt,get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE), 1));
-		TRACE(TRACE_DEBUG,"mconn->rcpt[%d]: %s",
-			g_slist_length(mconn->rcpt)-1,
-			g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
+		mconn->rcpts = malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
+		mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
+		mconn->rcpts[mconn->num_rcpts]->addr = get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
+		TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+		mconn->num_rcpts++;
 	}
 #else
 	ia = (InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_TO);
@@ -169,10 +175,11 @@ int load(MAILCONN *mconn) {
 		(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_BCC)); 
 	while(ia) {
 		addr = internet_address_list_get_address(ia);
-		mconn->rcpt = g_slist_append(mconn->rcpt,get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE), 1));
-		TRACE(TRACE_DEBUG,"mconn->rcpt[%d]: %s",
-			g_slist_length(mconn->rcpt)-1,
-			g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1));
+		mconn->rcpts = malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
+		mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
+		mconn->rcpts[mconn->num_rcpts]->addr = get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
+		TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+		mconn->num_rcpts++;
 		ia = internet_address_list_next(ia);
 	}
 #endif

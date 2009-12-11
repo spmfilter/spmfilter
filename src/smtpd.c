@@ -71,6 +71,7 @@ void load_modules(MAILCONN *mconn) {
 	LoadMod load_module;
 	int i, ret;
 	MESSAGE *msg = NULL;
+	char **rcpts;
 	SETTINGS *settings = g_private_get(settings_key);
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
@@ -118,6 +119,7 @@ void load_modules(MAILCONN *mconn) {
 		 *     be startet. spmfilter sends a 250 code
 		 */
 		ret = load_module(settings,mconn); 
+		TRACE(TRACE_DEBUG,"module return code [%d]", ret);
 		if (ret == -1) {
 			if (!g_module_close(module))
 				TRACE(TRACE_ERR,"%s", g_module_error());
@@ -160,7 +162,12 @@ void load_modules(MAILCONN *mconn) {
 	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
 		msg->from = g_strdup(mconn->from->addr);
-		msg->rcpt = mconn->rcpt;
+		for (i = 0; i <= mconn->num_rcpts; i++) {
+			rcpts[i] = calloc(strlen(mconn->rcpts[i]->addr), sizeof(char));
+			rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
+		}
+		msg->rcpts = rcpts;
+		msg->num_rcpts = mconn->num_rcpts;
 		msg->message_file = g_strdup(mconn->queue_file);
 		msg->nexthop = g_strup(settings->nexthop);
 		if (smtp_delivery(msg) != 0) {
@@ -249,11 +256,10 @@ int load(MAILCONN *mconn) {
 	char hostname[256];
 	char line[512];
 	SETTINGS *settings = g_private_get(settings_key);
-	EMLADDR *addr_from, *addr_rcptto;
 	gethostname(hostname,256);
 
 	smtp_string_reply("220 %s spmfilter\r\n",hostname);
-	
+	mconn->num_rcpts = 0;
 	do {
 		memset(line, 0, sizeof(line));
 		fgets(line, sizeof(line), stdin);
@@ -287,33 +293,32 @@ int load(MAILCONN *mconn) {
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
 			state = ST_MAIL;
-			addr_from = g_slice_new(EMLADDR);
-			addr_from->addr = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
+			mconn->from = g_slice_new(EMLADDR);
+			mconn->from->addr = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
 #ifdef HAVE_ZDB
 			if (settings->sql_user_query != NULL) {
-				addr_from->is_local = sql_user_exists(addr_from->addr);
-				TRACE(TRACE_DEBUG,"[%s] is local [%d]", addr_from->addr,addr_from->is_local);
+				mconn->from->is_local = sql_user_exists(mconn->from->addr);
+				TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
 			}
 #endif
-			mconn->from = addr_from;
 			smtp_code_reply(settings,250);
 			TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 			state = ST_RCPT;
-			addr_rcptto = g_slice_new(EMLADDR);	
-			addr_rcptto->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
+			mconn->rcpts = malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
+			mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
+			TRACE(TRACE_DEBUG,"GNA");
+			mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
 #ifdef HAVE_ZDB
 			if (settings->sql_user_query != NULL) {
-				addr_rcptto->is_local = sql_user_exists(addr_rcptto->addr);
-				TRACE(TRACE_DEBUG,"[%s] is local [%d]", addr_rcptto->addr,addr_rcptto->is_local);
+				mconn->rcpts[mconn->num_rcpts]->is_local = sql_user_exists(mconn->rcpts[mconn->num_rcpts]->addr);
+				TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
 			}
 #endif
-			mconn->rcpt = g_slist_append(mconn->rcpt,addr_rcptto);
 			smtp_code_reply(settings,250);
-			TRACE(TRACE_DEBUG,"mconn->rcpt[%d]: %s",
-				g_slist_length(mconn->rcpt)-1,
-				((EMLADDR *)g_slist_nth_data(mconn->rcpt,g_slist_length(mconn->rcpt)-1))->addr);
+			TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+			mconn->num_rcpts++;
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'data' received");
 			state = ST_DATA;

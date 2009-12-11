@@ -71,7 +71,8 @@ extern GPrivate *settings_key;
 
 typedef struct {
 	char *from;
-	GSList *rcpt;
+	char **rcpts;
+	int num_rcpts;
 	char *message_file;
 	char *auth_user;
 	char *auth_pass;
@@ -88,7 +89,8 @@ typedef struct {
 	char *helo;
 	
 	/* recipients */
-	GSList *rcpt;
+	EMLADDR **rcpts;
+	int num_rcpts;
 	
 	/* sender */
 	EMLADDR *from;
@@ -102,12 +104,6 @@ typedef struct {
 	/* xfoward */
 	char *xforward_addr;
 } MAILCONN;
-
-typedef struct {
-	SETTINGS *settings;
-	gchar *line;
-	GMimeMessage *message;
-} HL;
 
 /* Logging and debugging stuff */
 typedef enum {
