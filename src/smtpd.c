@@ -71,7 +71,6 @@ void load_modules(MAILCONN *mconn) {
 	LoadMod load_module;
 	int i, ret;
 	MESSAGE *msg = NULL;
-	char **rcpts;
 	SETTINGS *settings = g_private_get(settings_key);
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
@@ -158,15 +157,16 @@ void load_modules(MAILCONN *mconn) {
 		
 		g_free(path);
 	}
-	
+
 	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
 		msg->from = g_strdup(mconn->from->addr);
-		for (i = 0; i <= mconn->num_rcpts; i++) {
-			rcpts[i] = calloc(strlen(mconn->rcpts[i]->addr), sizeof(char));
-			rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
+		msg->rcpts = malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
+		for (i = 0; i < mconn->num_rcpts; i++) {
+			msg->rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
+
 		}
-		msg->rcpts = rcpts;
+
 		msg->num_rcpts = mconn->num_rcpts;
 		msg->message_file = g_strdup(mconn->queue_file);
 		msg->nexthop = g_strup(settings->nexthop);
@@ -308,7 +308,6 @@ int load(MAILCONN *mconn) {
 			state = ST_RCPT;
 			mconn->rcpts = malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
 			mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
-			TRACE(TRACE_DEBUG,"GNA");
 			mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
 #ifdef HAVE_ZDB
 			if (settings->sql_user_query != NULL) {
