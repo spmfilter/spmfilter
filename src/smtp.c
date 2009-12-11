@@ -21,7 +21,7 @@ int smtp_delivery(MESSAGE *msg_data) {
 	FILE *fp;
 	struct sigaction sa;
 	char *nexthop = NULL;
-	GSList *rcpt;
+	int i;
 	
 	TRACE(TRACE_DEBUG,"initializing SMTP session");
 	
@@ -67,9 +67,9 @@ int smtp_delivery(MESSAGE *msg_data) {
 	fp = fopen(msg_data->message_file, "r");
 	smtp_set_message_fp(message, fp);
 	
-	if (msg_data->rcpt != NULL) {
-		for (rcpt = msg_data->rcpt; rcpt; rcpt = g_slist_next(rcpt)) {
-			recipient = smtp_add_recipient(message,((EMLADDR *)rcpt->data)->addr);
+	if (msg_data->rcpts != NULL) {
+		for (i = 0; i <= msg_data->num_rcpts; i++) {
+			recipient = smtp_add_recipient(message,msg_data->rcpts[i]);
 		}
 	} else {
 		smtp_destroy_session(session);
