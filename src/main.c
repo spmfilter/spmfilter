@@ -28,6 +28,7 @@ int parse_config(void) {
 	keyfile = g_key_file_new ();
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
 		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
+		g_error_free(error);
 		return -1;
 	}
 	
@@ -36,12 +37,14 @@ int parse_config(void) {
 	settings->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", &error);
 	if (settings->queue_dir == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
+		g_error_free(error);
 		return -1;
 	}
 	
 	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
 	if (settings->engine == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
+		g_error_free(error);
 		return -1;
 	}
 	
@@ -52,6 +55,7 @@ int parse_config(void) {
 	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
 	if (settings->modules == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
+		g_error_free(error);
 		return -1;
 	} 
 	
@@ -63,6 +67,7 @@ int parse_config(void) {
 	settings->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
 	if (settings->nexthop == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
+		g_error_free(error);
 		return -1;
 	}
 
@@ -122,6 +127,7 @@ int parse_config(void) {
 	settings->ldap_base = g_key_file_get_string(keyfile,"ldap","base",&error);
 	if (settings->ldap_base == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
+		g_error_free(error);
 		return -1;
 	}
 	
@@ -176,7 +182,7 @@ int parse_config(void) {
 	}
 	g_strfreev(code_keys);
 	g_private_set(settings_key, settings);
-	
+	g_key_file_free(keyfile);
 	return 0;
 }
 
@@ -189,10 +195,8 @@ int main(int argc, char *argv[]) {
 	GModule *module;
 	LoadEngine load_engine;
 	gchar *engine_path;
-	int ret;
-	
-	g_mime_init(0);
-	
+	int ret, i;
+
 	mconn = g_slice_new(MAILCONN);
 	settings = g_slice_new(SETTINGS);
 	settings->debug = 0;
@@ -217,6 +221,8 @@ int main(int argc, char *argv[]) {
 		g_error_free(error);
 		return 0;
 	}
+	
+	g_option_context_free(context);
 	
 	if (parse_config()!=0) 
 		return -1;
@@ -260,13 +266,31 @@ int main(int argc, char *argv[]) {
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
 
+	
 	g_strfreev(settings->modules);
+	g_free(settings->config_file);
+	g_free(settings->queue_dir);
+	g_free(settings->engine);
+	g_free(settings->spool_dir);
+	g_free(settings->nexthop);
+	g_free(settings->nexthop_fail_msg);
+	g_free(settings->backend);
+	
 	g_slice_free(SETTINGS,settings);
 	g_private_set(settings_key, NULL);
-	g_error_free(error);
+
+	g_free(mconn->queue_file);
+	g_free(mconn->helo);
+	g_free(mconn->xforward_addr);
+	g_free(mconn->from->addr);
+	g_slice_free(EMLADDR,mconn->from);
+	for (i = 0; i < mconn->num_rcpts; i++) {
+		g_free(mconn->rcpts[i]->addr);
+		g_slice_free(EMLADDR,mconn->rcpts[i]);
+	}
 	g_slice_free(MAILCONN,mconn);
 	g_free(engine_path);
-	g_mime_shutdown();
+
 	if (ret != 0) {
 		return -1;
 	} else {

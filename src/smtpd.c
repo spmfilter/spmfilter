@@ -164,7 +164,6 @@ void load_modules(MAILCONN *mconn) {
 		msg->rcpts = malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
 		for (i = 0; i < mconn->num_rcpts; i++) {
 			msg->rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
-
 		}
 
 		msg->num_rcpts = mconn->num_rcpts;
@@ -175,6 +174,12 @@ void load_modules(MAILCONN *mconn) {
 			smtp_string_reply(g_strdup_printf("%d %s\r\n",settings->nexthop_fail_code,settings->nexthop_fail_msg));
 			return;
 		}
+		for (i = 0; i < mconn->num_rcpts; i++) {
+			g_free(msg->rcpts[i]);
+		}
+		g_free(msg->from);
+		g_free(msg->message_file);
+		g_free(msg->nexthop);
 		g_slice_free(MESSAGE,msg);
 	}
 	
@@ -184,8 +189,6 @@ void load_modules(MAILCONN *mconn) {
 
 void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	GIOChannel *in, *out;
-	GMimeStream *gmin;
-	GMimeParser *parser;
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
@@ -205,42 +208,36 @@ void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	if ((out = g_io_channel_new_file(mconn->queue_file,"w", &error)) == NULL) {
 		smtp_string_reply("552 %s\r\n",error->message);
+		g_error_free(error);
 		return;
 	}
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_encoding(out, NULL, NULL);
 
-	/* initialize GMime */
-	g_mime_init (0);
-	gmin = g_mime_stream_mem_new();
-	
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
 		
 		if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
 			smtp_string_reply("452 %s\r\n",error->message);
+			g_io_channel_unref(out);
 			g_io_channel_shutdown(out,TRUE,NULL);
 			g_io_channel_unref(in);
-			g_io_channel_unref(out);
 			g_free(line);
 			remove(mconn->queue_file);
+			g_error_free(error);
 			return;
 		}
 		mconn->msgbodysize+=strlen(line);
-		g_mime_stream_write_string(gmin,line);
 		g_free(line);
 	}
+	g_io_channel_unref(out);
 	g_io_channel_shutdown(out,TRUE,NULL);
 	g_io_channel_unref(in);
-	g_io_channel_unref(out);
+
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
-		
-	g_mime_stream_seek(gmin,0,0);
-	parser = g_mime_parser_new_with_stream (gmin);
-	g_object_unref(gmin);
-			
+
 	load_modules(mconn);
 	
 	remove(mconn->queue_file);
@@ -334,7 +331,8 @@ int load(MAILCONN *mconn) {
 		} else {
 			break;
 		}
+		
 	} while (1);
-	
+
 	return 0;
 }
