@@ -17,7 +17,6 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
-	char **rcpts;
 	MESSAGE *msg = NULL;
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
@@ -36,7 +35,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 				case 1: continue;
 				default: return -1;
 			}
-			return;
+			return -1;
 		}
 
 		if (!g_module_symbol (module, "load", (gpointer *)&load_module)) {
@@ -45,7 +44,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 				case 1: continue;
 				default: return -1;
 			}
-			return;
+			return -1;
 		}
 
 		ret = load_module(settings,mconn); 
@@ -55,7 +54,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 				case 1: continue;
 				default: return -1;
 			}
-			return;
+			return -1;
 		} else if (ret == 1) {
 			g_module_close (module);
 			break;
@@ -72,10 +71,9 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		msg->from = g_strdup(mconn->from->addr);
 		msg->rcpts = malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
 		for (i = 0; i < mconn->num_rcpts; i++) {
-			rcpts[i] = calloc(strlen(mconn->rcpts[i]->addr), sizeof(char));
-			rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
+			msg->rcpts[i] = calloc(strlen(mconn->rcpts[i]->addr), sizeof(char));
+			msg->rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
 		}
-		msg->rcpts = rcpts;
 		msg->num_rcpts = mconn->num_rcpts;
 		msg->message_file = g_strdup(mconn->queue_file);
 		msg->nexthop = g_strup(settings->nexthop);

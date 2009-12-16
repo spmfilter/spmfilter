@@ -185,13 +185,10 @@ void load_modules(MAILCONN *mconn) {
 void process_data(SETTINGS *settings, MAILCONN *mconn) {
 	GIOChannel *in, *out;
 	GMimeStream *gmin;
-	GMimeMessage *message;
 	GMimeParser *parser;
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
-	InternetAddressList *ia;
-	InternetAddress *addr;
 	
 	mconn->queue_file = gen_queue_file();
 	if (mconn->queue_file == NULL) {

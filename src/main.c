@@ -2,6 +2,7 @@
 #include <glib.h>
 #include <gmodule.h>
 #include <time.h>
+#include <stdlib.h>
 
 #include "spmfilter.h"
 
@@ -160,7 +161,7 @@ int parse_config(void) {
 	while (codes_length--) {
 		/* only insert smtp codes to hashtable */
 		code =g_ascii_strtod(code_keys[codes_length],NULL);
-		if (code > 400 & code < 600) {
+		if ((code > 400) & (code < 600)) {
 			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
 			g_hash_table_insert(
 				settings->smtp_codes,
@@ -213,6 +214,7 @@ int main(int argc, char *argv[]) {
 	g_option_context_add_main_entries (context, entries, NULL);
 	if (!g_option_context_parse (context, &argc, &argv, &error)) {
 		g_print("%s\n", error->message);
+		g_error_free(error);
 		return 0;
 	}
 	
@@ -229,8 +231,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (settings->debug) 
-		start_process = clock();
+	start_process = clock();
 	
 	/* check if engine module starts with lib */
 	if (g_str_has_prefix(settings->engine,"lib")) {
@@ -251,8 +252,8 @@ int main(int argc, char *argv[]) {
 
 	ret = load_engine(mconn);
 
+	stop_process = clock();
 	if (settings->debug) {
-		stop_process = clock();
 		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 	}
 	
@@ -262,7 +263,7 @@ int main(int argc, char *argv[]) {
 	g_strfreev(settings->modules);
 	g_slice_free(SETTINGS,settings);
 	g_private_set(settings_key, NULL);
-//	g_slist_free(mconn->rcpt);
+	g_error_free(error);
 	g_slice_free(MAILCONN,mconn);
 	g_free(engine_path);
 	g_mime_shutdown();

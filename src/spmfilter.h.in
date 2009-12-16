@@ -147,7 +147,7 @@ char* get_substring(const char *pattern, const char *haystack, int pos);
  *
  * msg_path: path to message file
  */
-static GMimeMessage *parse_message(char *msg_path);
+GMimeMessage *parse_message(char *msg_path);
 
 /*
  * Write a message to disk
