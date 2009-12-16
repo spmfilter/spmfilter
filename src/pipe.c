@@ -81,6 +81,12 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
 			return -1;
 		}
+		for (i = 0; i < mconn->num_rcpts; i++) {
+			g_free(msg->rcpts[i]);
+		}
+		g_free(msg->from);
+		g_free(msg->message_file);
+		g_free(msg->nexthop);
 		g_slice_free(MESSAGE,msg);
 	}
 	return 0;
@@ -108,6 +114,7 @@ int load(MAILCONN *mconn) {
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	if ((out = g_io_channel_new_file(mconn->queue_file,"w", &error)) == NULL) {
 		TRACE(TRACE_ERR,"%s",error->message);
+		g_error_free(error);
 		return -1;
 	}
 	g_io_channel_set_encoding(in, NULL, NULL);
@@ -125,6 +132,7 @@ int load(MAILCONN *mconn) {
 			g_io_channel_unref(out);
 			g_free(line);
 			remove(mconn->queue_file);
+			g_error_free(error);
 			return -1;
 		}
 		mconn->msgbodysize+=strlen(line);
