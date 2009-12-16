@@ -195,3 +195,17 @@ AC_DEFUN([SPMFILTER_LIB_DIR], [
 		pkglibdir=`eval echo /usr/local/lib/${PACKAGE}`
 	fi
 ])
+
+AC_DEFUN([DEBUG_BUILD], [
+	AC_MSG_CHECKING(whether to enable debugging)
+	AC_ARG_ENABLE(debug, [  --enable-debug=[no/yes]   turn on debugging],
+	[enable_debug="$withval"],[enable_debug="no"])
+	
+	if test [ "x$enable_debug" != "xno" ] ; then
+		CFLAGS="$CFLAGS -Wall -g -DDEBUG"
+		AC_MSG_RESULT(yes)
+	else
+		AC_MSG_RESULT(no)
+	fi
+])
+

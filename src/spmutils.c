@@ -1,5 +1,6 @@
 #include <string.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -77,7 +78,7 @@ char *gen_queue_file(void) {
  *
  * msg_path: path to message file
  */
-static GMimeMessage *parse_message(char *msg_path) {
+GMimeMessage *parse_message(char *msg_path) {
 	GMimeMessage *message = NULL;
 	GMimeParser *parser;
 	GMimeStream *stream;
@@ -253,15 +254,12 @@ char *get_maildir_filename(void) {
 	char *filename;
 	char hostname[256];
 	struct timeval starttime;
-	struct stat attributes;
 	
 	GETTIMEOFDAY(&starttime);
 	gethostname(hostname,256);
 	
-	filename = g_strdup_printf("%lu.V%lxI%lxM%lu.%s",
+	filename = g_strdup_printf("%lu.V%lu.%s",
 		(unsigned long) starttime.tv_sec,
-		(unsigned long) attributes.st_dev,
-		(unsigned long) attributes.st_ino,
 		(unsigned long) starttime.tv_usec,
 		hostname);
 	
