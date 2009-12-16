@@ -53,7 +53,9 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 	}
 	if (strptr != NULL)
 		free((char *) strptr);
-
+	if (error != NULL)
+		free(error);
+	
 	return value;
 #endif
 }
@@ -90,10 +92,10 @@ GMimeMessage *parse_message(char *msg_path) {
 	}
 	
 	stream = g_mime_stream_fs_new(dup(fd));
-	parser = g_mime_parser_new_with_stream (stream);
+	parser = g_mime_parser_new_with_stream(stream);
 	g_object_unref(stream);
-	message = g_mime_parser_construct_message (parser);
-	g_object_unref (parser);
+	message = g_mime_parser_construct_message(parser);
+	g_object_unref(parser);
 	close(fd);
 	return message;
 }
@@ -145,7 +147,8 @@ const char *get_header(char *msg_path, char *header_name) {
 		header_value = g_mime_message_get_header(message,header_name);
 #endif
 	}
-	
+
+	g_free(header_name);
 	g_object_unref(message);
 	return header_value;
 }
@@ -179,7 +182,8 @@ int add_header(char *msg_path, char *header_name, char *header_value) {
 	g_remove(msg_path);
 	g_rename(tmp_file,msg_path);
 	g_free(tmp_file);
-	
+	g_free(header_name);
+	g_free(header_value);
 	g_object_unref(message);
 	return 0;
 }
@@ -213,7 +217,8 @@ int set_header(char *msg_path, char *header_name, char *header_value) {
 	g_remove(msg_path);
 	g_rename(tmp_file,msg_path);
 	g_free(tmp_file);
-	
+	g_free(header_name);
+	g_free(header_value);
 	g_object_unref(message);
 	return 0;
 }
@@ -242,7 +247,7 @@ int remove_header(char *msg_path, char *header_name) {
 	g_remove(msg_path);
 	g_rename(tmp_file,msg_path);
 	g_free(tmp_file);
-	
+	g_free(header_name);
 	g_object_unref(message);
 	return 0;
 }
@@ -263,6 +268,7 @@ char *get_maildir_filename(void) {
 		(unsigned long) starttime.tv_usec,
 		hostname);
 	
+	g_free(hostname);
 	return filename;
 }
 
