@@ -48,7 +48,7 @@ int smtp_delivery(MESSAGE *msg_data) {
 		return -1;
 	}
 	
-	if (msg_data->auth_user != NULL && msg_data->auth_pass != NULL) {
+	if ((msg_data->auth_user != NULL) && (msg_data->auth_pass != NULL)) {
 		authctx = auth_create_context();
 		auth_set_mechanism_flags(authctx, AUTH_PLUGIN_PLAIN, 0);
 		auth_set_interact_cb(authctx, authinteract, msg_data);
@@ -56,7 +56,6 @@ int smtp_delivery(MESSAGE *msg_data) {
 	}
 	
 	if(msg_data->from != NULL) {
-		
 		smtp_set_reverse_path(message,msg_data->from);
 	} else {
 		/* bounce sender */
@@ -87,14 +86,14 @@ int smtp_delivery(MESSAGE *msg_data) {
 	}
 	
 	g_free(nexthop);
-	smtp_destroy_session (session);
+	smtp_destroy_session(session);
 	fclose (fp);
 	
 	if (authctx != NULL) {
 		auth_destroy_context(authctx);
 		auth_client_exit();
 	}
-	
+
 	return 0;
 }
 

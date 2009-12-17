@@ -9,7 +9,7 @@
 #define THIS_MODULE "spmfilter"
 
 typedef int (*LoadEngine) (MAILCONN *mconn);
-GPrivate *settings_key = NULL;
+SETTINGS *settings = NULL;
 
 int parse_config(void) {
 	GError *error = NULL;
@@ -19,8 +19,6 @@ int parse_config(void) {
 	gsize codes_length = 0;
 	char *code_msg;
 	int i, code;
-	
-	SETTINGS *settings = g_private_get(settings_key);
 	
 	if (settings->config_file == NULL) {
 		settings->config_file = "/etc/spmfilter.conf";
@@ -177,11 +175,10 @@ int parse_config(void) {
 			TRACE(TRACE_DEBUG,
 				"settings->smtp_codes: append %s=%s",
 				code_keys[codes_length],code_msg);
-			free(code_msg);
+			g_free(code_msg);
 		}
 	}
 	g_strfreev(code_keys);
-	g_private_set(settings_key, settings);
 	g_key_file_free(keyfile);
 	return 0;
 }
@@ -189,7 +186,6 @@ int parse_config(void) {
 int main(int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *context;
-	SETTINGS *settings;
 	MAILCONN *mconn;
 	clock_t start_process, stop_process;
 	GModule *module;
@@ -200,10 +196,7 @@ int main(int argc, char *argv[]) {
 	mconn = g_slice_new(MAILCONN);
 	settings = g_slice_new(SETTINGS);
 	settings->debug = 0;
-	
-	if (!g_thread_supported()) g_thread_init(NULL);
-	if (!settings_key) settings_key = g_private_new(g_free);
-	
+
 	/* all cmd args */
 	GOptionEntry entries[] = {
 		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &settings->debug, "verbose logging", NULL},
@@ -211,17 +204,16 @@ int main(int argc, char *argv[]) {
 		{ NULL }
 	};
 	
-	g_private_set(settings_key, settings);
-	
 	/* parse cmd args */
 	context = g_option_context_new ("- spmfilter options");
 	g_option_context_add_main_entries (context, entries, NULL);
-	if (!g_option_context_parse (context, &argc, &argv, &error)) {
+	if (!g_option_context_parse(context, &argc, &argv, &error)) {
+		g_option_context_free(context);
 		g_print("%s\n", error->message);
 		g_error_free(error);
 		return 0;
 	}
-	
+
 	g_option_context_free(context);
 	
 	if (parse_config()!=0) 
@@ -266,7 +258,7 @@ int main(int argc, char *argv[]) {
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
 
-	
+	g_hash_table_remove_all(settings->smtp_codes);
 	g_strfreev(settings->modules);
 	g_free(settings->config_file);
 	g_free(settings->queue_dir);
@@ -277,7 +269,6 @@ int main(int argc, char *argv[]) {
 	g_free(settings->backend);
 	
 	g_slice_free(SETTINGS,settings);
-	g_private_set(settings_key, NULL);
 
 	g_free(mconn->queue_file);
 	g_free(mconn->helo);
