@@ -14,7 +14,7 @@ int ldap_connect(void) {
 	int ret, err;
 	int version;
 	char *uri;
-	SETTINGS *settings = g_private_get(settings_key);
+//	SETTINGS *settings = g_private_get(settings_key);
 
 	if (! g_thread_supported()) g_thread_init(NULL);
 	if (! ldap_conn_key) ldap_conn_key = g_private_new(g_free);
@@ -76,7 +76,7 @@ LDAPMessage *ldap_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
 	LDAPMessage *msg = NULL;
-	SETTINGS *settings = g_private_get(settings_key);
+//	SETTINGS *settings = g_private_get(settings_key);
 	LDAP *ld = ldap_con_get();
 	
 	va_start(ap, q);
@@ -98,7 +98,7 @@ LDAPMessage *ldap_query(const char *q, ...) {
 
 int ldap_user_exists(char *addr) {
 	char *query;
-	SETTINGS *settings = g_private_get(settings_key);
+//	SETTINGS *settings = g_private_get(settings_key);
 	LDAP *ld = ldap_con_get();
 
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);

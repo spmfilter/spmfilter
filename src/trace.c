@@ -1,6 +1,8 @@
 #include <syslog.h>
 #include <glib.h>
+#include <glib/gprintf.h>
 #include <string.h>
+#include <stdlib.h>
 #include <math.h>
 
 #include "spmfilter.h"
@@ -24,12 +26,12 @@ static const char * trace_to_text(trace_t level) {
 	return trace_text[ilogb((double) level)];
 }
 
-void trace(trace_t level, const char * module, const char * function, int line, const char *formatstring, ...) {	
+void trace(trace_t level, const char *module, const char *function, int line, const char *formatstring, ...) {	
 	trace_t syslog_level;
-	va_list ap, cp;
-	SETTINGS *settings = g_private_get(settings_key);
-
-	gchar *message;
+	va_list ap = NULL;
+	va_list cp = NULL;
+	
+	gchar *message = NULL;
 	size_t l, maxlen=120;
 
 	/* Return now if we're not logging anything. */
@@ -89,5 +91,4 @@ void trace(trace_t level, const char * module, const char * function, int line, 
 			syslog(syslog_level, SYSLOGFORMAT, g_thread_self(), trace_to_text(level), module, function, line, message);
 	}
 	g_free(message);
-
 }

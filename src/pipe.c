@@ -104,9 +104,9 @@ int load(MAILCONN *mconn) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	int i;
-	SETTINGS *settings = g_private_get(settings_key);
+//	SETTINGS *settings = g_private_get(settings_key);
 	
-	mconn->queue_file = gen_queue_file();
+	gen_queue_file(&mconn->queue_file);
 
 	TRACE(TRACE_DEBUG,"using spool file: '%s'", mconn->queue_file);
 		
