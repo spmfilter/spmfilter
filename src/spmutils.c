@@ -30,7 +30,6 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 	
 	g_match_info_free(match_info);
 	g_regex_unref(re);
-	return value;
 #else
 	pcre *re;
 	const char *error;
@@ -55,24 +54,20 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 		free((char *) strptr);
 	if (error != NULL)
 		free(error);
-	
+#endif	
 	return value;
-#endif
 }
 
 /* 
  * Generate a new queue file name
  */
-char *gen_queue_file(void) {
-	char *tempname = NULL;
-	SETTINGS *settings = g_private_get(settings_key);
-	
+int gen_queue_file(char **tempname) {
 	/* create spooling file */
-	tempname = g_strdup_printf("%s/spmfilter.XXXXXX",settings->queue_dir);
-	if(g_mkstemp(tempname) == -1)
-		return NULL;
+	*tempname = g_strdup_printf("%s/spmfilter.XXXXXX",settings->queue_dir);
+	if(g_mkstemp(*tempname) == -1)
+		return -1;
 	
-	return tempname;	
+	return 0;	
 }
 
 /*
@@ -172,7 +167,7 @@ int add_header(char *msg_path, char *header_name, char *header_value) {
 #else
 		g_mime_message_add_header(message,header_name,header_value);
 #endif
-		tmp_file = gen_queue_file();
+		gen_queue_file(&tmp_file);
 		
 		if (write_message(tmp_file,message) != 0) 
 			return -1;
@@ -207,7 +202,7 @@ int set_header(char *msg_path, char *header_name, char *header_value) {
 #else
 		g_mime_message_set_header(message,header_name,header_value);
 #endif
-		tmp_file = gen_queue_file();
+		gen_queue_file(&tmp_file);
 		
 		if (write_message(tmp_file,message) != 0) 
 			return -1;
@@ -237,7 +232,7 @@ int remove_header(char *msg_path, char *header_name) {
 	
 	if (message!=NULL) {
 		g_mime_object_remove_header((GMimeObject *)message,header_name);
-		tmp_file = gen_queue_file();
+		gen_queue_file(&tmp_file);
 		
 		if (write_message(tmp_file,message) != 0) 
 			return -1;
