@@ -21,3 +21,7 @@ src/spmfilter.h
 *.P*
 *.libs*
 build*
+nbproject/*
+spmfilter-cmake
+.dep.inc
+
