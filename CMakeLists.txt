@@ -6,7 +6,7 @@ project(SPMFILTER)
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(FLAG_DEBUG TRUE)
 set(SMF_PREFIX "/home/sj/bin/spmfilter")
-set(LIB_DIR "/usr/local/lib/spmfilter")
+set(SMF_LIB_DIR "/usr/local/lib/spmfilter")
 
 # ********* NO NEED TO CHANGE ANYTHING BELOW **********
 #
