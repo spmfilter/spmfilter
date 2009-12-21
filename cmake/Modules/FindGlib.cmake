@@ -2,21 +2,7 @@
 # find glib-1.2 Library
 #
 
-set(INCL_DIRS
-	/usr/include
-	/usr/local/include
-	/opt/local/include
-	/opt/gnome/include
-)
-
-set(LIB_DIRS
-	/usr/lib
-	/usr/lib64
-	/usr/local/lib
-	/usr/local/lib64
-	/opt/local/lib
-	/opt/gnome/lib
-)
+INCLUDE(SetFindPaths)
 
 # find include dir
 find_path(GLIB_INCLUDE_DIR glib.h

@@ -12,6 +12,7 @@
 #include <gmime/gmime.h>
 
 #include "spmfilter.h"
+#include "config.h"
 
 #define THIS_MODULE "spmutils"
 
