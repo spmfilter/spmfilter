@@ -21,4 +21,5 @@ build*
 nbproject/*
 spmfilter-cmake
 .dep.inc
+src/config.h
 
