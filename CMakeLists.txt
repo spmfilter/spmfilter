@@ -5,8 +5,9 @@ project(SPMFILTER)
 # settings affecting build process
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(FLAG_DEBUG TRUE)
-set(SMF_PREFIX "/home/sj/bin/spmfilter")
-set(SMF_LIB_DIR "/usr/local/lib/spmfilter")
+
+set(CMAKE_INSTALL_PREFIX "/home/sj/bin/spmfilter")
+set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib/spmfilter")
 
 # ********* NO NEED TO CHANGE ANYTHING BELOW **********
 #

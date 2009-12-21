@@ -24,3 +24,9 @@ target_link_libraries(pipe ${COMMON_LIBS} smf)
 add_executable(spmfilter ${SPMFILTER_SRC})
 target_link_libraries(spmfilter ${COMMON_LIBS} smf)
 
+install(TARGETS smf spmfilter
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+)
+install(TARGETS smtpd pipe DESTINATION ${SMF_LIB_DIR})
+
