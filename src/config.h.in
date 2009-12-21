@@ -1,0 +1,26 @@
+/* cmake input file for function and header file
+ * detection
+ */
+
+/* headers */
+#cmakedefine HAVE_STDIO_H
+
+/* functions */
+#cmakedefine HAVE_FUNC_STRTOUL
+
+/* build informations */
+#define HGREV "${HGREV}"
+#define BUILD_HOST "${BUILD_HOST}"
+#define BUILD_DATE "${BUILD_DATE}"
+#define BUILD_DIR "${BUILD_DIR}"
+#define BUILD_USER "${BUILD_USER}"
+
+/* library versions */
+#define GLIB_VERSION "${GLIB2_VERSION}"
+#define GMIME_VERSION "${GMIME_VERSION}"
+
+/* gmime */
+#cmakedefine HAVE_GMIME24
+
+/* path for spmfilter plugins */
+#define LIB_DIR "${SMF_LIB_DIR}"
