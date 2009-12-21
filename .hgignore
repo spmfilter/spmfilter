@@ -10,7 +10,6 @@ ltmain.sh
 libtool
 src/libspmfilter.pc
 src/spmfilter
-src/spmfilter.h
 *.o
 *.lo
 *.so*
