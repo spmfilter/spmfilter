@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "spmfilter.h"
 #include "smtpd.h"
 
