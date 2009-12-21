@@ -4,6 +4,7 @@
 #include <time.h>
 #include <stdlib.h>
 
+#include "config.h"
 #include "spmfilter.h"
 
 #define THIS_MODULE "spmfilter"
