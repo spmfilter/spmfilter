@@ -65,6 +65,7 @@ endif(ENABLE_DEBUG)
 
 # build stuff in src directory
 add_subdirectory(src)
+add_subdirectory(man)
 
 # * * * custom targets * * *
 add_custom_target(dist
