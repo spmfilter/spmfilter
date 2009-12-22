@@ -1,3 +1,5 @@
+#include "config.h"
+
 #ifdef HAVE_ZDB
 #include <glib.h>
 #include <stdlib.h>
