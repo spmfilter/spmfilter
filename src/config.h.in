@@ -24,3 +24,8 @@
 
 /* path for spmfilter plugins */
 #define LIB_DIR "${SMF_LIB_DIR}"
+
+/* additional features */
+#cmakedefine HAVE_LDAP
+#cmakedefine HAVE_ZDB
+
