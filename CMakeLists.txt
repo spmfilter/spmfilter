@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 2.6)
 
-project(SPMFILTER)
+project(spmfilter)
 
 # settings affecting build process
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(FLAG_DEBUG TRUE)
 set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib/spmfilter")
+
+# internal project settings
+set(SMF_PROJECT_VERSION "0.2")
+set(SMF_ARCHIVE_NAME "${CMAKE_PROJECT_NAME}-${SMF_PROJECT_VERSION}")
 
 # ********* NO NEED TO CHANGE ANYTHING BELOW **********
 #
@@ -50,5 +54,10 @@ if(FLAG_DEBUG)
 	add_definitions(-DDEBUG -g -O0)
 endif(FLAG_DEBUG)
 
+# build stuff in src directory
 add_subdirectory(src)
 
+# * * * custom targets * * *
+add_custom_target(dist
+	COMMAND hg archive --prefix="${SMF_ARCHIVE_NAME}" -t tgz "${SMF_ARCHIVE_NAME}.tar.gz"
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
