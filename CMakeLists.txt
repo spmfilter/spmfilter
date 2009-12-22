@@ -51,10 +51,23 @@ if(WITH_ZDB)
 	include_directories(${ZDB_INCLUDE_PATH})
 endif(WITH_ZDB)
 
+# check if we need to enable ldap
+if(WITH_LDAP)
+	include(FindLdap)
+	include_directories(${LDAP_INCLUDE_DIR})
+	set(HAVE_LDAP TRUE)
+endif(WITH_LDAP)
+
 # write config.h 
 CONFIGURE_FILE(
 	${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
+)
+
+# write spmfilter.h
+CONFIGURE_FILE(
+	${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.h.in 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.h
 )
 
 # check for enabled debugging

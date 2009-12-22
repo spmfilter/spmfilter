@@ -16,6 +16,12 @@ if(HAVE_ZDB)
 endif(HAVE_ZDB)
 
 
+if(HAVE_LDAP)
+	list(APPEND COMMON_LIBS ldap)
+endif(HAVE_LDAP)
+
+list(REMOVE_DUPLICATES COMMON_LIBS)
+
 add_library(smf SHARED ${LIB_SMF_SRC})
 target_link_libraries(smf ${COMMON_LIBS})
 
