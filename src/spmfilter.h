@@ -5,7 +5,15 @@
 #include <gmime/gmime.h>
 #include <sys/time.h>
 
-#include "config.h"
+
+/* gmime */
+#define HAVE_GMIME24
+
+/* ldap */
+#define HAVE_LDAP
+
+/* zdb */
+#define HAVE_ZDB
 
 #ifdef HAVE_ZDB
 #include <URL.h>
@@ -198,6 +206,7 @@ ResultSet_T sql_query(const char *q, ...);
 #endif
 
 #ifdef HAVE_LDAP
+int ldap_connect(void);
 /*
  * Query LDAP directory, returns LDAPMessage
  *
