@@ -4,19 +4,29 @@ project(spmfilter)
 
 # settings affecting build process
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
-set(FLAG_DEBUG TRUE)
-set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib/spmfilter")
+set(ENABLE_DEBUG TRUE)
+#set(ENABLE_LDAP TRUE)
+#set(ENABLE_ZDB TRUE)
+#set(PREFIX "/opt/spmfilter")
+
+# check prefix
+if(PREFIX)
+	SET(CMAKE_INSTALL_PREFIX ${PREFIX})
+endif(PREFIX)
 
 # internal project settings
 set(SMF_PROJECT_VERSION "0.2")
 set(SMF_ARCHIVE_NAME "${CMAKE_PROJECT_NAME}-${SMF_PROJECT_VERSION}")
+set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib/spmfilter")
+message(STATUS "using smf library dir ${SMF_LIB_DIR}")
 
 # ********* NO NEED TO CHANGE ANYTHING BELOW **********
-#
-include(FindPkgConfig)
-
 # use our cmake moduels too
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+
+# includes
+include(FindPkgConfig)
+include(HgBuildInfo)
 
 # * * * find packages first * * *
 find_package(Esmtp REQUIRED)
@@ -40,9 +50,6 @@ if(GMIME_FOUND)
 	ENDIF(${GMIME_VERSION} MATCHES "^2.4*")
 endif(GMIME_FOUND)
 
-# collect build info
-include(HgBuildInfo)
-
 # write config.h 
 CONFIGURE_FILE(
 	${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in 
@@ -50,9 +57,9 @@ CONFIGURE_FILE(
 )
 
 # check for enabled debugging
-if(FLAG_DEBUG)
+if(ENABLE_DEBUG)
 	add_definitions(-DDEBUG -g -O0)
-endif(FLAG_DEBUG)
+endif(ENABLE_DEBUG)
 
 # build stuff in src directory
 add_subdirectory(src)
@@ -61,3 +68,4 @@ add_subdirectory(src)
 add_custom_target(dist
 	COMMAND hg archive --prefix="${SMF_ARCHIVE_NAME}" -t tgz "${SMF_ARCHIVE_NAME}.tar.gz"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
