@@ -1,9 +1,7 @@
 syntax:glob
 autom4te.cache
 aclocal.m4
-*.in
 configure
-config.*
 Makefile
 missing
 depcomp
@@ -12,7 +10,6 @@ ltmain.sh
 libtool
 src/libspmfilter.pc
 src/spmfilter
-src/spmfilter.h
 *.o
 *.lo
 *.so*
@@ -20,3 +17,8 @@ src/spmfilter.h
 *.la*
 *.P*
 *.libs*
+build*
+nbproject/*
+.dep.inc
+src/spmfilter.h
+
