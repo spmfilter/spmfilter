@@ -5,6 +5,8 @@
 #include <gmime/gmime.h>
 #include <sys/time.h>
 
+/* path for spmfilter plugins */
+#define LIB_DIR "${SMF_LIB_DIR}"
 
 /* gmime */
 #cmakedefine HAVE_GMIME24
@@ -195,6 +197,8 @@ int smtp_delivery(MESSAGE *msg_data);
 char *get_maildir_filename(void);
 
 #ifdef HAVE_ZDB
+int sql_connect(void);
+
 /*
  * Query database, returns ResultSet_T
  *
