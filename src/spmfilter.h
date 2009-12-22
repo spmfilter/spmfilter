@@ -5,6 +5,8 @@
 #include <gmime/gmime.h>
 #include <sys/time.h>
 
+#include "config.h"
+
 #ifdef HAVE_ZDB
 #include <URL.h>
 #include <ResultSet.h>

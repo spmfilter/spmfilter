@@ -5,8 +5,7 @@ project(spmfilter)
 # settings affecting build process
 set(CMAKE_VERBOSE_MAKEFILE TRUE)
 set(ENABLE_DEBUG TRUE)
-#set(ENABLE_LDAP TRUE)
-#set(ENABLE_ZDB TRUE)
+#set(WITH_ZDB TRUE)
 #set(PREFIX "/opt/spmfilter")
 
 # check prefix
@@ -49,6 +48,11 @@ if(GMIME_FOUND)
 		set(HAVE_GMIME24 TRUE)
 	ENDIF(${GMIME_VERSION} MATCHES "^2.4*")
 endif(GMIME_FOUND)
+
+if(WITH_ZDB)
+	find_package(Zdb REQUIRED)
+	include_directories(${ZDB_INCLUDE_PATH})
+endif(WITH_ZDB)
 
 # write config.h 
 CONFIGURE_FILE(
