@@ -1,4 +1,4 @@
-#include "config.h"
+#include "spmfilter.h"
 
 #ifdef HAVE_ZDB
 #include <glib.h>
@@ -11,8 +11,6 @@
 #include <Connection.h>
 #include <ConnectionPool.h>
 #include <SQLException.h>
-
-#include "spmfilter.h"
 
 #define THIS_MODULE "sql_lookup"
 
@@ -29,7 +27,6 @@ int sql_connect(void) {
 	Connection_T con = NULL;
 	GString *dsn = g_string_new("");
 	int sweep_interval = 60;
-//	SETTINGS *settings = g_private_get(settings_key);
 
 	if (settings->sql_driver != NULL) {
 		g_string_append_printf(dsn,"%s://",settings->sql_driver);
@@ -155,7 +152,6 @@ int sql_user_exists(char *addr) {
 	Connection_T c;
 	ResultSet_T r;
 	char *query;
-//	SETTINGS *settings = g_private_get(settings_key);
 	
 	c = sql_con_get();
 	expand_query(settings->sql_user_query, addr, &query);

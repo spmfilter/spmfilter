@@ -1,9 +1,9 @@
+#include "spmfilter.h"
+
 #ifdef HAVE_LDAP
 #include <glib.h>
 #include <ldap.h>
 #include <stdarg.h>
-
-#include "spmfilter.h"
 
 #define THIS_MODULE "ldap_lookup"
 
