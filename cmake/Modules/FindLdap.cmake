@@ -1,45 +1,12 @@
-# - Try to find the LDAP client libraries
-# Once done this will define
+# find ldap library
 #
-#  LDAP_FOUND - system has libldap
-#  LDAP_INCLUDE_DIR - the ldap include directory
-#  LDAP_LIBRARIES - libldap + liblber (if found) library
-#  LBER_LIBRARIES - liblber library
 
-if(LDAP_INCLUDE_DIR AND LDAP_LIBRARIES)
-	# Already in cache, be silent
-	set(Ldap_FIND_QUIETLY TRUE)
-endif(LDAP_INCLUDE_DIR AND LDAP_LIBRARIES)
-	
-if(UNIX)
-	FIND_PATH(LDAP_INCLUDE_DIR ldap.h)
-	if(APPLE)
-		FIND_LIBRARY(LDAP_LIBRARIES NAMES LDAP
-			PATHS
-			/System/Library/Frameworks
-			/Library/Frameworks
-		)
-	else(APPLE)
-		FIND_LIBRARY(LDAP_LIBRARIES NAMES ldap)
-		FIND_LIBRARY(LBER_LIBRARIES NAMES lber)
-	endif(APPLE)
-endif(UNIX)
-
-if(LDAP_INCLUDE_DIR AND LDAP_LIBRARIES)
-	set(LDAP_FOUND TRUE)
-	if(LBER_LIBRARIES)
-		set(LDAP_LIBRARIES ${LDAP_LIBRARIES} ${LBER_LIBRARIES})
-	endif(LBER_LIBRARIES)
-endif(LDAP_INCLUDE_DIR AND LDAP_LIBRARIES)
-	
-if(LDAP_FOUND)
-	if(NOT Ldap_FIND_QUIETLY)
-		message(STATUS "Found ldap: ${LDAP_LIBRARIES}")
-	endif(NOT Ldap_FIND_QUIETLY)
-else(LDAP_FOUND)
-	if (Ldap_FIND_REQUIRED)
-		message(FATAL_ERROR "Could NOT find ldap")
-	endif (Ldap_FIND_REQUIRED)
-endif(LDAP_FOUND)
-
-MARK_AS_ADVANCED(LDAP_INCLUDE_DIR LDAP_LIBRARIES LBER_LIBRARIES)
+find_library(HAVE_LDAP ldap)
+if(HAVE_LDAP-NOTFOUND)
+	message(FATAL_ERROR "ldap has been enabled but library coud not be found")
+else(HAVE_LDAP-NOTFOUND)
+	get_filename_component(LDAP_PATH "${HAVE_LDAP}" PATH)
+	string(REGEX REPLACE "lib$" "include" LDAP_INCLUDE_PATH ${LDAP_PATH})
+	message(STATUS "Found ldap library ${HAVE_LDAP}")
+	message(STATUS "Found ldap include path ${LDAP_INCLUDE_PATH}")
+endif(HAVE_LDAP-NOTFOUND)
