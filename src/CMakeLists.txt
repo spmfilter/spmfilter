@@ -6,18 +6,17 @@ set(LIB_SMF_SRC
 	spmutils.c
 	trace.c
 	smtp.c
-	sql_lookup.c
-	ldap_lookup.c
 )
 
 set(COMMON_LIBS m esmtp ${GLIB2_LIBRARIES} ${GMIME_LIBRARIES})
 if(HAVE_ZDB)
 	list(APPEND COMMON_LIBS zdb)
+	list(APPEND LIB_SMF_SRC sql_lookup.c)
 endif(HAVE_ZDB)
-
 
 if(HAVE_LDAP)
 	list(APPEND COMMON_LIBS ldap)
+	list(APPEND LIB_SMF_SRC ldap_lookup.c)
 endif(HAVE_LDAP)
 
 list(REMOVE_DUPLICATES COMMON_LIBS)

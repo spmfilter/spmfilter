@@ -1,6 +1,3 @@
-#include "spmfilter.h"
-
-#ifdef HAVE_ZDB
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +8,8 @@
 #include <Connection.h>
 #include <ConnectionPool.h>
 #include <SQLException.h>
+
+#include "spmfilter.h"
 
 #define THIS_MODULE "sql_lookup"
 
@@ -167,4 +166,3 @@ int sql_user_exists(char *addr) {
 	}
 }
 
-#endif
