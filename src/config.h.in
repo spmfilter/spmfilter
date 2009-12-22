@@ -19,9 +19,6 @@
 #define GLIB_VERSION "${GLIB2_VERSION}"
 #define GMIME_VERSION "${GMIME_VERSION}"
 
-/* gmime */
-#cmakedefine HAVE_GMIME24
-
 /* path for spmfilter plugins */
 #define LIB_DIR "${SMF_LIB_DIR}"
 
