@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
 project(spmfilter)
-
 # settings affecting build process
-set(CMAKE_VERBOSE_MAKEFILE TRUE)
-set(ENABLE_DEBUG TRUE)
 #set(ENABLE_LDAP TRUE)
 #set(ENABLE_ZDB TRUE)
 #set(PREFIX "/opt/spmfilter")
@@ -50,16 +47,30 @@ if(GMIME_FOUND)
 	ENDIF(${GMIME_VERSION} MATCHES "^2.4*")
 endif(GMIME_FOUND)
 
+# check for enabled debugging
+if(ENABLE_DEBUG)
+	set(CMAKE_VERBOSE_MAKEFILE TRUE)
+	add_definitions(-DDEBUG -g -O0)
+endif(ENABLE_DEBUG)
+
+# check if we need to enable ldap
+if(WITH_LDAP)
+	include(FindLdap)
+	include_directories(${LDAP_INCLUDE_DIR})
+	set(HAVE_LDAP TRUE)
+endif(WITH_LDAP)
+
 # write config.h 
 CONFIGURE_FILE(
 	${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/config.h
 )
 
-# check for enabled debugging
-if(ENABLE_DEBUG)
-	add_definitions(-DDEBUG -g -O0)
-endif(ENABLE_DEBUG)
+# write spmfilter.h
+CONFIGURE_FILE(
+	${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.h.in 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.h
+)
 
 # build stuff in src directory
 add_subdirectory(src)
