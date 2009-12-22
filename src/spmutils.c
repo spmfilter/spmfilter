@@ -279,7 +279,7 @@ int expand_query(char *format, char *addr, char **buf) {
 	/* allocate space for buffer 
 	 * TODO: put buffer size declaration somewhere else
 	 */
-	*buf = (char *)calloc(512, sizeof(char));
+	*buf = (char *)g_malloc(sizeof(char));
 	if(*buf == NULL) {
 		return(-1);
 	}

@@ -32,12 +32,9 @@ int parse_config(void) {
 	
 	settings->debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
 	
-	settings->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", &error);
-	if (settings->queue_dir == NULL) {
-		TRACE(TRACE_ERR, "config error: %s", error->message);
-		g_error_free(error);
-		return -1;
-	}
+	settings->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", NULL);
+	if (settings->queue_dir == NULL) 
+		settings->queue_dir = "/var/spool/spmfilter";
 	
 	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
 	if (settings->engine == NULL) {
@@ -45,10 +42,6 @@ int parse_config(void) {
 		g_error_free(error);
 		return -1;
 	}
-	
-	settings->spool_dir = g_key_file_get_string(keyfile, "global", "spool_dir",NULL);
-	if (settings->spool_dir == NULL) 
-		settings->spool_dir = "/var/spool/spmfilter";
 	
 	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
 	if (settings->modules == NULL) {
@@ -192,6 +185,8 @@ int main(int argc, char *argv[]) {
 	LoadEngine load_engine;
 	gchar *engine_path;
 	int ret, i;
+	
+//	g_mem_set_vtable (glib_mem_profiler_table);
 
 	mconn = g_slice_new(MAILCONN);
 	settings = g_slice_new(SETTINGS);
@@ -263,7 +258,6 @@ int main(int argc, char *argv[]) {
 	g_free(settings->config_file);
 	g_free(settings->queue_dir);
 	g_free(settings->engine);
-	g_free(settings->spool_dir);
 	g_free(settings->nexthop);
 	g_free(settings->nexthop_fail_msg);
 	g_free(settings->backend);
@@ -282,6 +276,8 @@ int main(int argc, char *argv[]) {
 	g_slice_free(MAILCONN,mconn);
 	g_free(engine_path);
 
+
+//	g_mem_profile(); 
 	if (ret != 0) {
 		return -1;
 	} else {

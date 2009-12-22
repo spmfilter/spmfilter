@@ -162,7 +162,7 @@ void load_modules(MAILCONN *mconn) {
 	if (settings->nexthop != NULL ) {
 		msg = g_slice_new(MESSAGE);
 		msg->from = g_strdup(mconn->from->addr);
-		msg->rcpts = malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
+		msg->rcpts = g_malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
 		for (i = 0; i < mconn->num_rcpts; i++) {
 			msg->rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
 		}
@@ -295,8 +295,8 @@ int load(MAILCONN *mconn) {
 			TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
-			mconn->rcpts = malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
-			mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
+			mconn->rcpts = g_malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
+			mconn->rcpts[mconn->num_rcpts] = g_malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
 			mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
 #ifdef HAVE_ZDB
 			if (settings->sql_user_query != NULL) {
