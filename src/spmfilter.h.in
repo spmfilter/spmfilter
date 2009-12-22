@@ -5,6 +5,18 @@
 #include <gmime/gmime.h>
 #include <sys/time.h>
 
+/* path for spmfilter plugins */
+#define LIB_DIR "${SMF_LIB_DIR}"
+
+/* gmime */
+#cmakedefine HAVE_GMIME24
+
+/* ldap */
+#cmakedefine HAVE_LDAP
+
+/* zdb */
+#cmakedefine HAVE_ZDB
+
 #ifdef HAVE_ZDB
 #include <URL.h>
 #include <ResultSet.h>
@@ -17,8 +29,6 @@
 #ifdef HAVE_LDAP
 #include <ldap.h>
 #endif
-
-#define LIB_DIR "@LIBDIR@"
 
 #define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
 	+ GLIB_MINOR_VERSION * 100 \
@@ -187,6 +197,8 @@ int smtp_delivery(MESSAGE *msg_data);
 char *get_maildir_filename(void);
 
 #ifdef HAVE_ZDB
+int sql_connect(void);
+
 /*
  * Query database, returns ResultSet_T
  *
@@ -198,6 +210,7 @@ ResultSet_T sql_query(const char *q, ...);
 #endif
 
 #ifdef HAVE_LDAP
+int ldap_connect(void);
 /*
  * Query LDAP directory, returns LDAPMessage
  *

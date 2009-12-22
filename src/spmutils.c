@@ -14,6 +14,7 @@
 
 #include "spmfilter.h"
 
+
 #define THIS_MODULE "spmutils"
 
 char *get_substring(const char *pattern, const char *haystack, int pos) {
