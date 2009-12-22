@@ -12,6 +12,9 @@
 /* ldap */
 #cmakedefine HAVE_LDAP
 
+/* zdb */
+#cmakedefine HAVE_ZDB
+
 #ifdef HAVE_ZDB
 #include <URL.h>
 #include <ResultSet.h>
