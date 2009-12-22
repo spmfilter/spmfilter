@@ -2,11 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 
 project(spmfilter)
 
-# settings affecting build process
-set(CMAKE_VERBOSE_MAKEFILE TRUE)
-set(ENABLE_DEBUG TRUE)
-#set(WITH_ZDB TRUE)
-#set(PREFIX "/opt/spmfilter")
+# check for build.properties
+include("${CMAKE_SOURCE_DIR}/build.properties" OPTIONAL)
 
 # check prefix
 if(PREFIX)
@@ -62,6 +59,7 @@ CONFIGURE_FILE(
 
 # check for enabled debugging
 if(ENABLE_DEBUG)
+	set(CMAKE_VERBOSE_MAKEFILE TRUE)
 	add_definitions(-DDEBUG -g -O0)
 endif(ENABLE_DEBUG)
 
