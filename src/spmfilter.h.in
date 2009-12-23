@@ -5,6 +5,12 @@
 #include <gmime/gmime.h>
 #include <sys/time.h>
 
+/* spmfilter version */
+#define SMF_VERSION ${SMF_VERSION_NUMBER}
+#define SMF_MAJOR_VERSION ${SMF_MAJOR_VERSION}
+#define SMF_MINOR_VERSION ${SMF_MINOR_VERSION}
+#define SMF_MICRO_VERSION ${SMF_MICRO_VERSION}
+
 /* path for spmfilter plugins */
 #define LIB_DIR "${SMF_LIB_DIR}"
 

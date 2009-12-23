@@ -1,5 +1,3 @@
-include(SMFMacros)
-
 set(MAN_SRC
 	spmfilter.1
 	spmfilter.conf.5)
