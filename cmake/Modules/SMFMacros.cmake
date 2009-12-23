@@ -16,3 +16,6 @@ macro(CREATE_MANPAGE _manpage)
 	install(FILES ${_compressed} DESTINATION ${CMAKE_INSTALL_PREFIX}/share/man/man${_section})
 	
 endmacro(CREATE_MANPAGE)
+
+
+
