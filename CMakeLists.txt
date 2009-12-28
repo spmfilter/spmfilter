@@ -36,6 +36,12 @@ if(GLIB2_FOUND)
 	link_directories(${GLIB2_LIBRARY_DIRS})
 endif(GLIB2_FOUND)
 
+pkg_search_module(GMODULE REQUIRED gmodule-2.0)
+if(GMODULE_FOUND)
+	include_directories(${GMODULE_INCLUDE_DIRS})
+	link_directories(${GMODULE_LIBRARY_DIRS})
+endif(GMODULE_FOUND)
+
 pkg_search_module(GMIME REQUIRED gmime-2.4 gmime-2.2)
 if(GMIME_FOUND)
 	include_directories(${GMIME_INCLUDE_DIRS})

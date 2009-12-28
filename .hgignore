@@ -2,7 +2,7 @@ syntax:glob
 autom4te.cache
 aclocal.m4
 configure
-Makefile
+Makefile*
 missing
 depcomp
 install-sh
@@ -17,8 +17,13 @@ src/spmfilter
 *.la*
 *.P*
 *.libs*
+*.dylib
 build*
 nbproject/*
 .dep.inc
 src/spmfilter.h
-
+CMakeFiles/*
+src/CMakeFiles/*
+CMakeCache*
+*.gz
+cmake_install.cmake
