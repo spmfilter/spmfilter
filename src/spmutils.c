@@ -14,8 +14,9 @@
 
 #include "spmfilter.h"
 
-
 #define THIS_MODULE "spmutils"
+
+#define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
 char *get_substring(const char *pattern, const char *haystack, int pos) {
 #if (GLIB2_VERSION >= 21400)
