@@ -28,8 +28,8 @@ static const char * trace_to_text(trace_t level) {
 
 void trace(trace_t level, const char *module, const char *function, int line, const char *formatstring, ...) {	
 	trace_t syslog_level;
-	va_list ap = NULL;
-	va_list cp = NULL;
+	va_list ap;
+	va_list cp;
 	
 	gchar *message = NULL;
 	size_t l, maxlen=120;

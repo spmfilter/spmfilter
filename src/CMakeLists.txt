@@ -7,8 +7,7 @@ set(LIB_SMF_SRC
 	trace.c
 	smtp.c
 )
-
-set(COMMON_LIBS m esmtp ${GLIB2_LIBRARIES} ${GMIME_LIBRARIES})
+set(COMMON_LIBS m esmtp ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GMIME_LIBRARIES})
 if(HAVE_ZDB)
 	list(APPEND COMMON_LIBS zdb)
 	list(APPEND LIB_SMF_SRC sql_lookup.c)
