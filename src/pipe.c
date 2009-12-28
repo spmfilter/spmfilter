@@ -11,6 +11,8 @@
 
 #define THIS_MODULE "pipe"
 
+#define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
+
 typedef int (*LoadMod) (SETTINGS *settings, MAILCONN *mconn);
 
 int load_modules(SETTINGS *settings, MAILCONN *mconn) {

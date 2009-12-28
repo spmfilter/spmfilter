@@ -40,25 +40,52 @@
 	+ GLIB_MINOR_VERSION * 100 \
 	+ GLIB_MICRO_VERSION)
 
-#define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 #define MATCH(x,y) strcasecmp((x),(y))==0
-#define FIELDSIZE 1024
-#define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
+
+/* single linked list for 
+ * individual smtp return codes */ 
+//typedef struct smtp_code {
+//	int code;
+//	char *message;
+//	struct smtp_code *next;
+//} SMTP_CODE;
 
 typedef struct {
+	/* debug flag */
 	int debug;
+	
+	/* path to config file */
 	char *config_file;
+	
+	/* path to spool directory */
 	char *queue_dir;
+	
+	/* configured engine */
 	char *engine;
-	char *spool_dir;
-	gchar **modules;
+	
+	/* all configured modules */
+	char **modules;
+	
+	/* behavior when module fails */
 	int module_fail;
+	
+	/* next smtp hop */
 	char *nexthop;
+	
+	/* smtp code, when delivery to 
+	 * nexthop fails */
 	int nexthop_fail_code;
+	
+	/* smtp return message, when delivery
+	 * to nexthop fails */
 	char *nexthop_fail_msg;
+	
+	/* configured lookup backend */
 	char *backend;
+	
 	/* hash table for smtp codes */
 	GHashTable *smtp_codes;
+//	SMTP_CODE *smtp_codes;
 	
 #ifdef HAVE_ZDB
 	char *sql_driver;
@@ -80,18 +107,33 @@ typedef struct {
 	char *ldap_binddn;
 	char *ldap_bindpw;
 	char *ldap_base;
-	gboolean ldap_referrals;
+	int ldap_referrals;
 #endif
 } SETTINGS;
 extern SETTINGS *settings;
 
+/* struct for messages send
+ * via smtp_delivery */
 typedef struct {
+	/* message sender */
 	char *from;
+	
+	/* pointer to message recipients */
 	char **rcpts;
+	
+	/* number of recipients */
 	int num_rcpts;
+	
+	/* path to message */
 	char *message_file;
+	
+	/* SMTP auth user, if needed */
 	char *auth_user;
+	
+	/* SMTP auth password, if needed */
 	char *auth_pass;
+	
+	/* destination smtp server */
 	char *nexthop;
 } MESSAGE;
 
@@ -134,96 +176,143 @@ typedef enum {
 	TRACE_LOOKUP = 256 // Logs at Debug Level
 } trace_t;
 
-
+/** convenience macro for logging
+ *
+ * \param level loglevel, see trace_t
+ * \param fmt format string for log message
+ * \param ... format string arguments
+ */
 #define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
 void trace(trace_t level, const char * module, const char * function, int line, const char *formatstring, ...);
 
-
-/* 
- * Generate a new queue file name
+/** generate a new queue file name
+ *
+ * \buf pointer to unallocated buffer for filename
+ *
+ * \returns 0 on success or -1 in case of error
  */
 int gen_queue_file(char **tempanme);
 
+/** extract a substring from given string
+ * 
+ * \param pattern regular expression pattern
+ * \param haystack string to search in
+ * \param pos position to extract
+ *
+ * \returns extracted string
+ */
 char* get_substring(const char *pattern, const char *haystack, int pos);
 
-/*
- * Parse a message file on disk and return a GMimeMessage object
+/** parse a message file on disk
  *
- * msg_path: path to message file
+ * \param msg_path path to message file
+ *
+ * \returns GMimeMessage object or NULL in case of error
  */
 GMimeMessage *parse_message(char *msg_path);
 
-/*
- * Write a message to disk
+/** write a message to disk
  *
- * msg_path: path for the new message file
- * message: GMimeMessage object
+ * \param msg_path path for the new message file
+ * \param message GMimeMessage object
+ *
+ * \returns 0 on success or -1 in case of error
  */
 int write_message(char *msg_path, GMimeMessage *message);
 
-/* 
- * Gets the value of the requested header if it exists or NULL otherwise.
+/* gets the value of the requested header if it exists
  *
- * msg_path: path to message or queue file
- * header_name: name of the wanted header
+ * \param msg_path path to message or queue file
+ * \param header_name name of the wanted header
+ *
+ * \returns value of header or NULL in case of error
  */
 const char *get_header(char *msg_path, char *header_name);
 
-/*
- * Adds an arbitrary header to the message, returns 0 on success.
+/** adds an arbitrary header to the message
  * 
- * msg_path: path to message or queue file
- * header_name: name of the new header
- * header_value: value for the new header
+ * \param msg_path path to message or queue file
+ * \param header_name: name of the new header
+ * \param header_value value for the new header
+ *
+ * \returns 0 on success or -1 in case of error
  */
 int add_header(char *msg_path, char *header_name, char *header_value);
 
-/*
- * Sets an arbitrary header, returns 0 on success.
+/** sets an arbitrary header
  * 
- * msg_path: path to message or queue file
- * header_name: name of the header
- * header_value: new value for the header
+ * \param msg_path path to message or queue file
+ * \param header_name name of the header
+ * \param header_value new value for the header
+ *
+ * \returns 0 on success or -1 in case of error
  */
 int set_header(char *msg_path, char *header_name, char *header_value);
 
-/*
- * Removed the specified header if it exists, returns 0 on success
+/** removed the specified header if it exists
  *
- * msg_path: path to message or queue_file
- * header_name: name of the header
+ * \param msg_path path to message or queue_file
+ * \param header_name name of the header
+ *
+ * \returns 0 on success or -1 in case of error
  */
 int remove_header(char *msg_path, char *header_name);
 
 int smtp_delivery(MESSAGE *msg_data);
 
-/*
- * Generates a unique maildir filename
+/** generates a unique maildir filename
+ * 
+ * \returns generated filename or NULL in case of error
  */
 char *get_maildir_filename(void);
 
 #ifdef HAVE_ZDB
+/** connect to sql server
+ *
+ * \returns 0 on success or -1 in case of error
+ */
 int sql_connect(void);
 
-/*
- * Query database, returns ResultSet_T
+/** check if given user exists in database
  *
- * q: format query
- * .... query args
+ * \param addr email adress of user
+ *
+ * \return 1 if the user exists, otherwise 0
  */
 int sql_user_exists(char *addr); 
+
+/** do a database query
+ *
+ * \param q format string for sql query
+ * \param ... arguments for format string
+ *
+ * \returns ResultSet_T or NULL in case of error
+ */
 ResultSet_T sql_query(const char *q, ...);
 #endif
 
 #ifdef HAVE_LDAP
-int ldap_connect(void);
-/*
- * Query LDAP directory, returns LDAPMessage
+/** connect to ldap server
  *
- * q: format query
- * .... query args
+ * \returns 0 on success or -1 in case of error
+ */
+int ldap_connect(void);
+
+/** query LDAP directory, returns LDAPMessage
+ * 
+ * \param q format string for ldap query
+ * \param ... arguments for format string
+ * 
+ * \returns LDAPMessage or NULL in case of error
  */
 LDAPMessage *ldap_query(const char *q, ...);
+
+/** check if given user exists in ldap directory
+ *
+ * \param addr email adress of user
+ *
+ * \return 1 if the user exists, otherwise 0
+ */
 int ldap_user_exists(char *addr);
 #endif
 

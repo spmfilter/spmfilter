@@ -13,6 +13,8 @@
 
 #define THIS_MODULE "sql_lookup"
 
+#define FIELDSIZE 1024
+
 ConnectionPool_T sql_pool = NULL;
 
 void sql_con_close(Connection_T c) {
