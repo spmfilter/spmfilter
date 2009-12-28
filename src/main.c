@@ -20,9 +20,14 @@ int parse_config(void) {
 	char *code_msg;
 	int i, code;
 	
+	/* fallback to default config path,
+	 * if config file is not defined as
+	 * command argument */
 	if (settings->config_file == NULL) {
 		settings->config_file = "/etc/spmfilter.conf";
 	}
+	
+	/* open config file and start parsing */
 	keyfile = g_key_file_new ();
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
 		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
@@ -30,6 +35,7 @@ int parse_config(void) {
 		return -1;
 	}
 	
+	/* parse general settings */
 	settings->debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
 	
 	settings->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", NULL);
@@ -65,7 +71,6 @@ int parse_config(void) {
 	settings->backend = g_key_file_get_string(keyfile, "global", "backend", NULL);
 
 	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
-	TRACE(TRACE_DEBUG, "settings->spool_dir: %s", settings->spool_dir);
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		TRACE(TRACE_DEBUG, "settings->modules: %s", settings->modules[i]);
 	}
@@ -74,6 +79,8 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->backend: %s", settings->backend);
 
 #ifdef HAVE_ZDB
+	/* if spmfilter is compiled with zdb,
+	 * we also need the sql group */
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", NULL);
 	settings->sql_host = g_key_file_get_string(keyfile, "sql", "host", NULL);
@@ -101,6 +108,8 @@ int parse_config(void) {
 #endif 	
 
 #ifdef HAVE_LDAP
+	/* if spmfilter is compiled with ldap,
+	 * we also need the ldap group */
 	settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
 	settings->ldap_host = g_key_file_get_string(keyfile,"ldap","host",NULL);
 	
@@ -154,12 +163,14 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: %s", settings->nexthop_fail_msg);
 	
 	code_keys = g_key_file_get_keys(keyfile,"smtpd",&codes_length,NULL);
+//	settings->smtp_codes = g_slice_new(SMTP_CODE);
 	settings->smtp_codes = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 	while (codes_length--) {
 		/* only insert smtp codes to hashtable */
-		code =g_ascii_strtod(code_keys[codes_length],NULL);
+		code = g_ascii_strtod(code_keys[codes_length],NULL);
 		if ((code > 400) & (code < 600)) {
 			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
+//			append_code(&settings->smtp_codes,code,code_msg);
 			g_hash_table_insert(
 				settings->smtp_codes,
 				g_strdup(code_keys[codes_length]),
@@ -169,6 +180,7 @@ int parse_config(void) {
 				"settings->smtp_codes: append %s=%s",
 				code_keys[codes_length],code_msg);
 			g_free(code_msg);
+	//		TRACE(TRACE_DEBUG,"settings->smtp_codes: append %s=%s",settings->smtp_codes->code,settings->smtp_codes->message);
 		}
 	}
 	g_strfreev(code_keys);
@@ -188,6 +200,7 @@ int main(int argc, char *argv[]) {
 	
 //	g_mem_set_vtable (glib_mem_profiler_table);
 
+	/* allocate some memory for our structs */
 	mconn = g_slice_new(MAILCONN);
 	settings = g_slice_new(SETTINGS);
 	settings->debug = 0;
@@ -211,6 +224,7 @@ int main(int argc, char *argv[]) {
 
 	g_option_context_free(context);
 	
+	/* parse config file and fill settings struct */
 	if (parse_config()!=0) 
 		return -1;
 
@@ -224,36 +238,47 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	/* start clock, to see how long
+	 * the processing time takes */
 	start_process = clock();
 	
 	/* check if engine module starts with lib */
 	if (g_str_has_prefix(settings->engine,"lib")) {
 		engine_path = g_module_build_path(LIB_DIR,settings->engine);
 	} else {
+		/* if not prepend lib */
 		engine_path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",settings->engine));
 	}
+	
+	/* try to open engine module */
 	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
 	if (!module) {
 		TRACE(TRACE_ERR,"%s\n", g_module_error());
 		return -1;
 	}
 	
+	/* check if the module provides the function load() */
 	if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
 		TRACE(TRACE_ERR,"%s", g_module_error());
 		return -1;
 	}
 
+	/* start processing engine */
 	ret = load_engine(mconn);
 
+	/* processing is done, we can
+	 * stop our clock */
 	stop_process = clock();
 	if (settings->debug) {
 		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 	}
 	
+	/* free all stuff */
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
 
 	g_hash_table_remove_all(settings->smtp_codes);
+//	free_codes(&settings->smtp_codes);
 	g_strfreev(settings->modules);
 	g_free(settings->config_file);
 	g_free(settings->queue_dir);
