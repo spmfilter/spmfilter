@@ -26,14 +26,14 @@ static const char * trace_to_text(trace_t level) {
 	return trace_text[ilogb((double) level)];
 }
 
-void trace(trace_t level, const char *module, const char *function, int line, const char *formatstring, ...) {	
+void trace(trace_t level, const char *module, const char *function, int line, const char *formatstring, ...) {
 	trace_t syslog_level;
 	va_list ap;
 	va_list cp;
-	
 	gchar *message = NULL;
 	size_t l, maxlen=120;
-
+	SETTINGS *settings = get_settings();
+	
 	/* Return now if we're not logging anything. */
 	if (! level)
 		return;
@@ -85,7 +85,7 @@ void trace(trace_t level, const char *module, const char *function, int line, co
 		size_t w = min(l,maxlen);
 		message[w] = '\0';
 		
-		if ((level >= 128) & (settings->debug == 1)) 
+		if ((level >= 128) & (settings->debug == 1))
 			syslog(syslog_level, SYSLOGFORMAT, g_thread_self(), trace_to_text(level), module, function, line, message);
 		else if (level < 128)
 			syslog(syslog_level, SYSLOGFORMAT, g_thread_self(), trace_to_text(level), module, function, line, message);

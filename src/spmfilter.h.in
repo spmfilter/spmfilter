@@ -44,11 +44,11 @@
 
 /* single linked list for 
  * individual smtp return codes */ 
-//typedef struct smtp_code {
-//	int code;
-//	char *message;
-//	struct smtp_code *next;
-//} SMTP_CODE;
+typedef struct smtp_code {
+	int code;
+	char *message;
+	struct smtp_code *next;
+} SMTP_CODE;
 
 typedef struct {
 	/* debug flag */
@@ -84,8 +84,8 @@ typedef struct {
 	char *backend;
 	
 	/* hash table for smtp codes */
-	GHashTable *smtp_codes;
-//	SMTP_CODE *smtp_codes;
+//	GHashTable *smtp_codes;
+	SMTP_CODE *smtp_codes;
 	
 #ifdef HAVE_ZDB
 	char *sql_driver;
@@ -110,7 +110,6 @@ typedef struct {
 	int ldap_referrals;
 #endif
 } SETTINGS;
-extern SETTINGS *settings;
 
 /* struct for messages send
  * via smtp_delivery */
@@ -184,6 +183,18 @@ typedef enum {
  */
 #define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
 void trace(trace_t level, const char * module, const char * function, int line, const char *formatstring, ...);
+// TODO: need settings->debug in trace()
+
+/** get all settings
+ *
+ * \return settings struct
+ */
+SETTINGS *get_settings(void);
+
+void set_settings(SETTINGS **s);
+
+/** free settings struct */
+void free_settings(SETTINGS *settings);
 
 /** generate a new queue file name
  *
@@ -192,6 +203,29 @@ void trace(trace_t level, const char * module, const char * function, int line, 
  * \returns 0 on success or -1 in case of error
  */
 int gen_queue_file(char **tempanme);
+
+/** add smtp return code to list
+ *
+ * \buf pointer to SMTP_CODE struct
+ * \param code smtp code 
+ * \param message smtp return message
+ */
+void smtp_code_append(SMTP_CODE **codes, int code, char *message);
+
+/** search smtp message
+ *
+ * \param codes SMTP_CODE list
+ * \param code integer code
+ *
+ * \returns smtp message for given code
+ */
+char *smtp_code_lookup(SMTP_CODE *codes, int code);
+
+/** free smtp codes
+ *
+ * \buf pointer to smtp codes
+ */
+void smtp_codes_free(SMTP_CODE **codes);
 
 /** extract a substring from given string
  * 

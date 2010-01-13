@@ -17,7 +17,33 @@
 #define THIS_MODULE "spmutils"
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
-SETTINGS *settings;
+SETTINGS *settings = NULL;
+
+SETTINGS *get_settings(void) {
+	if (settings == NULL) {
+		settings = g_slice_new(SETTINGS);
+		settings->debug = 0;
+	}
+	return settings;
+}
+
+void set_settings(SETTINGS **s) {
+	free_settings(settings);
+	settings = *s;
+}
+
+void free_settings(SETTINGS *settings) {
+//	smtp_codes_free(&settings->smtp_codes);
+	g_strfreev(settings->modules);
+	g_free(settings->config_file);
+	g_free(settings->queue_dir);
+	g_free(settings->engine);
+	g_free(settings->nexthop);
+	g_free(settings->nexthop_fail_msg);
+	g_free(settings->backend);
+
+	g_slice_free(SETTINGS,settings);
+}
 
 char *get_substring(const char *pattern, const char *haystack, int pos) {
 #if (GLIB2_VERSION >= 21400)
