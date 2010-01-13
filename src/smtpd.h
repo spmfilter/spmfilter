@@ -8,9 +8,9 @@
 #define CODE_500 "500 Eh? WTF was that?\r\n"
 #define CODE_552 "552 Requested action aborted: local error in processing\r\n"
 
-typedef int (*LoadMod) (SETTINGS *settings, MAILCONN *mconn);
+typedef int (*LoadMod) (MAILCONN *mconn);
 
-int load(MAILCONN *mconn);
+int load(void);
 void smtp_string_reply(const char *format, ...);
 void smtp_code_reply(int code);
 

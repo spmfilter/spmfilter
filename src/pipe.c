@@ -26,9 +26,17 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		TRACE(TRACE_DEBUG,"loading module %s",settings->modules[i]);
 		
 		if (g_str_has_prefix(settings->modules[i],"lib")) {
+#ifdef __APPLE__
+			path = g_module_build_path(LIB_DIR,g_strdup_printf("%s.dylib",settings->modules[i]));
+#else
 			path = g_module_build_path(LIB_DIR,settings->modules[i]);
+#endif
 		} else {
+#ifdef __APPLE__
+			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s.dylib",settings->modules[i]));
+#else
 			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",settings->modules[i]));
+#endif
 		}
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
@@ -106,7 +114,7 @@ int load(MAILCONN *mconn) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	int i;
-//	SETTINGS *settings = g_private_get(settings_key);
+	SETTINGS *settings = get_settings();
 	
 	gen_queue_file(&mconn->queue_file);
 
