@@ -13,6 +13,8 @@
 
 #define THIS_MODULE "smtpd"
 
+MAILCONN *mconn;
+
 /* dot-stuffing */
 void stuffing(char chain[]) {
 	int i, j;
@@ -40,8 +42,9 @@ void smtp_string_reply(const char *format, ...) {
 void smtp_code_reply(int code) {
 	char *code_msg;
 	char *str_code;
+	SETTINGS *settings = get_settings();
 	str_code = g_strdup_printf("%d",code);
-	code_msg = g_hash_table_lookup(settings->smtp_codes,str_code);
+	code_msg = smtp_code_lookup(settings->smtp_codes,code);
 	if (code_msg!=NULL) {
 		fprintf(stdout,"%d %s\r\n",code,code_msg);  
 	} else {
@@ -68,20 +71,29 @@ void smtp_code_reply(int code) {
 	g_free(str_code);
 }
 
-void load_modules(MAILCONN *mconn) {
+void load_modules(void) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
 	MESSAGE *msg = NULL;
-	
+	SETTINGS *settings = get_settings();
+
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;	
 		TRACE(TRACE_DEBUG,"loading module %s",settings->modules[i]);
 		
 		if (g_str_has_prefix(settings->modules[i],"lib")) {
+#ifdef __APPLE__
+			path = g_module_build_path(LIB_DIR,g_strdup_printf("%s.dylib",g_strstrip(settings->modules[i])));
+#else
 			path = g_module_build_path(LIB_DIR,g_strstrip(settings->modules[i]));
+#endif
 		} else {
+#ifdef __APPLE__
+			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s.dylib",g_strstrip(settings->modules[i])));
+#else
 			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",g_strstrip(settings->modules[i])));
+#endif
 		}
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
@@ -118,7 +130,7 @@ void load_modules(MAILCONN *mconn) {
 		 * 2 = Further processing will be stopped, no other plugin will 
 		 *     be startet. spmfilter sends a 250 code
 		 */
-		ret = load_module(settings,mconn); 
+		ret = load_module(mconn);
 		TRACE(TRACE_DEBUG,"module return code [%d]", ret);
 		if (ret == -1) {
 			if (!g_module_close(module))
@@ -188,11 +200,12 @@ void load_modules(MAILCONN *mconn) {
 	return;
 }
 
-void process_data(MAILCONN *mconn) {
+void process_data(void) {
 	GIOChannel *in, *out;
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
+	SETTINGS *settings = get_settings();
 
 	gen_queue_file(&mconn->queue_file);
 	if (mconn->queue_file == NULL) {
@@ -239,18 +252,23 @@ void process_data(MAILCONN *mconn) {
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
 
-	load_modules(mconn);
+	load_modules();
 	
 	remove(mconn->queue_file);
 	TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 	return;
 }
 
-int load(MAILCONN *mconn) {
+int load(void) {
 	char hostname[256];
 	GIOChannel *in;
 	char *line;
+	int i;
+	printf("OK, in load\n");
+	mconn = g_slice_new(MAILCONN);
+
 	gethostname(hostname,256);
+
 
 	smtp_string_reply("220 %s spmfilter\r\n",hostname);
 	mconn->num_rcpts = 0;
@@ -309,7 +327,7 @@ int load(MAILCONN *mconn) {
 			mconn->num_rcpts++;
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'data' received");
-			process_data(mconn);
+			process_data();
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
 			g_slice_free(MAILCONN,mconn);
@@ -329,6 +347,17 @@ int load(MAILCONN *mconn) {
 	
 	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
+
+	g_free(mconn->queue_file);
+	g_free(mconn->helo);
+	g_free(mconn->xforward_addr);
+	g_free(mconn->from->addr);
+	g_slice_free(EMLADDR,mconn->from);
+	for (i = 0; i < mconn->num_rcpts; i++) {
+		g_free(mconn->rcpts[i]->addr);
+		g_slice_free(EMLADDR,mconn->rcpts[i]);
+	}
+	g_slice_free(MAILCONN,mconn);
 
 	return 0;
 }

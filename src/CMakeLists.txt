@@ -1,21 +1,23 @@
 set(SPMFILTER_SRC
-	main.c
+    main.c
 )
 
 set(LIB_SMF_SRC
-	spmutils.c
-	trace.c
-	smtp.c
+    spmutils.c
+    trace.c
+    smtp.c
+    smtp_codes.c
 )
-set(COMMON_LIBS m esmtp ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GMIME_LIBRARIES})
+
+set(COMMON_LIBS m esmtp ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GTHREAD_LIBRARIES} ${GMIME_LIBRARIES})
 if(HAVE_ZDB)
-	list(APPEND COMMON_LIBS zdb)
-	list(APPEND LIB_SMF_SRC sql_lookup.c)
+    list(APPEND COMMON_LIBS zdb)
+    list(APPEND LIB_SMF_SRC sql_lookup.c)
 endif(HAVE_ZDB)
 
 if(HAVE_LDAP)
-	list(APPEND COMMON_LIBS ldap)
-	list(APPEND LIB_SMF_SRC ldap_lookup.c)
+    list(APPEND COMMON_LIBS ldap)
+    list(APPEND LIB_SMF_SRC ldap_lookup.c)
 endif(HAVE_LDAP)
 
 list(REMOVE_DUPLICATES COMMON_LIBS)

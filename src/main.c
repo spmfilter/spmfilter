@@ -8,8 +8,7 @@
 
 #define THIS_MODULE "spmfilter"
 
-typedef int (*LoadEngine) (MAILCONN *mconn);
-SETTINGS *settings = NULL;
+typedef int (*LoadEngine) (void);
 
 int parse_config(void) {
 	GError *error = NULL;
@@ -19,6 +18,7 @@ int parse_config(void) {
 	gsize codes_length = 0;
 	char *code_msg;
 	int i, code;
+	SETTINGS *settings = get_settings();
 	
 	/* fallback to default config path,
 	 * if config file is not defined as
@@ -26,7 +26,7 @@ int parse_config(void) {
 	if (settings->config_file == NULL) {
 		settings->config_file = "/etc/spmfilter.conf";
 	}
-	
+
 	/* open config file and start parsing */
 	keyfile = g_key_file_new ();
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
@@ -34,33 +34,33 @@ int parse_config(void) {
 		g_error_free(error);
 		return -1;
 	}
-	
+
 	/* parse general settings */
 	settings->debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
-	
+
 	settings->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", NULL);
 	if (settings->queue_dir == NULL) 
 		settings->queue_dir = "/var/spool/spmfilter";
-	
+
 	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
 	if (settings->engine == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
 		g_error_free(error);
 		return -1;
 	}
-	
+
 	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
 	if (settings->modules == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
 		g_error_free(error);
 		return -1;
 	} 
-	
+
 	settings->module_fail = g_key_file_get_integer(keyfile, "global", "module_fail",NULL);
 	if (!settings->module_fail) {
 		settings->module_fail = 3;
 	}
-	
+
 	settings->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
 	if (settings->nexthop == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
@@ -69,6 +69,7 @@ int parse_config(void) {
 	}
 
 	settings->backend = g_key_file_get_string(keyfile, "global", "backend", NULL);
+
 
 	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
 	for(i = 0; settings->modules[i] != NULL; i++) {
@@ -145,7 +146,7 @@ int parse_config(void) {
 		return -1;
 	
 #endif
-	
+
 	/* smtpd group */
 	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
 	if (!settings->nexthop_fail_code) {
@@ -161,49 +162,35 @@ int parse_config(void) {
 	
 	TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: %d", settings->nexthop_fail_code);
 	TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: %s", settings->nexthop_fail_msg);
-	
+
 	code_keys = g_key_file_get_keys(keyfile,"smtpd",&codes_length,NULL);
-//	settings->smtp_codes = g_slice_new(SMTP_CODE);
-	settings->smtp_codes = g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 	while (codes_length--) {
 		/* only insert smtp codes to hashtable */
 		code = g_ascii_strtod(code_keys[codes_length],NULL);
 		if ((code > 400) & (code < 600)) {
 			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
-//			append_code(&settings->smtp_codes,code,code_msg);
-			g_hash_table_insert(
-				settings->smtp_codes,
-				g_strdup(code_keys[codes_length]),
-				code_msg
-				);
-			TRACE(TRACE_DEBUG,
-				"settings->smtp_codes: append %s=%s",
-				code_keys[codes_length],code_msg);
+			// TODO: append_code missing
 			g_free(code_msg);
 	//		TRACE(TRACE_DEBUG,"settings->smtp_codes: append %s=%s",settings->smtp_codes->code,settings->smtp_codes->message);
 		}
 	}
 	g_strfreev(code_keys);
 	g_key_file_free(keyfile);
+	set_settings(&settings);
 	return 0;
 }
 
 int main(int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *context;
-	MAILCONN *mconn;
 	clock_t start_process, stop_process;
 	GModule *module;
 	LoadEngine load_engine;
 	gchar *engine_path;
 	int ret, i;
-	
+	SETTINGS *settings = get_settings();
 //	g_mem_set_vtable (glib_mem_profiler_table);
 
-	/* allocate some memory for our structs */
-	mconn = g_slice_new(MAILCONN);
-	settings = g_slice_new(SETTINGS);
-	settings->debug = 0;
 
 	/* all cmd args */
 	GOptionEntry entries[] = {
@@ -211,7 +198,7 @@ int main(int argc, char *argv[]) {
 		{ "file", 'f', 0, G_OPTION_ARG_STRING, &settings->config_file, "alternate config file", NULL},
 		{ NULL }
 	};
-	
+
 	/* parse cmd args */
 	context = g_option_context_new ("- spmfilter options");
 	g_option_context_add_main_entries (context, entries, NULL);
@@ -223,12 +210,12 @@ int main(int argc, char *argv[]) {
 	}
 
 	g_option_context_free(context);
-	
-	/* parse config file and fill settings struct */
-	if (parse_config()!=0) 
+
+        /* parse config file and fill settings struct */
+	if (parse_config()!=0)
 		return -1;
 
-	/* check queue dir */
+        /* check queue dir */
 	if (!g_file_test (settings->queue_dir, G_FILE_TEST_EXISTS)) {
 		TRACE(TRACE_INFO,"queue directory not available, will create it...");
 		
@@ -238,25 +225,33 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	/* start clock, to see how long
+        /* start clock, to see how long
 	 * the processing time takes */
 	start_process = clock();
-	
+
 	/* check if engine module starts with lib */
 	if (g_str_has_prefix(settings->engine,"lib")) {
+#ifdef __APPLE__
+		engine_path = g_module_build_path(LIB_DIR,g_strdup_printf("%s.dylib",settings->engine));
+#else
 		engine_path = g_module_build_path(LIB_DIR,settings->engine);
+#endif
 	} else {
 		/* if not prepend lib */
+#ifdef __APPLE__
+		engine_path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s.dylib",settings->engine));
+#else
 		engine_path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",settings->engine));
+#endif
 	}
-	
+
 	/* try to open engine module */
 	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
 	if (!module) {
 		TRACE(TRACE_ERR,"%s\n", g_module_error());
 		return -1;
 	}
-	
+
 	/* check if the module provides the function load() */
 	if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
 		TRACE(TRACE_ERR,"%s", g_module_error());
@@ -264,7 +259,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* start processing engine */
-	ret = load_engine(mconn);
+//	ret = load_engine();
 
 	/* processing is done, we can
 	 * stop our clock */
@@ -276,33 +271,9 @@ int main(int argc, char *argv[]) {
 	/* free all stuff */
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
-
-	g_hash_table_remove_all(settings->smtp_codes);
-//	free_codes(&settings->smtp_codes);
-	g_strfreev(settings->modules);
-	g_free(settings->config_file);
-	g_free(settings->queue_dir);
-	g_free(settings->engine);
-	g_free(settings->nexthop);
-	g_free(settings->nexthop_fail_msg);
-	g_free(settings->backend);
-	
-	g_slice_free(SETTINGS,settings);
-
-	g_free(mconn->queue_file);
-	g_free(mconn->helo);
-	g_free(mconn->xforward_addr);
-	g_free(mconn->from->addr);
-	g_slice_free(EMLADDR,mconn->from);
-	for (i = 0; i < mconn->num_rcpts; i++) {
-		g_free(mconn->rcpts[i]->addr);
-		g_slice_free(EMLADDR,mconn->rcpts[i]);
-	}
-	g_slice_free(MAILCONN,mconn);
 	g_free(engine_path);
-
-
-//	g_mem_profile(); 
+	free_settings(settings);
+//	g_mem_profile();
 	if (ret != 0) {
 		return -1;
 	} else {
