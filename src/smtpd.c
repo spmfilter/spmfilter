@@ -205,7 +205,6 @@ void process_data(void) {
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
-	SETTINGS *settings = get_settings();
 
 	gen_queue_file(&mconn->queue_file);
 	if (mconn->queue_file == NULL) {
@@ -264,8 +263,13 @@ int load(void) {
 	GIOChannel *in;
 	char *line;
 	int i;
-	printf("OK, in load\n");
+
 	mconn = g_slice_new(MAILCONN);
+	mconn->helo = NULL;
+	mconn->from = NULL;
+	mconn->queue_file = NULL;
+	mconn->rcpts = NULL;
+	mconn->xforward_addr = NULL;
 
 	gethostname(hostname,256);
 
@@ -351,7 +355,9 @@ int load(void) {
 	g_free(mconn->queue_file);
 	g_free(mconn->helo);
 	g_free(mconn->xforward_addr);
-	g_free(mconn->from->addr);
+
+	if (mconn->from != NULL)
+		g_free(mconn->from->addr);
 	g_slice_free(EMLADDR,mconn->from);
 	for (i = 0; i < mconn->num_rcpts; i++) {
 		g_free(mconn->rcpts[i]->addr);

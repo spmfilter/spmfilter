@@ -7,6 +7,7 @@ set(LIB_SMF_SRC
     trace.c
     smtp.c
     smtp_codes.c
+	settings.c
 )
 
 set(COMMON_LIBS m esmtp ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GTHREAD_LIBRARIES} ${GMIME_LIBRARIES})
