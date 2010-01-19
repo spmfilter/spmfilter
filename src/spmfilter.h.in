@@ -42,13 +42,16 @@
 
 #define MATCH(x,y) strcasecmp((x),(y))==0
 
-/* single linked list for 
- * individual smtp return codes */ 
-typedef struct smtp_code {
-	int code;
-	char *message;
-	struct smtp_code *next;
+typedef struct {
+	char *msg;
+	int flags;
+	long code;
 } SMTP_CODE;
+
+typedef struct {
+	SMTP_CODE *table;
+	long size, count;
+} SMTP_CODE_TABLE;
 
 typedef struct {
 	/* debug flag */
@@ -84,8 +87,7 @@ typedef struct {
 	char *backend;
 	
 	/* hash table for smtp codes */
-//	GHashTable *smtp_codes;
-	SMTP_CODE *smtp_codes;
+	SMTP_CODE_TABLE *smtp_codes;
 	
 #ifdef HAVE_ZDB
 	char *sql_driver;
@@ -211,28 +213,34 @@ int parse_config(void);
  */
 int gen_queue_file(char **tempanme);
 
+/** create a new hash table for all smtp codes
+ *
+ * \returns new allocated hash table
+ */
+SMTP_CODE_TABLE *smtp_code_new(void);
+
 /** add smtp return code to list
  *
- * \buf pointer to SMTP_CODE struct
+ * \param SMTP_CODE_TABLE struct
  * \param code smtp code 
- * \param message smtp return message
+ * \param msg smtp return message
  */
-void smtp_code_append(SMTP_CODE **codes, int code, char *message);
+void smtp_code_insert(SMTP_CODE_TABLE *codes, unsigned long code, char *msg);
 
-/** search smtp message
+/** get smtp return code message of given code
  *
- * \param codes SMTP_CODE list
- * \param code integer code
+ * \param SMTP_CODE_TABLE struct
+ * \param code to look for
  *
- * \returns smtp message for given code
+ * \returns smtp return message for given code
  */
-char *smtp_code_lookup(SMTP_CODE *codes, int code);
+char *smtp_code_get(SMTP_CODE_TABLE *codes, unsigned long code);
 
 /** free smtp codes
  *
- * \buf pointer to smtp codes
+ * \param pointer to smtp codes
  */
-void smtp_codes_free(SMTP_CODE **codes);
+void smtp_code_free(SMTP_CODE_TABLE *codes);
 
 /** extract a substring from given string
  * 

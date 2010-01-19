@@ -3,7 +3,7 @@ set(SPMFILTER_SRC
 )
 
 set(LIB_SMF_SRC
-    spmutils.c
+    utils.c
     trace.c
     smtp.c
     smtp_codes.c
