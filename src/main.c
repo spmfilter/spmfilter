@@ -2,7 +2,6 @@
 #include <glib.h>
 #include <gmodule.h>
 #include <time.h>
-#include <stdlib.h>
 
 #include "spmfilter.h"
 
@@ -39,11 +38,11 @@ int main(int argc, char *argv[]) {
 
 	g_option_context_free(context);
 
-        /* parse config file and fill settings struct */
+	/* parse config file and fill settings struct */
 	if (parse_config()!=0)
 		return -1;
 
-        /* check queue dir */
+	/* check queue dir */
 	if (!g_file_test (settings->queue_dir, G_FILE_TEST_EXISTS)) {
 		TRACE(TRACE_INFO,"queue directory not available, will create it...");
 		
@@ -53,7 +52,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-        /* start clock, to see how long
+	/* start clock, to see how long
 	 * the processing time takes */
 	start_process = clock();
 
