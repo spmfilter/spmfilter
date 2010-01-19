@@ -44,7 +44,7 @@ void smtp_code_reply(int code) {
 	char *str_code;
 	SETTINGS *settings = get_settings();
 	str_code = g_strdup_printf("%d",code);
-	code_msg = smtp_code_lookup(settings->smtp_codes,code);
+	code_msg = smtp_code_get(settings->smtp_codes,code);
 	if (code_msg!=NULL) {
 		fprintf(stdout,"%d %s\r\n",code,code_msg);  
 	} else {
