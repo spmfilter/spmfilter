@@ -3,7 +3,6 @@
 #include <string.h>
 #include <glib.h>
 #include <gmodule.h>
-#include <gmime/gmime.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -38,12 +37,16 @@ void smtp_string_reply(const char *format, ...) {
 	fflush(stdout);
 }
 
-/* smtp answer with smtp code as arg */
+/** Write SMTP answer to stdout
+ *
+ * \param wanted smtp code
+ */
 void smtp_code_reply(int code) {
 	char *code_msg;
-	char *str_code;
 	SETTINGS *settings = get_settings();
-	str_code = g_strdup_printf("%d",code);
+
+	/* we don't need to free code_msg, will be
+	 * freed by smtp_code_free() */
 	code_msg = smtp_code_get(settings->smtp_codes,code);
 	if (code_msg!=NULL) {
 		fprintf(stdout,"%d %s\r\n",code,code_msg);  
@@ -67,7 +70,6 @@ void smtp_code_reply(int code) {
 		}
 	}
 	fflush(stdout);
-	g_free(str_code);
 }
 
 void load_modules(void) {
@@ -261,7 +263,6 @@ int load(void) {
 	char hostname[256];
 	GIOChannel *in;
 	char *line;
-	int i;
 
 	mconn = g_slice_new(MAILCONN);
 	mconn->helo = NULL;
@@ -272,7 +273,7 @@ int load(void) {
 
 	gethostname(hostname,256);
 
-
+	// TODO: check smtp states
 	smtp_string_reply("220 %s spmfilter\r\n",hostname);
 	mconn->num_rcpts = 0;
 	in = g_io_channel_unix_new(STDIN_FILENO);
@@ -333,8 +334,13 @@ int load(void) {
 			process_data();
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
-			g_slice_free(MAILCONN,mconn);
+			mconn_free(mconn);
 			mconn = g_slice_new (MAILCONN);
+			mconn->helo = NULL;
+			mconn->from = NULL;
+			mconn->queue_file = NULL;
+			mconn->rcpts = NULL;
+			mconn->xforward_addr = NULL;
 			smtp_code_reply(250);
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'noop' received");
@@ -351,6 +357,17 @@ int load(void) {
 	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
 
+	mconn_free(mconn);
+	
+	return 0;
+}
+
+/** Free MAILCONN structure
+ *
+ * \param MAILCONN strucutre to free
+ */
+void mconn_free(MAILCONN *mconn) {
+	int i;
 	g_free(mconn->queue_file);
 	g_free(mconn->helo);
 	g_free(mconn->xforward_addr);
@@ -364,5 +381,4 @@ int load(void) {
 	}
 	g_slice_free(MAILCONN,mconn);
 
-	return 0;
 }
