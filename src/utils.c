@@ -1,22 +1,26 @@
-#include <string.h>
 #include <glib.h>
-#include <glib/gstdio.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
+#include <string.h>
 #include <unistd.h>
-#include <sys/stat.h>
+
 #ifdef HAVE_PCRE
 #include <pcre.h>
 #endif
-#include <gmime/gmime.h>
 
 #include "spmfilter.h"
 
-#define THIS_MODULE "spmutils"
+#define THIS_MODULE "utils"
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
+/** extract a substring from given string
+ *
+ * \param pattern regular expression pattern
+ * \param haystack string to search in
+ * \param pos position to extract
+ *
+ * \returns extracted string
+ */
 char *get_substring(const char *pattern, const char *haystack, int pos) {
 #if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
@@ -59,8 +63,12 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 	return value;
 }
 
-/* 
- * Generate a new queue file name
+/** Generate a new queue file name
+ *
+ * \buf pointer to unallocated buffer for filename, needs to
+ *      free'd by caller if not required anymore
+ *
+ * \returns 0 on success or -1 in case of error
  */
 int gen_queue_file(char **tempname) {
 	SETTINGS *settings = get_settings();
@@ -72,185 +80,9 @@ int gen_queue_file(char **tempname) {
 	return 0;	
 }
 
-/*
- * Parse a message file on disk and return a GMimeMessage object
+/** Generates a unique maildir filename
  *
- * msg_path: path to message file
- */
-GMimeMessage *parse_message(char *msg_path) {
-	GMimeMessage *message = NULL;
-	GMimeParser *parser;
-	GMimeStream *stream;
-	int fd;
-
-	if ((fd = g_open(msg_path, O_RDONLY)) == -1) {
-		TRACE(TRACE_ERR, "cannot open message `%s': %s", msg_path, strerror(errno));
-		return NULL;
-	}
-	
-	stream = g_mime_stream_fs_new(dup(fd));
-	parser = g_mime_parser_new_with_stream(stream);
-	g_object_unref(stream);
-	message = g_mime_parser_construct_message(parser);
-	g_object_unref(parser);
-	close(fd);
-	return message;
-}
-
-/*
- * Write a message to disk
- *
- * msg_path: path for the new message file
- * message: GMimeMessage object
- */
-int write_message(char *msg_path, GMimeMessage *message) {
-	GMimeStream *stream;
-	int fd;
-	
-	if ((fd = g_open(msg_path, O_CREAT|O_WRONLY, S_IRWXU|S_IRGRP|S_IROTH)) == -1) {
-		TRACE(TRACE_ERR, "cannot open message `%s': %s", msg_path, strerror(errno));
-		return -1;
-	}
-	
-	stream = g_mime_stream_fs_new(fd);
-	if (g_mime_object_write_to_stream((GMimeObject *) message, stream) == -1) {
-		return -1;
-	}
-
-	if (g_mime_stream_flush(stream) != 0) {
-		return -1;
-	}
-	g_mime_stream_close(stream);
-	g_object_unref(stream);
-	close(fd);
-	return 0;
-}
-
-/* 
- * Gets the value of the requested header if it exists or NULL otherwise.
- *
- * msg_path: path to message or queue file
- * header_name: name of the wanted header
- */
-const char *get_header(char *msg_path, char *header_name) {
-	GMimeMessage *message;
-	const char *header_value = NULL;
-	
-	message = parse_message(msg_path);
-	if (message!=NULL) {
-#ifdef HAVE_GMIME24
-		header_value = g_mime_object_get_header(GMIME_OBJECT(message),header_name);
-#else
-		header_value = g_mime_message_get_header(message,header_name);
-#endif
-	}
-
-	g_free(header_name);
-	g_object_unref(message);
-	return header_value;
-}
-
-/*
- * Adds an arbitrary header to the message, returns 0 on success.
- * 
- * msg_path: path to message or queue file
- * header_name: name of the new header
- * header_value: value for the new header
- */
-int add_header(char *msg_path, char *header_name, char *header_value) {
-	GMimeMessage *message = NULL;
-	char *tmp_file;
-
-	message = parse_message(msg_path);
-	
-	if (message!=NULL) {
-#ifdef HAVE_GMIME24
-		g_mime_object_append_header((GMimeObject *) message,header_name,header_value);
-#else
-		g_mime_message_add_header(message,header_name,header_value);
-#endif
-		gen_queue_file(&tmp_file);
-		
-		if (write_message(tmp_file,message) != 0) 
-			return -1;
-	} else 
-		return -1;
-
-	g_remove(msg_path);
-	g_rename(tmp_file,msg_path);
-	g_free(tmp_file);
-	g_free(header_name);
-	g_free(header_value);
-	g_object_unref(message);
-	return 0;
-}
-
-/*
- * Sets an arbitrary header, returns 0 on success.
- * 
- * msg_path: path to message or queue file
- * header_name: name of the header
- * header_value: new value for the header
- */
-int set_header(char *msg_path, char *header_name, char *header_value) {
-	GMimeMessage *message = NULL;
-	char *tmp_file;
-
-	message = parse_message(msg_path);
-	
-	if (message!=NULL) {
-#ifdef HAVE_GMIME24
-		g_mime_object_set_header((GMimeObject *) message,header_name,header_value);
-#else
-		g_mime_message_set_header(message,header_name,header_value);
-#endif
-		gen_queue_file(&tmp_file);
-		
-		if (write_message(tmp_file,message) != 0) 
-			return -1;
-	} else 
-		return -1;
-
-	g_remove(msg_path);
-	g_rename(tmp_file,msg_path);
-	g_free(tmp_file);
-	g_free(header_name);
-	g_free(header_value);
-	g_object_unref(message);
-	return 0;
-}
-
-/*
- * Removed the specified header if it exists, returns 0 on success
- *
- * msg_path: path to message or queue_file
- * header_name: name of the header
- */
-int remove_header(char *msg_path, char *header_name) {
-	GMimeMessage *message = NULL;
-	char *tmp_file;
-
-	message = parse_message(msg_path);
-	
-	if (message!=NULL) {
-		g_mime_object_remove_header((GMimeObject *)message,header_name);
-		gen_queue_file(&tmp_file);
-		
-		if (write_message(tmp_file,message) != 0) 
-			return -1;
-	} else 
-		return -1;
-
-	g_remove(msg_path);
-	g_rename(tmp_file,msg_path);
-	g_free(tmp_file);
-	g_free(header_name);
-	g_object_unref(message);
-	return 0;
-}
-
-/*
- * Generates a unique maildir filename
+ * \returns new allocated maildir filename
  */
 char *get_maildir_filename(void) {
 	char *filename;
@@ -269,7 +101,15 @@ char *get_maildir_filename(void) {
 	return filename;
 }
 
-/* expands a query string */
+/** expands placeholders in a user querystring
+ *
+ * \param format format string to use as input
+ * \param addr email address to use for replacements
+ * \buf pointer to unallocated buffer for expanded format string, needs to
+ *      free'd by caller if not required anymore
+ *
+ * \returns the number of replacements made or -1 in case of error
+ */
 int expand_query(char *format, char *addr, char **buf) {
 	int rep_made = 0;
 	int pos = 0;
