@@ -171,7 +171,6 @@ typedef enum {
  */
 #define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
 void trace(trace_t level, const char * module, const char * function, int line, const char *formatstring, ...);
-// TODO: need settings->debug in trace()
 
 /** get all settings
  *
@@ -200,13 +199,13 @@ int parse_config(void);
  */
 int gen_queue_file(char **tempanme);
 
-/** create a new hash table for all smtp codes
+/** Create a new hash table for all smtp codes
  *
  * \returns new allocated hash table
  */
 SMTP_CODE_TABLE *smtp_code_new(void);
 
-/** add smtp return code to list
+/** Add smtp return code to list
  *
  * \param SMTP_CODE_TABLE struct
  * \param code smtp code 
@@ -214,7 +213,7 @@ SMTP_CODE_TABLE *smtp_code_new(void);
  */
 void smtp_code_insert(SMTP_CODE_TABLE *codes, unsigned long code, char *msg);
 
-/** get smtp return code message of given code
+/** Get smtp return code message of given code
  *
  * \param SMTP_CODE_TABLE struct
  * \param code to look for
@@ -223,7 +222,7 @@ void smtp_code_insert(SMTP_CODE_TABLE *codes, unsigned long code, char *msg);
  */
 char *smtp_code_get(SMTP_CODE_TABLE *codes, unsigned long code);
 
-/** free smtp codes
+/** Free smtp codes
  *
  * \param pointer to smtp codes
  */

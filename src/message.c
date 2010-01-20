@@ -13,7 +13,6 @@
  *
  * \returns GMimeMessage object
  */
-// TODO: remove from spmfilter.h?
 GMimeMessage *parse_message(char *msg_path) {
 	GMimeMessage *message = NULL;
 	GMimeParser *parser;
