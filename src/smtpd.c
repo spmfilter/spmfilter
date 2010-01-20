@@ -67,7 +67,6 @@ void smtp_code_reply(int code) {
 		}
 	}
 	fflush(stdout);
-	g_free(code_msg);
 	g_free(str_code);
 }
 
