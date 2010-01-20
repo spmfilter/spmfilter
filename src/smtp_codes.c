@@ -125,6 +125,7 @@ char *smtp_code_get(SMTP_CODE_TABLE *codes, unsigned long code) {
 void smtp_code_free(SMTP_CODE_TABLE *codes) {
 	while (--codes->size >= 0)
 		if (codes->table[codes->size].flags & ACTIVE)
+			// TODO: fix malloc: *** error for object 0x100510eb0: pointer being freed was not allocated
 			free(codes->table[codes->size].msg);
 
 	free(codes->table);
