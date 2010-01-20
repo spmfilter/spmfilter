@@ -34,7 +34,7 @@ GMimeMessage *parse_message(char *msg_path) {
 }
 
 
-/** write a message to disk
+/** Write a message to disk
  *
  * \param new_path path for the new message file
  * \param queue_file path of the queue file
