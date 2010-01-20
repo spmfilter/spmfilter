@@ -2,7 +2,6 @@
 #define SPMFILTER_H
 
 #include <glib.h>
-#include <gmime/gmime.h>
 #include <sys/time.h>
 
 /* spmfilter version */
@@ -22,19 +21,6 @@
 
 /* zdb */
 #cmakedefine HAVE_ZDB
-
-#ifdef HAVE_ZDB
-#include <URL.h>
-#include <ResultSet.h>
-#include <PreparedStatement.h>
-#include <Connection.h>
-#include <ConnectionPool.h>
-#include <SQLException.h>
-#endif
-
-#ifdef HAVE_LDAP
-#include <ldap.h>
-#endif
 
 #define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
 	+ GLIB_MINOR_VERSION * 100 \
@@ -207,7 +193,8 @@ int parse_config(void);
 
 /** generate a new queue file name
  *
- * \buf pointer to unallocated buffer for filename
+ * \buf pointer to unallocated buffer for filename, needs to
+ *      free'd by caller if not required anymore
  *
  * \returns 0 on success or -1 in case of error
  */
@@ -252,22 +239,14 @@ void smtp_code_free(SMTP_CODE_TABLE *codes);
  */
 char* get_substring(const char *pattern, const char *haystack, int pos);
 
-/** parse a message file on disk
- *
- * \param msg_path path to message file
- *
- * \returns GMimeMessage object or NULL in case of error
- */
-GMimeMessage *parse_message(char *msg_path);
-
 /** write a message to disk
  *
- * \param msg_path path for the new message file
- * \param message GMimeMessage object
+ * \param new_path path for the new message file
+ * \param queue_file path of the queue file
  *
  * \returns 0 on success or -1 in case of error
  */
-int write_message(char *msg_path, GMimeMessage *message);
+int write_message(char *new_path, char *queue_file);
 
 /* gets the value of the requested header if it exists
  *
@@ -316,6 +295,13 @@ int smtp_delivery(MESSAGE *msg_data);
 char *get_maildir_filename(void);
 
 #ifdef HAVE_ZDB
+#include <URL.h>
+#include <ResultSet.h>
+#include <PreparedStatement.h>
+#include <Connection.h>
+#include <ConnectionPool.h>
+#include <SQLException.h>
+
 /** connect to sql server
  *
  * \returns 0 on success or -1 in case of error
@@ -341,6 +327,8 @@ ResultSet_T sql_query(const char *q, ...);
 #endif
 
 #ifdef HAVE_LDAP
+#include <ldap.h>
+
 /** connect to ldap server
  *
  * \returns 0 on success or -1 in case of error
