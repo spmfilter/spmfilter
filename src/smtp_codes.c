@@ -4,9 +4,17 @@
 
 #include "spmfilter.h"
 
+#define THIS_MODULE "smtp_codes"
+
 #define ACTIVE 1
 #define STARTSIZE 1023
 
+/** Check if given integer is prime
+ *
+ * \param integer to check
+ *
+ * \returns 0 on success or -1 in case of error
+ */
 static unsigned long is_prime(unsigned long val) {
 	int i, p, exp, a;
 
@@ -29,6 +37,13 @@ static unsigned long is_prime(unsigned long val) {
 	return 1;
 }
 
+/** Find a prime number which is greater
+ *  than the given value
+ *
+ * \param integer value
+ *
+ * \returns prime number
+ */
 static int find_prime_greater_than(int val) {
 	if (val & 1)
 		val+=2;
@@ -41,6 +56,10 @@ static int find_prime_greater_than(int val) {
   return val;
 }
 
+/** Rehash SMTP_CODE_TABLE
+ *
+ * \param SMTP_CODE_TABLE struct
+ */
 static void rehash(SMTP_CODE_TABLE *ct) {
 	long size = ct->size;
 	SMTP_CODE *table = ct->table;
@@ -56,6 +75,10 @@ static void rehash(SMTP_CODE_TABLE *ct) {
 	free(table);
 }
 
+/** Create a new hash table for all smtp codes
+ *
+ * \returns new allocated hash table
+ */
 SMTP_CODE_TABLE *smtp_code_new(void) {
 	SMTP_CODE_TABLE *codes = (SMTP_CODE_TABLE *) malloc(sizeof(SMTP_CODE_TABLE));
 
@@ -66,6 +89,12 @@ SMTP_CODE_TABLE *smtp_code_new(void) {
 	return codes;
 }
 
+/** Add smtp return code to list
+ *
+ * \param SMTP_CODE_TABLE struct
+ * \param code smtp code
+ * \param msg smtp return message
+ */
 void smtp_code_insert(SMTP_CODE_TABLE *codes, unsigned long code, char *msg) {
 	long index, i, step;
 
@@ -94,12 +123,17 @@ void smtp_code_insert(SMTP_CODE_TABLE *codes, unsigned long code, char *msg) {
 			index = (index + step) % codes->size;
 		}
 
-		/* it should not be possible that we EVER come this far, but unfortunately not every
-		   generated prime number is prime (see Carmichael numbers). */
 		rehash(codes);
 	} while (1);
 }
 
+/** Get smtp return code message of given code
+ *
+ * \param SMTP_CODE_TABLE struct
+ * \param code to look for
+ *
+ * \returns smtp return message for given code
+ */
 char *smtp_code_get(SMTP_CODE_TABLE *codes, unsigned long code) {
 	if (codes->count) {
 		long index, i, step;
@@ -122,12 +156,16 @@ char *smtp_code_get(SMTP_CODE_TABLE *codes, unsigned long code) {
 	return NULL;
 }
 
+/** Free smtp codes
+ *
+ * \param pointer to smtp codes
+ */
 void smtp_code_free(SMTP_CODE_TABLE *codes) {
 	while (--codes->size >= 0)
 		if (codes->table[codes->size].flags & ACTIVE)
-			// TODO: fix malloc: *** error for object 0x100510eb0: pointer being freed was not allocated
-			free(codes->table[codes->size].msg);
-
+			if (codes->table[codes->size].msg != NULL)
+				free(codes->table[codes->size].msg);
+			
 	free(codes->table);
 	free(codes);
 }
