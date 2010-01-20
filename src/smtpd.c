@@ -14,6 +14,15 @@
 
 MAILCONN *mconn;
 
+/* SMTP States */
+#define ST_INIT 0
+#define ST_HELO 1
+#define ST_XFWD 2
+#define ST_MAIL 3
+#define ST_RCPT 4
+#define ST_DATA 5
+#define ST_QUIT 6
+
 /* dot-stuffing */
 void stuffing(char chain[]) {
 	int i, j;
@@ -263,7 +272,8 @@ int load(void) {
 	char hostname[256];
 	GIOChannel *in;
 	char *line;
-
+	int state=ST_INIT;
+	
 	mconn = g_slice_new(MAILCONN);
 	mconn->helo = NULL;
 	mconn->from = NULL;
@@ -285,26 +295,32 @@ int load(void) {
 		if (g_ascii_strncasecmp(line,"quit",4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'quit' received"); 
 			smtp_code_reply(221);
+			state = ST_QUIT;
 			break;
 		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
 			mconn->helo = get_substring("^HELO\\s(.*)$",line, 1);
 			TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
 			smtp_string_reply("250 %s\r\n",hostname);
+			state = ST_HELO;
 		} else if (g_ascii_strncasecmp(line, "ehlo", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			mconn->helo = get_substring("^EHLO\\s(.*)$",line,1);
 			TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
 			smtp_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 DSN\r\n",hostname);
+			state = ST_HELO;
 		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'xforward name' received");
 			mconn->xforward_addr = get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
 			TRACE(TRACE_DEBUG,"mconn->xforward_addr: %s",mconn->xforward_addr);
 			smtp_code_reply(250);
+			state = ST_XFWD;
 		} else if (g_ascii_strncasecmp(line, "xforward proto", 13)==0) {
 			smtp_code_reply(250);
+			state = ST_XFWD;
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
+			// TODO: check for empty from string
 			mconn->from = g_slice_new(EMLADDR);
 			mconn->from->addr = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
 #ifdef HAVE_ZDB
@@ -315,26 +331,39 @@ int load(void) {
 #endif
 			smtp_code_reply(250);
 			TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
+			state = ST_MAIL;
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
-			TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
-			mconn->rcpts = g_malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
-			mconn->rcpts[mconn->num_rcpts] = g_malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
-			mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
+			if (state != ST_MAIL) {
+				/* someone wants to break smtp rules... */
+				smtp_string_reply("503 Error: need MAIL command\r\n");
+			} else {
+				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
+				mconn->rcpts = g_malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
+				mconn->rcpts[mconn->num_rcpts] = g_malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
+				mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
 #ifdef HAVE_ZDB
-			if (settings->sql_user_query != NULL) {
-				mconn->rcpts[mconn->num_rcpts]->is_local = sql_user_exists(mconn->rcpts[mconn->num_rcpts]->addr);
-				TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
-			}
+				if (settings->sql_user_query != NULL) {
+					mconn->rcpts[mconn->num_rcpts]->is_local = sql_user_exists(mconn->rcpts[mconn->num_rcpts]->addr);
+					TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
+				}
 #endif
-			smtp_code_reply(250);
-			TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
-			mconn->num_rcpts++;
+				smtp_code_reply(250);
+				TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+				mconn->num_rcpts++;
+				state = ST_RCPT;
+			}
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
-			TRACE(TRACE_DEBUG,"SMTP: 'data' received");
-			process_data();
+			if (state != ST_RCPT) {
+				/* someone wants to break smtp rules... */
+				smtp_string_reply("503 Error: need RCPT command\r\n");
+			} else {
+				state = ST_DATA;
+				TRACE(TRACE_DEBUG,"SMTP: 'data' received");
+				process_data();
+			}
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
-			mconn_free(mconn);
+			mconn_free();
 			mconn = g_slice_new (MAILCONN);
 			mconn->helo = NULL;
 			mconn->from = NULL;
@@ -342,6 +371,7 @@ int load(void) {
 			mconn->rcpts = NULL;
 			mconn->xforward_addr = NULL;
 			smtp_code_reply(250);
+			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'noop' received");
 			smtp_code_reply(250);
@@ -357,16 +387,14 @@ int load(void) {
 	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
 
-	mconn_free(mconn);
+	mconn_free();
 	
 	return 0;
 }
 
 /** Free MAILCONN structure
- *
- * \param MAILCONN strucutre to free
  */
-void mconn_free(MAILCONN *mconn) {
+void mconn_free(void) {
 	int i;
 	g_free(mconn->queue_file);
 	g_free(mconn->helo);
@@ -382,3 +410,4 @@ void mconn_free(MAILCONN *mconn) {
 	g_slice_free(MAILCONN,mconn);
 
 }
+
