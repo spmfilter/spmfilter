@@ -70,8 +70,8 @@ void smtp_code_reply(int code) {
 			case 451: 
 				fprintf(stdout,CODE_451);
 				break;
-			case 500:
-				fprintf(stdout,CODE_500);
+			case 502:
+				fprintf(stdout,CODE_502);
 				break;
 			case 552:
 				fprintf(stdout,CODE_552);
@@ -273,17 +273,11 @@ int load(void) {
 	GIOChannel *in;
 	char *line;
 	int state=ST_INIT;
-	
-	mconn = g_slice_new(MAILCONN);
-	mconn->helo = NULL;
-	mconn->from = NULL;
-	mconn->queue_file = NULL;
-	mconn->rcpts = NULL;
-	mconn->xforward_addr = NULL;
+
+	mconn_new();
 
 	gethostname(hostname,256);
 
-	// TODO: check smtp states
 	smtp_string_reply("220 %s spmfilter\r\n",hostname);
 	mconn->num_rcpts = 0;
 	in = g_io_channel_unix_new(STDIN_FILENO);
@@ -298,17 +292,52 @@ int load(void) {
 			state = ST_QUIT;
 			break;
 		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
+			/* An EHLO command MAY be issued by a client later in the session.
+			 * If it is issued after the session begins, the SMTP server MUST
+			 * clear all buffers and reset the state exactly as if a RSET
+			 * command had been issued.
+			 */
+			if (state != ST_INIT) {
+				mconn_free();
+				/* reinit mconn */
+				mconn_new();
+			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
 			mconn->helo = get_substring("^HELO\\s(.*)$",line, 1);
-			TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
-			smtp_string_reply("250 %s\r\n",hostname);
-			state = ST_HELO;
+			TRACE(TRACE_DEBUG,"HELO: %s",mconn->helo);
+			if (mconn->helo != NULL) {
+				if (MATCH(mconn->helo,""))  {
+					smtp_string_reply("501 Syntax: HELO hostname\r\n");
+				} else {
+					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
+					smtp_string_reply("250 %s\r\n",hostname);
+					state = ST_HELO;
+				}
+			} else {
+				smtp_string_reply("501 Syntax: HELO hostname\r\n");
+			}
 		} else if (g_ascii_strncasecmp(line, "ehlo", 4)==0) {
+			/* Same here....clear all buffers, if ehlo command is
+			 * received later...
+			 */
+			if (state != ST_INIT) {
+				mconn_free();
+				/* reinit mconn */
+				mconn_new();
+			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			mconn->helo = get_substring("^EHLO\\s(.*)$",line,1);
-			TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
-			smtp_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 DSN\r\n",hostname);
-			state = ST_HELO;
+			if (mconn->helo != NULL) {
+				if (MATCH(mconn->helo,"")) {
+					smtp_string_reply("501 Syntax: EHLO hostname\r\n");
+				} else {
+					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
+					smtp_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 DSN\r\n",hostname);
+					state = ST_HELO;
+				}
+			} else {
+				smtp_string_reply("501 Syntax: HELO hostname\r\n");
+			}
 		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'xforward name' received");
 			mconn->xforward_addr = get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
@@ -319,43 +348,85 @@ int load(void) {
 			smtp_code_reply(250);
 			state = ST_XFWD;
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
+			/* The MAIL command begins a mail transaction. Once started, 
+			 * a mail transaction consists of a transaction beginning command, 
+			 * one or more RCPT commands, and a DATA command, in that order. 
+			 * A mail transaction may be aborted by the RSET (or a new EHLO) 
+			 * command. There may be zero or more transactions in a session. 
+			 * MAIL MUST NOT be sent if a mail transaction is already open, 
+			 * e.g., it should be sent only if no mail transaction had been 
+			 * started in the session, or if the previous one successfully 
+			 * concluded with a successful DATA command, or if the previous 
+			 * one was aborted with a RSET.
+			 */
 			TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
-			// TODO: check for empty from string
-			mconn->from = g_slice_new(EMLADDR);
-			mconn->from->addr = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
+			if (state == ST_MAIL) {
+				/* we already got the mail command */
+				smtp_string_reply("503 Error: nested MAIL command\r\n");
+			} else {
+				mconn->from = g_slice_new(EMLADDR);
+				mconn->from->addr = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
+				if (mconn->from->addr != NULL){
+					if (MATCH(mconn->from->addr,"")) {
+						/* check for emtpy string */
+						smtp_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
+						g_slice_free(EMLADDR,mconn->from);
+						mconn->from = NULL;
+					} else {
 #ifdef HAVE_ZDB
-			if (settings->sql_user_query != NULL) {
-				mconn->from->is_local = sql_user_exists(mconn->from->addr);
-				TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
-			}
+						if (settings->sql_user_query != NULL) {
+							mconn->from->is_local = sql_user_exists(mconn->from->addr);
+							TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
+						}
 #endif
-			smtp_code_reply(250);
-			TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
-			state = ST_MAIL;
+						smtp_code_reply(250);
+						TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
+						state = ST_MAIL;
+					}
+				} else {
+					smtp_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
+					g_slice_free(EMLADDR,mconn->from);
+					mconn->from = NULL;
+				}
+			}
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
-			if (state != ST_MAIL) {
+			if ((state != ST_MAIL) & (state != ST_RCPT)) {
 				/* someone wants to break smtp rules... */
 				smtp_string_reply("503 Error: need MAIL command\r\n");
 			} else {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
-				mconn->rcpts = g_malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
-				mconn->rcpts[mconn->num_rcpts] = g_malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
+				mconn->rcpts = g_realloc(mconn->rcpts,sizeof(mconn->rcpts[mconn->num_rcpts]));
+				mconn->rcpts[mconn->num_rcpts] = g_slice_new(EMLADDR);
 				mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
+				if (mconn->rcpts[mconn->num_rcpts] != NULL) {
+					if (MATCH(mconn->rcpts[mconn->num_rcpts]->addr,"")) {
+						/* empty rcpt to? */
+						smtp_string_reply("501 Syntax: RCPT TO:<address>\r\n");
+						g_slice_free(EMLADDR,mconn->rcpts[mconn->num_rcpts]);
+					} else {
 #ifdef HAVE_ZDB
-				if (settings->sql_user_query != NULL) {
-					mconn->rcpts[mconn->num_rcpts]->is_local = sql_user_exists(mconn->rcpts[mconn->num_rcpts]->addr);
-					TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
-				}
+						if (settings->sql_user_query != NULL) {
+							mconn->rcpts[mconn->num_rcpts]->is_local = sql_user_exists(mconn->rcpts[mconn->num_rcpts]->addr);
+							TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
+						}
 #endif
-				smtp_code_reply(250);
-				TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
-				mconn->num_rcpts++;
-				state = ST_RCPT;
+						smtp_code_reply(250);
+						TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+						mconn->num_rcpts++;
+						state = ST_RCPT;
+					}
+				} else {
+					smtp_string_reply("501 Syntax: RCPT TO:<address>\r\n");
+					g_slice_free(EMLADDR,mconn->rcpts[mconn->num_rcpts]);
+				}
 			}
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
-			if (state != ST_RCPT) {
+			if ((state != ST_RCPT) & (state != ST_MAIL)) {
 				/* someone wants to break smtp rules... */
 				smtp_string_reply("503 Error: need RCPT command\r\n");
+			} else if ((state != ST_RCPT) & (state == ST_MAIL)) {
+				/* we got the mail command but no rcpt to */
+				smtp_string_reply("554 Error: no valid recipients\r\n");
 			} else {
 				state = ST_DATA;
 				TRACE(TRACE_DEBUG,"SMTP: 'data' received");
@@ -364,12 +435,8 @@ int load(void) {
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
 			mconn_free();
-			mconn = g_slice_new (MAILCONN);
-			mconn->helo = NULL;
-			mconn->from = NULL;
-			mconn->queue_file = NULL;
-			mconn->rcpts = NULL;
-			mconn->xforward_addr = NULL;
+			/* reinit mconn */
+			mconn_new();
 			smtp_code_reply(250);
 			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
@@ -377,9 +444,10 @@ int load(void) {
 			smtp_code_reply(250);
 		} else if (g_ascii_strcasecmp(line,"")!=0){
 			TRACE(TRACE_DEBUG,"SMTP: wtf?!");
-			smtp_code_reply(500);
+			smtp_code_reply(502);
 		} else {
-			break;
+			TRACE(TRACE_DEBUG,"SMTP: got empty line");
+			smtp_string_reply("500 Error: bad syntax\r\n");
 		}
 		g_free(line);
 	} 
@@ -390,6 +458,18 @@ int load(void) {
 	mconn_free();
 	
 	return 0;
+}
+
+/** Initialize MAILCONN structure
+ */
+
+void mconn_new(void) {
+	mconn = g_slice_new(MAILCONN);
+	mconn->helo = NULL;
+	mconn->from = NULL;
+	mconn->queue_file = NULL;
+	mconn->rcpts = NULL;
+	mconn->xforward_addr = NULL;
 }
 
 /** Free MAILCONN structure
@@ -407,6 +487,7 @@ void mconn_free(void) {
 		g_free(mconn->rcpts[i]->addr);
 		g_slice_free(EMLADDR,mconn->rcpts[i]);
 	}
+	g_free(mconn->rcpts);
 	g_slice_free(MAILCONN,mconn);
 
 }

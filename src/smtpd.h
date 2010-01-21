@@ -5,7 +5,7 @@
 #define CODE_250 "250 OK\r\n"
 #define CODE_250_ACCEPTED "250 OK message accepted\r\n"
 #define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_500 "500 Eh? WTF was that?\r\n"
+#define CODE_502 "502 Eh? WTF was that?\r\n"
 #define CODE_552 "552 Requested action aborted: local error in processing\r\n"
 
 typedef int (*LoadMod) (MAILCONN *mconn);
