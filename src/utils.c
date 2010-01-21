@@ -75,7 +75,7 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
  * \returns 0 on success or -1 in case of error
  */
 int gen_queue_file(char **tempname) {
-	SETTINGS *settings = get_settings();
+	Settings_T *settings = get_settings();
 	/* create spooling file */
 	*tempname = g_strdup_printf("%s/spmfilter.XXXXXX",settings->queue_dir);
 	if(g_mkstemp(*tempname) == -1)

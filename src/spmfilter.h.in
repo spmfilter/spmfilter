@@ -27,12 +27,12 @@ typedef struct {
 	char *msg;
 	int flags;
 	long code;
-} SMTP_CODE;
+} SmtpCode_T;
 
 typedef struct {
-	SMTP_CODE *table;
+	SmtpCode_T *table;
 	long size, count;
-} SMTP_CODE_TABLE;
+} SmtpCodeTable_T;
 
 typedef struct {
 	/* debug flag */
@@ -68,7 +68,7 @@ typedef struct {
 	char *backend;
 	
 	/* hash table for smtp codes */
-	SMTP_CODE_TABLE *smtp_codes;
+	SmtpCodeTable_T *smtp_codes;
 	
 #ifdef HAVE_ZDB
 	char *sql_driver;
@@ -92,7 +92,7 @@ typedef struct {
 	char *ldap_base;
 	int ldap_referrals;
 #endif
-} SETTINGS;
+} Settings_T;
 
 /* struct for messages send
  * via smtp_delivery */
@@ -117,23 +117,23 @@ typedef struct {
 	
 	/* destination smtp server */
 	char *nexthop;
-} MESSAGE;
+} Message_T;
 
 typedef struct {
 	char *addr;
 	int is_local;
-} EMLADDR;
+} EmailAddress_T;
 
 typedef struct {
 	/* hello we received */
 	char *helo;
 	
 	/* recipients */
-	EMLADDR **rcpts;
+	EmailAddress_T **rcpts;
 	int num_rcpts;
 	
 	/* sender */
-	EMLADDR *from;
+	EmailAddress_T *from;
 	
 	/* size of message body */
 	size_t msgbodysize;
@@ -143,7 +143,7 @@ typedef struct {
 	
 	/* xfoward */
 	char *xforward_addr;
-} MAILCONN;
+} MailConn_T;
 
 /* Logging and debugging stuff */
 typedef enum {
@@ -156,7 +156,7 @@ typedef enum {
 	TRACE_INFO = 64,
 	TRACE_DEBUG = 128,
 	TRACE_LOOKUP = 256 // Logs at Debug Level
-} trace_t;
+} Trace_T;
 
 /** convenience macro for logging
  *
@@ -165,18 +165,18 @@ typedef enum {
  * \param ... format string arguments
  */
 #define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
-void trace(trace_t level, const char * module, const char * function, int line, const char *formatstring, ...);
+void trace(Trace_T level, const char * module, const char * function, int line, const char *formatstring, ...);
 
-/** get all settings
+/** Get all settings
  *
  * \return settings struct
  */
-SETTINGS *get_settings(void);
+Settings_T *get_settings(void);
 
-void set_settings(SETTINGS **s);
+void set_settings(Settings_T **s);
 
 /** free settings struct */
-void free_settings(SETTINGS *settings);
+void free_settings(Settings_T *settings);
 
 /** load and parse config file
  *
@@ -198,30 +198,30 @@ int gen_queue_file(char **tempanme);
  *
  * \returns new allocated hash table
  */
-SMTP_CODE_TABLE *smtp_code_new(void);
+SmtpCodeTable_T *smtp_code_new(void);
 
 /** Add smtp return code to list
  *
- * \param SMTP_CODE_TABLE struct
+ * \param SmtpCodeTable_T type
  * \param code smtp code 
  * \param msg smtp return message
  */
-void smtp_code_insert(SMTP_CODE_TABLE *codes, unsigned long code, char *msg);
+void smtp_code_insert(SmtpCodeTable_T *codes, unsigned long code, char *msg);
 
 /** Get smtp return code message of given code
  *
- * \param SMTP_CODE_TABLE struct
+ * \param SmtpCodeTable_T struct
  * \param code to look for
  *
  * \returns smtp return message for given code
  */
-char *smtp_code_get(SMTP_CODE_TABLE *codes, unsigned long code);
+char *smtp_code_get(SmtpCodeTable_T *codes, unsigned long code);
 
 /** Free smtp codes
  *
  * \param pointer to smtp codes
  */
-void smtp_code_free(SMTP_CODE_TABLE *codes);
+void smtp_code_free(SmtpCodeTable_T *codes);
 
 /** extract a substring from given string
  * 
@@ -272,11 +272,11 @@ int remove_header(char *msg_path, char *header_name);
 
 /** Deliver message
  *
- * \param msg_data MESSAGE structure
+ * \param msg_data Messate_T structure
  *
  * \returns 0 on success or -1 in case of error
  */
-int smtp_delivery(MESSAGE *msg_data);
+int smtp_delivery(Message_T *msg_data);
 
 /** generates a unique maildir filename
  * 
