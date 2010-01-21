@@ -3,21 +3,21 @@
 
 #define THIS_MODULE "settings"
 
-SETTINGS *settings = NULL;
+Settings_T *settings = NULL;
 
-SETTINGS *get_settings(void) {
+Settings_T *get_settings(void) {
 	if (settings == NULL) {
-		settings = g_slice_new(SETTINGS);
+		settings = g_slice_new(Settings_T);
 		settings->debug = 0;
 	}
 	return settings;
 }
 
-void set_settings(SETTINGS **s) {
+void set_settings(Settings_T **s) {
 	settings = *s;
 }
 
-void free_settings(SETTINGS *settings) {
+void free_settings(Settings_T *settings) {
 	smtp_code_free(settings->smtp_codes);
 	g_strfreev(settings->modules);
 	g_free(settings->config_file);
@@ -27,7 +27,7 @@ void free_settings(SETTINGS *settings) {
 	g_free(settings->nexthop_fail_msg);
 	g_free(settings->backend);
 
-	g_slice_free(SETTINGS,settings);
+	g_slice_free(Settings_T,settings);
 }
 
 int parse_config(void) {
@@ -38,7 +38,7 @@ int parse_config(void) {
 	gsize codes_length = 0;
 	char *code_msg;
 	int i, code;
-	SETTINGS *settings = get_settings();
+	Settings_T *settings = get_settings();
 
 	/* fallback to default config path,
 	 * if config file is not defined as
@@ -89,7 +89,8 @@ int parse_config(void) {
 	}
 
 	settings->backend = g_key_file_get_string(keyfile, "global", "backend", NULL);
-
+	if (settings->backend == NULL)
+		settings->backend = g_strdup("undef");
 
 	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
 	for(i = 0; settings->modules[i] != NULL; i++) {
@@ -123,9 +124,6 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->sql_user_query: %s", settings->sql_user_query);
 	TRACE(TRACE_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
 	TRACE(TRACE_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
-
-	if(sql_connect() != 0)
-		return -1;
 #endif
 
 #ifdef HAVE_LDAP
@@ -134,7 +132,7 @@ int parse_config(void) {
 	settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
 	settings->ldap_host = g_key_file_get_string(keyfile,"ldap","host",NULL);
 
-	if (settings->ldap_uri == NULL & settings->ldap_host == NULL) {
+	if (settings->ldap_uri == NULL && settings->ldap_host == NULL) {
 		TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
 		return -1;
 	}
@@ -162,8 +160,9 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->ldap_base: %s", settings->ldap_base);
 	TRACE(TRACE_DEBUG, "settings->ldap_referrals: %d", settings->ldap_referrals);
 
-	if(ldap_connect() != 0)
-		return -1;
+	// TODO: fix ldap connect
+//	if(ldap_connect() != 0)
+//		return -1;
 
 #endif
 
@@ -188,7 +187,7 @@ int parse_config(void) {
 	while (codes_length--) {
 		/* only insert smtp codes to hashtable */
 		code = g_ascii_strtod(code_keys[codes_length],NULL);
-		if ((code > 400) & (code < 600)) {
+		if ((code > 400) && (code < 600)) {
 			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
 			smtp_code_insert(settings->smtp_codes, code, code_msg);
 			TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smtp_code_get(settings->smtp_codes,code));

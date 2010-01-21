@@ -12,7 +12,7 @@
 
 #define THIS_MODULE "smtpd"
 
-MAILCONN *mconn;
+MailConn_T *mconn;
 
 /* SMTP States */
 #define ST_INIT 0
@@ -52,7 +52,7 @@ void smtp_string_reply(const char *format, ...) {
  */
 void smtp_code_reply(int code) {
 	char *code_msg;
-	SETTINGS *settings = get_settings();
+	Settings_T *settings = get_settings();
 
 	/* we don't need to free code_msg, will be
 	 * freed by smtp_code_free() */
@@ -85,8 +85,8 @@ void load_modules(void) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
-	MESSAGE *msg = NULL;
-	SETTINGS *settings = get_settings();
+	Message_T *msg = NULL;
+	Settings_T *settings = get_settings();
 
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;	
@@ -182,7 +182,7 @@ void load_modules(void) {
 	}
 
 	if (settings->nexthop != NULL ) {
-		msg = g_slice_new(MESSAGE);
+		msg = g_slice_new(Message_T);
 		msg->from = g_strdup(mconn->from->addr);
 		msg->rcpts = g_malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
 		for (i = 0; i < mconn->num_rcpts; i++) {
@@ -203,7 +203,7 @@ void load_modules(void) {
 		g_free(msg->from);
 		g_free(msg->message_file);
 		g_free(msg->nexthop);
-		g_slice_free(MESSAGE,msg);
+		g_slice_free(Message_T,msg);
 	}
 	
 	smtp_string_reply(CODE_250_ACCEPTED);
@@ -273,7 +273,8 @@ int load(void) {
 	GIOChannel *in;
 	char *line;
 	int state=ST_INIT;
-
+	Settings_T *settings = get_settings();
+	
 	mconn_new();
 
 	gethostname(hostname,256);
@@ -364,19 +365,19 @@ int load(void) {
 				/* we already got the mail command */
 				smtp_string_reply("503 Error: nested MAIL command\r\n");
 			} else {
-				mconn->from = g_slice_new(EMLADDR);
+				mconn->from = g_slice_new(EmailAddress_T);
 				mconn->from->addr = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->from->addr != NULL){
 					if (MATCH(mconn->from->addr,"")) {
 						/* check for emtpy string */
 						smtp_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
-						g_slice_free(EMLADDR,mconn->from);
+						g_slice_free(EmailAddress_T,mconn->from);
 						mconn->from = NULL;
 					} else {
 #ifdef HAVE_ZDB
-						if (settings->sql_user_query != NULL) {
-							mconn->from->is_local = sql_user_exists(mconn->from->addr);
-							TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
+						if ((!MATCH(settings->backend,"undef")) && (settings->sql_user_query != NULL)) {
+								mconn->from->is_local = sql_user_exists(mconn->from->addr);
+								TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
 						}
 #endif
 						smtp_code_reply(250);
@@ -385,24 +386,24 @@ int load(void) {
 					}
 				} else {
 					smtp_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
-					g_slice_free(EMLADDR,mconn->from);
+					g_slice_free(EmailAddress_T,mconn->from);
 					mconn->from = NULL;
 				}
 			}
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
-			if ((state != ST_MAIL) & (state != ST_RCPT)) {
+			if ((state != ST_MAIL) && (state != ST_RCPT)) {
 				/* someone wants to break smtp rules... */
 				smtp_string_reply("503 Error: need MAIL command\r\n");
 			} else {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 				mconn->rcpts = g_realloc(mconn->rcpts,sizeof(mconn->rcpts[mconn->num_rcpts]));
-				mconn->rcpts[mconn->num_rcpts] = g_slice_new(EMLADDR);
+				mconn->rcpts[mconn->num_rcpts] = g_slice_new(EmailAddress_T);
 				mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->rcpts[mconn->num_rcpts] != NULL) {
 					if (MATCH(mconn->rcpts[mconn->num_rcpts]->addr,"")) {
 						/* empty rcpt to? */
 						smtp_string_reply("501 Syntax: RCPT TO:<address>\r\n");
-						g_slice_free(EMLADDR,mconn->rcpts[mconn->num_rcpts]);
+						g_slice_free(EmailAddress_T,mconn->rcpts[mconn->num_rcpts]);
 					} else {
 #ifdef HAVE_ZDB
 						if (settings->sql_user_query != NULL) {
@@ -417,14 +418,14 @@ int load(void) {
 					}
 				} else {
 					smtp_string_reply("501 Syntax: RCPT TO:<address>\r\n");
-					g_slice_free(EMLADDR,mconn->rcpts[mconn->num_rcpts]);
+					g_slice_free(EmailAddress_T,mconn->rcpts[mconn->num_rcpts]);
 				}
 			}
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
-			if ((state != ST_RCPT) & (state != ST_MAIL)) {
+			if ((state != ST_RCPT) && (state != ST_MAIL)) {
 				/* someone wants to break smtp rules... */
 				smtp_string_reply("503 Error: need RCPT command\r\n");
-			} else if ((state != ST_RCPT) & (state == ST_MAIL)) {
+			} else if ((state != ST_RCPT) && (state == ST_MAIL)) {
 				/* we got the mail command but no rcpt to */
 				smtp_string_reply("554 Error: no valid recipients\r\n");
 			} else {
@@ -460,11 +461,11 @@ int load(void) {
 	return 0;
 }
 
-/** Initialize MAILCONN structure
+/** Initialize MailConn_T structure
  */
 
 void mconn_new(void) {
-	mconn = g_slice_new(MAILCONN);
+	mconn = g_slice_new(MailConn_T);
 	mconn->helo = NULL;
 	mconn->from = NULL;
 	mconn->queue_file = NULL;
@@ -472,7 +473,7 @@ void mconn_new(void) {
 	mconn->xforward_addr = NULL;
 }
 
-/** Free MAILCONN structure
+/** Free MailConn_T structure
  */
 void mconn_free(void) {
 	int i;
@@ -482,13 +483,13 @@ void mconn_free(void) {
 
 	if (mconn->from != NULL)
 		g_free(mconn->from->addr);
-	g_slice_free(EMLADDR,mconn->from);
+	g_slice_free(EmailAddress_T,mconn->from);
 	for (i = 0; i < mconn->num_rcpts; i++) {
 		g_free(mconn->rcpts[i]->addr);
-		g_slice_free(EMLADDR,mconn->rcpts[i]);
+		g_slice_free(EmailAddress_T,mconn->rcpts[i]);
 	}
 	g_free(mconn->rcpts);
-	g_slice_free(MAILCONN,mconn);
+	g_slice_free(MailConn_T,mconn);
 
 }
 

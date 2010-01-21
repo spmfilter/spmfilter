@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 	LoadEngine load_engine;
 	gchar *engine_path;
 	int ret, i;
-	SETTINGS *settings = get_settings();
+	Settings_T *settings = get_settings();
 
 	/* all cmd args */
 	GOptionEntry entries[] = {
@@ -39,8 +39,16 @@ int main(int argc, char *argv[]) {
 	g_option_context_free(context);
 
 	/* parse config file and fill settings struct */
-	if (parse_config()!=0)
+	if (parse_config() != 0) 
 		return -1;
+
+#ifdef HAVE_ZDB
+	/* try to connect to database */
+	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+		if(sql_connect() != 0)
+			return -1;
+	}
+#endif
 
 	/* check queue dir */
 	if (!g_file_test (settings->queue_dir, G_FILE_TEST_EXISTS)) {
