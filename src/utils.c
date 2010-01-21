@@ -13,6 +13,10 @@
 #define THIS_MODULE "utils"
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
+#define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
+	+ GLIB_MINOR_VERSION * 100 \
+	+ GLIB_MICRO_VERSION)
+
 /** extract a substring from given string
  *
  * \param pattern regular expression pattern
