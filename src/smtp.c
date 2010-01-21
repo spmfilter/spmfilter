@@ -12,6 +12,12 @@ static int authinteract (auth_client_request_t request, char **result, int field
 
 #define THIS_MODULE "smtp"
 
+/** Deliver message
+ *
+ * \param msg_data MESSAGE structure
+ *
+ * \returns 0 on success or -1 in case of error
+ */
 int smtp_delivery(MESSAGE *msg_data) {
 	smtp_session_t session;
 	smtp_message_t message;

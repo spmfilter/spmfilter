@@ -1,7 +1,6 @@
 #ifndef SPMFILTER_H
 #define SPMFILTER_H
 
-#include <glib.h>
 #include <sys/time.h>
 
 /* spmfilter version */
@@ -21,10 +20,6 @@
 
 /* zdb */
 #cmakedefine HAVE_ZDB
-
-#define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
-	+ GLIB_MINOR_VERSION * 100 \
-	+ GLIB_MICRO_VERSION)
 
 #define MATCH(x,y) strcasecmp((x),(y))==0
 
@@ -256,17 +251,7 @@ int write_message(char *new_path, char *queue_file);
  */
 const char *get_header(char *msg_path, char *header_name);
 
-/** adds an arbitrary header to the message
- * 
- * \param msg_path path to message or queue file
- * \param header_name: name of the new header
- * \param header_value value for the new header
- *
- * \returns 0 on success or -1 in case of error
- */
-int add_header(char *msg_path, char *header_name, char *header_value);
-
-/** sets an arbitrary header
+/** Sets an arbitrary header
  * 
  * \param msg_path path to message or queue file
  * \param header_name name of the header
@@ -276,7 +261,7 @@ int add_header(char *msg_path, char *header_name, char *header_value);
  */
 int set_header(char *msg_path, char *header_name, char *header_value);
 
-/** removed the specified header if it exists
+/** Removed the specified header if it exists
  *
  * \param msg_path path to message or queue_file
  * \param header_name name of the header
@@ -285,6 +270,12 @@ int set_header(char *msg_path, char *header_name, char *header_value);
  */
 int remove_header(char *msg_path, char *header_name);
 
+/** Deliver message
+ *
+ * \param msg_data MESSAGE structure
+ *
+ * \returns 0 on success or -1 in case of error
+ */
 int smtp_delivery(MESSAGE *msg_data);
 
 /** generates a unique maildir filename
