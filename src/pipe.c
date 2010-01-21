@@ -13,13 +13,15 @@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
-typedef int (*LoadMod) (SETTINGS *settings, MAILCONN *mconn);
+typedef int (*LoadMod) (Settings_T *settings, MailConn_T *mconn);
 
-int load_modules(SETTINGS *settings, MAILCONN *mconn) {
+// TODO: fix module interface
+// TODO: fix MailConn_T handling
+int load_modules(Settings_T *settings, MailConn_T *mconn) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
-	MESSAGE *msg = NULL;
+	Message_T *msg = NULL;
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;
@@ -57,7 +59,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 			return -1;
 		}
 
-		ret = load_module(settings,mconn); 
+		ret = load_module(settings,mconn);
 		if (ret == -1) {
 			g_module_close (module);
 			switch (settings->module_fail) {
@@ -77,7 +79,7 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 	}
 	
 	if (settings->nexthop != NULL ) {
-		msg = g_slice_new(MESSAGE);
+		msg = g_slice_new(Message_T);
 		msg->from = g_strdup(mconn->from->addr);
 		msg->rcpts = malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
 		for (i = 0; i < mconn->num_rcpts; i++) {
@@ -97,13 +99,13 @@ int load_modules(SETTINGS *settings, MAILCONN *mconn) {
 		g_free(msg->from);
 		g_free(msg->message_file);
 		g_free(msg->nexthop);
-		g_slice_free(MESSAGE,msg);
+		g_slice_free(Message_T,msg);
 	}
 	return 0;
 }
 
 
-int load(MAILCONN *mconn) {
+int load(MailConn_T *mconn) {
 	GIOChannel *in, *out;
 	GMimeStream *gmin;
 	GMimeMessage *message;
@@ -114,7 +116,7 @@ int load(MAILCONN *mconn) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	int i;
-	SETTINGS *settings = get_settings();
+	Settings_T *settings = get_settings();
 	
 	gen_queue_file(&mconn->queue_file);
 
@@ -162,7 +164,7 @@ int load(MAILCONN *mconn) {
 	parser = g_mime_parser_new_with_stream (gmin);
 	g_object_unref(gmin);
 	message = g_mime_parser_construct_message (parser);
-	mconn->from = g_slice_new(EMLADDR);
+	mconn->from = g_slice_new(EmailAddress_T);
 	mconn->from->addr = get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
 #ifdef HAVE_ZDB
 	if (settings->sql_user_query != NULL) {

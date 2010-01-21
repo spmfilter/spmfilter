@@ -56,16 +56,16 @@ static int find_prime_greater_than(int val) {
   return val;
 }
 
-/** Rehash SMTP_CODE_TABLE
+/** Rehash SmtpCodeTable_T
  *
- * \param SMTP_CODE_TABLE struct
+ * \param SmtpCodeTable_T struct
  */
-static void rehash(SMTP_CODE_TABLE *ct) {
+static void rehash(SmtpCodeTable_T *ct) {
 	long size = ct->size;
-	SMTP_CODE *table = ct->table;
+	SmtpCode_T *table = ct->table;
 
 	ct->size = find_prime_greater_than(size<<1);
-	ct->table = (SMTP_CODE *)calloc(sizeof(SMTP_CODE), ct->size);
+	ct->table = (SmtpCode_T *)calloc(sizeof(SmtpCode_T), ct->size);
 	ct->count = 0;
 
 	while(--size >= 0)
@@ -79,10 +79,10 @@ static void rehash(SMTP_CODE_TABLE *ct) {
  *
  * \returns new allocated hash table
  */
-SMTP_CODE_TABLE *smtp_code_new(void) {
-	SMTP_CODE_TABLE *codes = (SMTP_CODE_TABLE *) malloc(sizeof(SMTP_CODE_TABLE));
+SmtpCodeTable_T *smtp_code_new(void) {
+	SmtpCodeTable_T *codes = (SmtpCodeTable_T *) malloc(sizeof(SmtpCodeTable_T));
 
-	codes->table = (SMTP_CODE *) calloc(sizeof(SMTP_CODE), STARTSIZE);
+	codes->table = (SmtpCode_T *) calloc(sizeof(SmtpCode_T), STARTSIZE);
 	codes->size = STARTSIZE;
 	codes->count = 0;
 
@@ -91,11 +91,11 @@ SMTP_CODE_TABLE *smtp_code_new(void) {
 
 /** Add smtp return code to list
  *
- * \param SMTP_CODE_TABLE struct
+ * \param SmtpCodeTable_T struct
  * \param code smtp code
  * \param msg smtp return message
  */
-void smtp_code_insert(SMTP_CODE_TABLE *codes, unsigned long code, char *msg) {
+void smtp_code_insert(SmtpCodeTable_T *codes, unsigned long code, char *msg) {
 	long index, i, step;
 
 	if (codes->size <= codes->count)
@@ -129,12 +129,12 @@ void smtp_code_insert(SMTP_CODE_TABLE *codes, unsigned long code, char *msg) {
 
 /** Get smtp return code message of given code
  *
- * \param SMTP_CODE_TABLE struct
+ * \param SmtpCodeTable_T struct
  * \param code to look for
  *
  * \returns smtp return message for given code
  */
-char *smtp_code_get(SMTP_CODE_TABLE *codes, unsigned long code) {
+char *smtp_code_get(SmtpCodeTable_T *codes, unsigned long code) {
 	if (codes->count) {
 		long index, i, step;
 		index = code % codes->size;
@@ -160,7 +160,7 @@ char *smtp_code_get(SMTP_CODE_TABLE *codes, unsigned long code) {
  *
  * \param pointer to smtp codes
  */
-void smtp_code_free(SMTP_CODE_TABLE *codes) {
+void smtp_code_free(SmtpCodeTable_T *codes) {
 	while (--codes->size >= 0)
 		if (codes->table[codes->size].flags & ACTIVE)
 			if (codes->table[codes->size].msg != NULL)
