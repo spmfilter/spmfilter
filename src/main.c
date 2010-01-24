@@ -42,13 +42,11 @@ int main(int argc, char *argv[]) {
 	if (parse_config() != 0) 
 		return -1;
 
-#ifdef HAVE_ZDB
-	/* try to connect to database */
-	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
-		if(sql_connect() != 0)
-			return -1;
+	/* connect to database/ldap server, if necessary */
+	if (lookup_connect() != 0) {
+		TRACE(TRACE_ERR,"Unable to establish lookup connection!");
+		return -1;
 	}
-#endif
 
 	/* check queue dir */
 	if (!g_file_test (settings->queue_dir, G_FILE_TEST_EXISTS)) {
