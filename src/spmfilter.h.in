@@ -1,8 +1,6 @@
 #ifndef SPMFILTER_H
 #define SPMFILTER_H
 
-#include <sys/time.h>
-
 /* spmfilter version */
 #define SMF_VERSION ${SMF_VERSION_NUMBER}
 #define SMF_MAJOR_VERSION ${SMF_MAJOR_VERSION}
@@ -343,15 +341,11 @@ LDAPMessage *ldap_query(const char *q, ...);
 int ldap_user_exists(char *addr);
 #endif
 
-/** expands placeholders in a user querystring
+
+/** Establish database/ldap connection
  *
- * \param format format string to use as input
- * \param addr email address to use for replacements
- * \buf pointer to unallocated buffer for expanded format string, needs to
- *      free'd by caller if not required anymore
- *
- * \returns the number of replacements made or -1 in case of error
+ * \returns 0 on success or -1 in case of error
  */
-int expand_query(char *format, char *addr, char **buf);
+int lookup_connect(void);
 
 #endif
