@@ -10,6 +10,7 @@
 #include <SQLException.h>
 
 #include "spmfilter.h"
+#include "lookup.h"
 
 #define THIS_MODULE "sql_lookup"
 
@@ -17,7 +18,7 @@
 
 ConnectionPool_T sql_pool = NULL;
 
-void sql_con_close(Connection_T c) {
+void sql_disconnect(Connection_T c) {
 	TRACE(TRACE_LOOKUP,"closing pool connection");
 	Connection_close(c);
 	return;
