@@ -366,22 +366,20 @@ int load(void) {
 				smtp_string_reply("503 Error: nested MAIL command\r\n");
 			} else {
 				mconn->from = g_slice_new(EmailAddress_T);
-				mconn->from->addr = get_substring("^MAIL FROM:(?:.*<)?([^>]*)(?:>)?", line, 1);
+				mconn->from->addr = get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->from->addr != NULL){
+					TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
 					if (MATCH(mconn->from->addr,"")) {
 						/* check for emtpy string */
 						smtp_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
 						g_slice_free(EmailAddress_T,mconn->from);
 						mconn->from = NULL;
 					} else {
-#ifdef HAVE_ZDB
-						if ((!MATCH(settings->backend,"undef")) && (settings->sql_user_query != NULL)) {
-								mconn->from->is_local = sql_user_exists(mconn->from->addr);
+						if (!MATCH(settings->backend,"undef")) {
+								mconn->from->is_local = lookup_user(mconn->from->addr);
 								TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
 						}
-#endif
 						smtp_code_reply(250);
-						TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
 						state = ST_MAIL;
 					}
 				} else {
@@ -398,21 +396,19 @@ int load(void) {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 				mconn->rcpts = g_realloc(mconn->rcpts,sizeof(mconn->rcpts[mconn->num_rcpts]));
 				mconn->rcpts[mconn->num_rcpts] = g_slice_new(EmailAddress_T);
-				mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:(?:.*<)?([^>]*)(?:>)?", line, 1);
+				mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->rcpts[mconn->num_rcpts] != NULL) {
 					if (MATCH(mconn->rcpts[mconn->num_rcpts]->addr,"")) {
 						/* empty rcpt to? */
 						smtp_string_reply("501 Syntax: RCPT TO:<address>\r\n");
 						g_slice_free(EmailAddress_T,mconn->rcpts[mconn->num_rcpts]);
 					} else {
-#ifdef HAVE_ZDB
-						if (settings->sql_user_query != NULL) {
-							mconn->rcpts[mconn->num_rcpts]->is_local = sql_user_exists(mconn->rcpts[mconn->num_rcpts]->addr);
+						TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+						if (!MATCH(settings->backend,"undef")) {
+							mconn->rcpts[mconn->num_rcpts]->is_local = lookup_user(mconn->rcpts[mconn->num_rcpts]->addr);
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
 						}
-#endif
 						smtp_code_reply(250);
-						TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
 						mconn->num_rcpts++;
 						state = ST_RCPT;
 					}

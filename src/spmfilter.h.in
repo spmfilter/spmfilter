@@ -348,4 +348,30 @@ int ldap_user_exists(char *addr);
  */
 int lookup_connect(void);
 
+/** Destroy database/ldap connection
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int lookup_disconnect(void);
+
+/** Check if given user is local
+ *
+ * \param addr email address
+ *
+ * \returns 0 if user is not local, 1 if
+ *          user is local
+ */
+int lookup_user(char *addr);
+
+/** expands placeholders in a user querystring
+ *
+ * \param format format string to use as input
+ * \param addr email address to use for replacements
+ * \buf pointer to unallocated buffer for expanded format string, needs to
+ *      free'd by caller if not required anymore
+ *
+ * \returns the number of replacements made or -1 in case of error
+ */
+int expand_query(char *format, char *addr, char **buf);
+
 #endif
