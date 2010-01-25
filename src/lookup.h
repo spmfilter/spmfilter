@@ -12,7 +12,9 @@
  */
 int expand_query(char *format, char *addr, char **buf);
 
-void sql_disconnect(Connection_T c);
-
+#ifdef HAVE_ZDB
+int sql_connect(void);
+void sql_disconnect(void);
+#endif
 #endif	/* _LOOKUP_H */
 

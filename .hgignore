@@ -21,7 +21,6 @@ src/spmfilter
 build*
 nbproject/*
 .dep.inc
-src/spmfilter.h
 CMakeFiles/*
 src/CMakeFiles/*
 CMakeCache*

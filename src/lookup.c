@@ -1,48 +1,10 @@
 #include <glib.h>
+#include <string.h>
 
 #include "spmfilter.h"
 #include "lookup.h"
 
-/** Establish database/ldap connection
- *
- * \returns 0 on success or -1 in case of error
- */
-int lookup_connect(void) {
-	Settings_T *settings = get_settings();
-
-#ifdef HAVE_ZDB
-	/* try to connect to database */
-	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
-		if(sql_connect() != 0)
-			return -1;
-	}
-#endif
-
-#ifdef HAVE_LDAP
-	if(g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
-		if(ldap_connect() != 0)
-			return -1;
-	}
-#endif
-
-	return 0;
-}
-
-int lookup_disconnect(void) {
-	Settings_T *settings = get_settings();
-
-#ifdef HAVE_ZDB
-	// TODO: implement sql disconnect
-//	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
-//		if(sql_disconnect() != 0)
-//			return -1;
-//	}
-#endif
-
-#ifdef HAVE_LDAP
-	// TODO: implement ldap disconnect
-#endif
-}
+#define THIS_MODULE "lookup"
 
 /** expands placeholders in a user querystring
  *
@@ -64,7 +26,7 @@ int expand_query(char *format, char *addr, char **buf) {
 	/* allocate space for buffer
 	 * TODO: put buffer size declaration somewhere else
 	 */
-	*buf = (char *)g_malloc(sizeof(char));
+	*buf = (char *)calloc(512,sizeof(char));
 	if(*buf == NULL) {
 		return(-1);
 	}
@@ -101,4 +63,68 @@ int expand_query(char *format, char *addr, char **buf) {
 
 	g_strfreev(parts);
 	return(rep_made);
+}
+
+/** Establish database/ldap connection
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int lookup_connect(void) {
+	Settings_T *settings = get_settings();
+
+#ifdef HAVE_ZDB
+	/* try to connect to database */
+	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+		if(sql_connect() != 0)
+			return -1;
+	}
+#endif
+
+#ifdef HAVE_LDAP
+	if(g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
+		if(ldap_connect() != 0)
+			return -1;
+	}
+#endif
+
+	return 0;
+}
+
+/** Destroy database/ldap connection
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int lookup_disconnect(void) {
+	Settings_T *settings = get_settings();
+
+#ifdef HAVE_ZDB
+	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+		sql_disconnect();
+	}
+#endif
+
+#ifdef HAVE_LDAP
+	// TODO: implement ldap disconnect
+#endif
+
+	return 0;
+}
+
+/** Check if given user is local
+ *
+ * \param addr email address
+ *
+ * \returns 0 if user is not local, 1 if
+ *          user is local
+ */
+int lookup_user(char *addr) {
+	Settings_T *settings = get_settings();
+#ifdef HAVE_ZDB
+	/* try to connect to database */
+	if((g_ascii_strcasecmp(settings->backend,"sql") == 0)
+			&& (settings->sql_user_query != NULL)) {
+		return sql_user_exists(addr);
+	}
+#endif
+	return 0;
 }
