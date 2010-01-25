@@ -17,15 +17,21 @@
 #define FIELDSIZE 1024
 
 ConnectionPool_T sql_pool = NULL;
+URL_T url = NULL;
 
-void sql_disconnect(Connection_T c) {
-	TRACE(TRACE_LOOKUP,"closing pool connection");
+void sql_disconnect(void) {
+	TRACE(TRACE_LOOKUP,"closing database connection");
+	ConnectionPool_free(&sql_pool);
+	URL_free(&url);
+}
+
+void sql_con_close(Connection_T c) {
+	TRACE(TRACE_LOOKUP,"returning connection to pool");
 	Connection_close(c);
 	return;
 }
 
 int sql_connect(void) {
-	URL_T url = NULL;
 	Connection_T con = NULL;
 	GString *dsn = g_string_new("");
 	int sweep_interval = 60;
@@ -61,7 +67,7 @@ int sql_connect(void) {
 			g_string_append_printf(dsn,"/%s",settings->sql_name);
 		}
 	}
-	
+
 	if (settings->sql_user && strlen((const char*)settings->sql_user)) {
 		g_string_append_printf(dsn,"?user=%s", settings->sql_user);
 		if (settings->sql_pass && strlen((const char *)settings->sql_pass))
@@ -77,9 +83,11 @@ int sql_connect(void) {
 	url = URL_new(dsn->str);
 	g_string_free(dsn,TRUE);
 	
-	if (! (sql_pool = ConnectionPool_new(url)))
+	if (! (sql_pool = ConnectionPool_new(url))) {
 		TRACE(TRACE_ERR,"error creating database connection pool");
-	
+		return -1;
+	}
+
 	if (settings->sql_max_connections > 0) {
 		if (settings->sql_max_connections < (unsigned int)ConnectionPool_getInitialConnections(sql_pool))
 			ConnectionPool_setInitialConnections(sql_pool, settings->sql_max_connections);
@@ -99,7 +107,6 @@ int sql_connect(void) {
 		TRACE(TRACE_ERR, "error getting a database connection from the pool");
 		return -1;
 	}
-
 	sql_con_close(con);
 
 	return 0;
@@ -152,16 +159,17 @@ ResultSet_T sql_query(const char *q, ...) {
 }
 
 int sql_user_exists(char *addr) {
-	Connection_T c;
-	ResultSet_T r;
-	char *query;
+	Connection_T c = NULL;
+	ResultSet_T r = NULL;
+	char *query = NULL;
 	Settings_T *settings = get_settings();
-	
+
 	c = sql_con_get();
 	expand_query(settings->sql_user_query, addr, &query);
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-	r = Connection_executeQuery(c,(const char *)query);
-
+	r = Connection_executeQuery(c,query);
+	if (query != NULL)
+		free(query);
 	if (ResultSet_next(r)) {
 		TRACE(TRACE_LOOKUP, "found user [%s]",addr);
 		return 1;

@@ -100,7 +100,10 @@ int main(int argc, char *argv[]) {
 	if (settings->debug) {
 		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 	}
-	
+
+	if (lookup_disconnect() != 0)
+		TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
+
 	/* free all stuff */
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
