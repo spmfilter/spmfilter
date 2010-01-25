@@ -30,6 +30,7 @@ target_link_libraries(smf ${COMMON_LIBS})
 set_property(TARGET smf PROPERTY PUBLIC_HEADER spmfilter.h)
 set_property(TARGET smf PROPERTY VERSION ${SMF_VERSION})
 set_property(TARGET smf PROPERTY SOVERSION ${SMF_VERSION})
+set_property(SOURCE spmfilter.h PROPERTY GENERATED TRUE)
 
 add_library(smtpd SHARED smtpd.c)
 set_property(TARGET smtpd PROPERTY VERSION ${SMF_VERSION})
