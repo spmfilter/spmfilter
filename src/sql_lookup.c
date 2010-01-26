@@ -158,6 +158,13 @@ ResultSet_T sql_query(const char *q, ...) {
 	return r;
 }
 
+
+/** check if given user exists in database
+ *
+ * \param addr email adress of user
+ *
+ * \return 1 if the user exists, otherwise 0
+ */
 int sql_user_exists(char *addr) {
 	Connection_T c = NULL;
 	ResultSet_T r = NULL;
@@ -165,16 +172,21 @@ int sql_user_exists(char *addr) {
 	Settings_T *settings = get_settings();
 
 	c = sql_con_get();
-	expand_query(settings->sql_user_query, addr, &query);
+	if (expand_query(settings->sql_user_query, addr, &query) <= 0) {
+		TRACE(TRACE_ERR,"failed to expand sql query");
+		return -1;
+	}
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 	r = Connection_executeQuery(c,query);
 	if (query != NULL)
 		free(query);
 	if (ResultSet_next(r)) {
 		TRACE(TRACE_LOOKUP, "found user [%s]",addr);
+		sql_con_close(c);
 		return 1;
 	} else {
 		TRACE(TRACE_LOOKUP, "user [%s] does not exist", addr);
+		sql_con_close(c);
 		return 0;
 	}
 }

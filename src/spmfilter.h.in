@@ -89,6 +89,8 @@ typedef struct {
 	char *ldap_bindpw;
 	char *ldap_base;
 	int ldap_referrals;
+	char *ldap_scope;
+	char *ldap_user_query;
 #endif
 } Settings_T;
 
@@ -282,66 +284,6 @@ int smtp_delivery(Message_T *msg_data);
  */
 char *get_maildir_filename(void);
 
-#ifdef HAVE_ZDB
-#include <URL.h>
-#include <ResultSet.h>
-#include <PreparedStatement.h>
-#include <Connection.h>
-#include <ConnectionPool.h>
-#include <SQLException.h>
-
-/** connect to sql server
- *
- * \returns 0 on success or -1 in case of error
- */
-int sql_connect(void);
-
-/** check if given user exists in database
- *
- * \param addr email adress of user
- *
- * \return 1 if the user exists, otherwise 0
- */
-int sql_user_exists(char *addr); 
-
-/** do a database query
- *
- * \param q format string for sql query
- * \param ... arguments for format string
- *
- * \returns ResultSet_T or NULL in case of error
- */
-ResultSet_T sql_query(const char *q, ...);
-#endif
-
-#ifdef HAVE_LDAP
-#include <ldap.h>
-
-/** connect to ldap server
- *
- * \returns 0 on success or -1 in case of error
- */
-int ldap_connect(void);
-
-/** query LDAP directory, returns LDAPMessage
- * 
- * \param q format string for ldap query
- * \param ... arguments for format string
- * 
- * \returns LDAPMessage or NULL in case of error
- */
-LDAPMessage *ldap_query(const char *q, ...);
-
-/** check if given user exists in ldap directory
- *
- * \param addr email adress of user
- *
- * \return 1 if the user exists, otherwise 0
- */
-int ldap_user_exists(char *addr);
-#endif
-
-
 /** Establish database/ldap connection
  *
  * \returns 0 on success or -1 in case of error
@@ -363,15 +305,5 @@ int lookup_disconnect(void);
  */
 int lookup_user(char *addr);
 
-/** expands placeholders in a user querystring
- *
- * \param format format string to use as input
- * \param addr email address to use for replacements
- * \buf pointer to unallocated buffer for expanded format string, needs to
- *      free'd by caller if not required anymore
- *
- * \returns the number of replacements made or -1 in case of error
- */
-int expand_query(char *format, char *addr, char **buf);
 
 #endif
