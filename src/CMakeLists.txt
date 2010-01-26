@@ -19,7 +19,7 @@ if(HAVE_ZDB)
 endif(HAVE_ZDB)
 
 if(HAVE_LDAP)
-    list(APPEND COMMON_LIBS ldap)
+    list(APPEND COMMON_LIBS ldap lber)
     list(APPEND LIB_SMF_SRC ldap_lookup.c)
 endif(HAVE_LDAP)
 

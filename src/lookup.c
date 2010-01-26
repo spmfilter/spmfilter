@@ -104,7 +104,9 @@ int lookup_disconnect(void) {
 #endif
 
 #ifdef HAVE_LDAP
-	// TODO: implement ldap disconnect
+	if (g_ascii_strcasecmp(settings->backend,"ldap") ==  0) {
+		ldap_disconnect();
+	}
 #endif
 
 	return 0;
@@ -120,11 +122,18 @@ int lookup_disconnect(void) {
 int lookup_user(char *addr) {
 	Settings_T *settings = get_settings();
 #ifdef HAVE_ZDB
-	/* try to connect to database */
 	if((g_ascii_strcasecmp(settings->backend,"sql") == 0)
 			&& (settings->sql_user_query != NULL)) {
 		return sql_user_exists(addr);
 	}
+#endif
+
+#ifdef HAVE_LDAP
+	if((g_ascii_strcasecmp(settings->backend,"ldap") == 0)
+			&& (settings->ldap_user_query != NULL)) {
+		return ldap_user_exists(addr);
+	}
+
 #endif
 	return 0;
 }
