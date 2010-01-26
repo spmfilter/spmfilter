@@ -119,7 +119,7 @@ int dlist_ins_next(DLIST_T *list, DLIST_ELEM_T *elem, void *data) {
 
 	new->data = data;
 
-	if(dlist_size(list) == NULL) {
+	if(dlist_size(list) == 0) {
 		list->head = new;
 		list->tail = new;
 		new->next = NULL;
@@ -156,7 +156,7 @@ int dlist_ins_prev(DLIST_T *list, DLIST_ELEM_T *elem, void *data) {
 
 	new->data = data;
 
-	if(dlist_size(list) == NULL) {
+	if(dlist_size(list) == 0) {
 		list->head = new;
 		list->tail = new;
 		new->next = NULL;
@@ -189,4 +189,34 @@ int dlist_push_front(DLIST_T *list, void *data) {
 	return dlist_ins_prev(list,dlist_head(list),data);
 }
 
-#endif
+/* apply function func to every element in the list */
+void dlist_map(DLIST_T *list, void(*func)(DLIST_ELEM_T *elem,void *args), void *args) {
+	DLIST_ELEM_T *elem;
+
+	elem = dlist_head(list);
+	while(elem != NULL) {
+		func(elem,args);
+		elem = elem->next;
+	}
+}
+
+
+int dlist_map_new(DLIST_T *list, DLIST_T **new, void *(*func)(DLIST_ELEM_T *elem,
+	void *args), void *args)
+{
+	DLIST_ELEM_T *elem;
+	int ret;
+
+	ret = dlist_init(new, NULL);
+	if(ret != 0) {
+		return(-1);
+	}
+
+	elem = dlist_head(list);
+	while(elem != NULL) {
+		dlist_push_back(*new,func(elem,args));
+		elem = elem->next;
+	}
+
+	return(0);
+}

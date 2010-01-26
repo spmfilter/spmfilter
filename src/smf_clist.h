@@ -63,6 +63,17 @@ int dlist_ins_next(DLIST_T *list, DLIST_ELEM_T *elem, void *data);
  */
 int dlist_ins_prev(DLIST_T *list, DLIST_ELEM_T *elem, void *data);
 
+/** iterates over list and calls function for every element with the current
+ *  element
+ */
+void dlist_map(DLIST_T *list, void(*func)(DLIST_ELEM_T *elem,void *args), void *args);
+
+/** iterates over list and calls function func with every element, return value
+ *  of func will be saved in new list **new
+ */
+int dlist_map_new(DLIST_T *list, DLIST_T **new, void *(*func)(DLIST_ELEM_T *elem,
+	void *args), void *args);
+
 /* * * MACROS * * */
 #define dlist_size(list) ((list)->size)
 
