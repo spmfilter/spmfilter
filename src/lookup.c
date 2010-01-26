@@ -72,20 +72,18 @@ int expand_query(char *format, char *addr, char **buf) {
 int lookup_connect(void) {
 	Settings_T *settings = get_settings();
 
-#ifdef HAVE_ZDB
-	/* try to connect to database */
+
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+#ifdef HAVE_ZDB
 		if(sql_connect() != 0)
 			return -1;
-	}
 #endif
-
+	} else if(g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
 #ifdef HAVE_LDAP
-	if(g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
 		if(ldap_connect() != 0)
 			return -1;
-	}
 #endif
+	}
 
 	return 0;
 }
@@ -97,15 +95,15 @@ int lookup_connect(void) {
 int lookup_disconnect(void) {
 	Settings_T *settings = get_settings();
 
-#ifdef HAVE_ZDB
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+#ifdef HAVE_ZDB
 		sql_disconnect();
-	}
 #endif
-
+	} else if (g_ascii_strcasecmp(settings->backend,"ldap") ==  0) {
 #ifdef HAVE_LDAP
-	// TODO: implement ldap disconnect
+		ldap_disconnect();
 #endif
+	}
 
 	return 0;
 }
@@ -119,12 +117,49 @@ int lookup_disconnect(void) {
  */
 int lookup_user(char *addr) {
 	Settings_T *settings = get_settings();
-#ifdef HAVE_ZDB
-	/* try to connect to database */
+
 	if((g_ascii_strcasecmp(settings->backend,"sql") == 0)
 			&& (settings->sql_user_query != NULL)) {
+#ifdef HAVE_ZDB
 		return sql_user_exists(addr);
-	}
+#else
+		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
+		return -1;
 #endif
-	return 0;
+	} else if ((g_ascii_strcasecmp(settings->backend,"ldap") == 0)
+			&& (settings->ldap_user_query != NULL)) {
+#ifdef HAVE_LDAP
+		return ldap_user_exists(addr);
+#else
+		TRACE(TRACE_ERR,"spmfilter is not built with ldap backend");
+		return -1;
+#endif
+	} else {
+		TRACE(TRACE_ERR,"no valid backend defined");
+		return -1;
+	}
+
+}
+
+void lookup_query(const char *q, ...) {
+	Settings_T *settings = get_settings();
+
+	if ((g_ascii_strcasecmp(settings->backend,"sql")) == 0) {
+#ifdef HAVE_ZDB
+		// TODO: implement sql_query
+#else
+		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
+		return;
+#endif
+	} else if ((g_ascii_strcasecmp(settings->backend,"ldap")) == 0) {
+#ifdef HAVE_LDAP
+		// TODO: implement ldap_query
+#else
+		TRACE(TRACE_ERR,"spmfilter is built with ldap backend");
+		return;
+#endif
+	} else {
+		TRACE(TRACE_ERR,"no valid backend defined");
+		return;
+	}
 }

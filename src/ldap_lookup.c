@@ -6,16 +6,26 @@
 
 #define THIS_MODULE "ldap_lookup"
 
-static GPrivate *ldap_conn_key = NULL;
+LDAP *ld = NULL;
+
+int get_scope(void) {
+	Settings_T *settings = get_settings();
+
+	if (g_ascii_strcasecmp(settings->ldap_scope,"subtree") == 0)
+		return LDAP_SCOPE_SUBTREE;
+	else if (g_ascii_strcasecmp(settings->ldap_scope,"onelevel") == 0)
+		return LDAP_SCOPE_ONELEVEL;
+	else if (g_ascii_strcasecmp(settings->ldap_scope,"base") == 0)
+		return LDAP_SCOPE_BASE;
+	else
+		return LDAP_SCOPE_SUBTREE;
+}
 
 int ldap_connect(void) {
-	LDAP *ld = NULL;
 	int ret, err;
 	int version;
 	char *uri;
-
-	if (! g_thread_supported()) g_thread_init(NULL);
-	if (! ldap_conn_key) ldap_conn_key = g_private_new(g_free);
+	Settings_T *settings = get_settings();
 
 	TRACE(TRACE_LOOKUP, "connecting to ldap server on [%s]",settings->ldap_host);
 	if (settings->ldap_uri) {
@@ -47,25 +57,20 @@ int ldap_connect(void) {
 	}
 	TRACE(TRACE_LOOKUP, "successfully bound to ldap server" );
 	
-	g_private_set(ldap_conn_key, ld);
-	
 	return 0;
 }
 
-LDAP * ldap_con_get(void) {
-	LDAP * c = g_private_get(ldap_conn_key);
-	if (!c) {
+LDAP *ldap_con_get(void) {
+	if (!ld) {
 		ldap_connect();
-		c = g_private_get(ldap_conn_key);
 	}
-	return c;
+	return ld;
 }
 
-int ldap_disconnect(void) {
-	LDAP *ld = ldap_con_get();
-	if (ld != NULL) {
-		ldap_unbind(ld);
-		g_private_set(ldap_conn_key, NULL);
+void ldap_disconnect(void) {
+	LDAP *c = ldap_con_get();
+	if (c != NULL) {
+		ldap_unbind_s(c);
 		TRACE(TRACE_LOOKUP, "unbind ldap server");
 	}
 }
@@ -74,8 +79,10 @@ LDAPMessage *ldap_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
 	LDAPMessage *msg = NULL;
-	LDAP *ld = ldap_con_get();
-	
+	LDAP *c = ldap_con_get();
+	Settings_T *settings = get_settings();
+
+
 	va_start(ap, q);
 	va_copy(cp, ap);
 	query = g_strdup_vprintf(q, cp);
@@ -84,20 +91,46 @@ LDAPMessage *ldap_query(const char *q, ...) {
 	
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
 	
-	if (ldap_search_s(ld,settings->ldap_base,LDAP_SCOPE_SUBTREE,query,NULL,0,&msg) != LDAP_SUCCESS) 
+	if (ldap_search_s(c,settings->ldap_base,LDAP_SCOPE_SUBTREE,query,NULL,0,&msg) != LDAP_SUCCESS)
 		TRACE(TRACE_ERR,"[%p] query [%s] failed",ld, query);
 	
-	if(ldap_count_entries(ld,msg) <= 0)
+	if(ldap_count_entries(c,msg) <= 0)
 		TRACE(TRACE_LOOKUP,"[%p] nothing found",ld);
 	
 	return msg;
 }
 
+/** Check if given user exists in ldap directory
+ *
+ * \param addr email adress of user
+ *
+ * \return 1 if the user exists, otherwise 0
+ */
 int ldap_user_exists(char *addr) {
 	char *query;
-	LDAP *ld = ldap_con_get();
+	LDAP *c = ldap_con_get();
+	LDAPMessage *msg = NULL;
+	Settings_T *settings = get_settings();
 
+	if (expand_query(settings->ldap_user_query, addr, &query) <= 0) {
+		TRACE(TRACE_ERR,"failed to expand ldap query");
+		return -1;
+	}
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
-	
-}
 
+	if (ldap_search_s(c,settings->ldap_base,get_scope(),query,NULL,0,&msg) != LDAP_SUCCESS) {
+		TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);
+		ldap_msgfree(msg);
+		return -1;
+	}
+
+	if(ldap_count_entries(c,msg) > 0) {
+		TRACE(TRACE_LOOKUP, "found user [%s]",addr);
+		ldap_msgfree(msg);
+		return 1;
+	} else {
+		TRACE(TRACE_LOOKUP, "user [%s] does not exist", addr);
+		ldap_msgfree(msg);
+		return 0;
+	}
+}
