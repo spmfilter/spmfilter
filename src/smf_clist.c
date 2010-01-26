@@ -201,22 +201,23 @@ void dlist_map(DLIST_T *list, void(*func)(DLIST_ELEM_T *elem,void *args), void *
 }
 
 
-int dlist_map_new(DLIST_T *list, DLIST_T **new, void *(*func)(DLIST_ELEM_T *elem,
+DLIST_T *dlist_map_new(DLIST_T *list, void *(*func)(DLIST_ELEM_T *elem,
 	void *args), void *args)
 {
+	DLIST_T *new;
 	DLIST_ELEM_T *elem;
 	int ret;
 
-	ret = dlist_init(new, NULL);
+	ret = dlist_init(&new, NULL);
 	if(ret != 0) {
-		return(-1);
+		return(NULL);
 	}
 
 	elem = dlist_head(list);
 	while(elem != NULL) {
-		dlist_push_back(*new,func(elem,args));
+		dlist_push_back(new,func(elem,args));
 		elem = elem->next;
 	}
 
-	return(0);
+	return(new);
 }
