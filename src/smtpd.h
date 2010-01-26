@@ -14,7 +14,4 @@ int load(void);
 void smtp_string_reply(const char *format, ...);
 void smtp_code_reply(int code);
 
-void mconn_new(void);
-void mconn_free(void);
-
 #endif /* __SMTPD_H */
