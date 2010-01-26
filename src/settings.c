@@ -62,7 +62,7 @@ int parse_config(void) {
 	if (settings->queue_dir == NULL)
 		settings->queue_dir = g_strdup("/var/spool/spmfilter");
 
-	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
+	settings->engine = g_strstrip(g_key_file_get_string(keyfile, "global", "engine", &error));
 	if (settings->engine == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
 		g_error_free(error);
@@ -88,7 +88,7 @@ int parse_config(void) {
 		return -1;
 	}
 
-	settings->backend = g_key_file_get_string(keyfile, "global", "backend", NULL);
+	settings->backend = g_strstrip(g_key_file_get_string(keyfile, "global", "backend", NULL));
 	if (settings->backend == NULL)
 		settings->backend = g_strdup("undef");
 
@@ -152,6 +152,21 @@ int parse_config(void) {
 
 	settings->ldap_referrals = g_key_file_get_boolean(keyfile, "ldap","referrals",NULL);
 
+	settings->ldap_scope = g_key_file_get_string(keyfile, "ldap", "scope", NULL);
+	if (settings->ldap_scope != NULL) {
+
+		if ((g_ascii_strcasecmp(settings->ldap_scope,"subtree") != 0) &&
+				(g_ascii_strcasecmp(settings->ldap_scope,"onelevel") != 0) &&
+				(g_ascii_strcasecmp(settings->ldap_scope,"base") != 0)) {
+			TRACE(TRACE_ERR, "invalid ldap scope");
+			return -1;
+		}
+	} else {
+		settings->ldap_scope = g_strdup("subtree");
+	}
+	
+	settings->ldap_user_query = g_key_file_get_string(keyfile, "ldap", "user_query", NULL);
+
 	TRACE(TRACE_DEBUG, "settings->ldap_uri: %s", settings->ldap_uri);
 	TRACE(TRACE_DEBUG, "settings->ldap_host: %s", settings->ldap_host);
 	TRACE(TRACE_DEBUG, "settings->ldap_port: %d", settings->ldap_port);
@@ -159,11 +174,8 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->ldap_bindpw: %s", settings->ldap_bindpw);
 	TRACE(TRACE_DEBUG, "settings->ldap_base: %s", settings->ldap_base);
 	TRACE(TRACE_DEBUG, "settings->ldap_referrals: %d", settings->ldap_referrals);
-
-	// TODO: fix ldap connect
-//	if(ldap_connect() != 0)
-//		return -1;
-
+	TRACE(TRACE_DEBUG, "settings->ldap_scope: %s", settings->ldap_scope);
+	TRACE(TRACE_DEBUG, "settings->ldap_user_query: %s", settings->ldap_user_query);
 #endif
 
 	/* smtpd group */
