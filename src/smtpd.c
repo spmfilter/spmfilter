@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "spmfilter.h"
+#include "mailconn.h"
 #include "smtpd.h"
 
 #define THIS_MODULE "smtpd"
@@ -275,7 +276,7 @@ int load(void) {
 	int state=ST_INIT;
 	Settings_T *settings = get_settings();
 	
-	mconn_new();
+	mconn = mconn_new();
 
 	gethostname(hostname,256);
 
@@ -299,9 +300,9 @@ int load(void) {
 			 * command had been issued.
 			 */
 			if (state != ST_INIT) {
-				mconn_free();
+				mconn_free(mconn);
 				/* reinit mconn */
-				mconn_new();
+				mconn = mconn_new();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
 			mconn->helo = get_substring("^HELO\\s(.*)$",line, 1);
@@ -322,9 +323,9 @@ int load(void) {
 			 * received later...
 			 */
 			if (state != ST_INIT) {
-				mconn_free();
+				mconn_free(mconn);
 				/* reinit mconn */
-				mconn_new();
+				mconn = mconn_new();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			mconn->helo = get_substring("^EHLO\\s(.*)$",line,1);
@@ -431,9 +432,9 @@ int load(void) {
 			}
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
-			mconn_free();
+			mconn_free(mconn);
 			/* reinit mconn */
-			mconn_new();
+			mconn = mconn_new();
 			smtp_code_reply(250);
 			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
@@ -452,40 +453,7 @@ int load(void) {
 	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
 
-	mconn_free();
+	mconn_free(mconn);
 	
 	return 0;
 }
-
-/** Initialize MailConn_T structure
- */
-
-void mconn_new(void) {
-	mconn = g_slice_new(MailConn_T);
-	mconn->helo = NULL;
-	mconn->from = NULL;
-	mconn->queue_file = NULL;
-	mconn->rcpts = NULL;
-	mconn->xforward_addr = NULL;
-}
-
-/** Free MailConn_T structure
- */
-void mconn_free(void) {
-	int i;
-	g_free(mconn->queue_file);
-	g_free(mconn->helo);
-	g_free(mconn->xforward_addr);
-
-	if (mconn->from != NULL)
-		g_free(mconn->from->addr);
-	g_slice_free(EmailAddress_T,mconn->from);
-	for (i = 0; i < mconn->num_rcpts; i++) {
-		g_free(mconn->rcpts[i]->addr);
-		g_slice_free(EmailAddress_T,mconn->rcpts[i]);
-	}
-	g_free(mconn->rcpts);
-	g_slice_free(MailConn_T,mconn);
-
-}
-

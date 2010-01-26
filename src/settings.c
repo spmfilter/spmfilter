@@ -62,7 +62,7 @@ int parse_config(void) {
 	if (settings->queue_dir == NULL)
 		settings->queue_dir = g_strdup("/var/spool/spmfilter");
 
-	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
+	settings->engine = g_strstrip(g_key_file_get_string(keyfile, "global", "engine", &error));
 	if (settings->engine == NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
 		g_error_free(error);
@@ -88,7 +88,7 @@ int parse_config(void) {
 		return -1;
 	}
 
-	settings->backend = g_key_file_get_string(keyfile, "global", "backend", NULL);
+	settings->backend = g_strstrip(g_key_file_get_string(keyfile, "global", "backend", NULL));
 	if (settings->backend == NULL)
 		settings->backend = g_strdup("undef");
 
