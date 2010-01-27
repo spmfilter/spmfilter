@@ -19,8 +19,6 @@
 /* zdb */
 #cmakedefine HAVE_ZDB
 
-#define MATCH(x,y) strcasecmp((x),(y))==0
-
 typedef struct {
 	char *msg;
 	int flags;
