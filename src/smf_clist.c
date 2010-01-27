@@ -11,19 +11,20 @@
 #include "smf_clist.h"
 
 /* initializes a new empty doubly linked list */
-int dlist_init(DLIST_T **list, void (*destroy)(void *data)) {
-	(*list) = (DLIST_T *)calloc(1,sizeof(DLIST_T));
+DLIST_T *dlist_init(void (*destroy)(void *data)) {
+	DLIST_T *list;
+	list = (DLIST_T *)calloc(1,sizeof(DLIST_T));
 
-	if(*list == NULL) {
-		return(-1);
+	if(list == NULL) {
+		return(NULL);
 	}
 
-	(*list)->size = 0;
-	(*list)->head = NULL;
-	(*list)->tail = NULL;
-	(*list)->destroy = destroy;
+	list->size = 0;
+	list->head = NULL;
+	list->tail = NULL;
+	list->destroy = destroy;
 
-	return(0);
+	return(list);
 }
 
 /* destroy a complete list */
@@ -208,8 +209,8 @@ DLIST_T *dlist_map_new(DLIST_T *list, void *(*func)(DLIST_ELEM_T *elem,
 	DLIST_ELEM_T *elem;
 	int ret;
 
-	ret = dlist_init(&new, NULL);
-	if(ret != 0) {
+	new = dlist_init(NULL);
+	if(new == NULL) {
 		return(NULL);
 	}
 
