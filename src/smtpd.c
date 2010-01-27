@@ -308,7 +308,7 @@ int load(void) {
 			mconn->helo = get_substring("^HELO\\s(.*)$",line, 1);
 			TRACE(TRACE_DEBUG,"HELO: %s",mconn->helo);
 			if (mconn->helo != NULL) {
-				if (MATCH(mconn->helo,""))  {
+				if (g_strcmp0(mconn->helo,"") == 0)  {
 					smtp_string_reply("501 Syntax: HELO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
@@ -330,7 +330,7 @@ int load(void) {
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			mconn->helo = get_substring("^EHLO\\s(.*)$",line,1);
 			if (mconn->helo != NULL) {
-				if (MATCH(mconn->helo,"")) {
+				if (g_strcmp0(mconn->helo,"") == 0) {
 					smtp_string_reply("501 Syntax: EHLO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
@@ -370,13 +370,13 @@ int load(void) {
 				mconn->from->addr = get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->from->addr != NULL){
 					TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
-					if (MATCH(mconn->from->addr,"")) {
+					if (g_strcmp0(mconn->from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtp_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
 						g_slice_free(EmailAddress_T,mconn->from);
 						mconn->from = NULL;
 					} else {
-						if (!MATCH(settings->backend,"undef")) {
+						if (g_strcmp0(settings->backend,"undef") != 0) {
 								mconn->from->is_local = lookup_user(mconn->from->addr);
 								TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
 						}
@@ -399,13 +399,13 @@ int load(void) {
 				mconn->rcpts[mconn->num_rcpts] = g_slice_new(EmailAddress_T);
 				mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->rcpts[mconn->num_rcpts] != NULL) {
-					if (MATCH(mconn->rcpts[mconn->num_rcpts]->addr,"")) {
+					if (g_strcmp0(mconn->rcpts[mconn->num_rcpts]->addr,"") == 0) {
 						/* empty rcpt to? */
 						smtp_string_reply("501 Syntax: RCPT TO:<address>\r\n");
 						g_slice_free(EmailAddress_T,mconn->rcpts[mconn->num_rcpts]);
 					} else {
 						TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
-						if (!MATCH(settings->backend,"undef")) {
+						if (g_strcmp0(settings->backend,"undef") != 0) {
 							mconn->rcpts[mconn->num_rcpts]->is_local = lookup_user(mconn->rcpts[mconn->num_rcpts]->addr);
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
 						}

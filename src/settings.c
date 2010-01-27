@@ -126,7 +126,12 @@ int parse_config(void) {
 	/* if spmfilter is compiled with zdb,
 	 * we also need the sql group */
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
-	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", NULL);
+	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
+	if (settings->sql_name == NULL) {
+		TRACE(TRACE_ERR, "config error: %s", error->message);
+		g_error_free(error);
+		return -1;
+	}
 	settings->sql_host = g_key_file_get_string_list(keyfile, "sql", "host", &sql_num_hosts,NULL);
 	settings->sql_num_hosts = sql_num_hosts;
 	settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
