@@ -23,6 +23,10 @@ int get_scope(void) {
 		return LDAP_SCOPE_SUBTREE;
 }
 
+/** Get random ldap host
+ *
+ * \returns hostname of ldap host
+ */
 char *ldap_get_rand_host(void) {
 	Settings_T *settings = get_settings();
 	TRACE(TRACE_DEBUG,"trying to get random ldap server");
@@ -30,6 +34,10 @@ char *ldap_get_rand_host(void) {
 	return settings->ldap_host[rand() % settings->ldap_num_hosts];
 }
 
+/** Try to get a failover connection to other server
+ *
+ * \returns 0 on success or -1 in case of error
+ */
 int ldap_failover_connect(void) {
 	int i, ret, err;
 	char *uri;
@@ -57,6 +65,10 @@ int ldap_failover_connect(void) {
 	return -1;
 }
 
+/** Connect to LDAP server
+ *
+ * \returns 0 on success or -1 in case of error
+ */
 int ldap_connect(void) {
 	int ret, err;
 	int version;
@@ -99,6 +111,11 @@ int ldap_connect(void) {
 		return 0;
 }
 
+/** Get active LDAP connection, if no connection
+ *  is available reconnect to LDAP server.
+ *
+ * \returns pointer to LDAP connection
+ */
 LDAP *ldap_con_get(void) {
 	if (!ld) {
 		ldap_connect();
@@ -106,6 +123,7 @@ LDAP *ldap_con_get(void) {
 	return ld;
 }
 
+/** Disconnect from LDAP server */
 void ldap_disconnect(void) {
 	LDAP *c = ldap_con_get();
 	if (c != NULL) {
