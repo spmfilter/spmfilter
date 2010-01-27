@@ -1,6 +1,8 @@
 #include <glib.h>
 #include <ldap.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "spmfilter.h"
 
@@ -21,21 +23,61 @@ int get_scope(void) {
 		return LDAP_SCOPE_SUBTREE;
 }
 
+char *ldap_get_rand_host(void) {
+	Settings_T *settings = get_settings();
+	TRACE(TRACE_DEBUG,"trying to get random ldap server");
+	srand(time(NULL));
+	return settings->ldap_host[rand() % settings->ldap_num_hosts];
+}
+
+int ldap_failover_connect(void) {
+	int i, ret, err;
+	char *uri;
+	Settings_T *settings = get_settings();
+
+	TRACE(TRACE_WARNING,"trying ldap failover connection");
+	for (i=0; i < settings->ldap_num_hosts; i++) {
+		uri = g_strdup_printf("ldap://%s:%d",settings->ldap_host[i],settings->ldap_port);
+		if ((ret = ldap_initialize(&ld, uri)) == LDAP_SUCCESS) {
+			TRACE(TRACE_DEBUG,"ldap_initialize() to failover host [%s] successful ", settings->ldap_host[i]);
+			TRACE(TRACE_LOOKUP, "binding to ldap server as [%s] / [xxxxxxxx]",  settings->ldap_binddn);
+			if ((err = ldap_bind_s(ld, settings->ldap_binddn, settings->ldap_bindpw, LDAP_AUTH_SIMPLE))) {
+				TRACE(TRACE_ERR, "ldap_bind_s on failover host [%s] failed: %s", settings->ldap_host[i], ldap_err2string(err));
+				continue;
+			}
+			TRACE(TRACE_LOOKUP, "successfully bound to failover host [%s]", settings->ldap_host[i]);
+			g_free(uri);
+			return 0;
+		} else {
+			TRACE(TRACE_ERR, "ldap_initialize() to failover host [%s] returned [%d]", settings->ldap_host[i], ret);
+		}
+		g_free(uri);
+	}
+
+	return -1;
+}
+
 int ldap_connect(void) {
 	int ret, err;
 	int version;
 	char *uri;
+	char *host;
 	Settings_T *settings = get_settings();
 
-	TRACE(TRACE_LOOKUP, "connecting to ldap server on [%s]",settings->ldap_host);
 	if (settings->ldap_uri) {
 		if ((ret = ldap_initialize(&ld, settings->ldap_uri) != LDAP_SUCCESS)) 
 			TRACE(TRACE_ERR, "ldap_initialize() returned [%d]", ret);
 	} else {
-		uri = g_strdup_printf("ldap://%s:%d",settings->ldap_host,settings->ldap_port);
-		if ((ret = ldap_initialize(&ld, uri)) != LDAP_SUCCESS) 
+		if (g_ascii_strcasecmp(settings->backend_connection,"balance") == 0) {
+			host = ldap_get_rand_host();
+		} else
+			host = settings->ldap_host[0];
+		
+		TRACE(TRACE_LOOKUP, "connecting to ldap server on [%s]",host);
+		uri = g_strdup_printf("ldap://%s:%d",host,settings->ldap_port);
+		if ((ret = ldap_initialize(&ld, uri)) != LDAP_SUCCESS) {
 			TRACE(TRACE_ERR, "ldap_initialize() returned [%d]", ret);
-
+		}
 		g_free(uri);
 	}
 	version = LDAP_VERSION3;
@@ -49,15 +91,12 @@ int ldap_connect(void) {
 		TRACE(TRACE_LOOKUP, "set ldap referrals to off");
 	}
 	
-	TRACE(TRACE_LOOKUP, "binding to ldap server as [%s] / [xxxxxxxx]",  settings->ldap_binddn);
 	
-	if ((err = ldap_bind_s(ld, settings->ldap_binddn, settings->ldap_bindpw, LDAP_AUTH_SIMPLE))) {
-		TRACE(TRACE_ERR, "ldap_bind_s failed: %s",  ldap_err2string(err));
+	if (ldap_failover_connect() != 0) {
+		TRACE(TRACE_ERR,"failover connection failed");
 		return -1;
-	}
-	TRACE(TRACE_LOOKUP, "successfully bound to ldap server" );
-	
-	return 0;
+	} else
+		return 0;
 }
 
 LDAP *ldap_con_get(void) {
