@@ -51,3 +51,4 @@ install(TARGETS smf smtpd pipe spmfilter
     PUBLIC_HEADER DESTINATION include
 )
 
+add_executable(tp testprog.c smf_clist.c smf_htable.c)
