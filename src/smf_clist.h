@@ -30,6 +30,7 @@ struct dlist_ {
 /* typedef for doubly linked list */
 typedef struct dlist_ DLIST_T;
 
+/* TODO: FIX DOKU */
 /** initialize a list
  *
  * \param **list pointer to pointer to new list for which memory will be allocated
@@ -38,7 +39,7 @@ typedef struct dlist_ DLIST_T;
  * 
  * \returns -1 on error, 0 on success
  */
-int dlist_init(DLIST_T **list, void (*destroy)(void *data));
+DLIST_T *dlist_init(void (*destroy)(void *data));
 
 /** destroy a complete list
  *
