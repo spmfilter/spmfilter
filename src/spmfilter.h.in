@@ -64,6 +64,17 @@ typedef struct {
 	
 	/* configured lookup backend */
 	char *backend;
+
+	/* if multiple backend hosts are defined,
+	 * it's possible to balance connections
+	 * between all, or do failover connections.
+	 * possible keys are:
+	 * - balance
+	 *   load-balance connections among all hosts listed
+	 * - failover
+	 *   failover connections in the order listed
+	 */
+	char *backend_connection;
 	
 	/* hash table for smtp codes */
 	SmtpCodeTable_T *smtp_codes;
@@ -71,7 +82,8 @@ typedef struct {
 #ifdef HAVE_ZDB
 	char *sql_driver;
 	char *sql_name;
-	char *sql_host;
+	char **sql_host;
+	int sql_num_hosts;
 	int sql_port;
 	char *sql_user;
 	char *sql_pass;
@@ -83,7 +95,8 @@ typedef struct {
 
 #ifdef HAVE_LDAP
 	char *ldap_uri;
-	char *ldap_host;
+	char **ldap_host;
+	int ldap_num_hosts;
 	int ldap_port;
 	char *ldap_binddn;
 	char *ldap_bindpw;
