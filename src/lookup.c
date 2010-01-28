@@ -119,27 +119,30 @@ int lookup_disconnect(void) {
 int lookup_user(char *addr) {
 	Settings_T *settings = get_settings();
 
-	if((g_ascii_strcasecmp(settings->backend,"sql") == 0)
-			&& (settings->sql_user_query != NULL)) {
+	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
-		return sql_user_exists(addr);
+		if (settings->sql_user_query != NULL) {
+			return sql_user_exists(addr);
+		}
 #else
-		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
+		TRACE(TRACE_ERR,"spmfilter has not been built with sql backend");
 		return -1;
 #endif
-	} else if ((g_ascii_strcasecmp(settings->backend,"ldap") == 0)
-			&& (settings->ldap_user_query != NULL)) {
-#ifdef HAVE_LDAP
-		return ldap_user_exists(addr);
-#else
-		TRACE(TRACE_ERR,"spmfilter is not built with ldap backend");
-		return -1;
-#endif
-	} else {
-		TRACE(TRACE_ERR,"no valid backend defined");
-		return -1;
 	}
 
+	if (g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
+#ifdef HAVE_LDAP
+		if (settings->ldap_user_query != NULL) {
+			return ldap_user_exists(addr);
+		}
+#else
+		TRACE(TRACE_ERR,"spmfilter has not been built with ldap backend");
+		return -1;
+#endif
+	}
+
+	TRACE(TRACE_ERR,"no valid backend defined");
+	return -1;
 }
 
 void lookup_query(const char *q, ...) {
