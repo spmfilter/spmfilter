@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <time.h>
+#include <assert.h>
 #include <URL.h>
 #include <ResultSet.h>
 #include <PreparedStatement.h>
@@ -11,6 +12,7 @@
 
 #include "spmfilter.h"
 #include "lookup.h"
+#include "lookup_result.h"
 
 #define THIS_MODULE "sql_lookup"
 
@@ -251,7 +253,7 @@ ResultSet_T sql_query(const char *q, ...) {
 		
 	c = sql_con_get();
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-	r = Connection_executeQuery(c, (const char *)query);
+	r = Connection_executeQuery(c, query,NULL);
 	
 	return r;
 }
@@ -275,7 +277,7 @@ int sql_user_exists(char *addr) {
 		return -1;
 	}
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-	r = Connection_executeQuery(c,query);
+	r = Connection_executeQuery(c,query,NULL);
 	if (query != NULL)
 		free(query);
 	if (ResultSet_next(r)) {
