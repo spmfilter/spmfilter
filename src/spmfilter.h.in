@@ -20,15 +20,10 @@
 #cmakedefine HAVE_ZDB
 
 typedef struct {
-	char *msg;
-	int flags;
-	long code;
-} SmtpCode_T;
+	void (* insert)(int code, char *msg);
+	char *(* get)(int code);
+} SmtpCodes_T;
 
-typedef struct {
-	SmtpCode_T *table;
-	long size, count;
-} SmtpCodeTable_T;
 
 typedef struct {
 	/* debug flag */
@@ -75,7 +70,7 @@ typedef struct {
 	char *backend_connection;
 	
 	/* hash table for smtp codes */
-	SmtpCodeTable_T *smtp_codes;
+	SmtpCodes_T *smtp_codes;
 	
 #ifdef HAVE_ZDB
 	char *sql_driver;
@@ -207,32 +202,30 @@ int gen_queue_file(char **tempanme);
 
 /** Create a new hash table for all smtp codes
  *
- * \returns new allocated hash table
+ * \returns new allocated SmtpCodes_T
  */
-SmtpCodeTable_T *smtp_code_new(void);
+SmtpCodes_T *smtp_code_new(void);
 
 /** Add smtp return code to list
  *
- * \param SmtpCodeTable_T type
- * \param code smtp code 
+ * \param code smtp code
  * \param msg smtp return message
  */
-void smtp_code_insert(SmtpCodeTable_T *codes, unsigned long code, char *msg);
+//void smtp_code_insert(int code, char *msg);
 
 /** Get smtp return code message of given code
  *
- * \param SmtpCodeTable_T struct
  * \param code to look for
  *
  * \returns smtp return message for given code
  */
-char *smtp_code_get(SmtpCodeTable_T *codes, unsigned long code);
+//char *smtp_code_get(int code);
 
 /** Free smtp codes
  *
  * \param pointer to smtp codes
  */
-void smtp_code_free(SmtpCodeTable_T *codes);
+void smtp_code_free(SmtpCodes_T *codes);
 
 /** extract a substring from given string
  * 
@@ -294,6 +287,103 @@ int smtp_delivery(Message_T *msg_data);
  * \returns generated filename or NULL in case of error
  */
 char *get_maildir_filename(void);
+
+struct lookup_element {
+	void *data;
+};
+typedef struct lookup_element LookupElement_T;
+
+struct lookup_result {
+	LookupElement_T *elem;
+	struct lookup_result *next;
+	struct lookup_result *prev;
+};
+typedef struct lookup_result LookupResult_T;
+
+/** Allocates memory for LookupResult_T
+ *
+ * \returns newly allocated LookupResult_T
+ */
+LookupResult_T *lookup_result_new(void);
+
+/** Frees all of the memory used by LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ */
+void lookup_result_free(LookupResult_T *l);
+
+/** Adds a new element on to the end of the list.
+ *  The return value is the new start of the list,
+ *  which may have changed, so make sure you store the new value.
+ *
+ * \param *l pointer to LookupResult_T
+ * \param *elem_data pointer to LookupElement_T
+ *
+ * \returns the new start of LookupResult_T
+ */
+LookupResult_T *lookup_result_append(LookupResult_T *l, LookupElement_T *elem_data);
+
+/** Get the first element of LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the first element in LookupResult_T,
+ *          or NULL if there are no elements
+ */
+LookupResult_T *lookup_result_first(LookupResult_T *l);
+
+/** Get the last element of LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the first element in LookupResult_T,
+ *          or NULL if there are no elements
+ */
+LookupResult_T *lookup_result_last(LookupResult_T *l);
+
+/** Get the previous element of LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the previous element, or NULL if there are no previous elements.
+ */
+LookupResult_T *lookup_result_previous(LookupResult_T *l);
+
+/** Get the next element of LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the next element, or NULL if there is no following element
+ */
+LookupResult_T *lookup_result_next(LookupResult_T *l);
+
+/** Get the element at the given position
+ *
+ * \param *l pointer to LookupResult_T
+ * \param i the position of the element
+ *
+ * \returns the element, or NULL if the position is off the end
+ */
+LookupResult_T *lookup_result_nth(LookupResult_T *l, int i);
+
+/** This function iterates over the whole list to count its elements.
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the number of elements
+ */
+int lookup_result_count(LookupResult_T *l);
+
+/** Looks up a key in LookupResult_T
+ *
+ * \param *r pointer to LookupResult_T
+ * \param *key the key to look up
+ *
+ * \returns the associated value, or NULL if the key is not found
+ */
+void *lookup_get_element(LookupResult_T *r, char *key);
+
+
 
 /** Establish database/ldap connection
  *
