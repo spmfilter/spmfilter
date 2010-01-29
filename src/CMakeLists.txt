@@ -10,6 +10,7 @@ set(LIB_SMF_SRC
 	settings.c
 	message.c
 	lookup.c
+	lookup_result.c
 )
 
 set(COMMON_LIBS m esmtp ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GMIME_LIBRARIES})

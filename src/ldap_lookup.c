@@ -5,6 +5,7 @@
 #include <time.h>
 
 #include "spmfilter.h"
+#include "lookup_result.h"
 
 #define THIS_MODULE "ldap_lookup"
 
@@ -132,7 +133,8 @@ void ldap_disconnect(void) {
 	}
 }
 
-LDAPMessage *ldap_query(const char *q, ...) {
+LookupResult_T *ldap_query(const char *q, ...) {
+	LookupResult_T *result = lookup_result_new();
 	va_list ap, cp;
 	char *query;
 	LDAPMessage *msg = NULL;
@@ -148,13 +150,15 @@ LDAPMessage *ldap_query(const char *q, ...) {
 	
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
 	
-	if (ldap_search_s(c,settings->ldap_base,LDAP_SCOPE_SUBTREE,query,NULL,0,&msg) != LDAP_SUCCESS)
+	if (ldap_search_s(c,settings->ldap_base,get_scope(),query,NULL,0,&msg) != LDAP_SUCCESS)
 		TRACE(TRACE_ERR,"[%p] query [%s] failed",ld, query);
 	
-	if(ldap_count_entries(c,msg) <= 0)
+	if(ldap_count_entries(c,msg) <= 0) {
 		TRACE(TRACE_LOOKUP,"[%p] nothing found",ld);
-	
-	return msg;
+		return NULL;
+	} 
+
+	return result;
 }
 
 /** Check if given user exists in ldap directory
