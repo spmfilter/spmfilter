@@ -1,5 +1,6 @@
 #include <glib.h>
 
+#include "lookup.h"
 #include "spmfilter.h"
 
 #define THIS_MODULE "lookup_result"

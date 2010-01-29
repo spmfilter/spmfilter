@@ -1,15 +1,19 @@
 #include <glib.h>
+#include <lber.h>
 #include <ldap.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <time.h>
 
 #include "spmfilter.h"
-#include "lookup_result.h"
+#include "lookup.h"
 
 #define THIS_MODULE "ldap_lookup"
 
 LDAP *ld = NULL;
+
+// TODO: check deprecated LDAP functions
+// TODO: add number of vals to LookupElement_T, there can be more values for one attribute
 
 int get_scope(void) {
 	Settings_T *settings = get_settings();
@@ -138,6 +142,10 @@ LookupResult_T *ldap_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
 	LDAPMessage *msg = NULL;
+	LDAPMessage *entry = NULL;
+	char *attr;
+	struct berval **bvals;
+	BerElement *ptr;
 	LDAP *c = ldap_con_get();
 	Settings_T *settings = get_settings();
 
@@ -148,16 +156,36 @@ LookupResult_T *ldap_query(const char *q, ...) {
 	va_end(cp);
 	g_strstrip(query);
 	
-	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
+	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 	
 	if (ldap_search_s(c,settings->ldap_base,get_scope(),query,NULL,0,&msg) != LDAP_SUCCESS)
 		TRACE(TRACE_ERR,"[%p] query [%s] failed",ld, query);
 	
 	if(ldap_count_entries(c,msg) <= 0) {
-		TRACE(TRACE_LOOKUP,"[%p] nothing found",ld);
+		TRACE(TRACE_LOOKUP,"[%p] nothing found",c);
 		return NULL;
-	} 
+	} else
+		TRACE(TRACE_LOOKUP,"[%p] found [%d] entries", c, ldap_count_entries(c,msg));
 
+	for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
+		LookupElement_T *e = lookup_element_new();
+
+		for(attr = ldap_first_attribute(c, msg, &ptr); attr != NULL;
+				attr = ldap_next_attribute(c, msg, ptr)) {
+
+			bvals = ldap_get_values_len(c, entry, attr);
+
+			TRACE(TRACE_DEBUG,"VALUE: %s",(char *)((struct berval)*bvals[0]).bv_val); //<- TESTSHIT
+			//values = ldap_get_values(c,entry,attr);
+			TRACE(TRACE_DEBUG,"found attribute [%s] entry [%p]", attr, entry);
+			lookup_element_insert(e,attr,bvals);
+//			ldap_value_free(values);
+			free(attr);
+		}
+		result = lookup_result_append(result,e);
+	}
+	ber_free(ptr,0);
+	ldap_msgfree(msg);
 	return result;
 }
 
@@ -178,6 +206,16 @@ int ldap_user_exists(char *addr) {
 		return -1;
 	}
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
+
+	/* TESTCODE */
+	LookupResult_T *r = NULL;
+
+	r = ldap_query("(mail=%s)",addr);
+	for (r = lookup_result_first(r); r; r = lookup_result_next(r)) {
+		TRACE(TRACE_DEBUG,"Mail: %s\n",(char *)lookup_get_element(r,"mail"));
+		r = lookup_result_next(r);
+	}
+	/* END TESTCODe */
 
 	if (ldap_search_s(c,settings->ldap_base,get_scope(),query,NULL,0,&msg) != LDAP_SUCCESS) {
 		TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);

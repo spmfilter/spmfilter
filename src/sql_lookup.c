@@ -12,7 +12,6 @@
 
 #include "spmfilter.h"
 #include "lookup.h"
-#include "lookup_result.h"
 
 #define THIS_MODULE "sql_lookup"
 
