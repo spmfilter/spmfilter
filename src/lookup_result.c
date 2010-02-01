@@ -129,6 +129,6 @@ void lookup_element_insert(LookupElement_T *e, char *key, void *value) {
  *
  * \returns the associated value, or NULL if the key is not found
  */
-void *lookup_get_element(LookupResult_T *r, char *key) {
+void *lookup_element_get(LookupResult_T *r, char *key) {
 	return g_hash_table_lookup((GHashTable *)r->elem->data,key);
 }
