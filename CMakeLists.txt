@@ -84,6 +84,13 @@ CONFIGURE_FILE(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.h
 )
 
+# write spmfilter.pc
+CONFIGURE_FILE(
+	${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.pc.cmake
+	${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.pc
+	@ONLY
+)
+
 # check for enabled debugging
 if(ENABLE_DEBUG)
     set(CMAKE_VERBOSE_MAKEFILE TRUE)
