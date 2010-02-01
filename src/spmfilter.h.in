@@ -300,6 +300,18 @@ struct lookup_result {
 };
 typedef struct lookup_result LookupResult_T;
 
+/** Since LDAP attributes can have more than
+ *  one value, we need to define a new datatype,
+ *  in order not to link every module against
+ *  ldap, which needs LDAP connectivity.
+ *  Every LDAP lookup returns LookupElement_T
+ *  with LdapValue_T pointer as data.
+ */
+typedef struct {
+	int num_values;
+	char **values;
+} LdapValue_T;
+
 /** Allocates memory for LookupResult_T
  *
  * \returns newly allocated LookupResult_T
@@ -381,9 +393,7 @@ int lookup_result_count(LookupResult_T *l);
  *
  * \returns the associated value, or NULL if the key is not found
  */
-void *lookup_get_element(LookupResult_T *r, char *key);
-
-
+void *lookup_element_get(LookupResult_T *r, char *key);
 
 /** Establish database/ldap connection
  *

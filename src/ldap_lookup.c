@@ -3,6 +3,7 @@
 #include <ldap.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include "spmfilter.h"
@@ -12,8 +13,10 @@
 
 LDAP *ld = NULL;
 
-// TODO: add number of vals to LookupElement_T, there can be more values for one attribute
-
+/** Get LDAP scope from config file
+ *
+ * \returns ldap scope
+ */
 int get_scope(void) {
 	Settings_T *settings = get_settings();
 
@@ -183,9 +186,9 @@ LookupResult_T *ldap_query(const char *q, ...) {
 	char *attr;
 	struct berval **bvals;
 	BerElement *ptr;
+	int i,value_count;
 	LDAP *c = ldap_con_get();
 	Settings_T *settings = get_settings();
-
 
 	va_start(ap, q);
 	va_copy(cp, ap);
@@ -210,13 +213,20 @@ LookupResult_T *ldap_query(const char *q, ...) {
 		for(attr = ldap_first_attribute(c, msg, &ptr); attr != NULL;
 				attr = ldap_next_attribute(c, msg, ptr)) {
 
+			LdapValue_T *vals = malloc(sizeof(LdapValue_T));
 			bvals = ldap_get_values_len(c, entry, attr);
+			value_count = ldap_count_values_len(bvals);
+			TRACE(TRACE_LOOKUP,"found attribute [%s] in entry [%p] with [%d] values", attr, entry, value_count);
 
-			TRACE(TRACE_DEBUG,"VALUE: %s",(char *)((struct berval)*bvals[0]).bv_val); //<- TESTSHIT
-			//values = ldap_get_values(c,entry,attr);
-			TRACE(TRACE_DEBUG,"found attribute [%s] entry [%p]", attr, entry);
-			lookup_element_insert(e,attr,bvals);
-//			ldap_value_free(values);
+			vals->num_values = value_count;
+			vals->values = (char **)calloc(value_count, sizeof(char *));
+			for (i = 0; i < value_count; i++) {
+				vals->values[i] = (char *)malloc(strlen((char *)((struct berval)*bvals[i]).bv_val) + 1);
+				strcpy(vals->values[i], (char *)((struct berval)*bvals[i]).bv_val);
+				TRACE(TRACE_LOOKUP,"[%s] -> [%s]",attr,vals->values[i]);
+			}
+			lookup_element_insert(e,g_strdup(attr),vals);
+			ldap_value_free_len(bvals);
 			free(attr);
 		}
 		result = lookup_result_append(result,e);
@@ -243,16 +253,6 @@ int ldap_user_exists(char *addr) {
 		return -1;
 	}
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
-
-	/* TESTCODE */
-	LookupResult_T *r = NULL;
-
-	r = ldap_query("(mail=%s)",addr);
-	for (r = lookup_result_first(r); r; r = lookup_result_next(r)) {
-		TRACE(TRACE_DEBUG,"Mail: %s\n",(char *)lookup_get_element(r,"mail"));
-		r = lookup_result_next(r);
-	}
-	/* END TESTCODe */
 
 	if (ldap_search_ext_s(c,settings->ldap_base,get_scope(),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS) {
 		TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);
