@@ -94,21 +94,20 @@ int write_message(char *new_path, char *queue_file) {
  *
  * \returns requested header
  */
-const char *get_header(char *msg_path, char *header_name) {
+char *get_header(char *msg_path, const char *header_name) {
 	GMimeMessage *message;
-	const char *header_value = NULL;
+	char *header_value = NULL;
 
 	g_mime_init(0);
 	message = parse_message(msg_path);
 	if (message!=NULL) {
 #ifdef HAVE_GMIME24
-		header_value = g_mime_object_get_header(GMIME_OBJECT(message),header_name);
+		header_value = (char *)g_mime_object_get_header(GMIME_OBJECT(message),header_name);
 #else
 		header_value = g_mime_message_get_header(message,header_name);
 #endif
 	}
 
-	g_free(header_name);
 	g_object_unref(message);
 	g_mime_shutdown();
 	return header_value;
