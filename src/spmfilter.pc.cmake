@@ -7,5 +7,5 @@ Name: spmfilter
 Version: @SMF_VERSION@
 Description: Core libraries of spmfilter
 URL: http://www.space.net
-Libs: -L${libdir}/spmfilter -lspmfilter
-Cflags: -I${includedir}/spmfilter
+Libs: -L${libdir} -lsmf
+Cflags: -I${includedir}
