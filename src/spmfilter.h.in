@@ -232,7 +232,7 @@ int write_message(char *new_path, char *queue_file);
  *
  * \returns value of header or NULL in case of error
  */
-const char *get_header(char *msg_path, char *header_name);
+char *get_header(char *msg_path, const char *header_name);
 
 /** Sets an arbitrary header
  * 
@@ -396,6 +396,7 @@ int lookup_disconnect(void);
 int lookup_user(char *addr);
 
 LookupResult_T *lookup_query(const char *q, ...);
+
 
 
 #endif
