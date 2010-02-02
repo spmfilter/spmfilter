@@ -118,6 +118,5 @@ char *get_maildir_filename(void) {
 		(unsigned long) starttime.tv_usec,
 		hostname);
 	
-	g_free(hostname);
 	return filename;
 }
