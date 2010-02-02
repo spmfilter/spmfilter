@@ -16,7 +16,10 @@
  */
 
 #include <glib.h>
+
 #include "spmfilter.h"
+#include "smtp_codes.h"
+#include "settings.h"
 
 #define THIS_MODULE "settings"
 

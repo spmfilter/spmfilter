@@ -255,9 +255,10 @@ Connection_T sql_con_get(void) {
 }
 
 
-ResultSet_T sql_query(const char *q, ...) {
+LookupResult_T *sql_query(const char *q, ...) {
 	Connection_T c; 
 	ResultSet_T r;
+	LookupResult_T *result = lookup_result_new();
 	va_list ap, cp;
 	char *query;
 
@@ -271,7 +272,7 @@ ResultSet_T sql_query(const char *q, ...) {
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 	r = Connection_executeQuery(c, query,NULL);
 	
-	return r;
+	return result;
 }
 
 

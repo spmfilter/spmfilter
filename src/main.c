@@ -21,6 +21,7 @@
 #include <time.h>
 
 #include "spmfilter.h"
+#include "settings.h"
 
 #define THIS_MODULE "spmfilter"
 
