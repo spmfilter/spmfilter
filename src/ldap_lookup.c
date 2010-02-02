@@ -240,7 +240,6 @@ LookupResult_T *ldap_query(const char *q, ...) {
 			for (i = 0; i < value_count; i++) {
 				vals->values[i] = (char *)malloc(strlen((char *)((struct berval)*bvals[i]).bv_val) + 1);
 				strcpy(vals->values[i], (char *)((struct berval)*bvals[i]).bv_val);
-				TRACE(TRACE_LOOKUP,"[%s] -> [%s]",attr,vals->values[i]);
 			}
 			lookup_element_insert(e,g_strdup(attr),vals);
 			ldap_value_free_len(bvals);

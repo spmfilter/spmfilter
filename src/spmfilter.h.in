@@ -197,18 +197,6 @@ void trace(Trace_T level, const char * module, const char * function, int line, 
  */
 Settings_T *get_settings(void);
 
-void set_settings(Settings_T **s);
-
-/** free settings struct */
-void free_settings(Settings_T *settings);
-
-/** load and parse config file
- *
- * \returns 0 on success or -1 in case of error
- */
-
-int parse_config(void);
-
 /** generate a new queue file name
  *
  * \buf pointer to unallocated buffer for filename, needs to
@@ -217,33 +205,6 @@ int parse_config(void);
  * \returns 0 on success or -1 in case of error
  */
 int gen_queue_file(char **tempanme);
-
-/** Create a new hash table for all smtp codes
- *
- * \returns new allocated SmtpCodes_T
- */
-SmtpCodes_T *smtp_code_new(void);
-
-/** Add smtp return code to list
- *
- * \param code smtp code
- * \param msg smtp return message
- */
-//void smtp_code_insert(int code, char *msg);
-
-/** Get smtp return code message of given code
- *
- * \param code to look for
- *
- * \returns smtp return message for given code
- */
-//char *smtp_code_get(int code);
-
-/** Free smtp codes
- *
- * \param pointer to smtp codes
- */
-void smtp_code_free(SmtpCodes_T *codes);
 
 /** extract a substring from given string
  * 

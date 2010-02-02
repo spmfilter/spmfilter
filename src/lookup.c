@@ -18,6 +18,7 @@
 #include <glib.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "spmfilter.h"
 #include "lookup.h"
@@ -164,7 +165,15 @@ int lookup_user(char *addr) {
 
 LookupResult_T *lookup_query(const char *q, ...) {
 	LookupResult_T *result = NULL;
+	va_list ap, cp;
+	char *query;
 	Settings_T *settings = get_settings();
+	
+	va_start(ap, q);
+	va_copy(cp, ap);
+	query = g_strdup_vprintf(q, cp);
+	va_end(cp);
+	g_strstrip(query);
 
 	if ((g_ascii_strcasecmp(settings->backend,"sql")) == 0) {
 #ifdef HAVE_ZDB
@@ -175,7 +184,7 @@ LookupResult_T *lookup_query(const char *q, ...) {
 #endif
 	} else if ((g_ascii_strcasecmp(settings->backend,"ldap")) == 0) {
 #ifdef HAVE_LDAP
-	//	result = ldap_query(q, ...);
+		result = ldap_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is built with ldap backend");
 		return;
