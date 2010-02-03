@@ -177,7 +177,7 @@ LookupResult_T *lookup_query(const char *q, ...) {
 
 	if ((g_ascii_strcasecmp(settings->backend,"sql")) == 0) {
 #ifdef HAVE_ZDB
-		// TODO: implement sql_query
+		result = sql_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
 		return;

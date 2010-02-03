@@ -26,6 +26,7 @@
 #include <PreparedStatement.h>
 #include <Connection.h>
 #include <ConnectionPool.h>
+#include <SQLException.h>
 
 #include "spmfilter.h"
 #include "lookup.h"
@@ -261,6 +262,7 @@ LookupResult_T *sql_query(const char *q, ...) {
 	LookupResult_T *result = lookup_result_new();
 	va_list ap, cp;
 	char *query;
+	int i;
 
 	va_start(ap, q);
 	va_copy(cp, ap);
@@ -270,7 +272,28 @@ LookupResult_T *sql_query(const char *q, ...) {
 		
 	c = sql_con_get();
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-	r = Connection_executeQuery(c, query,NULL);
+	TRY
+		r = Connection_executeQuery(c, query,NULL);
+	CATCH(SQLException)
+		TRACE(TRACE_ERR,"got SQLException");
+		return NULL;
+	END_TRY;
+	while (ResultSet_next(r)) {
+		LookupElement_T *e = lookup_element_new();
+			
+		for (i=1; i <= ResultSet_getColumnCount(r); i++) {
+			int blob_size = 0;
+			char *c = (char *)ResultSet_getColumnName(r,i);
+			char *col_name = (char *)malloc(strlen(c) + 1);
+			memcpy(col_name,c,sizeof(c));
+			int col_size = ResultSet_getColumnSize(r,i);
+			void *data = malloc(col_size);
+			memcpy(data,ResultSet_getBlob(r,i,&blob_size),col_size);
+			lookup_element_insert(e,col_name,data);
+			
+		}
+		result = lookup_result_append(result,e);
+	}
 	
 	return result;
 }

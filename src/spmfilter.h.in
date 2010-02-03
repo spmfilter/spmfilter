@@ -39,12 +39,6 @@
 #cmakedefine HAVE_ZDB
 
 typedef struct {
-	void (* insert)(int code, char *msg);
-	char *(* get)(int code);
-} SmtpCodes_T;
-
-
-typedef struct {
 	/* debug flag */
 	int debug;
 	
@@ -89,7 +83,7 @@ typedef struct {
 	char *backend_connection;
 	
 	/* hash table for smtp codes */
-	SmtpCodes_T *smtp_codes;
+	void *smtp_codes;
 	
 #ifdef HAVE_ZDB
 	char *sql_driver;
