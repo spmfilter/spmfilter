@@ -15,20 +15,21 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMTPD_H
-#define _SMTPD_H
+#ifndef _SMTP_CODES_H
+#define	_SMTP_CODES_H
 
-#define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
-#define CODE_250 "250 OK\r\n"
-#define CODE_250_ACCEPTED "250 OK message accepted\r\n"
-#define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_502 "502 Eh? WTF was that?\r\n"
-#define CODE_552 "552 Requested action aborted: local error in processing\r\n"
+/** Create a new hash table for all smtp codes
+ *
+ * \returns new allocated SmtpCodes_T
+ */
+SmtpCodes_T *smtp_code_new(void);
 
-typedef int (*LoadMod) (MailConn_T *mconn);
+/** Free smtp codes
+ *
+ * \param pointer to smtp codes
+ */
+void smtp_code_free(SmtpCodes_T *codes);
 
-int load(void);
-void smtp_string_reply(const char *format, ...);
-void smtp_code_reply(int code);
 
-#endif /* __SMTPD_H */
+#endif	/* _SMTP_CODES_H */
+

@@ -1,5 +1,24 @@
+/* spmfilter - mail filtering framework
+ * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <glib.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
 
 #include "spmfilter.h"
 #include "lookup.h"
@@ -72,20 +91,18 @@ int expand_query(char *format, char *addr, char **buf) {
 int lookup_connect(void) {
 	Settings_T *settings = get_settings();
 
-#ifdef HAVE_ZDB
-	/* try to connect to database */
+
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+#ifdef HAVE_ZDB
 		if(sql_connect() != 0)
 			return -1;
-	}
 #endif
-
+	} else if(g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
 #ifdef HAVE_LDAP
-	if(g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
 		if(ldap_connect() != 0)
 			return -1;
-	}
 #endif
+	}
 
 	return 0;
 }
@@ -97,15 +114,15 @@ int lookup_connect(void) {
 int lookup_disconnect(void) {
 	Settings_T *settings = get_settings();
 
-#ifdef HAVE_ZDB
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+#ifdef HAVE_ZDB
 		sql_disconnect();
-	}
 #endif
-
+	} else if (g_ascii_strcasecmp(settings->backend,"ldap") ==  0) {
 #ifdef HAVE_LDAP
-	// TODO: implement ldap disconnect
+		ldap_disconnect();
 #endif
+	}
 
 	return 0;
 }
@@ -119,12 +136,62 @@ int lookup_disconnect(void) {
  */
 int lookup_user(char *addr) {
 	Settings_T *settings = get_settings();
+
+	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
-	/* try to connect to database */
-	if((g_ascii_strcasecmp(settings->backend,"sql") == 0)
-			&& (settings->sql_user_query != NULL)) {
-		return sql_user_exists(addr);
-	}
+		if (settings->sql_user_query != NULL) {
+			return sql_user_exists(addr);
+		}
+#else
+		TRACE(TRACE_ERR,"spmfilter has not been built with sql backend");
+		return -1;
 #endif
-	return 0;
+	}
+
+	if (g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
+#ifdef HAVE_LDAP
+		if (settings->ldap_user_query != NULL) {
+			return ldap_user_exists(addr);
+		}
+#else
+		TRACE(TRACE_ERR,"spmfilter has not been built with ldap backend");
+		return -1;
+#endif
+	}
+
+	TRACE(TRACE_ERR,"no valid backend defined");
+	return -1;
+}
+
+LookupResult_T *lookup_query(const char *q, ...) {
+	LookupResult_T *result = NULL;
+	va_list ap, cp;
+	char *query;
+	Settings_T *settings = get_settings();
+	
+	va_start(ap, q);
+	va_copy(cp, ap);
+	query = g_strdup_vprintf(q, cp);
+	va_end(cp);
+	g_strstrip(query);
+
+	if ((g_ascii_strcasecmp(settings->backend,"sql")) == 0) {
+#ifdef HAVE_ZDB
+		// TODO: implement sql_query
+#else
+		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
+		return;
+#endif
+	} else if ((g_ascii_strcasecmp(settings->backend,"ldap")) == 0) {
+#ifdef HAVE_LDAP
+		result = ldap_query(query);
+#else
+		TRACE(TRACE_ERR,"spmfilter is built with ldap backend");
+		return;
+#endif
+	} else {
+		TRACE(TRACE_ERR,"no valid backend defined");
+	}
+
+	return result;
 }

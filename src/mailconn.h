@@ -15,20 +15,20 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMTPD_H
-#define _SMTPD_H
+#ifndef _MAILCONN_H
+#define	_MAILCONN_H
 
-#define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
-#define CODE_250 "250 OK\r\n"
-#define CODE_250_ACCEPTED "250 OK message accepted\r\n"
-#define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_502 "502 Eh? WTF was that?\r\n"
-#define CODE_552 "552 Requested action aborted: local error in processing\r\n"
+/** Initialize MailConn_T structure
+ *
+ * \returns pointer to MailConn_T type
+ */
+MailConn_T *mconn_new(void);
 
-typedef int (*LoadMod) (MailConn_T *mconn);
+/** Free MailConn_T structure
+ *
+ * \param mconn MailConn_T type
+ */
+void mconn_free(MailConn_T *mconn);
 
-int load(void);
-void smtp_string_reply(const char *format, ...);
-void smtp_code_reply(int code);
+#endif	/* _MAILCONN_H */
 
-#endif /* __SMTPD_H */

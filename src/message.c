@@ -1,3 +1,20 @@
+/* spmfilter - mail filtering framework
+ * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gmime/gmime.h>
@@ -77,21 +94,20 @@ int write_message(char *new_path, char *queue_file) {
  *
  * \returns requested header
  */
-const char *get_header(char *msg_path, char *header_name) {
+char *get_header(char *msg_path, const char *header_name) {
 	GMimeMessage *message;
-	const char *header_value = NULL;
+	char *header_value = NULL;
 
 	g_mime_init(0);
 	message = parse_message(msg_path);
 	if (message!=NULL) {
 #ifdef HAVE_GMIME24
-		header_value = g_mime_object_get_header(GMIME_OBJECT(message),header_name);
+		header_value = (char *)g_mime_object_get_header(GMIME_OBJECT(message),header_name);
 #else
 		header_value = g_mime_message_get_header(message,header_name);
 #endif
 	}
 
-	g_free(header_name);
 	g_object_unref(message);
 	g_mime_shutdown();
 	return header_value;
