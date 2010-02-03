@@ -130,8 +130,9 @@ with a 500 error code:
 
 .SS "The [sql] section"
 Parameters in this section affect the \fBsql backend\fR configuration.
+
 .IP "\fBdriver\fR"
-SQl database driver. Supported drivers are mysql, pgsql, sqlite.
+SQL database driver. Supported drivers are mysql, pgsql, sqlite.
 
 .IP "\fBhost\fR"
 List of available database hosts, separated by a semicolon. Set to localhost if database is on the same 
@@ -151,6 +152,61 @@ Database password.
 
 .IP "\fBencoding\fR"
 Encoding to match database/table encoding, e.g., latin1, utf8
+
+.IP "\fBuser_query\fR"
+If you store user information within a SQL database in your network infrastructure,
+you can configure spmfilter to query your SQL database to determine either a user
+exists in your system or not.
+
+This parameter supports the following '%' expansions:
+.nf
+%s = replaced by the full email address.
+.fi
+
+.nf
+%u = replaced by the local part of the email address.
+.fi
+
+.nf
+%d = replaced by the domain part of the email address.
+.fi
+
+.SS "The [ldap] section"
+Parameters in this section affect the \fBldap backend\fR configuration.
+
+.IP "\fBhost\fR"
+List of available LDAP hosts, separated by a semicolon. Set to localhost if LDAP server
+is on the same host as spmfilter.
+
+.IP "\fBbinddn\fR"
+Bind DN of LDAP user
+
+.IP "\fBbindpw\fR"
+Password of LDAP user
+
+.IP "\fBbase\fR"
+Base DN (distinguishing name) for the LDAP server.
+
+.IP "\fBscope\fR"
+LDAP search scope, either subtree, onelevel or base.
+
+.IP "\fBuser_query\fR"
+If you store user information within a LDAP directory in your network infrastructure,
+you can configure spmfilter to query your LDAP directory to determine either a user
+exists in your system or not.
+
+This parameter supports the following '%' expansions:
+.nf
+%s = replaced by the full email address.
+.fi
+
+.nf
+%u = replaced by the local part of the email address.
+.fi
+
+.nf
+%d = replaced by the domain part of the email address.
+.fi
 
 .SH "EXAMPLE"
 .P
