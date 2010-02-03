@@ -22,14 +22,28 @@
  *
  * \returns new allocated SmtpCodes_T
  */
-SmtpCodes_T *smtp_code_new(void);
+void *smtp_code_new(void);
 
 /** Free smtp codes
  *
  * \param pointer to smtp codes
  */
-void smtp_code_free(SmtpCodes_T *codes);
+void smtp_code_free(void *codes);
 
+/** Add smtp return code to list
+ *
+ * \param code smtp code
+ * \param msg smtp return message
+ */
+void smtp_code_insert(void *smtp_codes, int code, char *msg);
+
+/** Get smtp return code message of given code
+ *
+ * \param code to look for
+ *
+ * \returns smtp return message for given code
+ */
+char *smtp_code_get(void *smtp_codes, int code);
 
 #endif	/* _SMTP_CODES_H */
 

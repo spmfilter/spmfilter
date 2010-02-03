@@ -23,15 +23,13 @@
 
 #define THIS_MODULE "smtp_codes"
 
-GHashTable *smtp_codes = NULL;
-
 /** Add smtp return code to list
  *
  * \param code smtp code
  * \param msg smtp return message
  */
-void smtp_code_insert(int code, char *msg) {
-	g_hash_table_insert(smtp_codes,&code, msg);
+void smtp_code_insert(void *smtp_codes, int code, char *msg) {
+	g_hash_table_insert((GHashTable *)smtp_codes,&code, msg);
 }
 
 /** Get smtp return code message of given code
@@ -40,28 +38,24 @@ void smtp_code_insert(int code, char *msg) {
  *
  * \returns smtp return message for given code
  */
-char *smtp_code_get(int code) {
-	return g_hash_table_lookup(smtp_codes,&code);;
+char *smtp_code_get(void *smtp_codes, int code) {
+	return g_hash_table_lookup((GHashTable *)smtp_codes,&code);;
 }
 
 /** Create a new hash table for all smtp codes
  *
  * \returns new allocated SmtpCodes_T
  */
-SmtpCodes_T *smtp_code_new(void) {
-	SmtpCodes_T *codes = (SmtpCodes_T *) malloc(sizeof(SmtpCodes_T));
-
-	smtp_codes = g_hash_table_new((GHashFunc)g_int_hash,(GEqualFunc)g_int_equal);
-	codes->get = *smtp_code_get;
-	codes->insert = *smtp_code_insert;
-	return codes;
+void *smtp_code_new(void) {
+	GHashTable *smtp_codes;
+	smtp_codes = (void *)g_hash_table_new((GHashFunc)g_int_hash,(GEqualFunc)g_int_equal);
+	return smtp_codes;
 }
 
 /** Free smtp codes
  *
  * \param pointer to smtp codes
  */
-void smtp_code_free(SmtpCodes_T *codes) {
-	free(codes);
-	g_hash_table_destroy(smtp_codes);
+void smtp_code_free(void *codes) {
+	g_hash_table_destroy(codes);
 }
