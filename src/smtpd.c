@@ -1,6 +1,24 @@
+/* spmfilter - mail filtering framework
+ * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <glib.h>
 #include <gmodule.h>
 #include <sys/socket.h>
@@ -8,6 +26,7 @@
 #include <unistd.h>
 
 #include "spmfilter.h"
+#include "mailconn.h"
 #include "smtpd.h"
 
 #define THIS_MODULE "smtpd"
@@ -53,10 +72,9 @@ void smtp_string_reply(const char *format, ...) {
 void smtp_code_reply(int code) {
 	char *code_msg;
 	Settings_T *settings = get_settings();
-
 	/* we don't need to free code_msg, will be
 	 * freed by smtp_code_free() */
-	code_msg = smtp_code_get(settings->smtp_codes,code);
+	code_msg = settings->smtp_codes->get(code);
 	if (code_msg!=NULL) {
 		fprintf(stdout,"%d %s\r\n",code,code_msg);  
 	} else {
@@ -275,7 +293,7 @@ int load(void) {
 	int state=ST_INIT;
 	Settings_T *settings = get_settings();
 	
-	mconn_new();
+	mconn = mconn_new();
 
 	gethostname(hostname,256);
 
@@ -299,15 +317,15 @@ int load(void) {
 			 * command had been issued.
 			 */
 			if (state != ST_INIT) {
-				mconn_free();
+				mconn_free(mconn);
 				/* reinit mconn */
-				mconn_new();
+				mconn = mconn_new();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
 			mconn->helo = get_substring("^HELO\\s(.*)$",line, 1);
 			TRACE(TRACE_DEBUG,"HELO: %s",mconn->helo);
 			if (mconn->helo != NULL) {
-				if (MATCH(mconn->helo,""))  {
+				if (g_strcmp0(mconn->helo,"") == 0)  {
 					smtp_string_reply("501 Syntax: HELO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
@@ -322,14 +340,14 @@ int load(void) {
 			 * received later...
 			 */
 			if (state != ST_INIT) {
-				mconn_free();
+				mconn_free(mconn);
 				/* reinit mconn */
-				mconn_new();
+				mconn = mconn_new();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			mconn->helo = get_substring("^EHLO\\s(.*)$",line,1);
 			if (mconn->helo != NULL) {
-				if (MATCH(mconn->helo,"")) {
+				if (g_strcmp0(mconn->helo,"") == 0) {
 					smtp_string_reply("501 Syntax: EHLO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
@@ -369,13 +387,13 @@ int load(void) {
 				mconn->from->addr = get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->from->addr != NULL){
 					TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
-					if (MATCH(mconn->from->addr,"")) {
+					if (g_strcmp0(mconn->from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtp_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
 						g_slice_free(EmailAddress_T,mconn->from);
 						mconn->from = NULL;
 					} else {
-						if (!MATCH(settings->backend,"undef")) {
+						if (g_strcmp0(settings->backend,"undef") != 0) {
 								mconn->from->is_local = lookup_user(mconn->from->addr);
 								TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
 						}
@@ -398,13 +416,13 @@ int load(void) {
 				mconn->rcpts[mconn->num_rcpts] = g_slice_new(EmailAddress_T);
 				mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->rcpts[mconn->num_rcpts] != NULL) {
-					if (MATCH(mconn->rcpts[mconn->num_rcpts]->addr,"")) {
+					if (g_strcmp0(mconn->rcpts[mconn->num_rcpts]->addr,"") == 0) {
 						/* empty rcpt to? */
 						smtp_string_reply("501 Syntax: RCPT TO:<address>\r\n");
 						g_slice_free(EmailAddress_T,mconn->rcpts[mconn->num_rcpts]);
 					} else {
 						TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
-						if (!MATCH(settings->backend,"undef")) {
+						if (g_strcmp0(settings->backend,"undef") != 0) {
 							mconn->rcpts[mconn->num_rcpts]->is_local = lookup_user(mconn->rcpts[mconn->num_rcpts]->addr);
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
 						}
@@ -431,9 +449,9 @@ int load(void) {
 			}
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
-			mconn_free();
+			mconn_free(mconn);
 			/* reinit mconn */
-			mconn_new();
+			mconn = mconn_new();
 			smtp_code_reply(250);
 			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
@@ -452,40 +470,7 @@ int load(void) {
 	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
 
-	mconn_free();
+	mconn_free(mconn);
 	
 	return 0;
 }
-
-/** Initialize MailConn_T structure
- */
-
-void mconn_new(void) {
-	mconn = g_slice_new(MailConn_T);
-	mconn->helo = NULL;
-	mconn->from = NULL;
-	mconn->queue_file = NULL;
-	mconn->rcpts = NULL;
-	mconn->xforward_addr = NULL;
-}
-
-/** Free MailConn_T structure
- */
-void mconn_free(void) {
-	int i;
-	g_free(mconn->queue_file);
-	g_free(mconn->helo);
-	g_free(mconn->xforward_addr);
-
-	if (mconn->from != NULL)
-		g_free(mconn->from->addr);
-	g_slice_free(EmailAddress_T,mconn->from);
-	for (i = 0; i < mconn->num_rcpts; i++) {
-		g_free(mconn->rcpts[i]->addr);
-		g_slice_free(EmailAddress_T,mconn->rcpts[i]);
-	}
-	g_free(mconn->rcpts);
-	g_slice_free(MailConn_T,mconn);
-
-}
-

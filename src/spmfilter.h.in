@@ -1,5 +1,24 @@
+/* spmfilter - mail filtering framework
+ * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef SPMFILTER_H
 #define SPMFILTER_H
+
+#include <stdlib.h>
 
 /* spmfilter version */
 #define SMF_VERSION ${SMF_VERSION_NUMBER}
@@ -19,18 +38,11 @@
 /* zdb */
 #cmakedefine HAVE_ZDB
 
-#define MATCH(x,y) strcasecmp((x),(y))==0
-
 typedef struct {
-	char *msg;
-	int flags;
-	long code;
-} SmtpCode_T;
+	void (* insert)(int code, char *msg);
+	char *(* get)(int code);
+} SmtpCodes_T;
 
-typedef struct {
-	SmtpCode_T *table;
-	long size, count;
-} SmtpCodeTable_T;
 
 typedef struct {
 	/* debug flag */
@@ -64,18 +76,29 @@ typedef struct {
 	
 	/* configured lookup backend */
 	char *backend;
+
+	/* if multiple backend hosts are defined,
+	 * it's possible to balance connections
+	 * between all, or do failover connections.
+	 * possible keys are:
+	 * - balance
+	 *   load-balance connections among all hosts listed
+	 * - failover
+	 *   failover connections in the order listed
+	 */
+	char *backend_connection;
 	
 	/* hash table for smtp codes */
-	SmtpCodeTable_T *smtp_codes;
+	SmtpCodes_T *smtp_codes;
 	
 #ifdef HAVE_ZDB
 	char *sql_driver;
 	char *sql_name;
-	char *sql_host;
+	char **sql_host;
+	int sql_num_hosts;
 	int sql_port;
 	char *sql_user;
 	char *sql_pass;
-	char *encoding;
 	char *sql_user_query;
 	char *sql_encoding;
 	int sql_max_connections;
@@ -83,12 +106,15 @@ typedef struct {
 
 #ifdef HAVE_LDAP
 	char *ldap_uri;
-	char *ldap_host;
+	char **ldap_host;
+	int ldap_num_hosts;
 	int ldap_port;
 	char *ldap_binddn;
 	char *ldap_bindpw;
 	char *ldap_base;
 	int ldap_referrals;
+	char *ldap_scope;
+	char *ldap_user_query;
 #endif
 } Settings_T;
 
@@ -171,18 +197,6 @@ void trace(Trace_T level, const char * module, const char * function, int line, 
  */
 Settings_T *get_settings(void);
 
-void set_settings(Settings_T **s);
-
-/** free settings struct */
-void free_settings(Settings_T *settings);
-
-/** load and parse config file
- *
- * \returns 0 on success or -1 in case of error
- */
-
-int parse_config(void);
-
 /** generate a new queue file name
  *
  * \buf pointer to unallocated buffer for filename, needs to
@@ -191,35 +205,6 @@ int parse_config(void);
  * \returns 0 on success or -1 in case of error
  */
 int gen_queue_file(char **tempanme);
-
-/** Create a new hash table for all smtp codes
- *
- * \returns new allocated hash table
- */
-SmtpCodeTable_T *smtp_code_new(void);
-
-/** Add smtp return code to list
- *
- * \param SmtpCodeTable_T type
- * \param code smtp code 
- * \param msg smtp return message
- */
-void smtp_code_insert(SmtpCodeTable_T *codes, unsigned long code, char *msg);
-
-/** Get smtp return code message of given code
- *
- * \param SmtpCodeTable_T struct
- * \param code to look for
- *
- * \returns smtp return message for given code
- */
-char *smtp_code_get(SmtpCodeTable_T *codes, unsigned long code);
-
-/** Free smtp codes
- *
- * \param pointer to smtp codes
- */
-void smtp_code_free(SmtpCodeTable_T *codes);
 
 /** extract a substring from given string
  * 
@@ -247,7 +232,7 @@ int write_message(char *new_path, char *queue_file);
  *
  * \returns value of header or NULL in case of error
  */
-const char *get_header(char *msg_path, char *header_name);
+char *get_header(char *msg_path, const char *header_name);
 
 /** Sets an arbitrary header
  * 
@@ -282,65 +267,112 @@ int smtp_delivery(Message_T *msg_data);
  */
 char *get_maildir_filename(void);
 
-#ifdef HAVE_ZDB
-#include <URL.h>
-#include <ResultSet.h>
-#include <PreparedStatement.h>
-#include <Connection.h>
-#include <ConnectionPool.h>
-#include <SQLException.h>
+struct lookup_element {
+	void *data;
+};
+typedef struct lookup_element LookupElement_T;
 
-/** connect to sql server
- *
- * \returns 0 on success or -1 in case of error
+struct lookup_result {
+	LookupElement_T *elem;
+	struct lookup_result *next;
+	struct lookup_result *prev;
+};
+typedef struct lookup_result LookupResult_T;
+
+/** Since LDAP attributes can have more than
+ *  one value, we need to define a new datatype,
+ *  in order not to link every module against
+ *  ldap, which needs LDAP connectivity.
+ *  Every LDAP lookup returns LookupElement_T
+ *  with LdapValue_T pointer as data.
  */
-int sql_connect(void);
+typedef struct {
+	int num_values;
+	char **values;
+} LdapValue_T;
 
-/** check if given user exists in database
+/** Allocates memory for LookupResult_T
  *
- * \param addr email adress of user
- *
- * \return 1 if the user exists, otherwise 0
+ * \returns newly allocated LookupResult_T
  */
-int sql_user_exists(char *addr); 
+LookupResult_T *lookup_result_new(void);
 
-/** do a database query
+/** Frees all of the memory used by LookupResult_T
  *
- * \param q format string for sql query
- * \param ... arguments for format string
- *
- * \returns ResultSet_T or NULL in case of error
+ * \param *l pointer to LookupResult_T
  */
-ResultSet_T sql_query(const char *q, ...);
-#endif
+void lookup_result_free(LookupResult_T *l);
 
-#ifdef HAVE_LDAP
-#include <ldap.h>
-
-/** connect to ldap server
+/** Adds a new element on to the end of the list.
+ *  The return value is the new start of the list,
+ *  which may have changed, so make sure you store the new value.
  *
- * \returns 0 on success or -1 in case of error
- */
-int ldap_connect(void);
-
-/** query LDAP directory, returns LDAPMessage
- * 
- * \param q format string for ldap query
- * \param ... arguments for format string
- * 
- * \returns LDAPMessage or NULL in case of error
- */
-LDAPMessage *ldap_query(const char *q, ...);
-
-/** check if given user exists in ldap directory
+ * \param *l pointer to LookupResult_T
+ * \param *elem_data pointer to LookupElement_T
  *
- * \param addr email adress of user
- *
- * \return 1 if the user exists, otherwise 0
+ * \returns the new start of LookupResult_T
  */
-int ldap_user_exists(char *addr);
-#endif
+LookupResult_T *lookup_result_append(LookupResult_T *l, LookupElement_T *elem_data);
 
+/** Get the first element of LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the first element in LookupResult_T,
+ *          or NULL if there are no elements
+ */
+LookupResult_T *lookup_result_first(LookupResult_T *l);
+
+/** Get the last element of LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the first element in LookupResult_T,
+ *          or NULL if there are no elements
+ */
+LookupResult_T *lookup_result_last(LookupResult_T *l);
+
+/** Get the previous element of LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the previous element, or NULL if there are no previous elements.
+ */
+LookupResult_T *lookup_result_previous(LookupResult_T *l);
+
+/** Get the next element of LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the next element, or NULL if there is no following element
+ */
+LookupResult_T *lookup_result_next(LookupResult_T *l);
+
+/** Get the element at the given position
+ *
+ * \param *l pointer to LookupResult_T
+ * \param i the position of the element
+ *
+ * \returns the element, or NULL if the position is off the end
+ */
+LookupResult_T *lookup_result_nth(LookupResult_T *l, int i);
+
+/** This function iterates over the whole list to count its elements.
+ *
+ * \param *l pointer to LookupResult_T
+ *
+ * \returns the number of elements
+ */
+int lookup_result_count(LookupResult_T *l);
+
+/** Looks up a key in LookupResult_T
+ *
+ * \param *r pointer to LookupResult_T
+ * \param *key the key to look up
+ *
+ * \returns the associated value, or NULL if the key is not found
+ */
+void *lookup_element_get(LookupResult_T *r, char *key);
 
 /** Establish database/ldap connection
  *
@@ -363,15 +395,8 @@ int lookup_disconnect(void);
  */
 int lookup_user(char *addr);
 
-/** expands placeholders in a user querystring
- *
- * \param format format string to use as input
- * \param addr email address to use for replacements
- * \buf pointer to unallocated buffer for expanded format string, needs to
- *      free'd by caller if not required anymore
- *
- * \returns the number of replacements made or -1 in case of error
- */
-int expand_query(char *format, char *addr, char **buf);
+LookupResult_T *lookup_query(const char *q, ...);
+
+
 
 #endif

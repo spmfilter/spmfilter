@@ -15,20 +15,21 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMTPD_H
-#define _SMTPD_H
+#ifndef _SETTINGS_H
+#define	_SETTINGS_H
 
-#define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
-#define CODE_250 "250 OK\r\n"
-#define CODE_250_ACCEPTED "250 OK message accepted\r\n"
-#define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_502 "502 Eh? WTF was that?\r\n"
-#define CODE_552 "552 Requested action aborted: local error in processing\r\n"
+/** Override settings */
+void set_settings(Settings_T **s);
 
-typedef int (*LoadMod) (MailConn_T *mconn);
+/** free settings struct */
+void free_settings(Settings_T *settings);
 
-int load(void);
-void smtp_string_reply(const char *format, ...);
-void smtp_code_reply(int code);
+/** load and parse config file
+ *
+ * \returns 0 on success or -1 in case of error
+ */
 
-#endif /* __SMTPD_H */
+int parse_config(void);
+
+#endif	/* _SETTINGS_H */
+

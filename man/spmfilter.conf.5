@@ -84,6 +84,27 @@ This parameter specifies the final destination, after a mail is processed
 by spmfilter. The value can be a hostname or IP address, with a port number,
 e.g. localhost:2525 to send filtered mails to localhost at port 2525.
 
+.IP "\fBbackend\fR"
+Define lookup backend, this can be either \fBsql\fR or \fBldap\fR. Every
+backend has it's own config section, \fB[sql]\fR and \fB[ldap]\fR.
+
+.IP "\fBbackend_connection\fR"
+If there are multiple server configured in the specified backend, it's
+possible to define a failover or load-balancing behaviour. Possible 
+values are:
+
+.nf
+balance	=	when you configure the backend profile for load balancing, spmfilter 
+			distributes connections across the list of hosts. If the actual host is 
+			not reachable, spmfilter switches back to failover configuration.
+.fi
+
+
+.nf
+failover	=	when you configure the backen profile for failover, spmfilter fails over 
+			to the next host in the list if it cannot connect to the first host.
+.fi
+
 .SS "The [smtpd] section"
 .P
 Parameters in this section affect the smtpd engine and smtp delivery.
@@ -106,6 +127,30 @@ with a 500 error code:
 [smtpd]
 500=Customized error message.
 .fi
+
+.SS "The [sql] section"
+Parameters in this section affect the \fBsql backend\fR configuration.
+.IP "\fBdriver\fR"
+SQl database driver. Supported drivers are mysql, pgsql, sqlite.
+
+.IP "\fBhost\fR"
+List of available database hosts, separated by a semicolon. Set to localhost if database is on the same 
+host as spmfilter.
+
+.IP "\fBport\fR"
+TCP/IP port of database host, if the database is running on a non-standard port.
+
+.IP "\fBname\fR"
+Database name, or path to database if driver is set to sqlite.
+
+.IP "\fBuser\fR"
+Database username.
+
+.IP "\fBpass\fR"
+Database password.
+
+.IP "\fBencoding\fR"
+Encoding to match database/table encoding, e.g., latin1, utf8
 
 .SH "EXAMPLE"
 .P

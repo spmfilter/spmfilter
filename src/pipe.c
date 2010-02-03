@@ -1,3 +1,20 @@
+/* spmfilter - mail filtering framework
+ * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,20 +25,22 @@
 #include <fcntl.h>
 
 #include "spmfilter.h"
+#include "mailconn.h"
 
 #define THIS_MODULE "pipe"
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
-typedef int (*LoadMod) (Settings_T *settings, MailConn_T *mconn);
+typedef int (*LoadMod) (MailConn_T *mconn);
 
-// TODO: fix module interface
-// TODO: fix MailConn_T handling
-int load_modules(Settings_T *settings, MailConn_T *mconn) {
+MailConn_T *mconn = NULL;
+
+int load_modules(void) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
 	Message_T *msg = NULL;
+	Settings_T *settings = get_settings();
 	
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;
@@ -59,7 +78,7 @@ int load_modules(Settings_T *settings, MailConn_T *mconn) {
 			return -1;
 		}
 
-		ret = load_module(settings,mconn);
+		ret = load_module(mconn);
 		if (ret == -1) {
 			g_module_close (module);
 			switch (settings->module_fail) {
@@ -68,11 +87,11 @@ int load_modules(Settings_T *settings, MailConn_T *mconn) {
 			}
 			return -1;
 		} else if (ret == 1) {
-			g_module_close (module);
+			g_module_close(module);
 			break;
 		}
 
-		if (!g_module_close (module))
+		if (!g_module_close(module))
 			TRACE(TRACE_ERR,"%s", g_module_error());
 	
 		g_free(path);
@@ -105,7 +124,7 @@ int load_modules(Settings_T *settings, MailConn_T *mconn) {
 }
 
 
-int load(MailConn_T *mconn) {
+int load(void) {
 	GIOChannel *in, *out;
 	GMimeStream *gmin;
 	GMimeMessage *message;
@@ -118,6 +137,8 @@ int load(MailConn_T *mconn) {
 	int i;
 	Settings_T *settings = get_settings();
 	
+	mconn = mconn_new();
+
 	gen_queue_file(&mconn->queue_file);
 
 	TRACE(TRACE_DEBUG,"using spool file: '%s'", mconn->queue_file);
@@ -166,13 +187,12 @@ int load(MailConn_T *mconn) {
 	message = g_mime_parser_construct_message (parser);
 	mconn->from = g_slice_new(EmailAddress_T);
 	mconn->from->addr = get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
-#ifdef HAVE_ZDB
-	if (settings->sql_user_query != NULL) {
-		mconn->from->is_local = sql_user_exists(mconn->from->addr);
-		TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
-	}
-#endif
+
 	TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
+	
+	mconn->from->is_local = lookup_user(mconn->from->addr);
+	TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
+	
 
 	
 #ifdef HAVE_GMIME24
@@ -184,6 +204,8 @@ int load(MailConn_T *mconn) {
 		mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
 		mconn->rcpts[mconn->num_rcpts]->addr = get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
 		TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+		mconn->rcpts[mconn->num_rcpts]->is_local = lookup_user(mconn->rcpts[mconn->num_rcpts]->addr);
+		TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
 		mconn->num_rcpts++;
 	}
 #else
@@ -198,17 +220,22 @@ int load(MailConn_T *mconn) {
 		mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
 		mconn->rcpts[mconn->num_rcpts]->addr = get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
 		TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+		mconn->rcpts[mconn->num_rcpts]->is_local = lookup_user(mconn->rcpts[mconn->num_rcpts]->addr);
+		TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
 		mconn->num_rcpts++;
 		ia = internet_address_list_next(ia);
 	}
 #endif
-	
-	if (load_modules(settings,mconn) != 0) {
+
+	g_mime_shutdown();
+	if (load_modules() != 0) {
 		remove(mconn->queue_file);
+		mconn_free(mconn);
 		TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 		return -1;
 	} else {
 		remove(mconn->queue_file);
+		mconn_free(mconn);
 		TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 		return 0;
 	}
