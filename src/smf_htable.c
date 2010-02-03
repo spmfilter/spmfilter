@@ -146,7 +146,6 @@ void *htable_lookup(HTABLE_T *table, void *key) {
 /* * * MATCH FUNCTIONS * * */
 int htable_match_string(const void *key1, const void *key2) {
 	if(strcmp((char *)key1, (char *)key2) == 0) {
-		printf("string equal '%s' : '%s'\n", key1, key2);
 		return(1);
 	}
 
