@@ -257,8 +257,9 @@ int parse_config(void) {
 		code = g_ascii_strtod(code_keys[codes_length],NULL);
 		if ((code > 400) && (code < 600)) {
 			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
-			settings->smtp_codes->insert(code, code_msg);
-			TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,settings->smtp_codes->get(code));
+			smtp_code_insert(settings->smtp_codes,code,code_msg);
+			//settings->smtp_codes->insert(code, code_msg);
+			TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smtp_code_get(settings->smtp_codes,code));
 			g_free(code_msg);
 		}
 	}
