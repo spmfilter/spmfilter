@@ -72,11 +72,9 @@ void smtp_string_reply(const char *format, ...) {
  */
 void smtp_code_reply(int code) {
 	char *code_msg;
-	Settings_T *settings = get_settings();
 	/* we don't need to free code_msg, will be
 	 * freed by smtp_code_free() */
-	//code_msg = settings->smtp_codes->get(code);
-	code_msg = smtp_code_get(settings->smtp_codes,code);
+	code_msg = smtp_code_get(code);
 	if (code_msg!=NULL) {
 		fprintf(stdout,"%d %s\r\n",code,code_msg);  
 	} else {
