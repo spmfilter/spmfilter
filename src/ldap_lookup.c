@@ -195,7 +195,6 @@ void ldap_disconnect(void) {
 }
 
 LookupResult_T *ldap_query(const char *q, ...) {
-	LookupResult_T *result = lookup_result_new();
 	va_list ap, cp;
 	char *query;
 	LDAPMessage *msg = NULL;
@@ -205,6 +204,7 @@ LookupResult_T *ldap_query(const char *q, ...) {
 	BerElement *ptr;
 	int i,value_count;
 	LDAP *c = ldap_con_get();
+	LookupResult_T *result = lookup_result_new();
 	Settings_T *settings = get_settings();
 
 	va_start(ap, q);
@@ -235,17 +235,17 @@ LookupResult_T *ldap_query(const char *q, ...) {
 			value_count = ldap_count_values_len(bvals);
 			TRACE(TRACE_LOOKUP,"found attribute [%s] in entry [%p] with [%d] values", attr, entry, value_count);
 
-			vals->num_values = value_count;
-			vals->values = (char **)calloc(value_count, sizeof(char *));
+			vals->len = value_count;
+			vals->data = (char **)calloc(value_count, sizeof(char *));
 			for (i = 0; i < value_count; i++) {
-				vals->values[i] = (char *)malloc(strlen((char *)((struct berval)*bvals[i]).bv_val) + 1);
-				strcpy(vals->values[i], (char *)((struct berval)*bvals[i]).bv_val);
+				vals->data[i] = (char *)malloc(strlen((char *)((struct berval)*bvals[i]).bv_val) + 1);
+				strcpy(vals->data[i], (char *)((struct berval)*bvals[i]).bv_val);
 			}
-			lookup_element_insert(e,g_strdup(attr),vals);
+			lookup_element_add(e,g_strdup(attr),vals);
 			ldap_value_free_len(bvals);
 			free(attr);
 		}
-		result = lookup_result_append(result,e);
+		lookup_result_add(result,e);
 	}
 	ber_free(ptr,0);
 	ldap_msgfree(msg);
