@@ -321,9 +321,6 @@ int lookup_user(char *addr);
  */
 LookupResult_T *lookup_query(const char *q, ...);
 
-typedef struct {
-	void *data;
-} GroupSettings_T;
 
 /** Load all settings from specified group
  *
@@ -333,11 +330,57 @@ typedef struct {
  */
 int group_settings_load(char *group_name);
 
+/** Returns the raw value associated with key under the selected group.
+ *  Use group_settings_get_string() to retrieve an unescaped UTF-8 string.
+ *
+ * \param key a key
+ *
+ * \returns a newly allocated string or NULL if the specified key cannot be found.
+ */
+char *group_settings_get_value(char *key);
+
+/** Returns the string value associated with key under the selected group.
+ *  Unlike group_settings_get_value(), this function handles escape
+ *  sequences like \s.
+ *
+ * \param key a key
+ *
+ * \returns a newly allocated string or NULL if the specified key cannot be found.
+ */
 char *group_settings_get_string(char *key);
+
+/** Returns the boolean values associated with key under the selected group as integer.
+ *
+ * \param key a key
+ *
+ * \returns the value associated with the key as a integer, or 0 if the key was
+ * not found or could not be parsed.
+ */
 int group_settings_get_boolean(char *key);
+
+/** Returns the value associated with key under the selected group as an integer.
+ *
+ * \param key a key
+ *
+ * \returns he value associated with the key as an integer, or 0 if the key was not found or could not be parsed.
+ */
 int group_settings_get_integer(char *key);
+
+/** Returns the value associated with key under the selected group as a double.
+ *
+ * \param key a key
+ *
+ * \returns the value associated with the key as a double, or 0.0 if the key was not found or could not be parsed.
+ */
 double group_settings_get_double(char *key);
-char **group_settings_get_string_list(char *key, int *length);
+
+/** Returns the values associated with key under the selected group.
+ *
+ * \param key a key
+ *
+ * \returns a NULL-terminated string array or NULL if the specified key cannot be found.
+ */
+char **group_settings_get_string_list(char *key, int length);
 
 /** Free allocated space
  *
