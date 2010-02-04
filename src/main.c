@@ -22,6 +22,7 @@
 
 #include "spmfilter.h"
 #include "settings.h"
+#include "lookup.h"
 
 #define THIS_MODULE "spmfilter"
 

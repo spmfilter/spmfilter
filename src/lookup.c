@@ -163,8 +163,14 @@ int lookup_user(char *addr) {
 	return -1;
 }
 
+/** Query lookup backend.
+ *
+ * \param q a standard printf() format string
+ * \param args the list of parameters to insert into the format string
+ *
+ * \return new allocated LookupResult_T
+ */
 LookupResult_T *lookup_query(const char *q, ...) {
-	LookupResult_T *result = NULL;
 	va_list ap, cp;
 	char *query;
 	Settings_T *settings = get_settings();
@@ -177,14 +183,14 @@ LookupResult_T *lookup_query(const char *q, ...) {
 
 	if ((g_ascii_strcasecmp(settings->backend,"sql")) == 0) {
 #ifdef HAVE_ZDB
-		result = sql_query(query);
+		return sql_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
 		return;
 #endif
 	} else if ((g_ascii_strcasecmp(settings->backend,"ldap")) == 0) {
 #ifdef HAVE_LDAP
-		result = ldap_query(query);
+		return ldap_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is built with ldap backend");
 		return;
@@ -193,5 +199,5 @@ LookupResult_T *lookup_query(const char *q, ...) {
 		TRACE(TRACE_ERR,"no valid backend defined");
 	}
 
-	return result;
+	return NULL;
 }

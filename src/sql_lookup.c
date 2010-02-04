@@ -278,6 +278,7 @@ LookupResult_T *sql_query(const char *q, ...) {
 		TRACE(TRACE_ERR,"got SQLException");
 		return NULL;
 	END_TRY;
+
 	while (ResultSet_next(r)) {
 		LookupElement_T *e = lookup_element_new();
 			
@@ -289,12 +290,11 @@ LookupResult_T *sql_query(const char *q, ...) {
 			int col_size = ResultSet_getColumnSize(r,i);
 			void *data = malloc(col_size);
 			memcpy(data,ResultSet_getBlob(r,i,&blob_size),col_size);
-			lookup_element_insert(e,col_name,data);
-			
+			lookup_element_add(e,col_name,data);
 		}
-		result = lookup_result_append(result,e);
+		lookup_result_add(result,e);
 	}
-	
+	TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->len);
 	return result;
 }
 
