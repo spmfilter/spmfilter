@@ -38,7 +38,7 @@ void set_settings(Settings_T **s) {
 }
 
 void free_settings(Settings_T *settings) {
-	smtp_code_free(settings->smtp_codes);
+	smtp_code_free();
 	g_strfreev(settings->modules);
 	g_free(settings->config_file);
 	g_free(settings->queue_dir);
@@ -250,16 +250,14 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: %d", settings->nexthop_fail_code);
 	TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: %s", settings->nexthop_fail_msg);
 
-	settings->smtp_codes = smtp_code_new();
 	code_keys = g_key_file_get_keys(keyfile,"smtpd",&codes_length,NULL);
 	while (codes_length--) {
 		/* only insert smtp codes to hashtable */
 		code = g_ascii_strtod(code_keys[codes_length],NULL);
 		if ((code > 400) && (code < 600)) {
 			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
-			smtp_code_insert(settings->smtp_codes,code,code_msg);
-			//settings->smtp_codes->insert(code, code_msg);
-			TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smtp_code_get(settings->smtp_codes,code));
+			smtp_code_insert(code,code_msg);
+			TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smtp_code_get(code));
 			g_free(code_msg);
 		}
 	}

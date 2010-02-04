@@ -18,24 +18,15 @@
 #ifndef _SMTP_CODES_H
 #define	_SMTP_CODES_H
 
-/** Create a new hash table for all smtp codes
- *
- * \returns new allocated SmtpCodes_T
- */
-void *smtp_code_new(void);
-
-/** Free smtp codes
- *
- * \param pointer to smtp codes
- */
-void smtp_code_free(void *codes);
+/** Free smtp codes */
+void smtp_code_free(void);
 
 /** Add smtp return code to list
  *
  * \param code smtp code
  * \param msg smtp return message
  */
-void smtp_code_insert(void *smtp_codes, int code, char *msg);
+void smtp_code_insert(int code, char *msg);
 
 /** Get smtp return code message of given code
  *
@@ -43,7 +34,7 @@ void smtp_code_insert(void *smtp_codes, int code, char *msg);
  *
  * \returns smtp return message for given code
  */
-char *smtp_code_get(void *smtp_codes, int code);
+char *smtp_code_get(int code);
 
 #endif	/* _SMTP_CODES_H */
 
