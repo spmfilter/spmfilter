@@ -43,7 +43,7 @@ void smtp_code_insert(int code, char *msg) {
  * \returns smtp return message for given code
  */
 char *smtp_code_get(int code) {
-	return g_hash_table_lookup(smtp_codes,&code);;
+	return g_hash_table_lookup(smtp_codes,&code);
 }
 
 /** Free smtp codes */

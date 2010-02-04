@@ -321,4 +321,30 @@ int lookup_user(char *addr);
  */
 LookupResult_T *lookup_query(const char *q, ...);
 
+typedef struct {
+	void *data;
+} GroupSettings_T;
+
+/** Load all settings from specified group to hash table
+ *
+ * \param group_name wanted group
+ *
+ * \returns GroupSettings_T
+ */
+GroupSettings_T *group_settings_load(char *group_name);
+
+/** Get value from group
+ *
+ * \param key key to look for
+ *
+ * \returns value for key
+ */
+char *group_settings_get(GroupSettings_T *s, char *key);
+
+/** Free allocated space
+ *
+ * \param s GroupSettings_T
+ */
+void group_settings_free(GroupSettings_T *s);
+
 #endif
