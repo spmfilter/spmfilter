@@ -325,26 +325,24 @@ typedef struct {
 	void *data;
 } GroupSettings_T;
 
-/** Load all settings from specified group to hash table
+/** Load all settings from specified group
  *
  * \param group_name wanted group
  *
- * \returns GroupSettings_T
+ * \returns 0 on success or -1 in case of error
  */
-GroupSettings_T *group_settings_load(char *group_name);
+int group_settings_load(char *group_name);
 
-/** Get value from group
- *
- * \param key key to look for
- *
- * \returns value for key
- */
-char *group_settings_get(GroupSettings_T *s, char *key);
+char *group_settings_get_string(char *key);
+int group_settings_get_boolean(char *key);
+int group_settings_get_integer(char *key);
+double group_settings_get_double(char *key);
+char **group_settings_get_string_list(char *key, int *length);
 
 /** Free allocated space
  *
  * \param s GroupSettings_T
  */
-void group_settings_free(GroupSettings_T *s);
+void group_settings_free(void);
 
 #endif
