@@ -258,17 +258,14 @@ int smtp_delivery(Message_T *msg_data);
  */
 char *get_maildir_filename(void);
 
-struct lookup_element {
+typedef struct {
 	void *data;
-};
-typedef struct lookup_element LookupElement_T;
+} LookupElement_T;
 
-struct lookup_result {
+typedef struct {
 	LookupElement_T *elem;
-	struct lookup_result *next;
-	struct lookup_result *prev;
-};
-typedef struct lookup_result LookupResult_T;
+	unsigned int len;
+} LookupResult_T;
 
 /** Since LDAP attributes can have more than
  *  one value, we need to define a new datatype,
@@ -278,15 +275,9 @@ typedef struct lookup_result LookupResult_T;
  *  with LdapValue_T pointer as data.
  */
 typedef struct {
-	int num_values;
-	char **values;
+	int len;
+	char **data;
 } LdapValue_T;
-
-/** Allocates memory for LookupResult_T
- *
- * \returns newly allocated LookupResult_T
- */
-LookupResult_T *lookup_result_new(void);
 
 /** Frees all of the memory used by LookupResult_T
  *
@@ -294,88 +285,23 @@ LookupResult_T *lookup_result_new(void);
  */
 void lookup_result_free(LookupResult_T *l);
 
-/** Adds a new element on to the end of the list.
- *  The return value is the new start of the list,
- *  which may have changed, so make sure you store the new value.
+/** Returns LookupElement_T at the given index of LookupResult_T
  *
- * \param *l pointer to LookupResult_T
- * \param *elem_data pointer to LookupElement_T
+ * \param l LookupResult_T list
+ * \param i the index of the pointer to return
  *
- * \returns the new start of LookupResult_T
+ * \returns LookupElement_T at the given index
  */
-LookupResult_T *lookup_result_append(LookupResult_T *l, LookupElement_T *elem_data);
+LookupElement_T *lookup_result_index(LookupResult_T *l, int i);
 
-/** Get the first element of LookupResult_T
+/** Looks up a key in LookupElement_T
  *
- * \param *l pointer to LookupResult_T
- *
- * \returns the first element in LookupResult_T,
- *          or NULL if there are no elements
- */
-LookupResult_T *lookup_result_first(LookupResult_T *l);
-
-/** Get the last element of LookupResult_T
- *
- * \param *l pointer to LookupResult_T
- *
- * \returns the first element in LookupResult_T,
- *          or NULL if there are no elements
- */
-LookupResult_T *lookup_result_last(LookupResult_T *l);
-
-/** Get the previous element of LookupResult_T
- *
- * \param *l pointer to LookupResult_T
- *
- * \returns the previous element, or NULL if there are no previous elements.
- */
-LookupResult_T *lookup_result_previous(LookupResult_T *l);
-
-/** Get the next element of LookupResult_T
- *
- * \param *l pointer to LookupResult_T
- *
- * \returns the next element, or NULL if there is no following element
- */
-LookupResult_T *lookup_result_next(LookupResult_T *l);
-
-/** Get the element at the given position
- *
- * \param *l pointer to LookupResult_T
- * \param i the position of the element
- *
- * \returns the element, or NULL if the position is off the end
- */
-LookupResult_T *lookup_result_nth(LookupResult_T *l, int i);
-
-/** This function iterates over the whole list to count its elements.
- *
- * \param *l pointer to LookupResult_T
- *
- * \returns the number of elements
- */
-int lookup_result_count(LookupResult_T *l);
-
-/** Looks up a key in LookupResult_T
- *
- * \param *r pointer to LookupResult_T
+ * \param *e pointer to LookupElement_T
  * \param *key the key to look up
  *
  * \returns the associated value, or NULL if the key is not found
  */
-void *lookup_element_get(LookupResult_T *r, char *key);
-
-/** Establish database/ldap connection
- *
- * \returns 0 on success or -1 in case of error
- */
-int lookup_connect(void);
-
-/** Destroy database/ldap connection
- *
- * \returns 0 on success or -1 in case of error
- */
-int lookup_disconnect(void);
+void *lookup_element_get(LookupElement_T *e, char *key);
 
 /** Check if given user is local
  *
@@ -386,8 +312,13 @@ int lookup_disconnect(void);
  */
 int lookup_user(char *addr);
 
+/** Query lookup backend.
+ *
+ * \param q a standard printf() format string
+ * \param args the list of parameters to insert into the format string
+ *
+ * \return new allocated LookupResult_T
+ */
 LookupResult_T *lookup_query(const char *q, ...);
-
-
 
 #endif
