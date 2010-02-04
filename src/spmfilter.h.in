@@ -82,9 +82,6 @@ typedef struct {
 	 */
 	char *backend_connection;
 	
-	/* hash table for smtp codes */
-	void *smtp_codes;
-	
 #ifdef HAVE_ZDB
 	char *sql_driver;
 	char *sql_name;
