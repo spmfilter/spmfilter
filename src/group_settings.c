@@ -21,22 +21,20 @@
 
 #define THIS_MODULE "group_settings"
 
+GKeyFile *keyfile = NULL;
+char *group = NULL;
+
 /** Load all settings from specified group to hash table
  *
  * \param group_name wanted group
  *
- * \returns GroupSettings_T
+ * \returns 0 on success or -1 in case of error
  */
-GroupSettings_T *group_settings_load(char *group_name) {
-	GroupSettings_T *gs = NULL;
+int group_settings_load(char *group_name) {
 	GError *error = NULL;
-	GKeyFile *keyfile;
-	char **keys;
-	gsize l;
-	int i;
 	Settings_T *settings = get_settings();
 
-	gs = (GroupSettings_T *)g_hash_table_new((GHashFunc)g_int_hash,(GEqualFunc)g_int_equal);
+	group = g_strdup(group_name);
 	
 	if (settings->config_file == NULL) {
 		settings->config_file = "/etc/spmfilter.conf";
@@ -47,42 +45,40 @@ GroupSettings_T *group_settings_load(char *group_name) {
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
 		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
 		g_error_free(error);
-		return NULL;
+		return -1;
 	}
 
 	if (!g_key_file_has_group(keyfile,group_name)) {
 		TRACE(TRACE_ERR,"config file has no group named %s", group_name);
-		return NULL;
+		return -1;
 	}
 
-	keys = g_key_file_get_keys(keyfile,group_name,&l,NULL);
-	for (i=0; i < l; i++) {
-		char *value;
-		value = g_key_file_get_value(keyfile,group_name,keys[i],NULL);
-		g_hash_table_insert((GHashTable *)gs,g_strdup(keys[i]), g_strdup(value));
-		TRACE(TRACE_DEBUG,"added key [%s] with value [%s]",keys[i],value);
-		g_free(value);
-	}
+	return 0;
+}
 
-	g_strfreev(keys);
+char *group_settings_get_string(char *key) {
+	return g_key_file_get_string(keyfile, group, key,NULL);
+}
+
+int group_settings_get_boolean(char *key) {
+	return g_key_file_get_boolean(keyfile, group, key,NULL);
+}
+
+int group_settings_get_integer(char *key) {
+	return g_key_file_get_integer(keyfile, group, key,NULL);
+}
+
+double group_settings_get_double(char *key) {
+	return g_key_file_get_double(keyfile, group, key, NULL);
+}
+
+char **group_settings_get_string_list(char *key, int *length) {
+	return g_key_file_get_string_list(keyfile, group, key, &length, NULL);
+}
+
+
+
+/** Free allocated space */
+void group_settings_free(void) {
 	g_key_file_free(keyfile);
-	return gs;
-}
-
-/** Get value from group
- *
- * \param key key to look for
- *
- * \returns value for key
- */
-char *group_settings_get(GroupSettings_T *s, char *key) {
-	return (char *)g_hash_table_lookup((GHashTable *)s,key);
-}
-
-/** Free allocated space
- *
- * \param s GroupSettings_T
- */
-void group_settings_free(GroupSettings_T *s) {
-	g_hash_table_destroy((GHashTable *)s);
 }
