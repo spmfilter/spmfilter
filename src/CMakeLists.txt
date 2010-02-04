@@ -8,6 +8,7 @@ set(LIB_SMF_SRC
     smtp.c
     smtp_codes.c
 	settings.c
+	group_settings.c
 	message.c
 	lookup.c
 	lookup_result.c
