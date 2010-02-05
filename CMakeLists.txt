@@ -54,14 +54,22 @@ endif(GMIME_FOUND)
 if(WITH_ZDB)
     find_package(Zdb REQUIRED)
     include_directories(${ZDB_INCLUDE_PATH})
+	link_directories(${ZDB_PATH})
 endif(WITH_ZDB)
 
 # check if we need to enable ldap
 if(WITH_LDAP)
     find_package(Ldap REQUIRED)
     include_directories(${LDAP_INCLUDE_DIR})
+	link_directories(${LDAP_PATH})
 endif(WITH_LDAP)
 
+# check if we need to enable db4
+if(WITH_DB4)
+	find_package(DB4 REQUIRED)
+	include_directories(${DB4_INCLUDE_DIR})
+	link_directories(${DB4_PATH})
+endif(WITH_DB4)
 
 # check out current version
 set(THREE_PART_VERSION_REGEX "[0-9]+\\.[0-9]+\\.[0-9]+")
