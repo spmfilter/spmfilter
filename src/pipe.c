@@ -24,8 +24,10 @@
 #include <gmime/gmime.h>
 #include <fcntl.h>
 
+
 #include "spmfilter.h"
 #include "mailconn.h"
+#include "platform.h"
 
 #define THIS_MODULE "pipe"
 
@@ -45,20 +47,13 @@ int load_modules(void) {
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;
 		TRACE(TRACE_DEBUG,"loading module %s",settings->modules[i]);
-		
-		if (g_str_has_prefix(settings->modules[i],"lib")) {
-#ifdef __APPLE__
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("%s.dylib",settings->modules[i]));
-#else
-			path = g_module_build_path(LIB_DIR,settings->modules[i]);
-#endif
-		} else {
-#ifdef __APPLE__
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s.dylib",settings->modules[i]));
-#else
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",settings->modules[i]));
-#endif
+
+		path = smf_build_module_path(LIB_DIR, settings->modules[i]);
+		if(path == NULL) {
+			TRACE(TRACE_DEBUG, "failed to build module path for %s", settings->modules[i]);
+			return(-1);
 		}
+
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
 			TRACE(TRACE_DEBUG,"%s", g_module_error());
