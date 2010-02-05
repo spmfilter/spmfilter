@@ -109,20 +109,13 @@ void load_modules(void) {
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;	
 		TRACE(TRACE_DEBUG,"loading module %s",settings->modules[i]);
-		
-		if (g_str_has_prefix(settings->modules[i],"lib")) {
-#ifdef __APPLE__
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("%s.dylib",g_strstrip(settings->modules[i])));
-#else
-			path = g_module_build_path(LIB_DIR,g_strstrip(settings->modules[i]));
-#endif
-		} else {
-#ifdef __APPLE__
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s.dylib",g_strstrip(settings->modules[i])));
-#else
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",g_strstrip(settings->modules[i])));
-#endif
+
+		path = smf_build_module_path(LIB_DIR, settings->modules[i]);
+		if(path == NULL) {
+			TRACE(TRACE_DEBUG, "failed to build module path for %s", settings->modules[i]);
+			return;
 		}
+
 		module = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!module) {
 			g_free(path);
