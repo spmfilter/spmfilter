@@ -38,6 +38,9 @@
 /* zdb */
 #cmakedefine HAVE_ZDB
 
+/* db4 */
+#cmakedefine HAVE_DB4
+
 typedef struct {
 	/* debug flag */
 	int debug;
@@ -387,5 +390,16 @@ char **group_settings_get_string_list(char *key, int length);
  * \param s GroupSettings_T
  */
 void group_settings_free(void);
+
+#ifdef HAVE_DB4
+/** Query Berkeley DB for given key
+ *
+ * \param database path to database file
+ * \param key key to lookup for
+ *
+ * \returns the values associated with key,  or NULL if the key is not found
+ */
+char *db4_query(char *database, char *key);
+#endif
 
 #endif
