@@ -14,11 +14,19 @@
 #define THIS_MODULE "smf_core"
 
 
-ProcessQueue_T *smf_core_pqueue_init(void(*errhandler)(void *args)) {
+ProcessQueue_T *smf_core_pqueue_init(int(*loaderr)(void *args),
+	int (*processerr)(int retval, void *args))
+{
 	ProcessQueue_T *q;
 
 	q = (ProcessQueue_T *)calloc(1, sizeof(ProcessQueue_T));
-	q->errhandler = errhandler;
+	if(q == NULL) {
+		TRACE(TRACE_ERR, "failed to allocate memory for process queue!");
+		return(NULL);
+	}
+
+	q->load_error = loaderr;
+	q->processing_error = processerr;
 	q->queue = g_ptr_array_new();
 
 	return q;
@@ -40,18 +48,44 @@ int smf_core_load_modules(ProcessQueue_T *q) {
 		}
 
 		mod = g_module_open(path, G_MODULE_BIND_LAZY);
-		if (!mod) 
-			goto error;
+		if (!mod) {
+			g_free(path);
+			TRACE(TRACE_ERR,"%s", g_module_error());
 
-		if (!g_module_symbol(mod, "load", sym))
-			goto error;
+			if(q->load_error(NULL) == 0)
+				return(-1);
+		}
+
+		if (!g_module_symbol(mod, "load", sym)) {
+			g_free(path);
+			TRACE(TRACE_ERR,"%s", g_module_error());
+
+			if(q->load_error(NULL) == 0)
+				return(-1);
+		} else {
+			g_ptr_array_add(q->queue, sym);
+		}
 	}
 
 	return(0);
+}
 
-	error:
-		g_free(path);
-		q->errhandler(NULL);
-		TRACE(TRACE_ERR,"%s", g_module_error());
-		return(-1);
+int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
+	int i;
+	int retval;
+	ModuleLoadFunction runner;
+	Settings_T *settings = get_settings();
+
+	for(i=0; i < q->queue->len; i++) {
+		runner = (ModuleLoadFunction)g_ptr_array_index(q->queue,i);
+		retval = runner(mconn);
+
+		if(retval != 0) {
+			/* FIXME: dont forget to close the gmodule before leaving */
+			if(q->processing_error(retval,NULL) == 0) {
+				return(-1);
+			}
+		}
+	}
+
 }
