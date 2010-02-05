@@ -28,6 +28,7 @@
 #include "spmfilter.h"
 #include "mailconn.h"
 #include "smtpd.h"
+#include "smf_core.h"
 
 #define THIS_MODULE "smtpd"
 
@@ -54,6 +55,54 @@ void stuffing(char chain[]) {
 		}
 	}
 	chain[j]='\0';
+}
+
+/* error handler used when building module queue
+ * return 1 if processing should continue, else 0
+ */
+int handle_q_error(void *args) {
+	Settings_T *settings = get_settings();
+	
+	switch (settings->module_fail) {
+		case 1: return(1);
+		case 2: smtp_code_reply(552);
+				return(0);
+		case 3: smtp_code_reply(451);
+				return(0);
+	}
+}
+
+/* handle processing errors when running queue */
+int handle_q_processing_error(int retval, void *args) {
+TRACE(TRACE_DEBUG,"module return code [%d]", ret);
+	if (retval == -1) {
+		switch (settings->module_fail) {
+			case 1: return(1);
+			case 2: smtp_code_reply(552);
+					return(0);
+			case 3: smtp_code_reply(451);
+					return(0);
+		}
+	} else if (ret == 1) {
+		smtp_string_reply(CODE_250_ACCEPTED);
+		return(0);
+	} else if (ret == 2) {
+		smtp_string_reply(CODE_250_ACCEPTED);
+		return(1);
+	} else if (ret >= 400) {
+		if (!g_module_close(module))
+			TRACE(TRACE_ERR,"%s", g_module_error());
+		g_free(path);
+
+		smtp_code_reply(ret);
+		return;
+	}
+
+	/* if none of the above matched, halt processing, this is just
+	 * for safety purposes
+	 */
+	TRACE(TRACE_DEBUG, "no conditional matched, will stop queue processing!")
+	return(0);
 }
 
 /* smtp answer with format string as arg */
@@ -104,7 +153,21 @@ void load_modules(void) {
 	LoadMod load_module;
 	int i, ret;
 	Message_T *msg = NULL;
+	ProcessQueue_T *q;
 	Settings_T *settings = get_settings();
+
+	/* initialize the modules queue */
+	q = smf_core_pqueue_init(handle_q_error, handle_q_processing_error);
+	if(q == NULL) {
+		return;
+	}
+
+	/* put pointers to module entries in place */
+	ret = smf_core_load_modules(q);
+	if(ret != 0) {
+		TRACE(TRACE_DEBUG, "smtp engine failed to load modules!");
+		return;
+	}
 
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		gchar *path;	
