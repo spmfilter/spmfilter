@@ -25,6 +25,11 @@ if(HAVE_LDAP)
     list(APPEND LIB_SMF_SRC ldap_lookup.c)
 endif(HAVE_LDAP)
 
+if(HAVE_DB4)
+	list(APPEND COMMON_LIBS db)
+	list(APPEND LIB_SMF_SRC db4_lookup.c)
+endif(HAVE_DB4)
+
 list(REMOVE_DUPLICATES COMMON_LIBS)
 
 add_library(smf SHARED ${LIB_SMF_SRC})
