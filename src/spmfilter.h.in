@@ -41,6 +41,9 @@
 /* db4 */
 #cmakedefine HAVE_DB4
 
+/* pcre */
+#cmakedefine HAVE_PCRE
+
 typedef struct {
 	/* debug flag */
 	int debug;
