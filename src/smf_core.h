@@ -14,9 +14,9 @@
 typedef int (*ModuleLoadFunction)(MailConn_T *mconn);
 
 struct process_queue_ {
-	GPtrArray *queue;
 	int (*load_error)(void *args);
 	int (*processing_error)(int retval, void *args);
+	int (*nexthop_error)(void *args);
 };
 
 typedef struct process_queue_  ProcessQueue_T;
@@ -24,15 +24,14 @@ typedef struct process_queue_  ProcessQueue_T;
 
 /** initialize the process queue */
 ProcessQueue_T *smf_core_pqueue_init(int(*loaderr)(void *args),
-	int (*processerr)(int retval, void *args));
+	int (*processerr)(int retval, void *args),
+	int (*nhoperr)(void *args));
 
-/** loads modules according to configuration and puts them into to
- *  array
- */
-int smf_core_load_modules(ProcessQueue_T *q);
-
-/** run the queue of loaded modules */
+/** load all modules and run them */
 int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn);
+
+/** deliver a message to the nexthop */
+int smf_core_deliver_nexthop(ProcessQueue_T *q, MailConn_T *mconn);
 
 #endif	/* _SMF_CORE_H */
 
