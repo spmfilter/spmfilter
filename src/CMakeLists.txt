@@ -30,6 +30,10 @@ if(HAVE_DB4)
 	list(APPEND LIB_SMF_SRC db4_lookup.c)
 endif(HAVE_DB4)
 
+if(HAVE_PCRE)
+	list(APPEND COMMON_LIBS ${PCRE_LIBRARIES})
+endif(HAVE_PCRE)
+
 list(REMOVE_DUPLICATES COMMON_LIBS)
 
 add_library(smf SHARED ${LIB_SMF_SRC})

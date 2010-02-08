@@ -26,3 +26,8 @@ src/CMakeFiles/*
 CMakeCache*
 *.gz
 cmake_install.cmake
+\.orig\..*$
+\.orig$
+\.chg\..*$
+\.rej$
+\.conflict\~$
