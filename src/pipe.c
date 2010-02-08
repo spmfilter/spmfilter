@@ -28,6 +28,7 @@
 #include "spmfilter.h"
 #include "mailconn.h"
 #include "platform.h"
+#include "smf_core.h"
 
 #define THIS_MODULE "pipe"
 
@@ -37,87 +38,79 @@ typedef int (*LoadMod) (MailConn_T *mconn);
 
 MailConn_T *mconn = NULL;
 
+/* error handler used when building module queue
+ * return 1 if processing should continue, else 0
+ */
+static int handle_q_error(void *args) {
+	Settings_T *settings = get_settings();
+
+	switch (settings->module_fail) {
+		case 1:
+			return(1);
+		default:
+			return(0);
+	}
+}
+
+/* handle processing errors when running queue
+ */
+static int handle_q_processing_error(int retval, void *args) {
+	Settings_T *settings = get_settings();
+
+	if (retval == -1) {
+		switch (settings->module_fail) {
+			case 1: 
+				return(1);
+			default:
+				return(0);
+		}
+	} else if(retval == 1) {
+		return(2);
+	}
+
+	/* if none of the above matched, halt processing, this is just
+	 * for safety purposes
+	 */
+	TRACE(TRACE_DEBUG, "no conditional matched, will stop queue processing!");
+	return(0);
+}
+
+
+/* handle nexthop delivery error */
+static int handle_nexthop_error(void *args) {
+	return(0);
+}
+
 int load_modules(void) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
-	Message_T *msg = NULL;
+	ProcessQueue_T *q;
 	Settings_T *settings = get_settings();
-	
-	for(i = 0; settings->modules[i] != NULL; i++) {
-		gchar *path;
-		TRACE(TRACE_DEBUG,"loading module %s",settings->modules[i]);
 
-		path = smf_build_module_path(LIB_DIR, settings->modules[i]);
-		if(path == NULL) {
-			TRACE(TRACE_DEBUG, "failed to build module path for %s", settings->modules[i]);
-			return(-1);
-		}
+	/* initialize the modules queue handler */
+	q = smf_core_pqueue_init(
+		handle_q_error,
+		handle_q_processing_error,
+		handle_nexthop_error
+	);
 
-		module = g_module_open(path, G_MODULE_BIND_LAZY);
-		if (!module) {
-			TRACE(TRACE_DEBUG,"%s", g_module_error());
-			switch (settings->module_fail) {
-				case 1: continue;
-				default: return -1;
-			}
-			return -1;
-		}
-
-		if (!g_module_symbol (module, "load", (gpointer *)&load_module)) {
-			TRACE(TRACE_DEBUG,"%s", g_module_error());
-			switch (settings->module_fail) {
-				case 1: continue;
-				default: return -1;
-			}
-			return -1;
-		}
-
-		ret = load_module(mconn);
-		if (ret == -1) {
-			g_module_close (module);
-			switch (settings->module_fail) {
-				case 1: continue;
-				default: return -1;
-			}
-			return -1;
-		} else if (ret == 1) {
-			g_module_close(module);
-			break;
-		}
-
-		if (!g_module_close(module))
-			TRACE(TRACE_ERR,"%s", g_module_error());
-	
-		g_free(path);
+	if(q == NULL) {
+		return(-1);
 	}
-	
-	if (settings->nexthop != NULL ) {
-		msg = g_slice_new(Message_T);
-		msg->from = g_strdup(mconn->from->addr);
-		msg->rcpts = malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
-		for (i = 0; i < mconn->num_rcpts; i++) {
-			msg->rcpts[i] = calloc(strlen(mconn->rcpts[i]->addr), sizeof(char));
-			msg->rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
-		}
-		msg->num_rcpts = mconn->num_rcpts;
-		msg->message_file = g_strdup(mconn->queue_file);
-		msg->nexthop = g_strup(settings->nexthop);
-		if (smtp_delivery(msg) != 0) {
-			TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
-			return -1;
-		}
-		for (i = 0; i < mconn->num_rcpts; i++) {
-			g_free(msg->rcpts[i]);
-		}
-		g_free(msg->from);
-		g_free(msg->message_file);
-		g_free(msg->nexthop);
-		g_slice_free(Message_T,msg);
+
+	/* now tun the process queue */
+	ret = smf_core_process_modules(q,mconn);
+	free(q);
+
+	if(ret != 0) {
+		TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
+		return(-1);
 	}
-	return 0;
+
+
+	return(0);
 }
-
 
 int load(void) {
 	GIOChannel *in, *out;
