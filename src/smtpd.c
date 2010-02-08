@@ -60,7 +60,7 @@ void stuffing(char chain[]) {
 /* error handler used when building module queue
  * return 1 if processing should continue, else 0
  */
-int handle_q_error(void *args) {
+static int handle_q_error(void *args) {
 	Settings_T *settings = get_settings();
 	
 	switch (settings->module_fail) {
@@ -83,7 +83,7 @@ int handle_q_error(void *args) {
  * 2 = Further processing will be stopped, no other plugin will
  *     be startet. spmfilter sends a 250 code
  */
-int handle_q_processing_error(int retval, void *args) {
+static int handle_q_processing_error(int retval, void *args) {
 	Settings_T *settings = get_settings();
 
 	if (retval == -1) {
@@ -113,7 +113,7 @@ int handle_q_processing_error(int retval, void *args) {
 }
 
 /* handle nexthop delivery error */
-int handle_nexthop_error(void *args) {
+static int handle_nexthop_error(void *args) {
 	Settings_T *settings = get_settings();
 
 	smtp_string_reply(g_strdup_printf(
@@ -168,11 +168,10 @@ void smtp_code_reply(int code) {
 	fflush(stdout);
 }
 
-void load_modules(void) {
+int load_modules(void) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
-	Message_T *msg = NULL;
 	ProcessQueue_T *q;
 	Settings_T *settings = get_settings();
 
@@ -184,18 +183,20 @@ void load_modules(void) {
 	);
 	
 	if(q == NULL) {
-		return;
+		return(-1);
 	}
 
 	/* now tun the process queue */
 	ret = smf_core_process_modules(q,mconn);
+	free(q);
+
 	if(ret != 0) {
 		TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
-		return;
+		return(-1);
 	}
 
 	smtp_string_reply(CODE_250_ACCEPTED);
-	return;
+	return(0);
 }
 
 void process_data(void) {

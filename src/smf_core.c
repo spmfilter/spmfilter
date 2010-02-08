@@ -43,7 +43,7 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 	Settings_T *settings = get_settings();
 
 	for(i=0;settings->modules[i] != NULL; i++) {
-		path = smf_build_module_path(LIB_DIR, settings->modules[i]);
+		path = (gchar *)smf_build_module_path(LIB_DIR, settings->modules[i]);
 		if(path == NULL) {
 			TRACE(TRACE_DEBUG, "failed to build module path for %s", settings->modules[i]);
 			return(-1);
@@ -56,14 +56,19 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 
 			if(q->load_error(NULL) == 0)
 				return(-1);
+			else
+				continue;
 		}
 
-		if (!g_module_symbol(mod, "load", sym)) {
-			g_free(path);
+		if (!g_module_symbol(mod, "load", (gpointer *)&sym)) {
 			TRACE(TRACE_ERR,"%s", g_module_error());
+			g_free(path);
+			g_module_close(mod);
 
 			if(q->load_error(NULL) == 0)
 				return(-1);
+			else
+				continue;
 		}
 
 		/* cast spell and execute */
@@ -75,7 +80,6 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 		g_module_close(mod);
 
 		if(retval != 0) {
-			/* FIXME: dont forget to close the gmodule before leaving */
 			retval = q->processing_error(retval, NULL);
 
 			if(retval == 0) {
