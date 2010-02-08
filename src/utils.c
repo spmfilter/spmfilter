@@ -21,11 +21,11 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "spmfilter.h"
+
 #ifdef HAVE_PCRE
 #include <pcre.h>
 #endif
-
-#include "spmfilter.h"
 
 #define THIS_MODULE "utils"
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
@@ -78,8 +78,7 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
 	}
 	if (strptr != NULL)
 		free((char *) strptr);
-	if (error != NULL)
-		free(error);
+
 #endif	
 	return value;
 }
