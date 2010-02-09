@@ -60,7 +60,7 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
 #else
 	pcre *re;
 	const char *error;
-	int rc, erroffset, i;
+	int rc, erroffset;
 	int ovector[30];
 	const char *strptr;
 	char *value;

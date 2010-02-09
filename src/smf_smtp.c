@@ -63,7 +63,7 @@ int smf_message_deliver(Message_T *msg_data) {
 		if (g_strrstr(msg_data->nexthop,":"))
 			smtp_set_server(session, msg_data->nexthop);
 		else {
-			asprintf(&nexthop,"%s:25",msg_data->nexthop);
+			nexthop = g_strdup_printf("%s:25", msg_data->nexthop);
 			smtp_set_server(session,nexthop);
 		}
 	} else {
