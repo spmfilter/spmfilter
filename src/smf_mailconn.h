@@ -15,8 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MAILCONN_H
-#define	_MAILCONN_H
+#ifndef _SMF_MAILCONN_H
+#define	_SMF_MAILCONN_H
 
 /** Initialize MailConn_T structure
  *
@@ -30,5 +30,5 @@ MailConn_T *mconn_new(void);
  */
 void mconn_free(MailConn_T *mconn);
 
-#endif	/* _MAILCONN_H */
+#endif	/* _SMF_MAILCONN_H */
 
