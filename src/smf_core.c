@@ -21,6 +21,7 @@
 
 #include "spmfilter.h"
 #include "smf_core.h"
+#include "smf_platform.h"
 
 #define THIS_MODULE "smf_core"
 
@@ -109,6 +110,8 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 				break;
 			}
 		}
+
+		TRACE(TRACE_DEBUG, "module %s finished successfully", settings->modules[i]);
 	}
 
 	TRACE(TRACE_DEBUG, "module processing finished successfully.");

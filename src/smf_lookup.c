@@ -186,14 +186,14 @@ LookupResult_T *smf_lookup_query(const char *q, ...) {
 		return sql_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
-		return;
+		return(NULL);
 #endif
 	} else if ((g_ascii_strcasecmp(settings->backend,"ldap")) == 0) {
 #ifdef HAVE_LDAP
 		return ldap_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is built with ldap backend");
-		return;
+		return(NULL);
 #endif
 	} else {
 		TRACE(TRACE_ERR,"no valid backend defined");
