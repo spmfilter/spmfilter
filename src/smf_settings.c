@@ -18,14 +18,14 @@
 #include <glib.h>
 
 #include "spmfilter.h"
-#include "smtp_codes.h"
-#include "settings.h"
+#include "smf_smtp_codes.h"
+#include "smf_settings.h"
 
 #define THIS_MODULE "settings"
 
 Settings_T *settings = NULL;
 
-Settings_T *get_settings(void) {
+Settings_T *smf_settings_get(void) {
 	if (settings == NULL) {
 		settings = g_slice_new(Settings_T);
 		settings->debug = 0;
@@ -65,7 +65,7 @@ int parse_config(void) {
 #endif
 	char *code_msg;
 	int i, code;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	/* fallback to default config path,
 	 * if config file is not defined as

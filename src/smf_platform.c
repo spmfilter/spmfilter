@@ -15,34 +15,24 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_CORE_H
-#define	_SMF_CORE_H
-
+#include <stdio.h>
+#include <stdlib.h>
 #include <glib.h>
 
-#include "spmfilter.h"
+char *smf_build_module_path(const char *libdir, const char *modname) {
+	if (g_str_has_prefix(modname,"lib")) {
+#ifdef __APPLE__
+		return (char *)g_module_build_path(libdir,g_strdup_printf("%s.dylib",modname));
+#else
+		return (char *)g_module_build_path(libdir, modname);
+#endif
+	} else {
+#ifdef __APPLE__
+		return (char *)g_module_build_path(libdir,g_strdup_printf("lib%s.dylib", modname));
+#else
+		return (char *)g_module_build_path(libdir,g_strdup_printf("lib%s", modname));
+#endif
+	}
 
-typedef int (*ModuleLoadFunction)(MailConn_T *mconn);
-
-struct process_queue_ {
-	int (*load_error)(void *args);
-	int (*processing_error)(int retval, void *args);
-	int (*nexthop_error)(void *args);
-};
-
-typedef struct process_queue_  ProcessQueue_T;
-
-
-/** initialize the process queue */
-ProcessQueue_T *smf_core_pqueue_init(int(*loaderr)(void *args),
-	int (*processerr)(int retval, void *args),
-	int (*nhoperr)(void *args));
-
-/** load all modules and run them */
-int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn);
-
-/** deliver a message to the nexthop */
-int smf_core_deliver_nexthop(ProcessQueue_T *q, MailConn_T *mconn);
-
-#endif	/* _SMF_CORE_H */
-
+	return(NULL); /* should never be reached */
+}

@@ -30,9 +30,9 @@ char *group = NULL;
  *
  * \returns 0 on success or -1 in case of error
  */
-int group_settings_load(char *group_name) {
+int smf_settings_group_load(char *group_name) {
 	GError *error = NULL;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	group = g_strdup(group_name);
 	
@@ -63,7 +63,7 @@ int group_settings_load(char *group_name) {
  *
  * \returns a newly allocated string or NULL if the specified key cannot be found.
  */
-char *group_settings_get_value(char *key) {
+char *smf_settings_group_get_value(char *key) {
 	return g_key_file_get_value(keyfile,group,key,NULL);
 }
 
@@ -75,7 +75,7 @@ char *group_settings_get_value(char *key) {
  *
  * \returns a newly allocated string or NULL if the specified key cannot be found.
  */
-char *group_settings_get_string(char *key) {
+char *smf_settings_group_get_string(char *key) {
 	return g_key_file_get_string(keyfile, group, key,NULL);
 }
 
@@ -86,7 +86,7 @@ char *group_settings_get_string(char *key) {
  * \returns the value associated with the key as a integer, or 0 if the key was
  * not found or could not be parsed.
  */
-int group_settings_get_boolean(char *key) {
+int smf_settings_group_get_boolean(char *key) {
 	return g_key_file_get_boolean(keyfile, group, key,NULL);
 }
 
@@ -96,7 +96,7 @@ int group_settings_get_boolean(char *key) {
  *
  * \returns he value associated with the key as an integer, or 0 if the key was not found or could not be parsed.
  */
-int group_settings_get_integer(char *key) {
+int smf_settings_group_get_integer(char *key) {
 	return g_key_file_get_integer(keyfile, group, key,NULL);
 }
 
@@ -106,7 +106,7 @@ int group_settings_get_integer(char *key) {
  *
  * \returns the value associated with the key as a double, or 0.0 if the key was not found or could not be parsed.
  */
-double group_settings_get_double(char *key) {
+double smf_settings_group_get_double(char *key) {
 	return g_key_file_get_double(keyfile, group, key, NULL);
 }
 
@@ -116,11 +116,11 @@ double group_settings_get_double(char *key) {
  *
  * \returns a NULL-terminated string array or NULL if the specified key cannot be found.
  */
-char **group_settings_get_string_list(char *key, int length) {
+char **smf_settings_group_get_string_list(char *key, int length) {
 	return g_key_file_get_string_list(keyfile, group, key, &length, NULL);
 }
 
 /** Free allocated space */
-void group_settings_free(void) {
+void smf_settings_group_free(void) {
 	g_key_file_free(keyfile);
 }
