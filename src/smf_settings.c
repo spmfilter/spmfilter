@@ -148,7 +148,7 @@ int parse_config(void) {
 	 * we also need the sql group */
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
-	if (g_strcasecmp(settings->backend,"sql")) {
+	if (g_ascii_strcasecmp(settings->backend,"sql")) {
 		if (settings->sql_name == NULL) {
 			TRACE(TRACE_ERR, "config error: %s", error->message);
 			g_error_free(error);
@@ -188,7 +188,7 @@ int parse_config(void) {
 	settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
 	settings->ldap_host = g_key_file_get_string_list(keyfile, "ldap", "host", &ldap_num_hosts,NULL);
 	settings->ldap_num_hosts = ldap_num_hosts;
-	if (g_strcasecmp(settings->backend,"ldap")) {
+	if (g_ascii_strcasecmp(settings->backend,"ldap")) {
 		if (settings->ldap_uri == NULL && settings->ldap_host == NULL) {
 			TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
 			return -1;
@@ -202,7 +202,7 @@ int parse_config(void) {
 	settings->ldap_bindpw = g_key_file_get_string(keyfile,"ldap","bindpw",NULL);
 
 	settings->ldap_base = g_key_file_get_string(keyfile,"ldap","base",&error);
-	if (settings->ldap_base == NULL) {
+	if ((settings->ldap_base == NULL) && (g_ascii_strcasecmp(settings->backend,"ldap"))) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
 		g_error_free(error);
 		return -1;
@@ -212,12 +212,13 @@ int parse_config(void) {
 
 	settings->ldap_scope = g_key_file_get_string(keyfile, "ldap", "scope", NULL);
 	if (settings->ldap_scope != NULL) {
-
-		if ((g_ascii_strcasecmp(settings->ldap_scope,"subtree") != 0) &&
-				(g_ascii_strcasecmp(settings->ldap_scope,"onelevel") != 0) &&
-				(g_ascii_strcasecmp(settings->ldap_scope,"base") != 0)) {
-			TRACE(TRACE_ERR, "invalid ldap scope");
-			return -1;
+		if (g_ascii_strcasecmp(settings->backend,"ldap")) {
+			if ((g_ascii_strcasecmp(settings->ldap_scope,"subtree") != 0) &&
+					(g_ascii_strcasecmp(settings->ldap_scope,"onelevel") != 0) &&
+					(g_ascii_strcasecmp(settings->ldap_scope,"base") != 0)) {
+				TRACE(TRACE_ERR, "invalid ldap scope");
+				return -1;
+			}
 		}
 	} else {
 		settings->ldap_scope = g_strdup("subtree");
