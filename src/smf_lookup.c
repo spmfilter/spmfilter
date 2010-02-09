@@ -21,7 +21,7 @@
 #include <stdarg.h>
 
 #include "spmfilter.h"
-#include "lookup.h"
+#include "smf_lookup.h"
 
 #define THIS_MODULE "lookup"
 
@@ -89,7 +89,7 @@ int expand_query(char *format, char *addr, char **buf) {
  * \returns 0 on success or -1 in case of error
  */
 int lookup_connect(void) {
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
@@ -112,7 +112,7 @@ int lookup_connect(void) {
  * \returns 0 on success or -1 in case of error
  */
 int lookup_disconnect(void) {
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
@@ -134,8 +134,8 @@ int lookup_disconnect(void) {
  * \returns 0 if user is not local, 1 if
  *          user is local
  */
-int lookup_user(char *addr) {
-	Settings_T *settings = get_settings();
+int smf_lookup_check_user(char *addr) {
+	Settings_T *settings = smf_settings_get();
 
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
@@ -170,10 +170,10 @@ int lookup_user(char *addr) {
  *
  * \return new allocated LookupResult_T
  */
-LookupResult_T *lookup_query(const char *q, ...) {
+LookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 	
 	va_start(ap, q);
 	va_copy(cp, ap);

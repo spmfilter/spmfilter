@@ -26,9 +26,9 @@
 #include <unistd.h>
 
 #include "spmfilter.h"
-#include "mailconn.h"
-#include "smtpd.h"
-#include "smtp_codes.h"
+#include "smf_mailconn.h"
+#include "smf_smtpd.h"
+#include "smf_smtp_codes.h"
 #include "smf_core.h"
 
 #define THIS_MODULE "smtpd"
@@ -62,7 +62,7 @@ void stuffing(char chain[]) {
  * return 1 if processing should continue, else 0
  */
 static int handle_q_error(void *args) {
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 	
 	switch (settings->module_fail) {
 		case 1: return(1);
@@ -85,7 +85,7 @@ static int handle_q_error(void *args) {
  *     be startet. spmfilter sends a 250 code
  */
 static int handle_q_processing_error(int retval, void *args) {
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	if (retval == -1) {
 		switch (settings->module_fail) {
@@ -115,7 +115,7 @@ static int handle_q_processing_error(int retval, void *args) {
 
 /* handle nexthop delivery error */
 static int handle_nexthop_error(void *args) {
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	smtp_string_reply(g_strdup_printf(
 		"%d %s\r\n",
@@ -173,7 +173,7 @@ int load_modules(void) {
 	LoadMod load_module;
 	int i, ret;
 	ProcessQueue_T *q;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	/* initialize the modules queue handler */
 	q = smf_core_pqueue_init(
@@ -205,7 +205,7 @@ void process_data(void) {
 	gsize length;
 	GError *error = NULL;
 
-	gen_queue_file(&mconn->queue_file);
+	smf_core_gen_queue_file(&mconn->queue_file);
 	if (mconn->queue_file == NULL) {
 		TRACE(TRACE_ERR,"failed to create spool file!");
 		smtp_code_reply(552);
@@ -262,7 +262,7 @@ int load(void) {
 	GIOChannel *in;
 	char *line;
 	int state=ST_INIT;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 	
 	mconn = mconn_new();
 
@@ -293,10 +293,10 @@ int load(void) {
 				mconn = mconn_new();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
-			mconn->helo = get_substring("^HELO\\s(.*)$",line, 1);
+			mconn->helo = smf_core_get_substring("^HELO\\s(.*)$",line, 1);
 			TRACE(TRACE_DEBUG,"HELO: %s",mconn->helo);
 			if (mconn->helo != NULL) {
-				if (g_strcmp0(mconn->helo,"") == 0)  {
+				if (strcmp(mconn->helo,"") == 0)  {
 					smtp_string_reply("501 Syntax: HELO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
@@ -316,9 +316,9 @@ int load(void) {
 				mconn = mconn_new();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
-			mconn->helo = get_substring("^EHLO\\s(.*)$",line,1);
+			mconn->helo = smf_core_get_substring("^EHLO\\s(.*)$",line,1);
 			if (mconn->helo != NULL) {
-				if (g_strcmp0(mconn->helo,"") == 0) {
+				if (strcmp(mconn->helo,"") == 0) {
 					smtp_string_reply("501 Syntax: EHLO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
@@ -330,7 +330,7 @@ int load(void) {
 			}
 		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'xforward name' received");
-			mconn->xforward_addr = get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
+			mconn->xforward_addr = smf_core_get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
 			TRACE(TRACE_DEBUG,"mconn->xforward_addr: %s",mconn->xforward_addr);
 			smtp_code_reply(250);
 			state = ST_XFWD;
@@ -355,17 +355,17 @@ int load(void) {
 				smtp_string_reply("503 Error: nested MAIL command\r\n");
 			} else {
 				mconn->from = g_slice_new(EmailAddress_T);
-				mconn->from->addr = get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+				mconn->from->addr = smf_core_get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->from->addr != NULL){
 					TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
-					if (g_strcmp0(mconn->from->addr,"") == 0) {
+					if (strcmp(mconn->from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtp_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
 						g_slice_free(EmailAddress_T,mconn->from);
 						mconn->from = NULL;
 					} else {
-						if (g_strcmp0(settings->backend,"undef") != 0) {
-								mconn->from->is_local = lookup_user(mconn->from->addr);
+						if (strcmp(settings->backend,"undef") != 0) {
+								mconn->from->is_local = smf_lookup_check_user(mconn->from->addr);
 								TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
 						}
 						smtp_code_reply(250);
@@ -385,16 +385,16 @@ int load(void) {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 				mconn->rcpts = g_realloc(mconn->rcpts,sizeof(mconn->rcpts[mconn->num_rcpts]));
 				mconn->rcpts[mconn->num_rcpts] = g_slice_new(EmailAddress_T);
-				mconn->rcpts[mconn->num_rcpts]->addr = get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+				mconn->rcpts[mconn->num_rcpts]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (mconn->rcpts[mconn->num_rcpts] != NULL) {
-					if (g_strcmp0(mconn->rcpts[mconn->num_rcpts]->addr,"") == 0) {
+					if (strcmp(mconn->rcpts[mconn->num_rcpts]->addr,"") == 0) {
 						/* empty rcpt to? */
 						smtp_string_reply("501 Syntax: RCPT TO:<address>\r\n");
 						g_slice_free(EmailAddress_T,mconn->rcpts[mconn->num_rcpts]);
 					} else {
 						TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
-						if (g_strcmp0(settings->backend,"undef") != 0) {
-							mconn->rcpts[mconn->num_rcpts]->is_local = lookup_user(mconn->rcpts[mconn->num_rcpts]->addr);
+						if (strcmp(settings->backend,"undef") != 0) {
+							mconn->rcpts[mconn->num_rcpts]->is_local = smf_lookup_check_user(mconn->rcpts[mconn->num_rcpts]->addr);
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
 						}
 						smtp_code_reply(250);
