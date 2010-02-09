@@ -49,10 +49,12 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 			return(-1);
 		}
 
+		TRACE(TRACE_DEBUG, "preparing to run module %s", settings->modules[i]);
+
 		mod = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!mod) {
 			g_free(path);
-			TRACE(TRACE_ERR,"%s", g_module_error());
+			TRACE(TRACE_ERR,"module failed to load : %s", g_module_error());
 
 			if(q->load_error(NULL) == 0)
 				return(-1);
@@ -61,7 +63,7 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 		}
 
 		if (!g_module_symbol(mod, "load", (gpointer *)&sym)) {
-			TRACE(TRACE_ERR,"%s", g_module_error());
+			TRACE(TRACE_ERR,"symbol load could not be foudn : %s", g_module_error());
 			g_free(path);
 			g_module_close(mod);
 
@@ -83,19 +85,28 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 			retval = q->processing_error(retval, NULL);
 
 			if(retval == 0) {
+				TRACE(TRACE_ERR, "module %s failed to run, will stop processing!",
+					settings->modules[i]);
 				return(-1);
 			} else if(retval == 1) {
+				TRACE(TRACE_ERR, "module %s failed to run, will continue with next module!",
+					settings->modules[i]);
 				continue;
 			} else if(retval == 2) {
+				TRACE(TRACE_ERR, "module %s stopped processing, will now begin nexthop processing !",
+					settings->modules[i]);
 				break;
 			}
 		}
 	}
 
+	TRACE(TRACE_DEBUG, "module processing finished successfully.");
+
 	/* queue is done, if we're still here check for next hop and
 	 * deliver
 	 */
 	if (settings->nexthop != NULL ) {
+		TRACE(TRACE_DEBUG, "will now deliver to nexthop %s", settings->nexthop);
 		return(smf_core_deliver_nexthop(q, mconn));
 	}
 
