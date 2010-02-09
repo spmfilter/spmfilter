@@ -29,6 +29,7 @@
 #include "mailconn.h"
 #include "smtpd.h"
 #include "smtp_codes.h"
+#include "smf_core.h"
 
 #define THIS_MODULE "smtpd"
 
@@ -55,6 +56,74 @@ void stuffing(char chain[]) {
 		}
 	}
 	chain[j]='\0';
+}
+
+/* error handler used when building module queue
+ * return 1 if processing should continue, else 0
+ */
+static int handle_q_error(void *args) {
+	Settings_T *settings = get_settings();
+	
+	switch (settings->module_fail) {
+		case 1: return(1);
+		case 2: smtp_code_reply(552);
+				return(0);
+		case 3: smtp_code_reply(451);
+				return(0);
+	}
+}
+
+/* handle processing errors when running queue 
+ *
+ * FIXME: clean documentation
+/* return codes:
+ * -1 = Error in processing, spmfilter will send 4xx Error to MTA
+ * 0 = All ok, the next plugin will be started.
+ * 1 = Further processing will be stopped. Email is not going
+ *     to be delivered to nexthop!
+ * 2 = Further processing will be stopped, no other plugin will
+ *     be startet. spmfilter sends a 250 code
+ */
+static int handle_q_processing_error(int retval, void *args) {
+	Settings_T *settings = get_settings();
+
+	if (retval == -1) {
+		switch (settings->module_fail) {
+			case 1: return(1);
+			case 2: smtp_code_reply(552);
+					return(0);
+			case 3: smtp_code_reply(451);
+					return(0);
+		}
+	} else if(retval == 1) {
+		smtp_string_reply(CODE_250_ACCEPTED);
+		return(0);
+	} else if(retval == 2) {
+		smtp_string_reply(CODE_250_ACCEPTED);
+		return(2);
+	} else if(retval >= 400) {
+		smtp_code_reply(retval);
+		return(0);
+	}
+
+	/* if none of the above matched, halt processing, this is just
+	 * for safety purposes
+	 */
+	TRACE(TRACE_DEBUG, "no conditional matched, will stop queue processing!");
+	return(0);
+}
+
+/* handle nexthop delivery error */
+static int handle_nexthop_error(void *args) {
+	Settings_T *settings = get_settings();
+
+	smtp_string_reply(g_strdup_printf(
+		"%d %s\r\n",
+		settings->nexthop_fail_code,
+		settings->nexthop_fail_msg)
+	);
+
+	return(0);
 }
 
 /* smtp answer with format string as arg */
@@ -99,133 +168,35 @@ void smtp_code_reply(int code) {
 	fflush(stdout);
 }
 
-void load_modules(void) {
+int load_modules(void) {
 	GModule *module;
 	LoadMod load_module;
 	int i, ret;
-	Message_T *msg = NULL;
+	ProcessQueue_T *q;
 	Settings_T *settings = get_settings();
 
-	for(i = 0; settings->modules[i] != NULL; i++) {
-		gchar *path;	
-		TRACE(TRACE_DEBUG,"loading module %s",settings->modules[i]);
-		
-		if (g_str_has_prefix(settings->modules[i],"lib")) {
-#ifdef __APPLE__
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("%s.dylib",g_strstrip(settings->modules[i])));
-#else
-			path = g_module_build_path(LIB_DIR,g_strstrip(settings->modules[i]));
-#endif
-		} else {
-#ifdef __APPLE__
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s.dylib",g_strstrip(settings->modules[i])));
-#else
-			path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",g_strstrip(settings->modules[i])));
-#endif
-		}
-		module = g_module_open(path, G_MODULE_BIND_LAZY);
-		if (!module) {
-			g_free(path);
-			TRACE(TRACE_ERR,"%s", g_module_error());
-			switch (settings->module_fail) {
-				case 1: continue;
-				case 2: smtp_code_reply(552);
-						return;
-				case 3: smtp_code_reply(451);
-						return;
-			}
-			return;
-		}
-
-		if (!g_module_symbol(module, "load", (gpointer *)&load_module)) {
-			g_free(path);
-			TRACE(TRACE_ERR,"%s", g_module_error());
-			switch (settings->module_fail) {
-				case 1: continue;
-				case 2: smtp_code_reply(552);
-						return;
-				case 3: smtp_code_reply(451);
-						return;
-			}
-			return;
-		}
-
-		/* module return codes:
-		 * -1 = Error in processing, spmfilter will send 4xx Error to MTA
-		 * 0 = All ok, the next plugin will be started.
-		 * 1 = Further processing will be stopped. Email is not going
-		 *     to be delivered to nexthop!
-		 * 2 = Further processing will be stopped, no other plugin will 
-		 *     be startet. spmfilter sends a 250 code
-		 */
-		ret = load_module(mconn);
-		TRACE(TRACE_DEBUG,"module return code [%d]", ret);
-		if (ret == -1) {
-			if (!g_module_close(module))
-				TRACE(TRACE_ERR,"%s", g_module_error());
-			g_free(path);
-			switch (settings->module_fail) {
-				case 1: continue;
-				case 2: smtp_code_reply(552);
-						return;
-				case 3: smtp_code_reply(451);
-						return;
-			}
-			return;
-		} else if (ret == 1) {
-			if (!g_module_close(module))
-				TRACE(TRACE_ERR,"%s", g_module_error());
-			g_free(path);
-			smtp_string_reply(CODE_250_ACCEPTED);
-			return;
-		} else if (ret == 2) {
-			if (!g_module_close(module))
-				TRACE(TRACE_ERR,"%s", g_module_error());
-			g_free(path);
-			smtp_string_reply(CODE_250_ACCEPTED);
-			break;
-		} else if (ret >= 400) {
-			if (!g_module_close(module))
-				TRACE(TRACE_ERR,"%s", g_module_error());
-			g_free(path);
-				
-			smtp_code_reply(ret);
-			return;
-		}
-
-		if (!g_module_close(module))
-			TRACE(TRACE_ERR,"%s", g_module_error());
-		
-		g_free(path);
-	}
-
-	if (settings->nexthop != NULL ) {
-		msg = g_slice_new(Message_T);
-		msg->from = g_strdup(mconn->from->addr);
-		msg->rcpts = g_malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
-		for (i = 0; i < mconn->num_rcpts; i++) {
-			msg->rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
-		}
-
-		msg->num_rcpts = mconn->num_rcpts;
-		msg->message_file = g_strdup(mconn->queue_file);
-		msg->nexthop = g_strup(settings->nexthop);
-		if (smtp_delivery(msg) != 0) {
-			TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
-			smtp_string_reply(g_strdup_printf("%d %s\r\n",settings->nexthop_fail_code,settings->nexthop_fail_msg));
-			return;
-		}
-		for (i = 0; i < mconn->num_rcpts; i++) {
-			g_free(msg->rcpts[i]);
-		}
-		g_free(msg->from);
-		g_free(msg->message_file);
-		g_free(msg->nexthop);
-		g_slice_free(Message_T,msg);
-	}
+	/* initialize the modules queue handler */
+	q = smf_core_pqueue_init(
+		handle_q_error,
+		handle_q_processing_error,
+		handle_nexthop_error
+	);
 	
+	if(q == NULL) {
+		return(-1);
+	}
+
+	/* now tun the process queue */
+	ret = smf_core_process_modules(q,mconn);
+	free(q);
+
+	if(ret != 0) {
+		TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
+		return(-1);
+	}
+
 	smtp_string_reply(CODE_250_ACCEPTED);
-	return;
+	return(0);
 }
 
 void process_data(void) {
