@@ -148,11 +148,14 @@ int parse_config(void) {
 	 * we also need the sql group */
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
-	if (settings->sql_name == NULL) {
-		TRACE(TRACE_ERR, "config error: %s", error->message);
-		g_error_free(error);
-		return -1;
+	if (g_strcasecmp(settings->backend,"sql")) {
+		if (settings->sql_name == NULL) {
+			TRACE(TRACE_ERR, "config error: %s", error->message);
+			g_error_free(error);
+			return -1;
+		}
 	}
+	
 	settings->sql_host = g_key_file_get_string_list(keyfile, "sql", "host", &sql_num_hosts,NULL);
 	settings->sql_num_hosts = sql_num_hosts;
 	settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
@@ -185,9 +188,11 @@ int parse_config(void) {
 	settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
 	settings->ldap_host = g_key_file_get_string_list(keyfile, "ldap", "host", &ldap_num_hosts,NULL);
 	settings->ldap_num_hosts = ldap_num_hosts;
-	if (settings->ldap_uri == NULL && settings->ldap_host == NULL) {
-		TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
-		return -1;
+	if (g_strcasecmp(settings->backend,"ldap")) {
+		if (settings->ldap_uri == NULL && settings->ldap_host == NULL) {
+			TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
+			return -1;
+		}
 	}
 
 	settings->ldap_port = g_key_file_get_integer(keyfile,"ldap","port",NULL);
