@@ -1,12 +1,23 @@
-/*
- * file: smf_core.h
- * desc: implementation of core routines used by smf
- * auth: Sebastian Jaekel <sj@space.net>
+/* spmfilter - mail filtering framework
+ * Copyright (C) 2009-2010 Sebastian Jaekel and SpaceNet AG
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <glib-2.0/gmodule.h>
+#include <gmodule.h>
 
 #include "spmfilter.h"
 #include "smf_core.h"
@@ -40,7 +51,7 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 	gchar *path;
 	GModule *mod;
 	gpointer *sym;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	for(i=0;settings->modules[i] != NULL; i++) {
 		path = (gchar *)smf_build_module_path(LIB_DIR, settings->modules[i]);
@@ -117,7 +128,7 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
 int smf_core_deliver_nexthop(ProcessQueue_T *q,MailConn_T *mconn) {
 	int i;
 	Message_T *msg;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	msg = g_slice_new(Message_T);
 	msg->from = g_strdup(mconn->from->addr);
@@ -139,7 +150,7 @@ int smf_core_deliver_nexthop(ProcessQueue_T *q,MailConn_T *mconn) {
 	msg->nexthop = g_strup(settings->nexthop);
 
 	/* now deliver, if delivery fails, call error hook */
-	if (smtp_delivery(msg) != 0) {
+	if (smf_message_deliver(msg) != 0) {
 		TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
 		q->nexthop_error(NULL);
 		return(-1);

@@ -188,58 +188,130 @@ typedef enum {
 #define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
 void trace(Trace_T level, const char * module, const char * function, int line, const char *formatstring, ...);
 
-/** Get all settings
+/** Get all core settings
  *
  * \return settings struct
  */
-Settings_T *get_settings(void);
+Settings_T *smf_settings_get(void);
 
-/** generate a new queue file name
+/** Load all settings from specified group
+ *
+ * \param group_name wanted group
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_settings_group_load(char *group_name);
+
+/** Returns the raw value associated with key under the selected group.
+ *  Use group_settings_get_string() to retrieve an unescaped UTF-8 string.
+ *
+ * \param key a key
+ *
+ * \returns a newly allocated string or NULL if the specified key cannot be found.
+ */
+char *smf_settings_group_get_value(char *key);
+
+/** Returns the string value associated with key under the selected group.
+ *  Unlike group_settings_get_value(), this function handles escape
+ *  sequences like \s.
+ *
+ * \param key a key
+ *
+ * \returns a newly allocated string or NULL if the specified key cannot be found.
+ */
+char *smf_settings_group_get_string(char *key);
+
+/** Returns the boolean values associated with key under the selected group as integer.
+ *
+ * \param key a key
+ *
+ * \returns the value associated with the key as a integer, or 0 if the key was
+ * not found or could not be parsed.
+ */
+int smf_settings_group_get_boolean(char *key);
+
+/** Returns the value associated with key under the selected group as an integer.
+ *
+ * \param key a key
+ *
+ * \returns he value associated with the key as an integer, or 0 if the key was not found or could not be parsed.
+ */
+int smf_settings_group_get_integer(char *key);
+
+/** Returns the value associated with key under the selected group as a double.
+ *
+ * \param key a key
+ *
+ * \returns the value associated with the key as a double, or 0.0 if the key was not found or could not be parsed.
+ */
+double smf_settings_group_get_double(char *key);
+
+/** Returns the values associated with key under the selected group.
+ *
+ * \param key a key
+ *
+ * \returns a NULL-terminated string array or NULL if the specified key cannot be found.
+ */
+char **smf_settings_group_get_string_list(char *key, int length);
+
+/** Free allocated space
+ *
+ * \param s GroupSettings_T
+ */
+void smf_settings_group_free(void);
+
+/** Generate a new queue file name
  *
  * \buf pointer to unallocated buffer for filename, needs to
  *      free'd by caller if not required anymore
  *
  * \returns 0 on success or -1 in case of error
  */
-int gen_queue_file(char **tempanme);
+int smf_core_gen_queue_file(char **tempanme);
 
-/** extract a substring from given string
- * 
+/** Extract a substring from given string
+ *
  * \param pattern regular expression pattern
  * \param haystack string to search in
  * \param pos position to extract
  *
  * \returns extracted string
  */
-char* get_substring(const char *pattern, const char *haystack, int pos);
+char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
 
-/** write a message to disk
+/** Generates a unique maildir filename
+ *
+ * \returns generated filename or NULL in case of error
+ */
+char *smf_core_get_maildir_filename(void);
+
+/** Write a message to disk
  *
  * \param new_path path for the new message file
  * \param queue_file path of the queue file
  *
  * \returns 0 on success or -1 in case of error
  */
-int write_message(char *new_path, char *queue_file);
+int smf_message_write(char *new_path, char *queue_file);
 
-/* gets the value of the requested header if it exists
+/* Gets the value of the requested header if it exists
  *
  * \param msg_path path to message or queue file
  * \param header_name name of the wanted header
  *
  * \returns value of header or NULL in case of error
  */
-char *get_header(char *msg_path, const char *header_name);
+char *smf_message_get_header(char *msg_path, const char *header_name);
 
 /** Sets an arbitrary header
- * 
+ *
  * \param msg_path path to message or queue file
  * \param header_name name of the header
  * \param header_value new value for the header
  *
  * \returns 0 on success or -1 in case of error
  */
-int set_header(char *msg_path, char *header_name, char *header_value);
+int smf_message_set_header(char *msg_path, char *header_name, char *header_value);
 
 /** Removed the specified header if it exists
  *
@@ -248,7 +320,7 @@ int set_header(char *msg_path, char *header_name, char *header_value);
  *
  * \returns 0 on success or -1 in case of error
  */
-int remove_header(char *msg_path, char *header_name);
+int smf_mesage_remove_header(char *msg_path, char *header_name);
 
 /** Deliver message
  *
@@ -256,13 +328,7 @@ int remove_header(char *msg_path, char *header_name);
  *
  * \returns 0 on success or -1 in case of error
  */
-int smtp_delivery(Message_T *msg_data);
-
-/** generates a unique maildir filename
- * 
- * \returns generated filename or NULL in case of error
- */
-char *get_maildir_filename(void);
+int smf_message_deliver(Message_T *msg_data);
 
 typedef struct {
 	void *data;
@@ -289,7 +355,7 @@ typedef struct {
  *
  * \param *l pointer to LookupResult_T
  */
-void lookup_result_free(LookupResult_T *l);
+void smf_lookup_result_free(LookupResult_T *l);
 
 /** Returns LookupElement_T at the given index of LookupResult_T
  *
@@ -298,7 +364,7 @@ void lookup_result_free(LookupResult_T *l);
  *
  * \returns LookupElement_T at the given index
  */
-LookupElement_T *lookup_result_index(LookupResult_T *l, int i);
+LookupElement_T *smf_lookup_result_index(LookupResult_T *l, int i);
 
 /** Looks up a key in LookupElement_T
  *
@@ -307,7 +373,7 @@ LookupElement_T *lookup_result_index(LookupResult_T *l, int i);
  *
  * \returns the associated value, or NULL if the key is not found
  */
-void *lookup_element_get(LookupElement_T *e, char *key);
+void *smf_lookup_element_get(LookupElement_T *e, char *key);
 
 /** Check if given user is local
  *
@@ -316,7 +382,7 @@ void *lookup_element_get(LookupElement_T *e, char *key);
  * \returns 0 if user is not local, 1 if
  *          user is local
  */
-int lookup_user(char *addr);
+int smf_lookup_check_user(char *addr);
 
 /** Query lookup backend.
  *
@@ -325,74 +391,7 @@ int lookup_user(char *addr);
  *
  * \return new allocated LookupResult_T
  */
-LookupResult_T *lookup_query(const char *q, ...);
-
-
-/** Load all settings from specified group
- *
- * \param group_name wanted group
- *
- * \returns 0 on success or -1 in case of error
- */
-int group_settings_load(char *group_name);
-
-/** Returns the raw value associated with key under the selected group.
- *  Use group_settings_get_string() to retrieve an unescaped UTF-8 string.
- *
- * \param key a key
- *
- * \returns a newly allocated string or NULL if the specified key cannot be found.
- */
-char *group_settings_get_value(char *key);
-
-/** Returns the string value associated with key under the selected group.
- *  Unlike group_settings_get_value(), this function handles escape
- *  sequences like \s.
- *
- * \param key a key
- *
- * \returns a newly allocated string or NULL if the specified key cannot be found.
- */
-char *group_settings_get_string(char *key);
-
-/** Returns the boolean values associated with key under the selected group as integer.
- *
- * \param key a key
- *
- * \returns the value associated with the key as a integer, or 0 if the key was
- * not found or could not be parsed.
- */
-int group_settings_get_boolean(char *key);
-
-/** Returns the value associated with key under the selected group as an integer.
- *
- * \param key a key
- *
- * \returns he value associated with the key as an integer, or 0 if the key was not found or could not be parsed.
- */
-int group_settings_get_integer(char *key);
-
-/** Returns the value associated with key under the selected group as a double.
- *
- * \param key a key
- *
- * \returns the value associated with the key as a double, or 0.0 if the key was not found or could not be parsed.
- */
-double group_settings_get_double(char *key);
-
-/** Returns the values associated with key under the selected group.
- *
- * \param key a key
- *
- * \returns a NULL-terminated string array or NULL if the specified key cannot be found.
- */
-char **group_settings_get_string_list(char *key, int length);
-
-/** Free allocated space
- *
- * \param s GroupSettings_T
- */
-void group_settings_free(void);
+LookupResult_T *smf_lookup_query(const char *q, ...);
 
 #ifdef HAVE_DB4
 /** Query Berkeley DB for given key
@@ -402,7 +401,7 @@ void group_settings_free(void);
  *
  * \returns the values associated with key,  or NULL if the key is not found
  */
-char *db4_query(char *database, char *key);
+char *smf_db4_query(char *database, char *key);
 #endif
 
 #endif

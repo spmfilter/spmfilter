@@ -42,7 +42,7 @@
  *
  * \returns extracted string
  */
-char *get_substring(const char *pattern, const char *haystack, int pos) {
+char *smf_core_get_substring(const char *pattern, const char *haystack, int pos) {
 #if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
 	GMatchInfo *match_info = NULL;
@@ -90,8 +90,8 @@ char *get_substring(const char *pattern, const char *haystack, int pos) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int gen_queue_file(char **tempname) {
-	Settings_T *settings = get_settings();
+int smf_core_gen_queue_file(char **tempname) {
+	Settings_T *settings = smf_settings_get();
 	/* create spooling file */
 	*tempname = g_strdup_printf("%s/spmfilter.XXXXXX",settings->queue_dir);
 	if(g_mkstemp(*tempname) == -1)
@@ -104,7 +104,7 @@ int gen_queue_file(char **tempname) {
  *
  * \returns new allocated maildir filename
  */
-char *get_maildir_filename(void) {
+char *smf_core_get_maildir_filename(void) {
 	char *filename;
 	char hostname[256];
 	struct timeval starttime;

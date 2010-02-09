@@ -21,8 +21,8 @@
 #include <time.h>
 
 #include "spmfilter.h"
-#include "settings.h"
-#include "lookup.h"
+#include "smf_settings.h"
+#include "smf_lookup.h"
 
 #define THIS_MODULE "spmfilter"
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	LoadEngine load_engine;
 	gchar *engine_path;
 	int ret, i;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 
 	/* all cmd args */
 	GOptionEntry entries[] = {

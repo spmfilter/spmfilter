@@ -49,7 +49,7 @@ void trace(Trace_T level, const char *module, const char *function, int line, co
 	va_list cp;
 	gchar *message = NULL;
 	size_t l, maxlen=120;
-	Settings_T *settings = get_settings();
+	Settings_T *settings = smf_settings_get();
 	
 	/* Return now if we're not logging anything. */
 	if (! level)

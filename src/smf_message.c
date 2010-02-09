@@ -59,7 +59,7 @@ GMimeMessage *parse_message(char *msg_path) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int write_message(char *new_path, char *queue_file) {
+int smf_message_write(char *new_path, char *queue_file) {
 	GMimeStream *stream;
 	int fd;
 	GMimeMessage *message;
@@ -94,7 +94,7 @@ int write_message(char *new_path, char *queue_file) {
  *
  * \returns requested header
  */
-char *get_header(char *msg_path, const char *header_name) {
+char *smf_message_get_header(char *msg_path, const char *header_name) {
 	GMimeMessage *message;
 	char *header_value = NULL;
 
@@ -120,7 +120,7 @@ char *get_header(char *msg_path, const char *header_name) {
  * 
  * \returns 0 on success or -1 in case of error
  */
-int remove_header(char *msg_path, char *header_name) {
+int smf_mesage_remove_header(char *msg_path, char *header_name) {
 	GMimeMessage *message = NULL;
 	char *tmp_file;
 
@@ -129,9 +129,9 @@ int remove_header(char *msg_path, char *header_name) {
 	
 	if (message!=NULL) {
 		g_mime_object_remove_header((GMimeObject *)message,header_name);
-		gen_queue_file(&tmp_file);
+		smf_core_gen_queue_file(&tmp_file);
 		
-		if (write_message(tmp_file,msg_path) != 0) {
+		if (smf_message_write(tmp_file,msg_path) != 0) {
 			g_mime_shutdown();
 			return -1;
 		}
@@ -157,7 +157,7 @@ int remove_header(char *msg_path, char *header_name) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int set_header(char *msg_path, char *header_name, char *header_value) {
+int smf_message_set_header(char *msg_path, char *header_name, char *header_value) {
 	GMimeMessage *message = NULL;
 	char *tmp_file;
 
@@ -170,9 +170,9 @@ int set_header(char *msg_path, char *header_name, char *header_value) {
 #else
 		g_mime_message_set_header(message,header_name,header_value);
 #endif
-		gen_queue_file(&tmp_file);
+		smf_core_gen_queue_file(&tmp_file);
 
-		if (write_message(tmp_file,msg_path) != 0)
+		if (smf_message_write(tmp_file,msg_path) != 0)
 			return -1;
 	} else
 		return -1;

@@ -17,7 +17,7 @@
 
 #include <glib.h>
 
-#include "lookup.h"
+#include "smf_lookup.h"
 #include "spmfilter.h"
 
 #define THIS_MODULE "lookup_result"
@@ -46,7 +46,7 @@ void lookup_result_add(LookupResult_T *l, LookupElement_T *elem_data) {
  *
  * \returns LookupElement_T at the given index
  */
-LookupElement_T *lookup_result_index(LookupResult_T *l, int i) {
+LookupElement_T *smf_lookup_result_index(LookupResult_T *l, int i) {
 	return (LookupElement_T *)g_ptr_array_index((GPtrArray *)l,i);
 }
 
@@ -54,10 +54,10 @@ LookupElement_T *lookup_result_index(LookupResult_T *l, int i) {
  *
  * \param *l pointer to LookupResult_T
  */
-void lookup_result_free(LookupResult_T *l) {
+void smf_lookup_result_free(LookupResult_T *l) {
 	int i;
 	for (i = 0; i < l->len; i++) {
-		g_hash_table_unref((GHashTable *)lookup_result_index(l,i));
+		g_hash_table_unref((GHashTable *)smf_lookup_result_index(l,i));
 	}
 	g_free(l);
 }
@@ -90,7 +90,7 @@ void lookup_element_add(LookupElement_T *e, char *key, void *value) {
  *
  * \returns the associated value, or NULL if the key is not found
  */
-void *lookup_element_get(LookupElement_T *e, char *key) {
+void *smf_lookup_element_get(LookupElement_T *e, char *key) {
 	if (e == NULL)
 		return NULL;
 	return g_hash_table_lookup((GHashTable *)e,key);

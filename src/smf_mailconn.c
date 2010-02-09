@@ -18,6 +18,7 @@
 #include <glib.h>
 
 #include "spmfilter.h"
+#include "smf_mailconn.h"
 
 #define THIS_MODULE "mailconn"
 
