@@ -64,9 +64,15 @@ smtp server.
 Enables verbose debugging output. Debugging output will be written to
 the configured syslog facility.
 
+.nf
+\fBtrue\fR - debugging enabled
+
+\fBfalse\fR - debugging disabled (default)
+.fi
+
 .IP "\fBmodules\fR"
-Specifies all modules, which will be loaded at runtime. All modules
-will be process in the same order, as listed. Modules names have to
+Specifies the modules, which will be loaded at runtime. All modules
+will be process in the same order, as listed. Module names have to
 be separated by a semicolon.
 
 .IP "\fBmodule_fail\fR"
@@ -101,7 +107,7 @@ balance	=	when you configure the backend profile for load balancing, spmfilter
 
 
 .nf
-failover	=	when you configure the backen profile for failover, spmfilter fails over 
+failover	=	when you configure the backend profile for failover, spmfilter fails over
 			to the next host in the list if it cannot connect to the first host.
 .fi
 
