@@ -15,10 +15,10 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _PLATFORM_H
-#define	_PLATFORM_H
+#ifndef _SMF_PLATFORM_H
+#define	_SMF_PLATFORM_H
 
 char *smf_build_module_path(const char *libdir, const char *modname);
 
-#endif	/* _PLATFORM_H */
+#endif	/* _SMF_PLATFORM_H */
 

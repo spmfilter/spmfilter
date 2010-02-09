@@ -15,8 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SETTINGS_H
-#define	_SETTINGS_H
+#ifndef _SMF_SETTINGS_H
+#define	_SMF_SETTINGS_H
 
 /** Override settings */
 void set_settings(Settings_T **s);
@@ -31,5 +31,5 @@ void free_settings(Settings_T *settings);
 
 int parse_config(void);
 
-#endif	/* _SETTINGS_H */
+#endif	/* _SMF_SETTINGS_H */
 
