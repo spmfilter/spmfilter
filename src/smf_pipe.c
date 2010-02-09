@@ -34,8 +34,6 @@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
-typedef int (*LoadMod) (MailConn_T *mconn);
-
 MailConn_T *mconn = NULL;
 
 /* error handler used when building module queue
@@ -82,11 +80,8 @@ static int handle_nexthop_error(void *args) {
 }
 
 int load_modules(void) {
-	GModule *module;
-	LoadMod load_module;
-	int i, ret;
+	int ret;
 	ProcessQueue_T *q;
-	Settings_T *settings = smf_settings_get();
 
 	/* initialize the modules queue handler */
 	q = smf_core_pqueue_init(
