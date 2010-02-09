@@ -15,10 +15,13 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <string.h>
+
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gmime/gmime.h>
-#include <fcntl.h>
 
 #include "spmfilter.h"
 

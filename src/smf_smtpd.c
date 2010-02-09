@@ -119,12 +119,14 @@ static int handle_q_error(void *args) {
 		case 3: smtpd_code_reply(451);
 				return(0);
 	}
+
+	return(0);
 }
 
 /* handle processing errors when running queue 
  *
  * FIXME: clean documentation
-/* return codes:
+ * return codes:
  * -1 = Error in processing, spmfilter will send 4xx Error to MTA
  * 0 = All ok, the next plugin will be started.
  * 1 = Further processing will be stopped. Email is not going
