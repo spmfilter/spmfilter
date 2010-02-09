@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <time.h>
 #include <assert.h>
 #include <URL.h>
@@ -37,6 +38,9 @@
 
 ConnectionPool_T sql_pool = NULL;
 URL_T url = NULL;
+
+static void sql_fallback_handler(const char *error);
+int sql_start_pool(char *dsn);
 
 int active_server = -1;
 
@@ -126,6 +130,54 @@ char *sql_get_dsn(char *host) {
 	return dsn;
 }
 
+/** Try to start a new connection pool
+ *
+ * \param dsn for new server connection
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int sql_start_pool(char *dsn) {
+	Settings_T *settings = smf_settings_get();
+	int sweep_interval = 60;
+	Connection_T con = NULL;
+
+
+	url = URL_new(dsn);
+
+	if (!(sql_pool = ConnectionPool_new(url))) {
+		TRACE(TRACE_ERR,"error creating database connection pool");
+		return -1;
+	}
+
+	if (settings->sql_max_connections > 0) {
+		if (settings->sql_max_connections < (unsigned int)ConnectionPool_getInitialConnections(sql_pool))
+			ConnectionPool_setInitialConnections(sql_pool, settings->sql_max_connections);
+		ConnectionPool_setMaxConnections(sql_pool, settings->sql_max_connections);
+		TRACE(TRACE_LOOKUP,"database connection pool created with maximum connections of [%d]",settings->sql_max_connections);
+	}
+
+	ConnectionPool_setReaper(sql_pool, sweep_interval);
+
+	if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0)
+		ConnectionPool_setAbortHandler(sql_pool, sql_fallback_handler);
+
+	TRACE(TRACE_LOOKUP, "run a database connection reaper thread every [%d] seconds", sweep_interval);
+
+	ConnectionPool_start(sql_pool);
+
+	TRACE(TRACE_LOOKUP, "database connection pool started with [%d] connections, max [%d]",
+			ConnectionPool_getInitialConnections(sql_pool), ConnectionPool_getMaxConnections(sql_pool));
+
+	if (!(con = ConnectionPool_getConnection(sql_pool))) {
+		sql_con_close(con);
+		TRACE(TRACE_ERR, "error getting a database connection from the pool");
+		return -1;
+	}
+	sql_con_close(con);
+
+	return 0;
+}
+
 /** Fallback function if connection dies or server is not available.
  *  If more than one server is configured, try to establish a connection
  *  to one of the remaining server.
@@ -150,54 +202,6 @@ static void sql_fallback_handler(const char *error) {
 	dsn = sql_get_dsn(settings->sql_host[active_server]);
 	sql_disconnect();
 	sql_start_pool(dsn);
-}
-
-/** Try to start a new connection pool
- *
- * \param dsn for new server connection
- *
- * \returns 0 on success or -1 in case of error
- */
-int sql_start_pool(char *dsn) {
-	Settings_T *settings = smf_settings_get();
-	int sweep_interval = 60;
-	Connection_T con = NULL;
-
-
-	url = URL_new(dsn);
-	
-	if (!(sql_pool = ConnectionPool_new(url))) {
-		TRACE(TRACE_ERR,"error creating database connection pool");
-		return -1;
-	}
-
-	if (settings->sql_max_connections > 0) {
-		if (settings->sql_max_connections < (unsigned int)ConnectionPool_getInitialConnections(sql_pool))
-			ConnectionPool_setInitialConnections(sql_pool, settings->sql_max_connections);
-		ConnectionPool_setMaxConnections(sql_pool, settings->sql_max_connections);
-		TRACE(TRACE_LOOKUP,"database connection pool created with maximum connections of [%d]",settings->sql_max_connections);
-	}
-
-	ConnectionPool_setReaper(sql_pool, sweep_interval);
-	
-	if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0)
-		ConnectionPool_setAbortHandler(sql_pool, sql_fallback_handler);
-
-	TRACE(TRACE_LOOKUP, "run a database connection reaper thread every [%d] seconds", sweep_interval);
-
-	ConnectionPool_start(sql_pool);
-
-	TRACE(TRACE_LOOKUP, "database connection pool started with [%d] connections, max [%d]",
-			ConnectionPool_getInitialConnections(sql_pool), ConnectionPool_getMaxConnections(sql_pool));
-
-	if (!(con = ConnectionPool_getConnection(sql_pool))) {
-		sql_con_close(con);
-		TRACE(TRACE_ERR, "error getting a database connection from the pool");
-		return -1;
-	}
-	sql_con_close(con);
-
-	return 0;
 }
 
 /** Connect to sql server
