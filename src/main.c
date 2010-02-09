@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 	GModule *module;
 	LoadEngine load_engine;
 	gchar *engine_path;
-	int ret, i;
+	int ret;
 	Settings_T *settings = smf_settings_get();
 
 	/* all cmd args */

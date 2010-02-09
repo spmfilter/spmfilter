@@ -118,7 +118,6 @@ int load(void) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	int i;
-	Settings_T *settings = smf_settings_get();
 	
 	mconn = mconn_new();
 

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <glib.h>
+#include <gmodule.h>
 
 char *smf_build_module_path(const char *libdir, const char *modname) {
 	if (g_str_has_prefix(modname,"lib")) {
