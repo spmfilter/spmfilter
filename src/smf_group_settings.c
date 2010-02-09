@@ -117,7 +117,7 @@ double smf_settings_group_get_double(char *key) {
  * \returns a NULL-terminated string array or NULL if the specified key cannot be found.
  */
 char **smf_settings_group_get_string_list(char *key, int length) {
-	return g_key_file_get_string_list(keyfile, group, key, &length, NULL);
+	return g_key_file_get_string_list(keyfile, group, key, (gsize*)&length, NULL);
 }
 
 /** Free allocated space */
