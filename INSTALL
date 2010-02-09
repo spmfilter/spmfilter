@@ -1,0 +1,60 @@
+Installation Instructions
+*************************
+
+Basic Installation
+===================
+
+spmfilter uses cmake instead of the autotools "configure" script.
+CMake normally uses a separate build directory - follow these steps to configure,
+build and install this package from source:
+
+tar xvfz spmfilter-<VERSION>.tar.gz
+cd spmfilter-<VERSION>
+mkdir build
+cd build
+cmake ../ <configure parameters>
+make
+make install
+
+If cmake has problems finding things, it may help to define these two environment
+variables:
+
+CMAKE_INCLUDE_PATH
+CMAKE_LIBRARY_PATH
+
+
+
+Configure Parameters
+=====================
+
+Some systems require unusual options for compilation or linking that the
+`cmake' script does not know about.  Run `./cmake -h' for details on some of
+the pertinent environment variables.
+
+You can give `cmake' initial values for configuration parameters
+by setting variables in the command line or in the environment.  Here
+is an example:
+
+	./cmake ../ -DPREFIX:STRING=/usr/local
+
+Instead of defining parameters on the command line you can also create
+the file "build.properties" in the source and define your configuration
+parameters there. Here is an example for "build.properties":
+
+
+	set(PREFIX /opt/spmfilter)
+	set(ENABLE_DEBUG TRUE)
+	set(WITH_ZDB TRUE)
+	set(WITH_DB4 TRUE)
+	set(WITH_LDAP TRUE)
+
+
+
+
+Installation Names
+==================
+
+By default, `make install' installs the package's commands under
+`/usr/local/bin', include files under `/usr/local/include', etc.  You
+can specify an installation prefix other than `/usr/local' by giving
+`cmake' the option `-DPREFIX:STRING=/usr/local'.
