@@ -15,8 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMTPD_H
-#define _SMTPD_H
+#ifndef _SMF_SMTPD_H
+#define _SMF_SMTPD_H
 
 #define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
 #define CODE_250 "250 OK\r\n"
@@ -31,4 +31,4 @@ int load(void);
 void smtp_string_reply(const char *format, ...);
 void smtp_code_reply(int code);
 
-#endif /* __SMTPD_H */
+#endif /* _SMF_SMTPD_H */

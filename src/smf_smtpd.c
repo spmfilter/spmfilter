@@ -169,11 +169,8 @@ void smtp_code_reply(int code) {
 }
 
 int load_modules(void) {
-	GModule *module;
-	LoadMod load_module;
-	int i, ret;
+	int ret;
 	ProcessQueue_T *q;
-	Settings_T *settings = smf_settings_get();
 
 	/* initialize the modules queue handler */
 	q = smf_core_pqueue_init(

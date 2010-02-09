@@ -15,8 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMTP_CODES_H
-#define	_SMTP_CODES_H
+#ifndef _SMF_SMTP_CODES_H
+#define	_SMF_SMTP_CODES_H
 
 /** Free smtp codes */
 void smtp_code_free(void);
@@ -36,5 +36,5 @@ void smtp_code_insert(int code, char *msg);
  */
 char *smtp_code_get(int code);
 
-#endif	/* _SMTP_CODES_H */
+#endif	/* _SMF_SMTP_CODES_H */
 
