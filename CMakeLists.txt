@@ -61,7 +61,7 @@ endif(GMIME_FOUND)
 
 if(WITH_ZDB)
     find_package(Zdb REQUIRED)
-    include_directories(${ZDB_INCLUDE_PATH})
+    include_directories(${ZDB_INCLUDE_DIR})
 	link_directories(${ZDB_PATH})
 endif(WITH_ZDB)
 
