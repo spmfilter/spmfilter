@@ -17,12 +17,14 @@
 
 #include <stdio.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <gmodule.h>
 #include <time.h>
 
 #include "spmfilter.h"
 #include "smf_settings.h"
 #include "smf_lookup.h"
+#include "smf_platform.h"
 
 #define THIS_MODULE "spmfilter"
 
@@ -34,7 +36,7 @@ int main(int argc, char *argv[]) {
 	clock_t start_process, stop_process;
 	GModule *module;
 	LoadEngine load_engine;
-	gchar *engine_path;
+	char *engine_path;
 	int ret;
 	Settings_T *settings = smf_settings_get();
 
@@ -82,20 +84,7 @@ int main(int argc, char *argv[]) {
 	start_process = clock();
 
 	/* check if engine module starts with lib */
-	if (g_str_has_prefix(settings->engine,"lib")) {
-#ifdef __APPLE__
-		engine_path = g_module_build_path(LIB_DIR,g_strdup_printf("%s.dylib",settings->engine));
-#else
-		engine_path = g_module_build_path(LIB_DIR,settings->engine);
-#endif
-	} else {
-		/* if not prepend lib */
-#ifdef __APPLE__
-		engine_path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s.dylib",settings->engine));
-#else
-		engine_path = g_module_build_path(LIB_DIR,g_strdup_printf("lib%s",settings->engine));
-#endif
-	}
+	engine_path = smf_build_module_path(LIB_DIR, settings->engine);
 
 	/* try to open engine module */
 	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
@@ -126,7 +115,7 @@ int main(int argc, char *argv[]) {
 	/* free all stuff */
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
-	g_free(engine_path);
+	free(engine_path);
 	free_settings(settings);
 
 	if (ret != 0) {
