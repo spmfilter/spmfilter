@@ -28,6 +28,7 @@
 #include <Connection.h>
 #include <ConnectionPool.h>
 #include <SQLException.h>
+#include <Exception.h>
 
 #include "spmfilter.h"
 #include "smf_lookup.h"
