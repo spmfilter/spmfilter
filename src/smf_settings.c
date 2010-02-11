@@ -71,7 +71,7 @@ int parse_config(void) {
 	 * if config file is not defined as
 	 * command argument */
 	if (settings->config_file == NULL) {
-		settings->config_file = "/etc/spmfilter.conf";
+		settings->config_file = g_strdup("/etc/spmfilter.conf");
 	}
 
 	/* open config file and start parsing */
