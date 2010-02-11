@@ -67,6 +67,7 @@ int smf_message_deliver(Message_T *msg_data) {
 			smtp_set_server(session,nexthop);
 		}
 	} else {
+		TRACE(TRACE_ERR,"invalid smtp host");
 		smtp_destroy_session(session);
 		return -1;
 	}
@@ -94,12 +95,14 @@ int smf_message_deliver(Message_T *msg_data) {
 			recipient = smtp_add_recipient(message,msg_data->rcpts[i]);
 		}
 	} else {
+		TRACE(TRACE_ERR,"no recipients provided");
 		smtp_destroy_session(session);
 		fclose(fp);
 		return -1;
 	}
 
 	if (!smtp_start_session(session)) {
+		TRACE(TRACE_ERR,"failed to initialize smtp session");
 		smtp_destroy_session(session);
 		fclose(fp);
 		return -1;
