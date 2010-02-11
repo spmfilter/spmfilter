@@ -8,7 +8,8 @@ depcomp
 install-sh
 ltmain.sh
 libtool
-src/libspmfilter.pc
+src/spmfilter.pc
+src/spmfilter.h
 src/spmfilter
 *.o
 *.lo
