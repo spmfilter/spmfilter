@@ -209,7 +209,9 @@ void process_data(void) {
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
-
+	GString *header = g_string_new(0);
+	gboolean header_done = FALSE;
+	
 	smf_core_gen_queue_file(&mconn->queue_file);
 	if (mconn->queue_file == NULL) {
 		TRACE(TRACE_ERR,"failed to create spool file!");
@@ -230,11 +232,18 @@ void process_data(void) {
 	}
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_encoding(out, NULL, NULL);
-
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
 		
+		/* check if message body begins */
+		if ((g_ascii_strcasecmp(line,"\r\n")==0) || (g_ascii_strcasecmp(line,"\n")==0)) {
+			header_done = TRUE;
+		} else {
+			if (!header_done) 
+				header = g_string_append(header,g_strdup(line));
+		}
+
 		if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
 			smtpd_string_reply("452 %s\r\n",error->message);
 			g_io_channel_unref(out);
@@ -252,7 +261,10 @@ void process_data(void) {
 	g_io_channel_unref(out);
 	g_io_channel_unref(in);
 
-
+	mconn->header = g_slice_new(Header_T);
+	mconn->header->is_dirty = 0;
+	mconn->header->data = g_strdup(header->str);
+	g_string_free(header,TRUE);
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
 
 	load_modules();

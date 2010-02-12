@@ -50,6 +50,9 @@ void mconn_free(MailConn_T *mconn) {
 	g_free(mconn->helo);
 	g_free(mconn->xforward_addr);
 
+	g_free(mconn->header->data);
+	g_slice_free(Header_T,mconn->header);
+
 	if (mconn->from != NULL)
 		g_free(mconn->from->addr);
 	g_slice_free(EmailAddress_T,mconn->from);
