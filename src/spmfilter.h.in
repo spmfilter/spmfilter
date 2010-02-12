@@ -146,6 +146,11 @@ typedef struct {
 } EmailAddress_T;
 
 typedef struct {
+	int is_dirty;
+	char *data;
+} Header_T;
+
+typedef struct {
 	/* hello we received */
 	char *helo;
 	
@@ -164,6 +169,9 @@ typedef struct {
 	
 	/* xfoward */
 	char *xforward_addr;
+
+	/* message header */
+	Header_T *header;
 } MailConn_T;
 
 /* Logging and debugging stuff */
