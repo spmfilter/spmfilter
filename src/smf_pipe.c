@@ -34,8 +34,6 @@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
-MailConn_T *mconn = NULL;
-
 /* error handler used when building module queue
  * return 1 if processing should continue, else 0
  */
@@ -82,6 +80,7 @@ static int handle_nexthop_error(void *args) {
 int load_modules(void) {
 	int ret;
 	ProcessQueue_T *q;
+	MailConn_T *mconn = smf_mailconn_get();
 
 	/* initialize the modules queue handler */
 	q = smf_core_pqueue_init(
@@ -117,9 +116,9 @@ int load(void) {
 	GError *error = NULL;
 	InternetAddressList *ia;
 	InternetAddress *addr;
+	MailConn_T *mconn = smf_mailconn_get();
 	int i;
 	
-	mconn = mconn_new();
 
 	smf_core_gen_queue_file(&mconn->queue_file);
 
@@ -212,12 +211,12 @@ int load(void) {
 	g_mime_shutdown();
 	if (load_modules() != 0) {
 		remove(mconn->queue_file);
-		mconn_free(mconn);
+		smf_mailconn_free();
 		TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 		return -1;
 	} else {
 		remove(mconn->queue_file);
-		mconn_free(mconn);
+		smf_mailconn_free();
 		TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 		return 0;
 	}

@@ -21,6 +21,8 @@
 #include <stdarg.h>
 #include <glib.h>
 #include <gmodule.h>
+#include <glib/gstdio.h>
+#include <gmime/gmime.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -31,8 +33,6 @@
 #include "smf_core.h"
 
 #define THIS_MODULE "smtpd"
-
-MailConn_T *mconn;
 
 #define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
 #define CODE_250 "250 OK\r\n"
@@ -111,7 +111,7 @@ void smtpd_code_reply(int code) {
  */
 static int handle_q_error(void *args) {
 	Settings_T *settings = smf_settings_get();
-	
+
 	switch (settings->module_fail) {
 		case 1: return(1);
 		case 2: smtpd_code_reply(552);
@@ -179,6 +179,7 @@ static int handle_nexthop_error(void *args) {
 int load_modules(void) {
 	int ret;
 	ProcessQueue_T *q;
+	MailConn_T *mconn = smf_mailconn_get();
 
 	/* initialize the modules queue handler */
 	q = smf_core_pqueue_init(
@@ -186,7 +187,7 @@ int load_modules(void) {
 		handle_q_processing_error,
 		handle_nexthop_error
 	);
-	
+
 	if(q == NULL) {
 		return(-1);
 	}
@@ -194,6 +195,10 @@ int load_modules(void) {
 	/* now tun the process queue */
 	ret = smf_core_process_modules(q,mconn);
 	free(q);
+
+	/* flush header to disk if necessary */
+	if (smf_core_header_flush(mconn) != 0)
+		TRACE(TRACE_ERR,"failed to flush header");
 
 	if(ret != 0) {
 		TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
@@ -205,13 +210,18 @@ int load_modules(void) {
 }
 
 void process_data(void) {
-	GIOChannel *in, *out;
+	GIOChannel *in;//, *out;
+	GMimeStream *out;
 	gchar *line;
 	gsize length;
 	GError *error = NULL;
-	GString *header = g_string_new(0);
-	gboolean header_done = FALSE;
-	
+	int fd;
+//	GString *header = g_string_new(0);
+//	gboolean header_done = FALSE;
+	GMimeParser *parser;
+	GMimeObject *message;
+	MailConn_T *mconn = smf_mailconn_get();
+
 	smf_core_gen_queue_file(&mconn->queue_file);
 	if (mconn->queue_file == NULL) {
 		TRACE(TRACE_ERR,"failed to create spool file!");
@@ -225,51 +235,75 @@ void process_data(void) {
 	
 	/* start receiving data */
 	in = g_io_channel_unix_new(STDIN_FILENO);
-	if ((out = g_io_channel_new_file(mconn->queue_file,"w", &error)) == NULL) {
-		smtpd_string_reply("552 %s\r\n",error->message);
-		g_error_free(error);
+	if ((fd = open(mconn->queue_file,O_RDWR|O_CREAT)) == -1) {
+		smtpd_string_reply(CODE_552);
+		TRACE(TRACE_ERR,"failed writing queue file");
 		return;
 	}
+
+	out = g_mime_stream_fs_new(fd);
+//	if ((out = g_io_channel_new_file(mconn->queue_file,"w", &error)) == NULL) {
+//		smtpd_string_reply("552 %s\r\n",error->message);
+//		g_error_free(error);
+//		return;
+//	}
+
 	g_io_channel_set_encoding(in, NULL, NULL);
-	g_io_channel_set_encoding(out, NULL, NULL);
+//	g_io_channel_set_encoding(out, NULL, NULL);
+
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
 		
 		/* check if message body begins */
-		if ((g_ascii_strcasecmp(line,"\r\n")==0) || (g_ascii_strcasecmp(line,"\n")==0)) {
-			header_done = TRUE;
-		} else {
-			if (!header_done) 
-				header = g_string_append(header,g_strdup(line));
-		}
+	//	if ((g_ascii_strcasecmp(line,"\r\n")==0) || (g_ascii_strcasecmp(line,"\n")==0)) {
+	//		header_done = TRUE;
+	//	} else {
+	//		if (!header_done)
+	//			header = g_string_append(header,g_strdup(line));
+	//	}
 
-		if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
-			smtpd_string_reply("452 %s\r\n",error->message);
-			g_io_channel_unref(out);
-			g_io_channel_shutdown(out,TRUE,NULL);
+	//	if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
+		if (g_mime_stream_write(out,line,strlen(line)) == -1) {
+			smtpd_string_reply(CODE_451);
+		//	g_io_channel_unref(out);
+			g_object_unref(out);
+			close(fd);
+		//	g_io_channel_shutdown(out,TRUE,NULL);
 			g_io_channel_unref(in);
 			g_free(line);
-			remove(mconn->queue_file);
-			g_error_free(error);
+			if (g_remove(mconn->queue_file) != 0)
+				TRACE(TRACE_ERR,"failed to remove queue file");
+	//		g_error_free(error);
 			return;
 		}
 		mconn->msgbodysize+=strlen(line);
 		g_free(line);
 	}
-	g_io_channel_shutdown(out,TRUE,NULL);
-	g_io_channel_unref(out);
+	g_mime_stream_flush(out);
+	parser = g_mime_parser_new_with_stream(out);
+	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
+	mconn->headers = (void *)g_mime_object_get_header_list(message);
+	mconn->is_dirty = 0;
+	g_object_unref(parser);
+	g_object_unref(message);
+//	g_io_channel_shutdown(out,TRUE,NULL);
+//	g_io_channel_unref(out);
+	g_object_unref(out);
 	g_io_channel_unref(in);
 
-	mconn->header = g_slice_new(Header_T);
+	close(fd);
+
+/*	mconn->header = g_slice_new(Header_T);
 	mconn->header->is_dirty = 0;
 	mconn->header->data = g_strdup(header->str);
-	g_string_free(header,TRUE);
+	g_string_free(header,TRUE);*/
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
 
 	load_modules();
 	
-	remove(mconn->queue_file);
+	if (g_remove(mconn->queue_file) != 0)
+		TRACE(TRACE_ERR,"failed to remove queue file");
 	TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
 	return;
 }
@@ -280,8 +314,7 @@ int load(void) {
 	char *line;
 	int state=ST_INIT;
 	Settings_T *settings = smf_settings_get();
-	
-	mconn = mconn_new();
+	MailConn_T *mconn = smf_mailconn_get();
 
 	gethostname(hostname,256);
 
@@ -305,9 +338,9 @@ int load(void) {
 			 * command had been issued.
 			 */
 			if (state != ST_INIT) {
-				mconn_free(mconn);
+				smf_mailconn_free();
 				/* reinit mconn */
-				mconn = mconn_new();
+				mconn = smf_mailconn_get();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
 			mconn->helo = smf_core_get_substring("^HELO\\s(.*)$",line, 1);
@@ -328,9 +361,9 @@ int load(void) {
 			 * received later...
 			 */
 			if (state != ST_INIT) {
-				mconn_free(mconn);
+				smf_mailconn_free();
 				/* reinit mconn */
-				mconn = mconn_new();
+				mconn = smf_mailconn_get();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			mconn->helo = smf_core_get_substring("^EHLO\\s(.*)$",line,1);
@@ -437,9 +470,9 @@ int load(void) {
 			}
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
-			mconn_free(mconn);
+			smf_mailconn_free();
 			/* reinit mconn */
-			mconn = mconn_new();
+			mconn = smf_mailconn_get();
 			smtpd_code_reply(250);
 			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
@@ -458,7 +491,7 @@ int load(void) {
 	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
 
-	mconn_free(mconn);
+	smf_mailconn_free();
 	
 	return 0;
 }
