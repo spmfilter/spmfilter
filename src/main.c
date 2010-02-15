@@ -20,6 +20,7 @@
 #include <glib/gstdio.h>
 #include <gmodule.h>
 #include <time.h>
+#include <gmime/gmime.h>
 
 #include "spmfilter.h"
 #include "smf_settings.h"
@@ -86,6 +87,9 @@ int main(int argc, char *argv[]) {
 	/* check if engine module starts with lib */
 	engine_path = smf_build_module_path(LIB_DIR, settings->engine);
 
+	/* init gmime */
+	g_mime_init(0);
+
 	/* try to open engine module */
 	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
 	if (!module) {
@@ -102,6 +106,9 @@ int main(int argc, char *argv[]) {
 	/* start processing engine */
 	ret = load_engine();
 
+	/* shutdown gmime */
+	g_mime_shutdown();
+	
 	/* processing is done, we can
 	 * stop our clock */
 	stop_process = clock();

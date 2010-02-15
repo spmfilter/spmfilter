@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Sebastian Jaekel and SpaceNet AG
+ * Copyright (C) 2009-2010 Sebastian Jaekel, Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,7 +17,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <glib.h>
 #include <gmodule.h>
+#include <glib/gstdio.h>
 
 #include "spmfilter.h"
 #include "smf_core.h"
@@ -171,4 +173,83 @@ int smf_core_deliver_nexthop(ProcessQueue_T *q,MailConn_T *mconn) {
 	g_slice_free(Message_T,msg);
 
 	return(0);
+}
+
+int smf_core_header_flush(MailConn_T *mconn) {
+/*	gchar *line;
+	GIOChannel *in, *out;
+	GError *error = NULL;
+	char *new_queue_file;
+	gboolean header_done = FALSE;
+
+	if (mconn->is_dirty == 0)
+		return 0;
+
+	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
+	if ((in = g_io_channel_new_file(mconn->queue_file,"r", &error)) == NULL) {
+		TRACE(TRACE_ERR,"%s",error->message);
+		g_error_free(error);
+		return -1;
+	}
+
+	smf_core_gen_queue_file(&new_queue_file);
+
+	if ((out = g_io_channel_new_file(new_queue_file,"w", &error)) == NULL) {
+		TRACE(TRACE_ERR,"%s",error->message);
+		g_error_free(error);
+		return -1;
+	}
+	g_io_channel_set_encoding(in, NULL, NULL);
+	g_io_channel_set_encoding(out, NULL, NULL);
+
+	if (g_io_channel_write_chars(out,mconn->header->data,-1,NULL, &error) != G_IO_STATUS_NORMAL) {
+		TRACE(TRACE_ERR,"%s",error->message);
+		g_error_free(error);
+		g_io_channel_shutdown(out,TRUE,NULL);
+		g_io_channel_shutdown(in,TRUE,NULL);
+		g_io_channel_unref(out);
+		g_io_channel_unref(in);
+		remove(new_queue_file);
+		return -1;
+	}
+
+	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
+		if ((g_ascii_strcasecmp(line, "\r\n")==0)||(g_ascii_strcasecmp(line, "\n")==0)) 
+			header_done = TRUE;
+
+		if (header_done) {
+			if (g_io_channel_write_chars(out, line, -1, NULL, &error) != G_IO_STATUS_NORMAL) {
+				TRACE(TRACE_ERR,"%s",error->message);
+				g_io_channel_unref(out);
+				g_io_channel_shutdown(out,TRUE,NULL);
+				g_io_channel_shutdown(in,TRUE,NULL);
+				g_io_channel_unref(in);
+				g_free(line);
+				remove(new_queue_file);
+				g_error_free(error);
+				return -1;
+			}
+		} else
+			continue;
+		g_free(line);
+	}
+
+	g_io_channel_shutdown(out,TRUE,NULL);
+	g_io_channel_shutdown(in,TRUE,NULL);
+	g_io_channel_unref(out);
+	g_io_channel_unref(in);
+
+	if (g_remove(mconn->queue_file) != 0) {
+		TRACE(TRACE_ERR,"failed to remove queue file");
+		return -1;
+	}
+
+	if(g_rename(new_queue_file,mconn->queue_file) != 0) {
+		TRACE(TRACE_ERR,"failed to rename queue file");
+		return -1;
+	}
+
+	g_free(new_queue_file);
+*/
+	return 0;
 }
