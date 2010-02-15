@@ -18,24 +18,27 @@
 #include <glib.h>
 
 #include "spmfilter.h"
-#include "smf_mailconn.h"
+
 
 #define THIS_MODULE "mailconn"
+
+MailConn_T *mconn = NULL;
 
 /** Initialize MailConn_T structure
  *
  * \returns pointer to MailConn_T type
  */
-MailConn_T *mconn_new(void) {
-	MailConn_T *mconn = NULL;
-	TRACE(TRACE_DEBUG,"initialize session data");
-	mconn = g_slice_new(MailConn_T);
-	mconn->helo = NULL;
-	mconn->from = NULL;
-	mconn->queue_file = NULL;
-	mconn->rcpts = NULL;
-	mconn->xforward_addr = NULL;
-
+MailConn_T *smf_mailconn_get(void) {
+	if (mconn == NULL) {
+		TRACE(TRACE_DEBUG,"initialize session data");
+		mconn = g_slice_new(MailConn_T);
+		mconn->helo = NULL;
+		mconn->from = NULL;
+		mconn->queue_file = NULL;
+		mconn->rcpts = NULL;
+		mconn->xforward_addr = NULL;
+	}
+	
 	return mconn;
 }
 
@@ -43,15 +46,15 @@ MailConn_T *mconn_new(void) {
  *
  * \param mconn MailConn_T type
  */
-void mconn_free(MailConn_T *mconn) {
+void smf_mailconn_free(void) {
 	int i;
 	TRACE(TRACE_DEBUG,"destroy session data");
 	g_free(mconn->queue_file);
 	g_free(mconn->helo);
 	g_free(mconn->xforward_addr);
 
-	g_free(mconn->header->data);
-	g_slice_free(Header_T,mconn->header);
+//	g_free(mconn->header->data);
+//	g_slice_free(Header_T,mconn->header);
 
 	if (mconn->from != NULL)
 		g_free(mconn->from->addr);
@@ -62,4 +65,5 @@ void mconn_free(MailConn_T *mconn) {
 	}
 	g_free(mconn->rcpts);
 	g_slice_free(MailConn_T,mconn);
+	mconn = NULL;
 }

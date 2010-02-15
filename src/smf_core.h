@@ -18,8 +18,6 @@
 #ifndef _SMF_CORE_H
 #define	_SMF_CORE_H
 
-#include <glib.h>
-
 #include "spmfilter.h"
 
 typedef int (*ModuleLoadFunction)(MailConn_T *mconn);
@@ -43,6 +41,9 @@ int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn);
 
 /** deliver a message to the nexthop */
 int smf_core_deliver_nexthop(ProcessQueue_T *q, MailConn_T *mconn);
+
+/** sync header with queue file */
+int smf_core_header_flush(MailConn_T *mconn);
 
 #endif	/* _SMF_CORE_H */
 

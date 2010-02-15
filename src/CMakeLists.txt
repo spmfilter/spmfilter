@@ -14,6 +14,7 @@ set(LIB_SMF_SRC
 	smf_lookup_result.c
 	smf_platform.c
 	smf_core.c
+	smf_mailconn.c
 )
 
 set(COMMON_LIBS m esmtp ${GMODULE_LIBRARIES} ${GMIME_LIBRARIES})

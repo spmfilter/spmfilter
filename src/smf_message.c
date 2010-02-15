@@ -24,6 +24,7 @@
 #include <gmime/gmime.h>
 
 #include "spmfilter.h"
+#include "smf_mailconn.h"
 
 #define THIS_MODULE "message"
 
@@ -92,13 +93,62 @@ int smf_message_write(char *new_path, char *queue_file) {
 
 /** Gets the value of the requested header if it exists or NULL otherwise.
  *
- * \param msg_path path to message or queue file
  * \param header_name name of the wanted header
  *
  * \returns requested header
  */
-char *smf_message_get_header(char *msg_path, const char *header_name) {
-	GMimeMessage *message;
+char *smf_message_get_header(const char *header_name) {
+	MailConn_T *mconn = smf_mailconn_get();
+//	GMimeStream *stream;
+//	GMimeMessage *message;
+//	GMimeParser *parser;
+//	char *test;
+//	char *header_value = NULL;
+
+//	stream = g_mime_stream_mem_new_with_buffer(mconn->header->data,strlen(mconn->header->data) + 1);
+//	parser = g_mime_parser_new_with_stream(stream);
+//	message = g_mime_parser_construct_message(parser);
+//	TRACE(TRACE_DEBUG,"MESSAGE: %s",message);
+//	g_object_unref(parser);
+
+//	if (message!=NULL) {
+//#ifdef HAVE_GMIME24
+//		header_value = (char *)g_mime_object_get_header(GMIME_OBJECT(message),header_name);
+//#else
+//		header_value = g_mime_message_get_header(message,header_name);
+//#endif
+//	}
+//	TRACE(TRACE_DEBUG,"HEADER VALUE: %s",header_value);
+//	g_object_unref(message);
+//	g_object_unref(stream);
+
+//	return header_value;
+/*
+	gchar **lines;
+	gchar **header;
+	char *header_value = NULL;
+	gboolean found = FALSE;
+	int i;
+
+	lines = g_strsplit(mconn->header->data,"\n",-1);
+	while(lines[i]) {
+		if (g_ascii_strncasecmp(lines[i],header_name,strlen(header_name)) == 0) {
+			header = g_strsplit(lines[i],":",2);
+			found = TRUE;
+		}
+		i++;
+	}
+
+	if (found) {
+		header_value = g_strdup(header[1]);
+		g_strstrip(header_value);
+		g_strfreev(header);
+	}
+	g_strfreev(lines);
+
+	return header_value;  */
+	return NULL;
+/*	GMimeMessage *message;
 	char *header_value = NULL;
 
 	g_mime_init(0);
@@ -114,6 +164,8 @@ char *smf_message_get_header(char *msg_path, const char *header_name) {
 	g_object_unref(message);
 	g_mime_shutdown();
 	return header_value;
+*/
+
 }
 
 /** Removed the specified header if it exists

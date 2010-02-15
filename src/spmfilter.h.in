@@ -146,11 +146,6 @@ typedef struct {
 } EmailAddress_T;
 
 typedef struct {
-	int is_dirty;
-	char *data;
-} Header_T;
-
-typedef struct {
 	/* hello we received */
 	char *helo;
 	
@@ -171,7 +166,11 @@ typedef struct {
 	char *xforward_addr;
 
 	/* message header */
-	Header_T *header;
+	void *headers;
+
+	/* flag which indicates, if
+	 * any header was modified */
+	int is_dirty;
 } MailConn_T;
 
 /* Logging and debugging stuff */
@@ -304,12 +303,11 @@ int smf_message_write(char *new_path, char *queue_file);
 
 /* Gets the value of the requested header if it exists
  *
- * \param msg_path path to message or queue file
  * \param header_name name of the wanted header
  *
  * \returns value of header or NULL in case of error
  */
-char *smf_message_get_header(char *msg_path, const char *header_name);
+char *smf_message_get_header(const char *header_name);
 
 /** Sets an arbitrary header
  *

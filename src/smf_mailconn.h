@@ -18,17 +18,17 @@
 #ifndef _SMF_MAILCONN_H
 #define	_SMF_MAILCONN_H
 
-/** Initialize MailConn_T structure
+/** Retrieve MailConn_T structure
  *
  * \returns pointer to MailConn_T type
  */
-MailConn_T *mconn_new(void);
+MailConn_T *smf_mailconn_get(void);
 
 /** Free MailConn_T structure
  *
  * \param mconn MailConn_T type
  */
-void mconn_free(MailConn_T *mconn);
+void smf_mailconn_free(void);
 
 #endif	/* _SMF_MAILCONN_H */
 
