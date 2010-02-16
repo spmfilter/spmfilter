@@ -18,7 +18,6 @@
 #include <glib.h>
 
 #include "smf_lookup.h"
-#include "spmfilter.h"
 
 #define THIS_MODULE "lookup_result"
 

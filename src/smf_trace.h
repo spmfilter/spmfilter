@@ -15,20 +15,31 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_MAILCONN_H
-#define	_SMF_MAILCONN_H
+#ifndef _SMF_TRACE_H
+#define	_SMF_TRACE_H
 
-/** Retrieve MailConn_T structure
+/* Logging and debugging stuff */
+typedef enum {
+	TRACE_EMERG = 1,
+	TRACE_ALERT = 2,
+	TRACE_CRIT = 4,
+	TRACE_ERR = 8,
+	TRACE_WARNING = 16,
+	TRACE_NOTICE = 32,
+	TRACE_INFO = 64,
+	TRACE_DEBUG = 128,
+	TRACE_LOOKUP = 256 // Logs at Debug Level
+} Trace_T;
+
+/** convenience macro for logging
  *
- * \returns pointer to MailConn_T type
+ * \param level loglevel, see trace_t
+ * \param fmt format string for log message
+ * \param ... format string arguments
  */
-MailConn_T *smf_mailconn_get(void);
+#define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
+void trace(Trace_T level, const char * module, const char * function, int line, const char *formatstring, ...);
 
-/** Free MailConn_T structure
- *
- * \param mconn MailConn_T type
- */
-void smf_mailconn_free(void);
 
-#endif	/* _SMF_MAILCONN_H */
+#endif	/* _SMF_TRACE_H */
 

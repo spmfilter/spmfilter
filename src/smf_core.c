@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Sebastian Jaekel, Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2010 Axel Steiner, Sebastian Jäkel and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,241 +15,111 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glib.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <glib.h>
-#include <gmodule.h>
-#include <glib/gstdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/time.h>
 
-#include "spmfilter.h"
+#include "spmfilter_config.h"
 #include "smf_core.h"
-#include "smf_platform.h"
+#include "smf_settings.h"
+#include "smf_trace.h"
 
-#define THIS_MODULE "smf_core"
+#ifdef HAVE_PCRE
+#include <pcre.h>
+#endif
 
+#define THIS_MODULE "utils"
+#define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
-ProcessQueue_T *smf_core_pqueue_init(int(*loaderr)(void *args),
-	int (*processerr)(int retval, void *args),
-	int (*nhoperr)(void *args))
-{
-	ProcessQueue_T *q;
+#define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
+	+ GLIB_MINOR_VERSION * 100 \
+	+ GLIB_MICRO_VERSION)
 
-	q = (ProcessQueue_T *)calloc(1, sizeof(ProcessQueue_T));
-	if(q == NULL) {
-		TRACE(TRACE_ERR, "failed to allocate memory for process queue!");
-		return(NULL);
+/** extract a substring from given string
+ *
+ * \param pattern regular expression pattern
+ * \param haystack string to search in
+ * \param pos position to extract
+ *
+ * \returns extracted string
+ */
+char *smf_core_get_substring(const char *pattern, const char *haystack, int pos) {
+#if (GLIB2_VERSION >= 21400)
+	GRegex *re = NULL;
+	GMatchInfo *match_info = NULL;
+	char *value = NULL;
+
+	re = g_regex_new(pattern, G_REGEX_CASELESS, 0, NULL);
+	g_regex_match(re, haystack, 0, &match_info);
+	if(g_match_info_matches(match_info)) {
+		value = g_match_info_fetch(match_info, pos);
+	} 
+	
+	g_match_info_free(match_info);
+	g_regex_unref(re);
+#else
+	pcre *re;
+	const char *error;
+	int rc, erroffset;
+	int ovector[30];
+	const char *strptr;
+	char *value;
+
+	re = pcre_compile(pattern, PCRE_CASELESS, &error, &erroffset, NULL);
+	if(re == NULL) {
+		TRACE(TRACE_NOTICE, "pcre_match : failed to compile pattern %s", pattern);
+	} else {
+		rc = pcre_exec(re, NULL, haystack, strlen(haystack), 0, 0, ovector, 30);
+		if(rc > 0) {
+			pcre_get_substring(haystack,ovector,rc,pos,&strptr);
+			value = g_strdup((char *)strptr);
+		} else {
+			TRACE(TRACE_ERR, "pcre_match : failed to match pattern %s : code was %d", pattern, rc);
+		}
 	}
+	if (strptr != NULL)
+		free((char *) strptr);
 
-	q->load_error = loaderr;
-	q->processing_error = processerr;
-	q->nexthop_error = nhoperr;
-
-	return q;
+#endif	
+	return value;
 }
 
-int smf_core_process_modules(ProcessQueue_T *q, MailConn_T *mconn) {
-	int i;
-	int retval;
-	ModuleLoadFunction runner;
-	gchar *path;
-	GModule *mod;
-	gpointer *sym;
-	Settings_T *settings = smf_settings_get();
-
-	for(i=0;settings->modules[i] != NULL; i++) {
-		path = (gchar *)smf_build_module_path(LIB_DIR, settings->modules[i]);
-		if(path == NULL) {
-			TRACE(TRACE_DEBUG, "failed to build module path for %s", settings->modules[i]);
-			return(-1);
-		}
-
-		TRACE(TRACE_DEBUG, "preparing to run module %s", settings->modules[i]);
-
-		mod = g_module_open(path, G_MODULE_BIND_LAZY);
-		if (!mod) {
-			g_free(path);
-			TRACE(TRACE_ERR,"module failed to load : %s", g_module_error());
-
-			if(q->load_error(NULL) == 0)
-				return(-1);
-			else
-				continue;
-		}
-
-		if (!g_module_symbol(mod, "load", (gpointer *)&sym)) {
-			TRACE(TRACE_ERR,"symbol load could not be foudn : %s", g_module_error());
-			g_free(path);
-			g_module_close(mod);
-
-			if(q->load_error(NULL) == 0)
-				return(-1);
-			else
-				continue;
-		}
-
-		/* cast spell and execute */
-		runner = (ModuleLoadFunction)sym;
-		retval = runner(mconn);
-
-		/* clean up */
-		g_free(path);
-		g_module_close(mod);
-
-		if(retval != 0) {
-			retval = q->processing_error(retval, NULL);
-
-			if(retval == 0) {
-				TRACE(TRACE_ERR, "module %s failed to run, will stop processing!",
-					settings->modules[i]);
-				return(-1);
-			} else if(retval == 1) {
-				TRACE(TRACE_ERR, "module %s failed to run, will continue with next module!",
-					settings->modules[i]);
-				continue;
-			} else if(retval == 2) {
-				TRACE(TRACE_ERR, "module %s stopped processing, will now begin nexthop processing !",
-					settings->modules[i]);
-				break;
-			}
-		}
-
-		TRACE(TRACE_DEBUG, "module %s finished successfully", settings->modules[i]);
-	}
-
-	TRACE(TRACE_DEBUG, "module processing finished successfully.");
-
-	/* queue is done, if we're still here check for next hop and
-	 * deliver
-	 */
-	if (settings->nexthop != NULL ) {
-		TRACE(TRACE_DEBUG, "will now deliver to nexthop %s", settings->nexthop);
-		return(smf_core_deliver_nexthop(q, mconn));
-	}
-
-	return(0);
+/** Generate a new queue file name
+ *
+ * \buf pointer to unallocated buffer for filename, needs to
+ *      free'd by caller if not required anymore
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_core_gen_queue_file(char **tempname) {
+	SMFSettings_T *settings = smf_settings_get();
+	/* create spooling file */
+	*tempname = g_strdup_printf("%s/spmfilter.XXXXXX",settings->queue_dir);
+	if(g_mkstemp(*tempname) == -1)
+		return -1;
+	
+	return 0;	
 }
 
-
-int smf_core_deliver_nexthop(ProcessQueue_T *q,MailConn_T *mconn) {
-	int i;
-	Message_T *msg;
-	Settings_T *settings = smf_settings_get();
-
-	msg = g_slice_new(Message_T);
-	msg->from = g_strdup(mconn->from->addr);
-
-	/* allocate memory for recipients */
-	msg->rcpts = g_malloc(sizeof(msg->rcpts[mconn->num_rcpts]));
-	if(msg->rcpts == NULL) {
-		TRACE(TRACE_ERR, "failed to allocated memory for recipients!");
-		return(-1);
-	}
-
-	/* copy recipients in place */
-	for (i = 0; i < mconn->num_rcpts; i++) {
-		msg->rcpts[i] = g_strdup(mconn->rcpts[i]->addr);
-	}
-
-	msg->num_rcpts = mconn->num_rcpts;
-	msg->message_file = g_strdup(mconn->queue_file);
-	msg->nexthop = g_strup(settings->nexthop);
-
-	/* now deliver, if delivery fails, call error hook */
-	if (smf_message_deliver(msg) != 0) {
-		TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
-		q->nexthop_error(NULL);
-		return(-1);
-	}
-
-	/* free all allocated recipient resources */
-	for (i = 0; i < mconn->num_rcpts; i++) {
-		g_free(msg->rcpts[i]);
-	}
-
-	/* free all other message stuff */
-	g_free(msg->from);
-	g_free(msg->message_file);
-	g_free(msg->nexthop);
-	g_slice_free(Message_T,msg);
-
-	return(0);
-}
-
-int smf_core_header_flush(MailConn_T *mconn) {
-/*	gchar *line;
-	GIOChannel *in, *out;
-	GError *error = NULL;
-	char *new_queue_file;
-	gboolean header_done = FALSE;
-
-	if (mconn->is_dirty == 0)
-		return 0;
-
-	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
-	if ((in = g_io_channel_new_file(mconn->queue_file,"r", &error)) == NULL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		return -1;
-	}
-
-	smf_core_gen_queue_file(&new_queue_file);
-
-	if ((out = g_io_channel_new_file(new_queue_file,"w", &error)) == NULL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		return -1;
-	}
-	g_io_channel_set_encoding(in, NULL, NULL);
-	g_io_channel_set_encoding(out, NULL, NULL);
-
-	if (g_io_channel_write_chars(out,mconn->header->data,-1,NULL, &error) != G_IO_STATUS_NORMAL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		g_io_channel_shutdown(out,TRUE,NULL);
-		g_io_channel_shutdown(in,TRUE,NULL);
-		g_io_channel_unref(out);
-		g_io_channel_unref(in);
-		remove(new_queue_file);
-		return -1;
-	}
-
-	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		if ((g_ascii_strcasecmp(line, "\r\n")==0)||(g_ascii_strcasecmp(line, "\n")==0)) 
-			header_done = TRUE;
-
-		if (header_done) {
-			if (g_io_channel_write_chars(out, line, -1, NULL, &error) != G_IO_STATUS_NORMAL) {
-				TRACE(TRACE_ERR,"%s",error->message);
-				g_io_channel_unref(out);
-				g_io_channel_shutdown(out,TRUE,NULL);
-				g_io_channel_shutdown(in,TRUE,NULL);
-				g_io_channel_unref(in);
-				g_free(line);
-				remove(new_queue_file);
-				g_error_free(error);
-				return -1;
-			}
-		} else
-			continue;
-		g_free(line);
-	}
-
-	g_io_channel_shutdown(out,TRUE,NULL);
-	g_io_channel_shutdown(in,TRUE,NULL);
-	g_io_channel_unref(out);
-	g_io_channel_unref(in);
-
-	if (g_remove(mconn->queue_file) != 0) {
-		TRACE(TRACE_ERR,"failed to remove queue file");
-		return -1;
-	}
-
-	if(g_rename(new_queue_file,mconn->queue_file) != 0) {
-		TRACE(TRACE_ERR,"failed to rename queue file");
-		return -1;
-	}
-
-	g_free(new_queue_file);
-*/
-	return 0;
+/** Generates a unique maildir filename
+ *
+ * \returns new allocated maildir filename
+ */
+char *smf_core_get_maildir_filename(void) {
+	char *filename;
+	char hostname[256];
+	struct timeval starttime;
+	
+	GETTIMEOFDAY(&starttime);
+	gethostname(hostname,256);
+	
+	filename = g_strdup_printf("%lu.V%lu.%s",
+		(unsigned long) starttime.tv_sec,
+		(unsigned long) starttime.tv_usec,
+		hostname);
+	
+	return filename;
 }

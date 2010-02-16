@@ -17,28 +17,29 @@
 
 #include <glib.h>
 
-#include "spmfilter.h"
+#include "spmfilter_config.h"
 #include "smf_smtp_codes.h"
 #include "smf_settings.h"
+#include "smf_trace.h"
 
 #define THIS_MODULE "settings"
 
-Settings_T *settings = NULL;
+SMFSettings_T *settings = NULL;
 
-Settings_T *smf_settings_get(void) {
+SMFSettings_T *smf_settings_get(void) {
 	if (settings == NULL) {
-		settings = g_slice_new(Settings_T);
+		settings = g_slice_new(SMFSettings_T);
 		settings->debug = 0;
 	}
 	return settings;
 }
 
-void set_settings(Settings_T **s) {
+void set_settings(SMFSettings_T **s) {
 	settings = *s;
 }
 
 /* FIXME: i will break on SMTP QUIT command */
-void free_settings(Settings_T *settings) {
+void free_settings(SMFSettings_T *settings) {
 	smtp_code_free();
 	g_strfreev(settings->modules);
 	g_free(settings->config_file);
@@ -48,7 +49,7 @@ void free_settings(Settings_T *settings) {
 	g_free(settings->nexthop_fail_msg);
 	g_free(settings->backend);
 
-	g_slice_free(Settings_T,settings);
+	g_slice_free(SMFSettings_T,settings);
 }
 
 int parse_config(void) {
@@ -65,7 +66,7 @@ int parse_config(void) {
 #endif
 	char *code_msg;
 	int i, code;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	/* fallback to default config path,
 	 * if config file is not defined as

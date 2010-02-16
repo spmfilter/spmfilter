@@ -20,8 +20,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include "spmfilter.h"
+#include "spmfilter_config.h"
 #include "smf_lookup.h"
+#include "smf_settings.h"
+#include "smf_trace.h"
 
 #define THIS_MODULE "lookup"
 
@@ -89,7 +91,7 @@ int expand_query(char *format, char *addr, char **buf) {
  * \returns 0 on success or -1 in case of error
  */
 int lookup_connect(void) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
@@ -112,7 +114,7 @@ int lookup_connect(void) {
  * \returns 0 on success or -1 in case of error
  */
 int lookup_disconnect(void) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
@@ -135,7 +137,7 @@ int lookup_disconnect(void) {
  *          user is local
  */
 int smf_lookup_check_user(char *addr) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
@@ -173,7 +175,7 @@ int smf_lookup_check_user(char *addr) {
 LookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 	
 	va_start(ap, q);
 	va_copy(cp, ap);

@@ -9,7 +9,7 @@ install-sh
 ltmain.sh
 libtool
 src/spmfilter.pc
-src/spmfilter.h
+src/spmfilter_config.h
 src/spmfilter
 *.o
 *.lo

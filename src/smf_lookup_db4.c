@@ -19,9 +19,10 @@
 #include <string.h>
 #include <db.h>
 
-#include "spmfilter.h"
+#include "smf_trace.h"
+#include "smf_settings.h"
 
-#define THIS_MODULE "db4_lookup"
+#define THIS_MODULE "lookup_db4"
 
 /** Query Berkeley DB for given key
  *

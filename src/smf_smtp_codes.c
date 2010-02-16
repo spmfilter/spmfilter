@@ -18,7 +18,6 @@
 #include <glib.h>
 #include <stdlib.h>
 
-#include "spmfilter.h"
 #include "smf_smtp_codes.h"
 
 #define THIS_MODULE "smtp_codes"
