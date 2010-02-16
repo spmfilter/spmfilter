@@ -18,7 +18,79 @@
 #ifndef _SMF_LOOKUP_H
 #define	_SMF_LOOKUP_H
 
-#include "spmfilter.h"
+
+typedef struct {
+	void *data;
+} LookupElement_T;
+
+typedef struct {
+	LookupElement_T *elem;
+	unsigned int len;
+} LookupResult_T;
+
+/** Since LDAP attributes can have more than
+ *  one value, we need to define a new datatype,
+ *  in order not to link every module against
+ *  ldap, which needs LDAP connectivity.
+ *  Every LDAP lookup returns LookupElement_T
+ *  with LdapValue_T pointer as data.
+ */
+typedef struct {
+	int len;
+	char **data;
+} LdapValue_T;
+
+/** Frees all of the memory used by LookupResult_T
+ *
+ * \param *l pointer to LookupResult_T
+ */
+void smf_lookup_result_free(LookupResult_T *l);
+
+/** Returns LookupElement_T at the given index of LookupResult_T
+ *
+ * \param l LookupResult_T list
+ * \param i the index of the pointer to return
+ *
+ * \returns LookupElement_T at the given index
+ */
+LookupElement_T *smf_lookup_result_index(LookupResult_T *l, int i);
+
+/** Looks up a key in LookupElement_T
+ *
+ * \param *e pointer to LookupElement_T
+ * \param *key the key to look up
+ *
+ * \returns the associated value, or NULL if the key is not found
+ */
+void *smf_lookup_element_get(LookupElement_T *e, char *key);
+
+/** Check if given user is local
+ *
+ * \param addr email address
+ *
+ * \returns 0 if user is not local, 1 if
+ *          user is local
+ */
+int smf_lookup_check_user(char *addr);
+
+/** Query lookup backend.
+ *
+ * \param q a standard printf() format string
+ * \param args the list of parameters to insert into the format string
+ *
+ * \return new allocated LookupResult_T
+ */
+LookupResult_T *smf_lookup_query(const char *q, ...);
+
+/** Query Berkeley DB for given key
+ *
+ * \param database path to database file
+ * \param key key to lookup for
+ *
+ * \returns the values associated with key,  or NULL if the key is not found
+ */
+char *smf_db4_query(char *database, char *key);
+
 
 /** expands placeholders in a user querystring
  *
@@ -74,7 +146,6 @@ LookupElement_T *lookup_element_new(void);
  */
 void lookup_element_add(LookupElement_T *e, char *key, void *value);
 
-#ifdef HAVE_ZDB
 /** Connect to sql server
  *
  * \returns 0 on success or -1 in case of error
@@ -92,9 +163,7 @@ void sql_disconnect(void);
 int sql_user_exists(char *addr);
 
 LookupResult_T *sql_query(const char *q, ...);
-#endif
 
-#ifdef HAVE_LDAP
 /** Connect to ldap server
  *
  * \returns 0 on success or -1 in case of error
@@ -112,7 +181,6 @@ void ldap_disconnect(void);
 int ldap_user_exists(char *addr);
 
 LookupResult_T *ldap_query(const char *q, ...);
-#endif
 
 #endif	/* _SMF_LOOKUP_H */
 

@@ -24,11 +24,14 @@
 #include <gmime/gmime.h>
 #include <fcntl.h>
 
-
-#include "spmfilter.h"
-#include "smf_mailconn.h"
-#include "smf_platform.h"
+#include "spmfilter_config.h"
 #include "smf_core.h"
+#include "smf_modules.h"
+#include "smf_trace.h"
+#include "smf_settings.h"
+#include "smf_session.h"
+#include "smf_platform.h"
+#include "smf_lookup.h"
 
 #define THIS_MODULE "pipe"
 
@@ -38,7 +41,7 @@
  * return 1 if processing should continue, else 0
  */
 static int handle_q_error(void *args) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	switch (settings->module_fail) {
 		case 1:
@@ -51,7 +54,7 @@ static int handle_q_error(void *args) {
 /* handle processing errors when running queue
  */
 static int handle_q_processing_error(int retval, void *args) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	if (retval == -1) {
 		switch (settings->module_fail) {
@@ -80,10 +83,10 @@ static int handle_nexthop_error(void *args) {
 int load_modules(void) {
 	int ret;
 	ProcessQueue_T *q;
-	MailConn_T *mconn = smf_mailconn_get();
+	SMFSession_T *session = smf_session_get();
 
 	/* initialize the modules queue handler */
-	q = smf_core_pqueue_init(
+	q = smf_modules_pqueue_init(
 		handle_q_error,
 		handle_q_processing_error,
 		handle_nexthop_error
@@ -94,7 +97,7 @@ int load_modules(void) {
 	}
 
 	/* now tun the process queue */
-	ret = smf_core_process_modules(q,mconn);
+	ret = smf_modules_process(q,session);
 	free(q);
 
 	if(ret != 0) {
@@ -116,17 +119,17 @@ int load(void) {
 	GError *error = NULL;
 	InternetAddressList *ia;
 	InternetAddress *addr;
-	MailConn_T *mconn = smf_mailconn_get();
+	SMFSession_T *session = smf_session_get();
 	int i;
 	
 
-	smf_core_gen_queue_file(&mconn->queue_file);
+	smf_core_gen_queue_file(&session->queue_file);
 
-	TRACE(TRACE_DEBUG,"using spool file: '%s'", mconn->queue_file);
+	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->queue_file);
 		
 	/* start receiving data */
 	in = g_io_channel_unix_new(STDIN_FILENO);
-	if ((out = g_io_channel_new_file(mconn->queue_file,"w", &error)) == NULL) {
+	if ((out = g_io_channel_new_file(session->queue_file,"w", &error)) == NULL) {
 		TRACE(TRACE_ERR,"%s",error->message);
 		g_error_free(error);
 		return -1;
@@ -145,11 +148,11 @@ int load(void) {
 			g_io_channel_unref(in);
 			g_io_channel_unref(out);
 			g_free(line);
-			remove(mconn->queue_file);
+			remove(session->queue_file);
 			g_error_free(error);
 			return -1;
 		}
-		mconn->msgbodysize+=strlen(line);
+		session->msgbodysize+=strlen(line);
 		g_mime_stream_write_string(gmin,line);
 		g_free(line);
 	}
@@ -158,21 +161,21 @@ int load(void) {
 	g_io_channel_unref(in);
 	g_io_channel_unref(out);
 
-	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
-	mconn->num_rcpts = 0;
+	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
+	session->num_rcpts = 0;
 	
-	/* parse email data and fill mconn struct*/
+	/* parse email data and fill session struct*/
 	g_mime_stream_seek(gmin,0,0);
 	parser = g_mime_parser_new_with_stream (gmin);
 	g_object_unref(gmin);
 	message = g_mime_parser_construct_message (parser);
-	mconn->from = g_slice_new(EmailAddress_T);
-	mconn->from->addr = smf_core_get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
+	session->from = g_slice_new(EmailAddress_T);
+	session->from->addr = smf_core_get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
 
-	TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
+	TRACE(TRACE_DEBUG,"session->from: %s",session->from->addr);
 	
-	mconn->from->is_local = smf_lookup_check_user(mconn->from->addr);
-	TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
+	session->from->is_local = smf_lookup_check_user(session->from->addr);
+	TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->from->addr,session->from->is_local);
 	
 
 	
@@ -181,13 +184,13 @@ int load(void) {
 	ia = g_mime_message_get_all_recipients(message);
 	for (i=0; i < internet_address_list_length(ia); i++) {
 		addr = internet_address_list_get_address(ia,i);
-		mconn->rcpts = malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
-		mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
-		mconn->rcpts[mconn->num_rcpts]->addr = smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-		TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
-		mconn->rcpts[mconn->num_rcpts]->is_local = smf_lookup_check_user(mconn->rcpts[mconn->num_rcpts]->addr);
-		TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
-		mconn->num_rcpts++;
+		session->rcpts = malloc(sizeof(session->rcpts[session->num_rcpts]));
+		session->rcpts[session->num_rcpts] = malloc(sizeof(*session->rcpts[session->num_rcpts]));
+		session->rcpts[session->num_rcpts]->addr = smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
+		TRACE(TRACE_DEBUG,"session->rcpts[%d]: %s",session->num_rcpts, session->rcpts[session->num_rcpts]->addr);
+		session->rcpts[session->num_rcpts]->is_local = smf_lookup_check_user(session->rcpts[session->num_rcpts]->addr);
+		TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->rcpts[session->num_rcpts]->addr,session->rcpts[session->num_rcpts]->is_local);
+		session->num_rcpts++;
 	}
 #else
 	ia = (InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_TO);
@@ -197,27 +200,27 @@ int load(void) {
 		(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_BCC)); 
 	while(ia) {
 		addr = internet_address_list_get_address(ia);
-		mconn->rcpts = malloc(sizeof(mconn->rcpts[mconn->num_rcpts]));
-		mconn->rcpts[mconn->num_rcpts] = malloc(sizeof(*mconn->rcpts[mconn->num_rcpts]));
-		mconn->rcpts[mconn->num_rcpts]->addr = smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-		TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
-		mconn->rcpts[mconn->num_rcpts]->is_local = smf_lookup_check_user(mconn->rcpts[mconn->num_rcpts]->addr);
-		TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
-		mconn->num_rcpts++;
+		session->rcpts = malloc(sizeof(session->rcpts[session->num_rcpts]));
+		session->rcpts[session->num_rcpts] = malloc(sizeof(*session->rcpts[session->num_rcpts]));
+		session->rcpts[session->num_rcpts]->addr = smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
+		TRACE(TRACE_DEBUG,"session->rcpts[%d]: %s",session->num_rcpts, session->rcpts[session->num_rcpts]->addr);
+		session->rcpts[session->num_rcpts]->is_local = smf_lookup_check_user(session->rcpts[session->num_rcpts]->addr);
+		TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->rcpts[session->num_rcpts]->addr,session->rcpts[session->num_rcpts]->is_local);
+		session->num_rcpts++;
 		ia = internet_address_list_next(ia);
 	}
 #endif
 
 	g_mime_shutdown();
 	if (load_modules() != 0) {
-		remove(mconn->queue_file);
-		smf_mailconn_free();
-		TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
+		remove(session->queue_file);
+		smf_session_free();
+		TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
 		return -1;
 	} else {
-		remove(mconn->queue_file);
-		smf_mailconn_free();
-		TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
+		remove(session->queue_file);
+		smf_session_free();
+		TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
 		return 0;
 	}
 }

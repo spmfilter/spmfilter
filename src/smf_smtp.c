@@ -23,7 +23,8 @@
 #include <signal.h>
 #include <libesmtp.h>
 
-#include "spmfilter.h"
+#include "smf_trace.h"
+#include "smf_message.h"
 
 static int authinteract (auth_client_request_t request, char **result, int fields, void *arg);
 

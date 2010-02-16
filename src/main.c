@@ -16,14 +16,16 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gmodule.h>
 #include <time.h>
 #include <gmime/gmime.h>
 
-#include "spmfilter.h"
+#include "smf_config.h"
 #include "smf_settings.h"
+#include "smf_trace.h"
 #include "smf_lookup.h"
 #include "smf_platform.h"
 
@@ -39,7 +41,7 @@ int main(int argc, char *argv[]) {
 	LoadEngine load_engine;
 	char *engine_path;
 	int ret;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	/* all cmd args */
 	GOptionEntry entries[] = {

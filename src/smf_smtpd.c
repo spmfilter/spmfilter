@@ -27,10 +27,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "spmfilter.h"
-#include "smf_mailconn.h"
+#include "smf_trace.h"
+#include "smf_settings.h"
+#include "smf_modules.h"
+#include "smf_session.h"
 #include "smf_smtp_codes.h"
 #include "smf_core.h"
+#include "smf_lookup.h"
 
 #define THIS_MODULE "smtpd"
 
@@ -110,7 +113,7 @@ void smtpd_code_reply(int code) {
  * return 1 if processing should continue, else 0
  */
 static int handle_q_error(void *args) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	switch (settings->module_fail) {
 		case 1: return(1);
@@ -135,7 +138,7 @@ static int handle_q_error(void *args) {
  *     be startet. spmfilter sends a 250 code
  */
 static int handle_q_processing_error(int retval, void *args) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	if (retval == -1) {
 		switch (settings->module_fail) {
@@ -165,7 +168,7 @@ static int handle_q_processing_error(int retval, void *args) {
 
 /* handle nexthop delivery error */
 static int handle_nexthop_error(void *args) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	smtpd_string_reply(g_strdup_printf(
 		"%d %s\r\n",
@@ -179,10 +182,10 @@ static int handle_nexthop_error(void *args) {
 int load_modules(void) {
 	int ret;
 	ProcessQueue_T *q;
-	MailConn_T *mconn = smf_mailconn_get();
+	SMFSession_T *session = smf_session_get();
 
 	/* initialize the modules queue handler */
-	q = smf_core_pqueue_init(
+	q = smf_modules_pqueue_init(
 		handle_q_error,
 		handle_q_processing_error,
 		handle_nexthop_error
@@ -193,11 +196,11 @@ int load_modules(void) {
 	}
 
 	/* now tun the process queue */
-	ret = smf_core_process_modules(q,mconn);
+	ret = smf_modules_process(q,session);
 	free(q);
 
 	/* flush header to disk if necessary */
-	if (smf_core_header_flush(mconn) != 0)
+	if (smf_modules_header_flush(session) != 0)
 		TRACE(TRACE_ERR,"failed to flush header");
 
 	if(ret != 0) {
@@ -220,29 +223,29 @@ void process_data(void) {
 //	gboolean header_done = FALSE;
 	GMimeParser *parser;
 	GMimeObject *message;
-	MailConn_T *mconn = smf_mailconn_get();
+	SMFSession_T *session = smf_session_get();
 
-	smf_core_gen_queue_file(&mconn->queue_file);
-	if (mconn->queue_file == NULL) {
+	smf_core_gen_queue_file(&session->queue_file);
+	if (session->queue_file == NULL) {
 		TRACE(TRACE_ERR,"failed to create spool file!");
 		smtpd_code_reply(552);
 		return;
 	}
 		
-	TRACE(TRACE_DEBUG,"using spool file: '%s'", mconn->queue_file);
+	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->queue_file);
 		
 	smtpd_string_reply("354 End data with <CR><LF>.<CR><LF>\r\n");
 	
 	/* start receiving data */
 	in = g_io_channel_unix_new(STDIN_FILENO);
-	if ((fd = open(mconn->queue_file,O_RDWR|O_CREAT)) == -1) {
+	if ((fd = open(session->queue_file,O_RDWR|O_CREAT)) == -1) {
 		smtpd_string_reply(CODE_552);
 		TRACE(TRACE_ERR,"failed writing queue file");
 		return;
 	}
 
 	out = g_mime_stream_fs_new(fd);
-//	if ((out = g_io_channel_new_file(mconn->queue_file,"w", &error)) == NULL) {
+//	if ((out = g_io_channel_new_file(session->queue_file,"w", &error)) == NULL) {
 //		smtpd_string_reply("552 %s\r\n",error->message);
 //		g_error_free(error);
 //		return;
@@ -272,19 +275,19 @@ void process_data(void) {
 		//	g_io_channel_shutdown(out,TRUE,NULL);
 			g_io_channel_unref(in);
 			g_free(line);
-			if (g_remove(mconn->queue_file) != 0)
+			if (g_remove(session->queue_file) != 0)
 				TRACE(TRACE_ERR,"failed to remove queue file");
 	//		g_error_free(error);
 			return;
 		}
-		mconn->msgbodysize+=strlen(line);
+		session->msgbodysize+=strlen(line);
 		g_free(line);
 	}
 	g_mime_stream_flush(out);
 	parser = g_mime_parser_new_with_stream(out);
 	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
-	mconn->headers = (void *)g_mime_object_get_header_list(message);
-	mconn->is_dirty = 0;
+	session->headers = (void *)g_mime_object_get_header_list(message);
+	session->is_dirty = 0;
 	g_object_unref(parser);
 	g_object_unref(message);
 //	g_io_channel_shutdown(out,TRUE,NULL);
@@ -294,17 +297,17 @@ void process_data(void) {
 
 	close(fd);
 
-/*	mconn->header = g_slice_new(Header_T);
-	mconn->header->is_dirty = 0;
-	mconn->header->data = g_strdup(header->str);
+/*	session->header = g_slice_new(Header_T);
+	session->header->is_dirty = 0;
+	session->header->data = g_strdup(header->str);
 	g_string_free(header,TRUE);*/
-	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)mconn->msgbodysize);
+	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
 
 	load_modules();
 	
-	if (g_remove(mconn->queue_file) != 0)
+	if (g_remove(session->queue_file) != 0)
 		TRACE(TRACE_ERR,"failed to remove queue file");
-	TRACE(TRACE_DEBUG,"removing spool file %s",mconn->queue_file);
+	TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
 	return;
 }
 
@@ -313,13 +316,13 @@ int load(void) {
 	GIOChannel *in;
 	char *line;
 	int state=ST_INIT;
-	Settings_T *settings = smf_settings_get();
-	MailConn_T *mconn = smf_mailconn_get();
+	SMFSettings_T *settings = smf_settings_get();
+	SMFSession_T *session = smf_session_get();
 
 	gethostname(hostname,256);
 
 	smtpd_string_reply("220 %s spmfilter\r\n",hostname);
-	mconn->num_rcpts = 0;
+	session->num_rcpts = 0;
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	g_io_channel_set_encoding(in, NULL, NULL);
 	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
@@ -338,18 +341,18 @@ int load(void) {
 			 * command had been issued.
 			 */
 			if (state != ST_INIT) {
-				smf_mailconn_free();
-				/* reinit mconn */
-				mconn = smf_mailconn_get();
+				smf_session_free();
+				/* reinit session */
+				session = smf_session_get();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
-			mconn->helo = smf_core_get_substring("^HELO\\s(.*)$",line, 1);
-			TRACE(TRACE_DEBUG,"HELO: %s",mconn->helo);
-			if (mconn->helo != NULL) {
-				if (strcmp(mconn->helo,"") == 0)  {
+			session->helo = smf_core_get_substring("^HELO\\s(.*)$",line, 1);
+			TRACE(TRACE_DEBUG,"HELO: %s",session->helo);
+			if (session->helo != NULL) {
+				if (strcmp(session->helo,"") == 0)  {
 					smtpd_string_reply("501 Syntax: HELO hostname\r\n");
 				} else {
-					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
+					TRACE(TRACE_DEBUG,"session->helo: %s",session->helo);
 					smtpd_string_reply("250 %s\r\n",hostname);
 					state = ST_HELO;
 				}
@@ -361,17 +364,17 @@ int load(void) {
 			 * received later...
 			 */
 			if (state != ST_INIT) {
-				smf_mailconn_free();
-				/* reinit mconn */
-				mconn = smf_mailconn_get();
+				smf_session_free();
+				/* reinit session */
+				session = smf_session_get();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
-			mconn->helo = smf_core_get_substring("^EHLO\\s(.*)$",line,1);
-			if (mconn->helo != NULL) {
-				if (strcmp(mconn->helo,"") == 0) {
+			session->helo = smf_core_get_substring("^EHLO\\s(.*)$",line,1);
+			if (session->helo != NULL) {
+				if (strcmp(session->helo,"") == 0) {
 					smtpd_string_reply("501 Syntax: EHLO hostname\r\n");
 				} else {
-					TRACE(TRACE_DEBUG,"mconn->helo: %s",mconn->helo);
+					TRACE(TRACE_DEBUG,"session->helo: %s",session->helo);
 					smtpd_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 DSN\r\n",hostname);
 					state = ST_HELO;
 				}
@@ -380,8 +383,8 @@ int load(void) {
 			}
 		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'xforward name' received");
-			mconn->xforward_addr = smf_core_get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
-			TRACE(TRACE_DEBUG,"mconn->xforward_addr: %s",mconn->xforward_addr);
+			session->xforward_addr = smf_core_get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
+			TRACE(TRACE_DEBUG,"session->xforward_addr: %s",session->xforward_addr);
 			smtpd_code_reply(250);
 			state = ST_XFWD;
 		} else if (g_ascii_strncasecmp(line, "xforward proto", 13)==0) {
@@ -404,27 +407,27 @@ int load(void) {
 				/* we already got the mail command */
 				smtpd_string_reply("503 Error: nested MAIL command\r\n");
 			} else {
-				mconn->from = g_slice_new(EmailAddress_T);
-				mconn->from->addr = smf_core_get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
-				if (mconn->from->addr != NULL){
-					TRACE(TRACE_DEBUG,"mconn->from: %s",mconn->from->addr);
-					if (strcmp(mconn->from->addr,"") == 0) {
+				session->from = g_slice_new(EmailAddress_T);
+				session->from->addr = smf_core_get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+				if (session->from->addr != NULL){
+					TRACE(TRACE_DEBUG,"session->from: %s",session->from->addr);
+					if (strcmp(session->from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
-						g_slice_free(EmailAddress_T,mconn->from);
-						mconn->from = NULL;
+						g_slice_free(EmailAddress_T,session->from);
+						session->from = NULL;
 					} else {
 						if (strcmp(settings->backend,"undef") != 0) {
-								mconn->from->is_local = smf_lookup_check_user(mconn->from->addr);
-								TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->from->addr,mconn->from->is_local);
+								session->from->is_local = smf_lookup_check_user(session->from->addr);
+								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->from->addr,session->from->is_local);
 						}
 						smtpd_code_reply(250);
 						state = ST_MAIL;
 					}
 				} else {
 					smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
-					g_slice_free(EmailAddress_T,mconn->from);
-					mconn->from = NULL;
+					g_slice_free(EmailAddress_T,session->from);
+					session->from = NULL;
 				}
 			}
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
@@ -433,27 +436,29 @@ int load(void) {
 				smtpd_string_reply("503 Error: need MAIL command\r\n");
 			} else {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
-				mconn->rcpts = g_realloc(mconn->rcpts,sizeof(mconn->rcpts[mconn->num_rcpts]));
-				mconn->rcpts[mconn->num_rcpts] = g_slice_new(EmailAddress_T);
-				mconn->rcpts[mconn->num_rcpts]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
-				if (mconn->rcpts[mconn->num_rcpts] != NULL) {
-					if (strcmp(mconn->rcpts[mconn->num_rcpts]->addr,"") == 0) {
+				session->rcpts = g_realloc(session->rcpts,sizeof(session->rcpts[session->num_rcpts]));
+				session->rcpts[session->num_rcpts] = g_slice_new(EmailAddress_T);
+				session->rcpts[session->num_rcpts]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+				if (session->rcpts[session->num_rcpts] != NULL) {
+					if (strcmp(session->rcpts[session->num_rcpts]->addr,"") == 0) {
 						/* empty rcpt to? */
 						smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
-						g_slice_free(EmailAddress_T,mconn->rcpts[mconn->num_rcpts]);
+						g_slice_free(EmailAddress_T,session->rcpts[session->num_rcpts]);
 					} else {
-						TRACE(TRACE_DEBUG,"mconn->rcpts[%d]: %s",mconn->num_rcpts, mconn->rcpts[mconn->num_rcpts]->addr);
+						TRACE(TRACE_DEBUG,"session->rcpts[%d]: %s",session->num_rcpts, session->rcpts[session->num_rcpts]->addr);
 						if (strcmp(settings->backend,"undef") != 0) {
-							mconn->rcpts[mconn->num_rcpts]->is_local = smf_lookup_check_user(mconn->rcpts[mconn->num_rcpts]->addr);
-							TRACE(TRACE_DEBUG,"[%s] is local [%d]", mconn->rcpts[mconn->num_rcpts]->addr,mconn->rcpts[mconn->num_rcpts]->is_local);
+							session->rcpts[session->num_rcpts]->is_local = smf_lookup_check_user(session->rcpts[session->num_rcpts]->addr);
+							TRACE(TRACE_DEBUG,"[%s] is local [%d]", 
+									session->rcpts[session->num_rcpts]->addr,
+									session->rcpts[session->num_rcpts]->is_local);
 						}
 						smtpd_code_reply(250);
-						mconn->num_rcpts++;
+						session->num_rcpts++;
 						state = ST_RCPT;
 					}
 				} else {
 					smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
-					g_slice_free(EmailAddress_T,mconn->rcpts[mconn->num_rcpts]);
+					g_slice_free(EmailAddress_T,session->rcpts[session->num_rcpts]);
 				}
 			}
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
@@ -470,9 +475,9 @@ int load(void) {
 			}
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
-			smf_mailconn_free();
-			/* reinit mconn */
-			mconn = smf_mailconn_get();
+			smf_session_free();
+			/* reinit session */
+			session = smf_session_get();
 			smtpd_code_reply(250);
 			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
@@ -491,7 +496,7 @@ int load(void) {
 	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
 
-	smf_mailconn_free();
+	smf_session_free();
 	
 	return 0;
 }

@@ -15,33 +15,51 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_CORE_H
-#define	_SMF_CORE_H
+#ifndef _SMF_SESSION_H
+#define	_SMF_SESSION_H
 
-/** Generate a new queue file name
+typedef struct {
+	char *addr;
+	int is_local;
+} EmailAddress_T;
+
+
+typedef struct {
+	/* hello we received */
+	char *helo;
+
+	/* recipients */
+	EmailAddress_T **rcpts;
+	int num_rcpts;
+
+	/* sender */
+	EmailAddress_T *from;
+
+	/* size of message body */
+	size_t msgbodysize;
+
+	/* this is our spooling file */
+	char *queue_file;
+
+	/* xfoward */
+	char *xforward_addr;
+
+	/* message header */
+	void *headers;
+
+	/* flag which indicates, if
+	 * any header was modified */
+	int is_dirty;
+} SMFSession_T;
+
+/** Retrieve SMFSession_T structure
  *
- * \buf pointer to unallocated buffer for filename, needs to
- *      free'd by caller if not required anymore
- *
- * \returns 0 on success or -1 in case of error
+ * \returns pointer to SMFSession_T type
  */
-int smf_core_gen_queue_file(char **tempanme);
+SMFSession_T *smf_session_get(void);
 
-/** Extract a substring from given string
- *
- * \param pattern regular expression pattern
- * \param haystack string to search in
- * \param pos position to extract
- *
- * \returns extracted string
- */
-char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
+/** Free SMFSession_T structure */
+void smf_session_free(void);
 
-/** Generates a unique maildir filename
- *
- * \returns generated filename or NULL in case of error
- */
-char *smf_core_get_maildir_filename(void);
-
-#endif	/* _SMF_CORE_H */
+#endif	/* _SMF_SESSION_H */
 

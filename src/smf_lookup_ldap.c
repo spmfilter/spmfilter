@@ -23,7 +23,8 @@
 #include <string.h>
 #include <time.h>
 
-#include "spmfilter.h"
+#include "smf_trace.h"
+#include "smf_settings.h"
 #include "smf_lookup.h"
 
 #define THIS_MODULE "ldap_lookup"
@@ -35,7 +36,7 @@ LDAP *ld = NULL;
  * \returns ldap scope
  */
 int get_scope(void) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	if (g_ascii_strcasecmp(settings->ldap_scope,"subtree") == 0)
 		return LDAP_SCOPE_SUBTREE;
@@ -52,7 +53,7 @@ int get_scope(void) {
  * \returns hostname of ldap host
  */
 char *ldap_get_rand_host(void) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 	TRACE(TRACE_DEBUG,"trying to get random ldap server");
 	srand(time(NULL));
 	return settings->ldap_host[rand() % settings->ldap_num_hosts];
@@ -66,7 +67,7 @@ char *ldap_get_rand_host(void) {
  */
 char *ldap_get_uri(char *host) {
 	char *uri;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	uri = g_strdup_printf("ldap://%s:%d",host,settings->ldap_port);
 
@@ -82,7 +83,7 @@ char *ldap_get_uri(char *host) {
 int ldap_bind(char *uri) {
 	int ret, err;
 	struct berval *cred;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	cred = malloc(sizeof(struct berval));
 	cred->bv_len = strlen(settings->ldap_bindpw);
@@ -113,7 +114,7 @@ int ldap_bind(char *uri) {
 int ldap_failover_connect(void) {
 	int i;
 	char *uri;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 	
 	for (i=0; i < settings->ldap_num_hosts; i++) {
 		uri = ldap_get_uri(settings->ldap_host[i]);
@@ -136,7 +137,7 @@ int ldap_connect(void) {
 	int version;
 	char *uri;
 	char *host;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	if (settings->ldap_uri) {
 		if ((ret = ldap_initialize(&ld, settings->ldap_uri) != LDAP_SUCCESS)) 
@@ -205,7 +206,7 @@ LookupResult_T *ldap_query(const char *q, ...) {
 	int i,value_count;
 	LDAP *c = ldap_con_get();
 	LookupResult_T *result = lookup_result_new();
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	va_start(ap, q);
 	va_copy(cp, ap);
@@ -262,7 +263,7 @@ int ldap_user_exists(char *addr) {
 	char *query;
 	LDAP *c = ldap_con_get();
 	LDAPMessage *msg = NULL;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	if (expand_query(settings->ldap_user_query, addr, &query) <= 0) {
 		TRACE(TRACE_ERR,"failed to expand ldap query");

@@ -96,8 +96,8 @@ set(SMF_VERSION_NUMBER ${version_number})
 
 # write spmfilter.h
 CONFIGURE_FILE(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.h.in
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter_config.h.cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter_config.h
 )
 
 # write spmfilter.pc
