@@ -15,33 +15,31 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_CORE_H
-#define	_SMF_CORE_H
+#ifndef SPMFILTER_CONFIG_H
+#define SPMFILTER_CONFIG_H
 
-/** Generate a new queue file name
- *
- * \buf pointer to unallocated buffer for filename, needs to
- *      free'd by caller if not required anymore
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_core_gen_queue_file(char **tempanme);
+/* spmfilter version */
+#define SMF_VERSION 3000
+#define SMF_MAJOR_VERSION 0
+#define SMF_MINOR_VERSION 3
+#define SMF_MICRO_VERSION 0
 
-/** Extract a substring from given string
- *
- * \param pattern regular expression pattern
- * \param haystack string to search in
- * \param pos position to extract
- *
- * \returns extracted string
- */
-char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
+/* path for spmfilter plugins */
+#define LIB_DIR "/usr/lib/spmfilter"
 
-/** Generates a unique maildir filename
- *
- * \returns generated filename or NULL in case of error
- */
-char *smf_core_get_maildir_filename(void);
+/* gmime */
+#define HAVE_GMIME24
 
-#endif	/* _SMF_CORE_H */
+/* ldap */
+#define HAVE_LDAP
 
+/* zdb */
+#define HAVE_ZDB
+
+/* db4 */
+#define HAVE_DB4
+
+/* pcre */
+#define HAVE_PCRE
+
+#endif /* SPMFILTER_CONFIG_H */

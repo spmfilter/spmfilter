@@ -15,33 +15,15 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_CORE_H
-#define	_SMF_CORE_H
+#ifndef SPMFILTER_H
+#define SPMFILTER_H
 
-/** Generate a new queue file name
- *
- * \buf pointer to unallocated buffer for filename, needs to
- *      free'd by caller if not required anymore
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_core_gen_queue_file(char **tempanme);
+#include <smf/smf_core.h>
+#include <smf/smf_session.h>
+#include <smf/smf_settings.h>
+#include <smf/smf_trace.h>
+#include <smf/smf_message.h>
+#include <smf/smf_lookup.h>
 
-/** Extract a substring from given string
- *
- * \param pattern regular expression pattern
- * \param haystack string to search in
- * \param pos position to extract
- *
- * \returns extracted string
- */
-char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
 
-/** Generates a unique maildir filename
- *
- * \returns generated filename or NULL in case of error
- */
-char *smf_core_get_maildir_filename(void);
-
-#endif	/* _SMF_CORE_H */
-
+#endif /* SPMFILTER_H */

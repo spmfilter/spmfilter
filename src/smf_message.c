@@ -23,8 +23,10 @@
 #include <glib/gstdio.h>
 #include <gmime/gmime.h>
 
-#include "spmfilter.h"
-#include "smf_mailconn.h"
+#include "spmfilter_config.h"
+#include "smf_session.h"
+#include "smf_trace.h"
+#include "smf_core.h"
 
 #define THIS_MODULE "message"
 
@@ -98,7 +100,7 @@ int smf_message_write(char *new_path, char *queue_file) {
  * \returns requested header
  */
 char *smf_message_get_header(const char *header_name) {
-	MailConn_T *mconn = smf_mailconn_get();
+//	SMFSession_T *session = smf_session_get();
 //	GMimeStream *stream;
 //	GMimeMessage *message;
 //	GMimeParser *parser;

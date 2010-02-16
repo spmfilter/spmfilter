@@ -17,7 +17,8 @@
 
 #include <glib.h>
 
-#include "spmfilter.h"
+#include "smf_settings.h"
+#include "smf_trace.h"
 
 #define THIS_MODULE "group_settings"
 
@@ -32,7 +33,7 @@ char *group = NULL;
  */
 int smf_settings_group_load(char *group_name) {
 	GError *error = NULL;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	group = g_strdup(group_name);
 	

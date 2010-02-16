@@ -30,7 +30,8 @@
 #include <SQLException.h>
 #include <Exception.h>
 
-#include "spmfilter.h"
+#include "smf_settings.h"
+#include "smf_trace.h"
 #include "smf_lookup.h"
 
 #define THIS_MODULE "sql_lookup"
@@ -68,7 +69,7 @@ void sql_con_close(Connection_T c) {
  * \returns hostname of sql server
  */
 char *sql_get_rand_host(void) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 	TRACE(TRACE_DEBUG,"trying to get random sql server");
 	srand(time(NULL));
 	return settings->sql_host[rand() % settings->sql_num_hosts];
@@ -83,7 +84,7 @@ char *sql_get_rand_host(void) {
 char *sql_get_dsn(char *host) {
 	GString *sdsn = g_string_new("");
 	char *dsn;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 	
 	if (settings->sql_driver != NULL) {
 		g_string_append_printf(sdsn,"%s://",settings->sql_driver);
@@ -138,7 +139,7 @@ char *sql_get_dsn(char *host) {
  * \returns 0 on success or -1 in case of error
  */
 int sql_start_pool(char *dsn) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 	int sweep_interval = 60;
 	Connection_T con = NULL;
 
@@ -186,7 +187,7 @@ int sql_start_pool(char *dsn) {
  * \param error exception message
  */
 static void sql_fallback_handler(const char *error) {
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 	char *dsn;
 	TRACE(TRACE_ERR, "%s", error);
 
@@ -211,7 +212,7 @@ static void sql_fallback_handler(const char *error) {
  */
 int sql_connect(void) {
 	
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 	char *dsn = NULL;
 
 	/* try to get a random host if backend_connection is set to "balance"
@@ -314,7 +315,7 @@ int sql_user_exists(char *addr) {
 	Connection_T c = NULL;
 	ResultSet_T r = NULL;
 	char *query = NULL;
-	Settings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = smf_settings_get();
 
 	c = sql_con_get();
 	if (expand_query(settings->sql_user_query, addr, &query) <= 0) {
