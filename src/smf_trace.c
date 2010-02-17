@@ -29,7 +29,7 @@
 
 #define min(x,y) ((x)<=(y)?(x):(y))
 
-static const char * trace_to_text(Trace_T level) {
+static const char * trace_to_text(SMFTrace_T level) {
 	const char * const trace_text[] = {
 		"EMERGENCY",
 		"Alert",
@@ -44,8 +44,8 @@ static const char * trace_to_text(Trace_T level) {
 	return trace_text[ilogb((double) level)];
 }
 
-void trace(Trace_T level, const char *module, const char *function, int line, const char *formatstring, ...) {
-	Trace_T syslog_level;
+void trace(SMFTrace_T level, const char *module, const char *function, int line, const char *formatstring, ...) {
+	SMFTrace_T syslog_level;
 	va_list ap;
 	va_list cp;
 	gchar *message = NULL;

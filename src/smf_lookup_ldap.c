@@ -26,6 +26,7 @@
 #include "smf_trace.h"
 #include "smf_settings.h"
 #include "smf_lookup.h"
+#include "smf_lookup_private.h"
 
 #define THIS_MODULE "ldap_lookup"
 
@@ -132,7 +133,7 @@ int ldap_failover_connect(void) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int ldap_connect(void) {
+int smf_lookup_ldap_connect(void) {
 	int ret;
 	int version;
 	char *uri;
@@ -181,13 +182,13 @@ int ldap_connect(void) {
  */
 LDAP *ldap_con_get(void) {
 	if (!ld) {
-		ldap_connect();
+		smf_lookup_ldap_connect();
 	}
 	return ld;
 }
 
 /** Disconnect from LDAP server */
-void ldap_disconnect(void) {
+void smf_lookup_ldap_disconnect(void) {
 	LDAP *c = ldap_con_get();
 	if (c != NULL) {
 		ldap_unbind_ext_s(c,NULL,NULL);
@@ -195,7 +196,7 @@ void ldap_disconnect(void) {
 	}
 }
 
-LookupResult_T *ldap_query(const char *q, ...) {
+SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
 	LDAPMessage *msg = NULL;
@@ -205,7 +206,7 @@ LookupResult_T *ldap_query(const char *q, ...) {
 	BerElement *ptr;
 	int i,value_count;
 	LDAP *c = ldap_con_get();
-	LookupResult_T *result = lookup_result_new();
+	SMFLookupResult_T *result = smf_lookup_result_new();
 	SMFSettings_T *settings = smf_settings_get();
 
 	va_start(ap, q);
@@ -226,12 +227,12 @@ LookupResult_T *ldap_query(const char *q, ...) {
 		TRACE(TRACE_LOOKUP,"[%p] found [%d] entries", c, ldap_count_entries(c,msg));
 
 	for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
-		LookupElement_T *e = lookup_element_new();
+		SMFLookupElement_T *e = smf_lookup_element_new();
 
 		for(attr = ldap_first_attribute(c, msg, &ptr); attr != NULL;
 				attr = ldap_next_attribute(c, msg, ptr)) {
 
-			LdapValue_T *vals = malloc(sizeof(LdapValue_T));
+			SMFLdapValue_T *vals = malloc(sizeof(SMFLdapValue_T));
 			bvals = ldap_get_values_len(c, entry, attr);
 			value_count = ldap_count_values_len(bvals);
 			TRACE(TRACE_LOOKUP,"found attribute [%s] in entry [%p] with [%d] values", attr, entry, value_count);
@@ -242,11 +243,11 @@ LookupResult_T *ldap_query(const char *q, ...) {
 				vals->data[i] = (char *)malloc(strlen((char *)((struct berval)*bvals[i]).bv_val) + 1);
 				strcpy(vals->data[i], (char *)((struct berval)*bvals[i]).bv_val);
 			}
-			lookup_element_add(e,g_strdup(attr),vals);
+			smf_lookup_element_add(e,g_strdup(attr),vals);
 			ldap_value_free_len(bvals);
 			free(attr);
 		}
-		lookup_result_add(result,e);
+		smf_lookup_result_add(result,e);
 	}
 	ber_free(ptr,0);
 	ldap_msgfree(msg);
@@ -259,13 +260,13 @@ LookupResult_T *ldap_query(const char *q, ...) {
  *
  * \return 1 if the user exists, otherwise 0
  */
-int ldap_user_exists(char *addr) {
+int smf_lookup_ldap_user_exists(char *addr) {
 	char *query;
 	LDAP *c = ldap_con_get();
 	LDAPMessage *msg = NULL;
 	SMFSettings_T *settings = smf_settings_get();
 
-	if (expand_query(settings->ldap_user_query, addr, &query) <= 0) {
+	if (smf_lookup_expand_query(settings->ldap_user_query, addr, &query) <= 0) {
 		TRACE(TRACE_ERR,"failed to expand ldap query");
 		return -1;
 	}

@@ -58,10 +58,10 @@ void smf_session_free(void) {
 
 	if (session->from != NULL)
 		g_free(session->from->addr);
-	g_slice_free(EmailAddress_T,session->from);
+	g_slice_free(SMFEmailAddress_T,session->from);
 	for (i = 0; i < session->num_rcpts; i++) {
 		g_free(session->rcpts[i]->addr);
-		g_slice_free(EmailAddress_T,session->rcpts[i]);
+		g_slice_free(SMFEmailAddress_T,session->rcpts[i]);
 	}
 	g_free(session->rcpts);
 	g_slice_free(SMFSession_T,session);

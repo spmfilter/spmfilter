@@ -34,13 +34,13 @@ SMFSettings_T *smf_settings_get(void) {
 	return settings;
 }
 
-void set_settings(SMFSettings_T **s) {
+void smf_settings_set(SMFSettings_T **s) {
 	settings = *s;
 }
 
 /* FIXME: i will break on SMTP QUIT command */
-void free_settings(SMFSettings_T *settings) {
-	smtp_code_free();
+void smf_settings_free(SMFSettings_T *settings) {
+	smf_smtp_codes_free();
 	g_strfreev(settings->modules);
 	g_free(settings->config_file);
 	g_free(settings->queue_dir);
@@ -52,18 +52,14 @@ void free_settings(SMFSettings_T *settings) {
 	g_slice_free(SMFSettings_T,settings);
 }
 
-int parse_config(void) {
+int smf_settings_parse_config(void) {
 	GError *error = NULL;
 	GKeyFile *keyfile;
 	gchar **code_keys;
 	gsize modules_length = 0;
 	gsize codes_length = 0;
-#ifdef HAVE_ZDB
 	gsize sql_num_hosts = 0;
-#endif
-#ifdef HAVE_LDAP
 	gsize ldap_num_hosts = 0;
-#endif
 	char *code_msg;
 	int i, code;
 	SMFSettings_T *settings = smf_settings_get();
@@ -144,9 +140,6 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->backend: %s", settings->backend);
 	TRACE(TRACE_DEBUG, "settings->backend_connection: %s", settings->backend_connection);
 
-#ifdef HAVE_ZDB
-	/* if spmfilter is compiled with zdb,
-	 * we also need the sql group */
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
 	if (g_ascii_strcasecmp(settings->backend,"sql") == 0) {
@@ -181,11 +174,7 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->sql_user_query: %s", settings->sql_user_query);
 	TRACE(TRACE_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
 	TRACE(TRACE_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
-#endif
 
-#ifdef HAVE_LDAP
-	/* if spmfilter is compiled with ldap,
-	 * we also need the ldap group */
 	settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
 	settings->ldap_host = g_key_file_get_string_list(keyfile, "ldap", "host", &ldap_num_hosts,NULL);
 	settings->ldap_num_hosts = ldap_num_hosts;
@@ -239,7 +228,6 @@ int parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->ldap_referrals: %d", settings->ldap_referrals);
 	TRACE(TRACE_DEBUG, "settings->ldap_scope: %s", settings->ldap_scope);
 	TRACE(TRACE_DEBUG, "settings->ldap_user_query: %s", settings->ldap_user_query);
-#endif
 
 	/* smtpd group */
 	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
@@ -263,13 +251,13 @@ int parse_config(void) {
 		code = g_ascii_strtod(code_keys[codes_length],NULL);
 		if ((code > 400) && (code < 600)) {
 			code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
-			smtp_code_insert(code,code_msg);
-			TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smtp_code_get(code));
+			smf_smtp_codes_insert(code,code_msg);
+			TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smf_smtp_codes_get(code));
 			g_free(code_msg);
 		}
 	}
 	g_strfreev(code_keys);
 	g_key_file_free(keyfile);
-	set_settings(&settings);
+	smf_settings_set(&settings);
 	return 0;
 }

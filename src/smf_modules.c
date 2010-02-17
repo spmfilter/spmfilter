@@ -147,7 +147,6 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	return 0;
 }
 
-
 int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	int i;
 	int retval;
@@ -233,13 +232,12 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	return(0);
 }
 
-
 int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	int i;
-	Message_T *msg;
+	SMFMessage_T *msg;
 	SMFSettings_T *settings = smf_settings_get();
 
-	msg = g_slice_new(Message_T);
+	msg = g_slice_new(SMFMessage_T);
 	msg->from = g_strdup(session->from->addr);
 
 	/* allocate memory for recipients */
@@ -274,7 +272,7 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	g_free(msg->from);
 	g_free(msg->message_file);
 	g_free(msg->nexthop);
-	g_slice_free(Message_T,msg);
+	g_slice_free(SMFMessage_T,msg);
 
 	return(0);
 }

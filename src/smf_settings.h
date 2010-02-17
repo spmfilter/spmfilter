@@ -159,18 +159,4 @@ char **smf_settings_group_get_string_list(char *key, int length);
  */
 void smf_settings_group_free(void);
 
-/** Override settings */
-void set_settings(SMFSettings_T **s);
-
-/** free settings struct */
-void free_settings(SMFSettings_T *settings);
-
-/** load and parse config file
- *
- * \returns 0 on success or -1 in case of error
- */
-
-int parse_config(void);
-
 #endif	/* _SMF_SETTINGS_H */
-

@@ -25,8 +25,10 @@
 
 #include "smf_config.h"
 #include "smf_settings.h"
+#include "smf_settings_private.h"
 #include "smf_trace.h"
 #include "smf_lookup.h"
+#include "smf_lookup_private.h"
 #include "smf_platform.h"
 
 #define THIS_MODULE "spmfilter"
@@ -63,11 +65,11 @@ int main(int argc, char *argv[]) {
 	g_option_context_free(context);
 
 	/* parse config file and fill settings struct */
-	if (parse_config() != 0) 
+	if (smf_settings_parse_config() != 0)
 		return -1;
 
 	/* connect to database/ldap server, if necessary */
-	if (lookup_connect() != 0) {
+	if (smf_lookup_connect() != 0) {
 		TRACE(TRACE_ERR,"Unable to establish lookup connection!");
 		return -1;
 	}
@@ -118,14 +120,14 @@ int main(int argc, char *argv[]) {
 		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 	}
 
-	if (lookup_disconnect() != 0)
+	if (smf_lookup_disconnect() != 0)
 		TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
 
 	/* free all stuff */
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
 	free(engine_path);
-	free_settings(settings);
+	smf_settings_free(settings);
 
 	if (ret != 0) {
 		return -1;

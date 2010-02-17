@@ -21,7 +21,7 @@
 typedef struct {
 	char *addr;
 	int is_local;
-} EmailAddress_T;
+} SMFEmailAddress_T;
 
 
 typedef struct {
@@ -29,11 +29,11 @@ typedef struct {
 	char *helo;
 
 	/* recipients */
-	EmailAddress_T **rcpts;
+	SMFEmailAddress_T **rcpts;
 	int num_rcpts;
 
 	/* sender */
-	EmailAddress_T *from;
+	SMFEmailAddress_T *from;
 
 	/* size of message body */
 	size_t msgbodysize;
