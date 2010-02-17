@@ -211,10 +211,6 @@ int load_modules(void) {
 	ret = smf_modules_process(q,session);
 	free(q);
 
-	/* flush header to disk if necessary */
-	if (smf_modules_header_flush(session) != 0)
-		TRACE(TRACE_ERR,"failed to flush header");
-
 	if(ret != 0) {
 		TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
 		return(-1);

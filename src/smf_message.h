@@ -53,23 +53,22 @@ typedef struct {
  */
 int smf_message_write(char *new_path, char *queue_file);
 
-/* Gets the value of the requested header if it exists
+/** Gets the value of the first header with the name requested.
  *
  * \param header_name name of the wanted header
  *
  * \returns value of header or NULL in case of error
  */
-char *smf_message_get_header(const char *header_name);
+const char *smf_message_header_get(const char *header_name);
 
-/** Sets an arbitrary header
+/** Prepends a header. If value is NULL, a space will be set aside for it
+ * (useful for setting the order of headers before values can be obtained
+ * for them) otherwise the header will be unset.
  *
- * \param msg_path path to message or queue file
  * \param header_name name of the header
  * \param header_value new value for the header
- *
- * \returns 0 on success or -1 in case of error
  */
-int smf_message_set_header(char *msg_path, char *header_name, char *header_value);
+void smf_message_header_prepend(char *header_name, char *header_value);
 
 /** Removed the specified header if it exists
  *
