@@ -17,11 +17,16 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <glib.h>
 #include <gmodule.h>
 #include <glib/gstdio.h>
+#include <gmime/gmime.h>
 
 #include "spmfilter_config.h"
+#include "smf_core.h"
 #include "smf_session.h"
 #include "smf_message.h"
 #include "smf_settings.h"
@@ -50,6 +55,98 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 
 	return q;
 }
+
+/** Flush modified message headers to queue file */
+int smf_modules_flush_dirty(SMFSession_T *session) {
+	gchar *line;
+	GIOChannel *in;
+	GMimeStream *out;
+	int fd;
+	GError *error = NULL;
+	char *new_queue_file;
+	gboolean header_done = FALSE;
+
+	if (session->is_dirty == 0)
+		return 0;
+
+	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
+
+	smf_core_gen_queue_file(&new_queue_file);
+	if ((fd = open(new_queue_file,O_RDWR|O_CREAT)) == -1) {
+		TRACE(TRACE_ERR,"failed writing queue file");
+		return -1;
+	}
+
+	out = g_mime_stream_fs_new(fd);
+#ifdef HAVE_GMIME24
+	if (g_mime_header_list_write_to_stream((GMimeHeaderList *)session->headers,out) == -1) {
+		TRACE(TRACE_ERR,"failed writing queue file");
+		close(fd);
+		g_object_unref(out);
+		g_remove(new_queue_file);
+		return -1;
+	}
+#else
+	if (g_mime_header_write_to_stream((GMimeHeader *)session->headers,out) == -1) {
+		TRACE(TRACE_ERR,"failed writing queue file");
+		close(fd);
+		g_object_unref(out);
+		g_remove(new_queue_file);
+		return -1;
+	}
+#endif
+
+	if ((in = g_io_channel_new_file(session->queue_file,"r", &error)) == NULL) {
+		TRACE(TRACE_ERR,"%s",error->message);
+		g_error_free(error);
+		close(fd);
+		g_object_unref(out);
+		g_remove(new_queue_file);
+		return -1;
+	}
+	g_io_channel_set_encoding(in, NULL, NULL);
+
+	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
+		if ((g_ascii_strcasecmp(line, "\r\n")==0)||(g_ascii_strcasecmp(line, "\n")==0))
+			header_done = TRUE;
+
+		if (header_done) {
+			if (g_mime_stream_write(out,line,strlen(line)) == -1) {
+				TRACE(TRACE_ERR,"failed writing queue file");
+				g_io_channel_shutdown(in,TRUE,NULL);
+				g_io_channel_unref(in);
+				close(fd);
+				g_object_unref(out);
+				g_free(line);
+				g_remove(new_queue_file);
+				return -1;
+			}
+		} else
+			continue;
+		g_free(line);
+	}
+
+	g_mime_stream_flush(out);
+	close(fd);
+	g_object_unref(out);
+	g_io_channel_shutdown(in,TRUE,NULL);
+	g_io_channel_unref(in);
+
+	if (g_remove(session->queue_file) != 0) {
+		TRACE(TRACE_ERR,"failed to remove queue file");
+		return -1;
+	}
+
+	if(g_rename(new_queue_file,session->queue_file) != 0) {
+		TRACE(TRACE_ERR,"failed to rename queue file");
+		return -1;
+	}
+	g_free(new_queue_file);
+
+	session->is_dirty = 0;
+	return 0;
+}
+
 
 int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	int i;
@@ -94,6 +191,9 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 		/* cast spell and execute */
 		runner = (ModuleLoadFunction)sym;
 		retval = runner(session);
+
+		if (smf_modules_flush_dirty(session) != 0)
+			TRACE(TRACE_ERR,"message flush failed");
 
 		/* clean up */
 		g_free(path);
@@ -177,83 +277,4 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	g_slice_free(Message_T,msg);
 
 	return(0);
-}
-
-int smf_modules_header_flush(SMFSession_T *session) {
-/*	gchar *line;
-	GIOChannel *in, *out;
-	GError *error = NULL;
-	char *new_queue_file;
-	gboolean header_done = FALSE;
-
-	if (mconn->is_dirty == 0)
-		return 0;
-
-	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
-	if ((in = g_io_channel_new_file(mconn->queue_file,"r", &error)) == NULL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		return -1;
-	}
-
-	smf_core_gen_queue_file(&new_queue_file);
-
-	if ((out = g_io_channel_new_file(new_queue_file,"w", &error)) == NULL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		return -1;
-	}
-	g_io_channel_set_encoding(in, NULL, NULL);
-	g_io_channel_set_encoding(out, NULL, NULL);
-
-	if (g_io_channel_write_chars(out,mconn->header->data,-1,NULL, &error) != G_IO_STATUS_NORMAL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		g_io_channel_shutdown(out,TRUE,NULL);
-		g_io_channel_shutdown(in,TRUE,NULL);
-		g_io_channel_unref(out);
-		g_io_channel_unref(in);
-		remove(new_queue_file);
-		return -1;
-	}
-
-	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		if ((g_ascii_strcasecmp(line, "\r\n")==0)||(g_ascii_strcasecmp(line, "\n")==0)) 
-			header_done = TRUE;
-
-		if (header_done) {
-			if (g_io_channel_write_chars(out, line, -1, NULL, &error) != G_IO_STATUS_NORMAL) {
-				TRACE(TRACE_ERR,"%s",error->message);
-				g_io_channel_unref(out);
-				g_io_channel_shutdown(out,TRUE,NULL);
-				g_io_channel_shutdown(in,TRUE,NULL);
-				g_io_channel_unref(in);
-				g_free(line);
-				remove(new_queue_file);
-				g_error_free(error);
-				return -1;
-			}
-		} else
-			continue;
-		g_free(line);
-	}
-
-	g_io_channel_shutdown(out,TRUE,NULL);
-	g_io_channel_shutdown(in,TRUE,NULL);
-	g_io_channel_unref(out);
-	g_io_channel_unref(in);
-
-	if (g_remove(mconn->queue_file) != 0) {
-		TRACE(TRACE_ERR,"failed to remove queue file");
-		return -1;
-	}
-
-	if(g_rename(new_queue_file,mconn->queue_file) != 0) {
-		TRACE(TRACE_ERR,"failed to rename queue file");
-		return -1;
-	}
-
-	g_free(new_queue_file);
-*/
-	return 0;
 }
