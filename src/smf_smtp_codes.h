@@ -19,14 +19,14 @@
 #define	_SMF_SMTP_CODES_H
 
 /** Free smtp codes */
-void smtp_code_free(void);
+void smf_smtp_codes_free(void);
 
 /** Add smtp return code to list
  *
  * \param code smtp code
  * \param msg smtp return message
  */
-void smtp_code_insert(int code, char *msg);
+void smf_smtp_codes_insert(int code, char *msg);
 
 /** Get smtp return code message of given code
  *
@@ -34,7 +34,7 @@ void smtp_code_insert(int code, char *msg);
  *
  * \returns smtp return message for given code
  */
-char *smtp_code_get(int code);
+char *smf_smtp_codes_get(int code);
 
 #endif	/* _SMF_SMTP_CODES_H */
 

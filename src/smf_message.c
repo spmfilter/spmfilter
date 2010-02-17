@@ -27,69 +27,88 @@
 #include "smf_session.h"
 #include "smf_trace.h"
 #include "smf_core.h"
+#include "smf_message.h"
+#include "smf_modules.h"
 
 #define THIS_MODULE "message"
 
-/** Parse a message file on disk and return a GMimeMessage object
+/** Copy the current message to disk
  *
- * \param msg_path path to message file
- *
- * \returns GMimeMessage object
- */
-GMimeMessage *parse_message(char *msg_path) {
-	GMimeMessage *message = NULL;
-	GMimeParser *parser;
-	GMimeStream *stream;
-	int fd;
-
-	if ((fd = g_open(msg_path, O_RDONLY)) == -1) {
-		TRACE(TRACE_ERR, "cannot open message `%s': %s", msg_path, strerror(errno));
-		return NULL;
-	}
-
-	stream = g_mime_stream_fs_new(dup(fd));
-	parser = g_mime_parser_new_with_stream(stream);
-	g_object_unref(stream);
-	message = g_mime_parser_construct_message(parser);
-	g_object_unref(parser);
-	close(fd);
-
-	return message;
-}
-
-
-/** Write a message to disk
- *
- * \param new_path path for the new message file
- * \param queue_file path of the queue file
+ * \param path for the new message file
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_message_write(char *new_path, char *queue_file) {
-	GMimeStream *stream;
+int smf_message_copy_to_disk(char *path) {
+	SMFSession_T *session = smf_session_get();
+	GIOChannel *in;
+	GMimeStream *out;
 	int fd;
-	GMimeMessage *message;
+	gchar *line;
+	GError *error = NULL;
+	gboolean header_done = FALSE;
 
-	g_mime_init(0);
-	message = parse_message(queue_file);
-
-	if ((fd = g_open(new_path, O_CREAT|O_WRONLY, S_IRWXU|S_IRGRP|S_IROTH)) == -1) {
-		TRACE(TRACE_ERR, "cannot open message `%s': %s", new_path, strerror(errno));
+	if ((fd = open(path,O_WRONLY|O_CREAT)) == -1) {
+		TRACE(TRACE_ERR,"failed opening destination file");
 		return -1;
 	}
 
-	stream = g_mime_stream_fs_new(fd);
-	if (g_mime_object_write_to_stream((GMimeObject *) message, stream) == -1) {
-		return -1;
+	out = g_mime_stream_fs_new(fd);
+
+	if (session->is_dirty) {
+#ifdef HAVE_GMIME24
+		if (g_mime_header_list_write_to_stream((GMimeHeaderList *)session->headers,out) == -1) {
+			TRACE(TRACE_ERR,"failed writing file");
+			close(fd);
+			g_object_unref(out);
+			return -1;
+		}
+#else
+		if (g_mime_header_write_to_stream((GMimeHeader *)session->headers,out) == -1) {
+			TRACE(TRACE_ERR,"failed writing file");
+			close(fd);
+			g_object_unref(out);
+			return -1;
+		}
+#endif
+	} else {
+		header_done = TRUE;
 	}
 
-	if (g_mime_stream_flush(stream) != 0) {
+	if ((in = g_io_channel_new_file(session->queue_file,"r", &error)) == NULL) {
+		TRACE(TRACE_ERR,"%s",error->message);
+		g_error_free(error);
+		close(fd);
+		g_object_unref(out);
 		return -1;
 	}
-	g_mime_stream_close(stream);
-	g_object_unref(stream);
+	g_io_channel_set_encoding(in, NULL, NULL);
+
+	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
+		if ((g_ascii_strcasecmp(line, "\r\n")==0)||(g_ascii_strcasecmp(line, "\n")==0))
+			header_done = TRUE;
+
+		if (header_done) {
+			if (g_mime_stream_write(out,line,strlen(line)) == -1) {
+				TRACE(TRACE_ERR,"failed writing file");
+				g_io_channel_shutdown(in,TRUE,NULL);
+				g_io_channel_unref(in);
+				close(fd);
+				g_object_unref(out);
+				g_free(line);
+				g_remove(path);
+				return -1;
+			}
+		} else
+			continue;
+		g_free(line);
+	}
+
+	g_mime_stream_flush(out);
 	close(fd);
-	g_mime_shutdown();
+	g_object_unref(out);
+	g_io_channel_shutdown(in,TRUE,NULL);
+	g_io_channel_unref(in);
+
 	return 0;
 }
 
@@ -112,38 +131,25 @@ const char *smf_message_header_get(const char *header_name) {
 
 /** Removed the specified header if it exists
  *
- * \param msg_path path to message or queue_file
  * \param header_name name of the header
  * 
  * \returns 0 on success or -1 in case of error
  */
-int smf_mesage_remove_header(char *msg_path, char *header_name) {
-	GMimeMessage *message = NULL;
-	char *tmp_file;
+int smf_message_header_remove(char *header_name) {
+	SMFSession_T *session = smf_session_get();
 
-	g_mime_init(0);
-	message = parse_message(msg_path);
-	
-	if (message!=NULL) {
-		g_mime_object_remove_header((GMimeObject *)message,header_name);
-		smf_core_gen_queue_file(&tmp_file);
-		
-		if (smf_message_write(tmp_file,msg_path) != 0) {
-			g_mime_shutdown();
-			return -1;
-		}
-	} else {
-		g_mime_shutdown();
-		return -1;
+#ifdef HAVE_GMIME24
+	if (g_mime_header_list_remove((GMimeHeaderList *)session->headers,header_name)) {
+		session->is_dirty = 1;
+		return 0;
 	}
-
-	g_remove(msg_path);
-	g_rename(tmp_file,msg_path);
-	g_free(tmp_file);
-	g_free(header_name);
-	g_object_unref(message);
-	g_mime_shutdown();
-	return 0;
+#else
+	if (g_mime_header_remove((GMimeHeader *)session->headers,header_name)) {
+		session->is_dirty = 1;
+		return 0;
+	}
+#endif
+	return -1;
 }
 
 /** Prepends a header. If value is NULL, a space will be set aside for it
@@ -165,3 +171,78 @@ void smf_message_header_prepend(char *header_name, char *header_value) {
 #endif
 	return;
  }
+
+/** Appends a header. If value is NULL, a space will be set aside for it
+ * (useful for setting the order of headers before values can be obtained
+ * for them) otherwise the header will be unset.
+ *
+ * \param header_name name of the header
+ * \param header_value new value for the header
+ */
+void smf_message_header_append(char *header_name, char *header_value) {
+	SMFSession_T *session = smf_session_get();
+
+#ifdef HAVE_GMIME24
+	g_mime_header_list_append((GMimeHeaderList *)session->headers,header_name,header_value);
+	session->is_dirty = 1;
+#else
+	TRACE(TRACE_WARNING,"function not implemented in GMime < 2.4");
+#endif
+	return;
+}
+
+/** Set the value of the specified header. If value is NULL and the header,
+ * name, had not been previously set, a space will be set aside for it
+ * (useful for setting the order of headers before values can be obtained
+ * for them) otherwise the header will be unset.
+ *
+ * Note: If there are multiple headers with the specified field name,
+ * the first instance of the header will be replaced and further instances
+ * will be removed.
+ *
+ * \param header_name name of the header
+ * \param header_value new value for the header
+ */
+void smf_message_header_set(char *header_name, char *header_value) {
+	SMFSession_T *session = smf_session_get();
+
+#ifdef HAVE_GMIME24
+	g_mime_header_list_set((GMimeHeaderList *)session->headers,header_name,header_value);
+	session->is_dirty = 1;
+#else
+	g_mime_header_set((GMimeHeader *)session->headers,header_name,header_value);
+	session->is_dirty = 1;
+#endif
+	return;
+}
+
+/** Allocates a string buffer containing the raw rfc822 headers.
+ *
+ * \returns a string containing the header block.
+ */
+char *smf_message_header_to_string(void) {
+	SMFSession_T *session = smf_session_get();
+	char *header = NULL;
+
+#ifdef HAVE_GMIME24
+	header = g_mime_header_list_to_string((GMimeHeaderList *)session->headers);
+#else
+	header = g_mime_header_to_string((GMimeHeader *)session->headers);
+#endif
+	return header;
+}
+
+/** Calls func for each header name/value pair.
+ *
+ * \param func function to be called for each header.
+ * \param user_data user data to be passed to the func.
+ */
+void smf_message_header_foreach(SMFHeaderForeachFunc func, void *user_data) {
+	SMFSession_T *session = smf_session_get();
+
+#ifdef HAVE_GMIME24
+	g_mime_header_list_foreach((GMimeHeaderList *)session->headers,func,user_data);
+#else
+	g_mime_header_foreach((GMimeHeader *)session->headers,func,user_data);
+#endif
+}

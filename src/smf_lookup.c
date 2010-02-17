@@ -22,6 +22,7 @@
 
 #include "spmfilter_config.h"
 #include "smf_lookup.h"
+#include "smf_lookup_private.h"
 #include "smf_settings.h"
 #include "smf_trace.h"
 
@@ -36,7 +37,7 @@
  *
  * \returns the number of replacements made or -1 in case of error
  */
-int expand_query(char *format, char *addr, char **buf) {
+int smf_lookup_expand_query(char *format, char *addr, char **buf) {
 	int rep_made = 0;
 	int pos = 0;
 	int iter_size;
@@ -90,18 +91,18 @@ int expand_query(char *format, char *addr, char **buf) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int lookup_connect(void) {
+int smf_lookup_connect(void) {
 	SMFSettings_T *settings = smf_settings_get();
 
 
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
-		if(sql_connect() != 0)
+		if(smf_lookup_sql_connect() != 0)
 			return -1;
 #endif
 	} else if(g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
 #ifdef HAVE_LDAP
-		if(ldap_connect() != 0)
+		if(smf_lookup_ldap_connect() != 0)
 			return -1;
 #endif
 	}
@@ -113,16 +114,16 @@ int lookup_connect(void) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int lookup_disconnect(void) {
+int smf_lookup_disconnect(void) {
 	SMFSettings_T *settings = smf_settings_get();
 
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
-		sql_disconnect();
+		smf_lookup_sql_disconnect();
 #endif
 	} else if (g_ascii_strcasecmp(settings->backend,"ldap") ==  0) {
 #ifdef HAVE_LDAP
-		ldap_disconnect();
+		smf_lookup_ldap_disconnect();
 #endif
 	}
 
@@ -142,7 +143,7 @@ int smf_lookup_check_user(char *addr) {
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
 		if (settings->sql_user_query != NULL) {
-			return sql_user_exists(addr);
+			return smf_lookup_sql_user_exists(addr);
 		}
 #else
 		TRACE(TRACE_ERR,"spmfilter has not been built with sql backend");
@@ -153,7 +154,7 @@ int smf_lookup_check_user(char *addr) {
 	if (g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
 #ifdef HAVE_LDAP
 		if (settings->ldap_user_query != NULL) {
-			return ldap_user_exists(addr);
+			return smf_lookup_ldap_user_exists(addr);
 		}
 #else
 		TRACE(TRACE_ERR,"spmfilter has not been built with ldap backend");
@@ -170,9 +171,9 @@ int smf_lookup_check_user(char *addr) {
  * \param q a standard printf() format string
  * \param args the list of parameters to insert into the format string
  *
- * \return new allocated LookupResult_T
+ * \return new allocated SMFLookupResult_T
  */
-LookupResult_T *smf_lookup_query(const char *q, ...) {
+SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
 	SMFSettings_T *settings = smf_settings_get();
@@ -185,14 +186,14 @@ LookupResult_T *smf_lookup_query(const char *q, ...) {
 
 	if ((g_ascii_strcasecmp(settings->backend,"sql")) == 0) {
 #ifdef HAVE_ZDB
-		return sql_query(query);
+		return smf_lookup_sql_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
 		return(NULL);
 #endif
 	} else if ((g_ascii_strcasecmp(settings->backend,"ldap")) == 0) {
 #ifdef HAVE_LDAP
-		return ldap_query(query);
+		return smf_lookup_ldap_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is built with ldap backend");
 		return(NULL);

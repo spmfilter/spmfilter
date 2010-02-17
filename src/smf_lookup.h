@@ -21,48 +21,48 @@
 
 typedef struct {
 	void *data;
-} LookupElement_T;
+} SMFLookupElement_T;
 
 typedef struct {
-	LookupElement_T *elem;
+	SMFLookupElement_T *elem;
 	unsigned int len;
-} LookupResult_T;
+} SMFLookupResult_T;
 
 /** Since LDAP attributes can have more than
  *  one value, we need to define a new datatype,
  *  in order not to link every module against
  *  ldap, which needs LDAP connectivity.
- *  Every LDAP lookup returns LookupElement_T
+ *  Every LDAP lookup returns SMFLookupElement_T
  *  with LdapValue_T pointer as data.
  */
 typedef struct {
 	int len;
 	char **data;
-} LdapValue_T;
+} SMFLdapValue_T;
 
-/** Frees all of the memory used by LookupResult_T
+/** Frees all of the memory used by SMFLookupResult_T
  *
- * \param *l pointer to LookupResult_T
+ * \param *l pointer to SMFLookupResult_T
  */
-void smf_lookup_result_free(LookupResult_T *l);
+void smf_lookup_result_free(SMFLookupResult_T *l);
 
-/** Returns LookupElement_T at the given index of LookupResult_T
+/** Returns SMFLookupElement_T at the given index of SMFLookupResult_T
  *
- * \param l LookupResult_T list
+ * \param l SMFLookupResult_T list
  * \param i the index of the pointer to return
  *
- * \returns LookupElement_T at the given index
+ * \returns SMFLookupElement_T at the given index
  */
-LookupElement_T *smf_lookup_result_index(LookupResult_T *l, int i);
+SMFLookupElement_T *smf_lookup_result_index(SMFLookupResult_T *l, int i);
 
-/** Looks up a key in LookupElement_T
+/** Looks up a key in SMFLookupElement_T
  *
- * \param *e pointer to LookupElement_T
+ * \param *e pointer to SMFLookupElement_T
  * \param *key the key to look up
  *
  * \returns the associated value, or NULL if the key is not found
  */
-void *smf_lookup_element_get(LookupElement_T *e, char *key);
+void *smf_lookup_element_get(SMFLookupElement_T *e, char *key);
 
 /** Check if given user is local
  *
@@ -78,9 +78,21 @@ int smf_lookup_check_user(char *addr);
  * \param q a standard printf() format string
  * \param args the list of parameters to insert into the format string
  *
- * \return new allocated LookupResult_T
+ * \return new allocated SMFLookupResult_T
  */
-LookupResult_T *smf_lookup_query(const char *q, ...);
+SMFLookupResult_T *smf_lookup_query(const char *q, ...);
+
+/** Establish database/ldap connection
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_lookup_connect(void);
+
+/** Destroy database/ldap connection
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_lookup_disconnect(void);
 
 /** Query Berkeley DB for given key
  *
@@ -89,70 +101,25 @@ LookupResult_T *smf_lookup_query(const char *q, ...);
  *
  * \returns the values associated with key,  or NULL if the key is not found
  */
-char *smf_db4_query(char *database, char *key);
-
-
-/** expands placeholders in a user querystring
- *
- * \param format format string to use as input
- * \param addr email address to use for replacements
- * \buf pointer to unallocated buffer for expanded format string, needs to
- *      free'd by caller if not required anymore
- *
- * \returns the number of replacements made or -1 in case of error
- */
-int expand_query(char *format, char *addr, char **buf);
-
-/** Establish database/ldap connection
- *
- * \returns 0 on success or -1 in case of error
- */
-int lookup_connect(void);
-
-/** Destroy database/ldap connection
- *
- * \returns 0 on success or -1 in case of error
- */
-int lookup_disconnect(void);
-
-/** Allocates memory for LookupResult_T
- *
- * \returns newly allocated LookupResult_T
- */
-LookupResult_T *lookup_result_new(void);
-
-/** Adds a new element on to the end of the list.
- *  The return value is the new start of the list,
- *  which may have changed, so make sure you store the new value.
- *
- * \param *l pointer to LookupResult_T
- * \param *elem_data pointer to LookupElement_T
- */
-void lookup_result_add(LookupResult_T *l, LookupElement_T *elem_data);
-
-/** Creates a new element for LookupResult_T
- *
- * \returns pointer to new allocated LookupRow_T
- */
-LookupElement_T *lookup_element_new(void);
-
-/** Inserts a new key and value into LookupElement_T
- *  If the key already exists in LookupElement_T its current value is
- *  replaced with the new value.
- *
- * \param *e pointer to LookupElement_T
- * \param *key a key to insert
- * \param *value the value to associate with the key
- */
-void lookup_element_add(LookupElement_T *e, char *key, void *value);
+char *smf_lookup_db4_query(char *database, char *key);
 
 /** Connect to sql server
  *
  * \returns 0 on success or -1 in case of error
  */
-int sql_connect(void);
+int smf_lookup_sql_connect(void);
 
-void sql_disconnect(void);
+/** Disconnect from sql server */
+void smf_lookup_sql_disconnect(void);
+
+/** Query SQK server with given query string
+ *
+ * \param q format string for sql query
+ * \param ... format string arguments
+ *
+ * \returns SMFLookupResult_T
+ */
+SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...);
 
 /** Check if given user exists in database
  *
@@ -160,17 +127,25 @@ void sql_disconnect(void);
  *
  * \return 1 if the user exists, otherwise 0
  */
-int sql_user_exists(char *addr);
-
-LookupResult_T *sql_query(const char *q, ...);
+int smf_lookup_sql_user_exists(char *addr);
 
 /** Connect to ldap server
  *
  * \returns 0 on success or -1 in case of error
  */
-int ldap_connect(void);
+int smf_lookup_ldap_connect(void);
 
-void ldap_disconnect(void);
+/** Disconnect from LDAP server */
+void smf_lookup_ldap_disconnect(void);
+
+/** Query LDAP server with given query string
+ *
+ * \param q format string for ldap query
+ * \param ... format string arguments
+ *
+ * \returns SMFLookupResult_T
+ */
+SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...);
 
 /** Check if given user exists in ldap directory
  *
@@ -178,9 +153,6 @@ void ldap_disconnect(void);
  *
  * \return 1 if the user exists, otherwise 0
  */
-int ldap_user_exists(char *addr);
-
-LookupResult_T *ldap_query(const char *q, ...);
+int smf_lookup_ldap_user_exists(char *addr);
 
 #endif	/* _SMF_LOOKUP_H */
-

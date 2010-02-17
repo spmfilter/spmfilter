@@ -15,31 +15,21 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_TRACE_H
-#define	_SMF_TRACE_H
+#ifndef _SMF_SETTINGS_PRIVATE_H
+#define	_SMF_SETTINGS_PRIVATE_H
 
-/* Logging and debugging stuff */
-typedef enum {
-	TRACE_EMERG = 1,
-	TRACE_ALERT = 2,
-	TRACE_CRIT = 4,
-	TRACE_ERR = 8,
-	TRACE_WARNING = 16,
-	TRACE_NOTICE = 32,
-	TRACE_INFO = 64,
-	TRACE_DEBUG = 128,
-	TRACE_LOOKUP = 256 // Logs at Debug Level
-} SMFTrace_T;
+/** Override settings */
+void smf_settings_set(SMFSettings_T **s);
 
-/** convenience macro for logging
+/** free settings struct */
+void smf_settings_free(SMFSettings_T *settings);
+
+/** load and parse config file
  *
- * \param level loglevel, see trace_t
- * \param fmt format string for log message
- * \param ... format string arguments
+ * \returns 0 on success or -1 in case of error
  */
-#define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
-void trace(SMFTrace_T level, const char * module, const char * function, int line, const char *formatstring, ...);
 
+int smf_settings_parse_config(void);
 
-#endif	/* _SMF_TRACE_H */
+#endif	/* _SMF_SETTINGS_PRIVATE_H */
 

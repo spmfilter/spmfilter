@@ -21,39 +21,39 @@
 
 #define THIS_MODULE "lookup_result"
 
-/** Allocates memory for LookupResult_T
+/** Allocates memory for SMFLookupResult_T
  *
- * \returns newly allocated LookupResult_T
+ * \returns newly allocated SMFLookupResult_T
  */
-LookupResult_T *lookup_result_new(void) {
-	return (LookupResult_T *)g_ptr_array_new();
+SMFLookupResult_T *smf_lookup_result_new(void) {
+	return (SMFLookupResult_T *)g_ptr_array_new();
 }
 
 /** Adds a new element on to the end of the list.
  *
- * \param *l pointer to LookupResult_T
- * \param *elem_data pointer to LookupElement_T
+ * \param *l pointer to SMFLookupResult_T
+ * \param *elem_data pointer to SMFLookupElement_T
  */
-void lookup_result_add(LookupResult_T *l, LookupElement_T *elem_data) {
+void smf_lookup_result_add(SMFLookupResult_T *l, SMFLookupElement_T *elem_data) {
 	g_ptr_array_add((GPtrArray *)l,elem_data);
 }
 
-/** Returns LookupElement_T at the given index of LookupResult_T
+/** Returns SMFLookupElement_T at the given index of SMFLookupResult_T
  *
- * \param l LookupResult_T list
+ * \param l SMFLookupResult_T list
  * \param i the index of the pointer to return
  *
- * \returns LookupElement_T at the given index
+ * \returns SMFLookupElement_T at the given index
  */
-LookupElement_T *smf_lookup_result_index(LookupResult_T *l, int i) {
-	return (LookupElement_T *)g_ptr_array_index((GPtrArray *)l,i);
+SMFLookupElement_T *smf_lookup_result_index(SMFLookupResult_T *l, int i) {
+	return (SMFLookupElement_T *)g_ptr_array_index((GPtrArray *)l,i);
 }
 
-/** Frees all of the memory used by LookupResult_T
+/** Frees all of the memory used by SMFLookupResult_T
  *
- * \param *l pointer to LookupResult_T
+ * \param *l pointer to SMFLookupResult_T
  */
-void smf_lookup_result_free(LookupResult_T *l) {
+void smf_lookup_result_free(SMFLookupResult_T *l) {
 	int i;
 	for (i = 0; i < l->len; i++) {
 		g_hash_table_unref((GHashTable *)smf_lookup_result_index(l,i));
@@ -62,34 +62,34 @@ void smf_lookup_result_free(LookupResult_T *l) {
 }
 
 
-/** Creates a new element for LookupResult_T
+/** Creates a new element for SMFLookupResult_T
  *
- * \returns pointer to new allocated LookupElement_T
+ * \returns pointer to new allocated SMFLookupElement_T
  */
-LookupElement_T *lookup_element_new(void) {
-	return (LookupElement_T *)g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
+SMFLookupElement_T *smf_lookup_element_new(void) {
+	return (SMFLookupElement_T *)g_hash_table_new((GHashFunc)g_str_hash,(GEqualFunc)g_str_equal);
 }
 
-/** Inserts a new key and value into LookupElement_T
- *  If the key already exists in LookupElement_T its current value is
+/** Inserts a new key and value into SMFLookupElement_T
+ *  If the key already exists in SMFLookupElement_T its current value is
  *  replaced with the new value.
  * 
- * \param *e pointer to LookupElement_T
+ * \param *e pointer to SMFLookupElement_T
  * \param *key a key to insert
  * \param *value the value to associate with the key
  */
-void lookup_element_add(LookupElement_T *e, char *key, void *value) {
+void smf_lookup_element_add(SMFLookupElement_T *e, char *key, void *value) {
 	g_hash_table_insert((GHashTable *)e, key, value);
 }
 
-/** Looks up a key in LookupElement_T
+/** Looks up a key in SMFLookupElement_T
  *
- * \param *e pointer to LookupElement_T
+ * \param *e pointer to SMFLookupElement_T
  * \param *key the key to look up
  *
  * \returns the associated value, or NULL if the key is not found
  */
-void *smf_lookup_element_get(LookupElement_T *e, char *key) {
+void *smf_lookup_element_get(SMFLookupElement_T *e, char *key) {
 	if (e == NULL)
 		return NULL;
 	return g_hash_table_lookup((GHashTable *)e,key);

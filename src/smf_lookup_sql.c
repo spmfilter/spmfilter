@@ -33,6 +33,7 @@
 #include "smf_settings.h"
 #include "smf_trace.h"
 #include "smf_lookup.h"
+#include "smf_lookup_private.h"
 
 #define THIS_MODULE "sql_lookup"
 
@@ -47,7 +48,7 @@ int sql_start_pool(char *dsn);
 int active_server = -1;
 
 /** Disconnect from sql server and destroy connection pool */
-void sql_disconnect(void) {
+void smf_lookup_sql_disconnect(void) {
 	TRACE(TRACE_LOOKUP,"closing database connection");
 	ConnectionPool_stop(sql_pool);
 	ConnectionPool_free(&sql_pool);
@@ -202,7 +203,7 @@ static void sql_fallback_handler(const char *error) {
 	
 	TRACE(TRACE_WARNING,"trying sql failover connection to [%s]", settings->sql_host[active_server]);
 	dsn = sql_get_dsn(settings->sql_host[active_server]);
-	sql_disconnect();
+	smf_lookup_sql_disconnect();
 	sql_start_pool(dsn);
 }
 
@@ -210,7 +211,7 @@ static void sql_fallback_handler(const char *error) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int sql_connect(void) {
+int smf_lookup_sql_connect(void) {
 	
 	SMFSettings_T *settings = smf_settings_get();
 	char *dsn = NULL;
@@ -262,10 +263,10 @@ Connection_T sql_con_get(void) {
 }
 
 
-LookupResult_T *sql_query(const char *q, ...) {
+SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
 	Connection_T c; 
 	ResultSet_T r;
-	LookupResult_T *result = lookup_result_new();
+	SMFLookupResult_T *result = smf_lookup_result_new();
 	va_list ap, cp;
 	char *query;
 	int i;
@@ -286,7 +287,7 @@ LookupResult_T *sql_query(const char *q, ...) {
 	END_TRY;
 
 	while (ResultSet_next(r)) {
-		LookupElement_T *e = lookup_element_new();
+		SMFLookupElement_T *e = smf_lookup_element_new();
 			
 		for (i=1; i <= ResultSet_getColumnCount(r); i++) {
 			int blob_size = 0;
@@ -296,9 +297,9 @@ LookupResult_T *sql_query(const char *q, ...) {
 			int col_size = ResultSet_getColumnSize(r,i);
 			void *data = malloc(col_size);
 			memcpy(data,ResultSet_getBlob(r,i,&blob_size),col_size);
-			lookup_element_add(e,col_name,data);
+			smf_lookup_element_add(e,col_name,data);
 		}
-		lookup_result_add(result,e);
+		smf_lookup_result_add(result,e);
 	}
 	TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->len);
 	return result;
@@ -311,14 +312,14 @@ LookupResult_T *sql_query(const char *q, ...) {
  *
  * \return 1 if the user exists, otherwise 0
  */
-int sql_user_exists(char *addr) {
+int smf_lookup_sql_user_exists(char *addr) {
 	Connection_T c = NULL;
 	ResultSet_T r = NULL;
 	char *query = NULL;
 	SMFSettings_T *settings = smf_settings_get();
 
 	c = sql_con_get();
-	if (expand_query(settings->sql_user_query, addr, &query) <= 0) {
+	if (smf_lookup_expand_query(settings->sql_user_query, addr, &query) <= 0) {
 		TRACE(TRACE_ERR,"failed to expand sql query");
 		return -1;
 	}
