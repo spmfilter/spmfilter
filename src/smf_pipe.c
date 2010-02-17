@@ -37,6 +37,17 @@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
+/* copy headers from message object to own GMimeHeaderList */
+static void copy_header_func(const char *name, const char *value, gpointer data) {
+#ifdef HAVE_GMIME24
+	g_mime_header_list_append((GMimeHeaderList *)data,
+			g_strdup(name),g_strdup(value));
+#else
+	g_mime_header_add((GMimeHeader *)data,
+			g_strdup(name),g_strdup(value));
+#endif
+}
+
 /* error handler used when building module queue
  * return 1 if processing should continue, else 0
  */
@@ -110,65 +121,66 @@ int load_modules(void) {
 }
 
 int load(void) {
-	GIOChannel *in, *out;
-	GMimeStream *gmin;
-	GMimeMessage *message;
+	GIOChannel *in;
+	GMimeStream *out;
+	GMimeObject *message;
 	GMimeParser *parser;
 	gchar *line;
 	gsize length;
+	int i, fd;
 	GError *error = NULL;
+#ifdef HAVE_GMIME24
+	GMimeHeaderList *headers;
+#else
+	GMimeHeader *headers;
+#endif
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	SMFSession_T *session = smf_session_get();
-	int i;
 	
-
 	smf_core_gen_queue_file(&session->queue_file);
 
 	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->queue_file);
 		
 	/* start receiving data */
 	in = g_io_channel_unix_new(STDIN_FILENO);
-	if ((out = g_io_channel_new_file(session->queue_file,"w", &error)) == NULL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
+	g_io_channel_set_encoding(in, NULL, NULL);
+
+	if ((fd = open(session->queue_file,O_RDWR|O_CREAT)) == -1) {
+		TRACE(TRACE_ERR,"failed writing queue file");
 		return -1;
 	}
-	g_io_channel_set_encoding(in, NULL, NULL);
-	g_io_channel_set_encoding(out, NULL, NULL);
-	
-	/* initialize GMime */
-	g_mime_init (0);
-	gmin = g_mime_stream_mem_new();
+
+	out = g_mime_stream_fs_new(fd);
+
 
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
+		if (g_mime_stream_write(out,line,length) == -1) {
 			TRACE(TRACE_ERR,"%s",error->message);
-			g_io_channel_shutdown(out,TRUE,NULL);
 			g_io_channel_unref(in);
-			g_io_channel_unref(out);
+			g_object_unref(out);
+			close(fd);
 			g_free(line);
 			remove(session->queue_file);
 			g_error_free(error);
 			return -1;
 		}
 		session->msgbodysize+=strlen(line);
-		g_mime_stream_write_string(gmin,line);
 		g_free(line);
 	}
 	
-	g_io_channel_shutdown(out,TRUE,NULL);
 	g_io_channel_unref(in);
-	g_io_channel_unref(out);
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
 	session->num_rcpts = 0;
 	
 	/* parse email data and fill session struct*/
-	g_mime_stream_seek(gmin,0,0);
-	parser = g_mime_parser_new_with_stream (gmin);
-	g_object_unref(gmin);
-	message = g_mime_parser_construct_message (parser);
+	/* extract message headers */
+	g_mime_stream_flush(out);
+	g_mime_stream_seek(out,0,0);
+	parser = g_mime_parser_new_with_stream(out);
+	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
+	
 	session->from = g_slice_new(SMFEmailAddress_T);
 	session->from->addr = smf_core_get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
 
@@ -192,6 +204,10 @@ int load(void) {
 		TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->rcpts[session->num_rcpts]->addr,session->rcpts[session->num_rcpts]->is_local);
 		session->num_rcpts++;
 	}
+
+	headers = (void *)g_mime_object_get_header_list(message);
+	session->headers = (void *)g_mime_header_list_new();
+	g_mime_header_list_foreach(headers, copy_header_func, session->headers);
 #else
 	ia = (InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_TO);
 	internet_address_list_concat(ia,
@@ -209,9 +225,22 @@ int load(void) {
 		session->num_rcpts++;
 		ia = internet_address_list_next(ia);
 	}
-#endif
 
-	g_mime_shutdown();
+	headers = (void *)g_mime_object_get_headers(message);
+	session->headers = (void *)g_mime_header_new();
+	g_mime_header_foreach(headers, copy_header_func, session->headers);
+#endif
+	
+	session->is_dirty = 0;
+
+	g_object_unref(parser);
+	g_object_unref(message);
+	g_object_unref(out);
+	g_io_channel_unref(in);
+
+	close(fd);
+
+
 	if (load_modules() != 0) {
 		remove(session->queue_file);
 		smf_session_free();
