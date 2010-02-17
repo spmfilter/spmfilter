@@ -27,6 +27,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "spmfilter_config.h"
 #include "smf_trace.h"
 #include "smf_settings.h"
 #include "smf_modules.h"
@@ -52,6 +53,17 @@
 #define ST_RCPT 4
 #define ST_DATA 5
 #define ST_QUIT 6
+
+/* copy headers from message object to own GMimeHeaderList */
+static void copy_header_func(const char *name, const char *value, gpointer data) {
+#ifdef HAVE_GMIME24
+	g_mime_header_list_append((GMimeHeaderList *)data,
+			g_strdup(name),g_strdup(value));
+#else
+	g_mime_header_add((GMimeHeader *)data,
+			g_strdup(name),g_strdup(value));
+#endif
+}
 
 /* dot-stuffing */
 void stuffing(char chain[]) {
@@ -213,16 +225,18 @@ int load_modules(void) {
 }
 
 void process_data(void) {
-	GIOChannel *in;//, *out;
+	GIOChannel *in;
 	GMimeStream *out;
 	gchar *line;
 	gsize length;
-	GError *error = NULL;
 	int fd;
-//	GString *header = g_string_new(0);
-//	gboolean header_done = FALSE;
 	GMimeParser *parser;
 	GMimeObject *message;
+#ifdef HAVE_GMIME24
+	GMimeHeaderList *headers;
+#else
+	GMimeHeader *headers;
+#endif
 	SMFSession_T *session = smf_session_get();
 
 	smf_core_gen_queue_file(&session->queue_file);
@@ -238,6 +252,8 @@ void process_data(void) {
 	
 	/* start receiving data */
 	in = g_io_channel_unix_new(STDIN_FILENO);
+	g_io_channel_set_encoding(in, NULL, NULL);
+
 	if ((fd = open(session->queue_file,O_RDWR|O_CREAT)) == -1) {
 		smtpd_string_reply(CODE_552);
 		TRACE(TRACE_ERR,"failed writing queue file");
@@ -245,62 +261,50 @@ void process_data(void) {
 	}
 
 	out = g_mime_stream_fs_new(fd);
-//	if ((out = g_io_channel_new_file(session->queue_file,"w", &error)) == NULL) {
-//		smtpd_string_reply("552 %s\r\n",error->message);
-//		g_error_free(error);
-//		return;
-//	}
-
-	g_io_channel_set_encoding(in, NULL, NULL);
-//	g_io_channel_set_encoding(out, NULL, NULL);
 
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
 		
-		/* check if message body begins */
-	//	if ((g_ascii_strcasecmp(line,"\r\n")==0) || (g_ascii_strcasecmp(line,"\n")==0)) {
-	//		header_done = TRUE;
-	//	} else {
-	//		if (!header_done)
-	//			header = g_string_append(header,g_strdup(line));
-	//	}
-
-	//	if (g_io_channel_write_chars(out, line, -1, &length, &error) != G_IO_STATUS_NORMAL) {
-		if (g_mime_stream_write(out,line,strlen(line)) == -1) {
+		if (g_mime_stream_write(out,line,length) == -1) {
 			smtpd_string_reply(CODE_451);
-		//	g_io_channel_unref(out);
 			g_object_unref(out);
 			close(fd);
-		//	g_io_channel_shutdown(out,TRUE,NULL);
 			g_io_channel_unref(in);
 			g_free(line);
 			if (g_remove(session->queue_file) != 0)
 				TRACE(TRACE_ERR,"failed to remove queue file");
-	//		g_error_free(error);
 			return;
 		}
-		session->msgbodysize+=strlen(line);
+		session->msgbodysize+=length;
 		g_free(line);
 	}
+
+	/* extract message headers */
 	g_mime_stream_flush(out);
+	g_mime_stream_seek(out,0,0);
 	parser = g_mime_parser_new_with_stream(out);
 	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
-	session->headers = (void *)g_mime_object_get_header_list(message);
+	
+#ifdef HAVE_GMIME24
+	headers = (void *)g_mime_object_get_header_list(message);
+	session->headers = (void *)g_mime_header_list_new();
+	g_mime_header_list_foreach(headers, copy_header_func, session->headers);
+#else
+	headers = (void *)g_mime_object_get_headers(message);
+	session->headers = (void *)g_mime_header_new();
+	g_mime_header_foreach(headers, copy_header_func, session->headers);
+#endif
+	
 	session->is_dirty = 0;
+
 	g_object_unref(parser);
 	g_object_unref(message);
-//	g_io_channel_shutdown(out,TRUE,NULL);
-//	g_io_channel_unref(out);
 	g_object_unref(out);
 	g_io_channel_unref(in);
 
 	close(fd);
 
-/*	session->header = g_slice_new(Header_T);
-	session->header->is_dirty = 0;
-	session->header->data = g_strdup(header->str);
-	g_string_free(header,TRUE);*/
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
 
 	load_modules();
