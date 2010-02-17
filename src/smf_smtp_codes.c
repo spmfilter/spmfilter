@@ -29,7 +29,7 @@ GHashTable *smtp_codes = NULL;
  * \param code smtp code
  * \param msg smtp return message
  */
-void smtp_code_insert(int code, char *msg) {
+void smf_smtp_codes_insert(int code, char *msg) {
 	if (smtp_codes == NULL)
 		smtp_codes = (void *)g_hash_table_new((GHashFunc)g_int_hash,(GEqualFunc)g_int_equal);
 	g_hash_table_insert(smtp_codes,&code, msg);
@@ -41,11 +41,11 @@ void smtp_code_insert(int code, char *msg) {
  *
  * \returns smtp return message for given code
  */
-char *smtp_code_get(int code) {
+char *smf_smtp_codes_get(int code) {
 	return g_hash_table_lookup(smtp_codes,&code);
 }
 
 /** Free smtp codes */
-void smtp_code_free(void) {
+void smf_smtp_codes_free(void) {
 	g_hash_table_destroy(smtp_codes);
 }

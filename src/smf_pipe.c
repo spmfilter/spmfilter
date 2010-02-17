@@ -169,7 +169,7 @@ int load(void) {
 	parser = g_mime_parser_new_with_stream (gmin);
 	g_object_unref(gmin);
 	message = g_mime_parser_construct_message (parser);
-	session->from = g_slice_new(EmailAddress_T);
+	session->from = g_slice_new(SMFEmailAddress_T);
 	session->from->addr = smf_core_get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
 
 	TRACE(TRACE_DEBUG,"session->from: %s",session->from->addr);

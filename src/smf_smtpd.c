@@ -96,7 +96,7 @@ void smtpd_code_reply(int code) {
 	char *code_msg;
 	/* we don't need to free code_msg, will be
 	 * freed by smtp_code_free() */
-	code_msg = smtp_code_get(code);
+	code_msg = smf_smtp_codes_get(code);
 	if (code_msg!=NULL) {
 		fprintf(stdout,"%d %s\r\n",code,code_msg);
 	} else {
@@ -407,14 +407,14 @@ int load(void) {
 				/* we already got the mail command */
 				smtpd_string_reply("503 Error: nested MAIL command\r\n");
 			} else {
-				session->from = g_slice_new(EmailAddress_T);
+				session->from = g_slice_new(SMFEmailAddress_T);
 				session->from->addr = smf_core_get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (session->from->addr != NULL){
 					TRACE(TRACE_DEBUG,"session->from: %s",session->from->addr);
 					if (strcmp(session->from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
-						g_slice_free(EmailAddress_T,session->from);
+						g_slice_free(SMFEmailAddress_T,session->from);
 						session->from = NULL;
 					} else {
 						if (strcmp(settings->backend,"undef") != 0) {
@@ -426,7 +426,7 @@ int load(void) {
 					}
 				} else {
 					smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
-					g_slice_free(EmailAddress_T,session->from);
+					g_slice_free(SMFEmailAddress_T,session->from);
 					session->from = NULL;
 				}
 			}
@@ -437,13 +437,13 @@ int load(void) {
 			} else {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 				session->rcpts = g_realloc(session->rcpts,sizeof(session->rcpts[session->num_rcpts]));
-				session->rcpts[session->num_rcpts] = g_slice_new(EmailAddress_T);
+				session->rcpts[session->num_rcpts] = g_slice_new(SMFEmailAddress_T);
 				session->rcpts[session->num_rcpts]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (session->rcpts[session->num_rcpts] != NULL) {
 					if (strcmp(session->rcpts[session->num_rcpts]->addr,"") == 0) {
 						/* empty rcpt to? */
 						smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
-						g_slice_free(EmailAddress_T,session->rcpts[session->num_rcpts]);
+						g_slice_free(SMFEmailAddress_T,session->rcpts[session->num_rcpts]);
 					} else {
 						TRACE(TRACE_DEBUG,"session->rcpts[%d]: %s",session->num_rcpts, session->rcpts[session->num_rcpts]->addr);
 						if (strcmp(settings->backend,"undef") != 0) {
@@ -458,7 +458,7 @@ int load(void) {
 					}
 				} else {
 					smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
-					g_slice_free(EmailAddress_T,session->rcpts[session->num_rcpts]);
+					g_slice_free(SMFEmailAddress_T,session->rcpts[session->num_rcpts]);
 				}
 			}
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
