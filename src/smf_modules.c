@@ -238,21 +238,21 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	SMFSettings_T *settings = smf_settings_get();
 
 	msg = g_slice_new(SMFMessage_T);
-	msg->from = g_strdup(session->from->addr);
+	msg->from = g_strdup(session->envelope_from->addr);
 
 	/* allocate memory for recipients */
-	msg->rcpts = g_malloc(sizeof(msg->rcpts[session->num_rcpts]));
+	msg->rcpts = g_malloc(sizeof(msg->rcpts[session->envelope_to_num]));
 	if(msg->rcpts == NULL) {
 		TRACE(TRACE_ERR, "failed to allocated memory for recipients!");
 		return(-1);
 	}
 
 	/* copy recipients in place */
-	for (i = 0; i < session->num_rcpts; i++) {
-		msg->rcpts[i] = g_strdup(session->rcpts[i]->addr);
+	for (i = 0; i < session->envelope_to_num; i++) {
+		msg->rcpts[i] = g_strdup(session->envelope_to[i]->addr);
 	}
 
-	msg->num_rcpts = session->num_rcpts;
+	msg->num_rcpts = session->envelope_to_num;
 	msg->message_file = g_strdup(session->queue_file);
 	msg->nexthop = g_strup(settings->nexthop);
 
@@ -264,7 +264,7 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	}
 
 	/* free all allocated recipient resources */
-	for (i = 0; i < session->num_rcpts; i++) {
+	for (i = 0; i < session->envelope_to_num; i++) {
 		g_free(msg->rcpts[i]);
 	}
 

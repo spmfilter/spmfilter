@@ -33,9 +33,9 @@ SMFSession_T *smf_session_get(void) {
 		TRACE(TRACE_DEBUG,"initialize session data");
 		session = g_slice_new(SMFSession_T);
 		session->helo = NULL;
-		session->from = NULL;
+		session->envelope_from = NULL;
 		session->queue_file = NULL;
-		session->rcpts = NULL;
+		session->envelope_to = NULL;
 		session->xforward_addr = NULL;
 	}
 	
@@ -56,14 +56,14 @@ void smf_session_free(void) {
 //	g_free(session->header->data);
 //	g_slice_free(Header_T,session->header);
 
-	if (session->from != NULL)
-		g_free(session->from->addr);
-	g_slice_free(SMFEmailAddress_T,session->from);
-	for (i = 0; i < session->num_rcpts; i++) {
-		g_free(session->rcpts[i]->addr);
-		g_slice_free(SMFEmailAddress_T,session->rcpts[i]);
+	if (session->envelope_from != NULL)
+		g_free(session->envelope_from->addr);
+	g_slice_free(SMFEmailAddress_T,session->envelope_from);
+	for (i = 0; i < session->envelope_to_num; i++) {
+		g_free(session->envelope_to[i]->addr);
+		g_slice_free(SMFEmailAddress_T,session->envelope_to[i]);
 	}
-	g_free(session->rcpts);
+	g_free(session->envelope_to);
 	g_slice_free(SMFSession_T,session);
 	session = NULL;
 }
