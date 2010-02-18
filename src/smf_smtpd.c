@@ -35,6 +35,7 @@
 #include "smf_smtp_codes.h"
 #include "smf_core.h"
 #include "smf_lookup.h"
+#include "smf_message_private.h"
 
 #define THIS_MODULE "smtpd"
 
@@ -294,6 +295,8 @@ void process_data(void) {
 	
 	session->is_dirty = 0;
 
+	smf_message_extract_addresses(message);
+
 	g_object_unref(parser);
 	g_object_unref(message);
 	g_object_unref(out);
@@ -322,7 +325,7 @@ int load(void) {
 	gethostname(hostname,256);
 
 	smtpd_string_reply("220 %s spmfilter\r\n",hostname);
-	session->num_rcpts = 0;
+	session->envelope_to_num = 0;
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	g_io_channel_set_encoding(in, NULL, NULL);
 	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
@@ -407,27 +410,27 @@ int load(void) {
 				/* we already got the mail command */
 				smtpd_string_reply("503 Error: nested MAIL command\r\n");
 			} else {
-				session->from = g_slice_new(SMFEmailAddress_T);
-				session->from->addr = smf_core_get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
-				if (session->from->addr != NULL){
-					TRACE(TRACE_DEBUG,"session->from: %s",session->from->addr);
-					if (strcmp(session->from->addr,"") == 0) {
+				session->envelope_from = g_slice_new(SMFEmailAddress_T);
+				session->envelope_from->addr = smf_core_get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+				if (session->envelope_from->addr != NULL){
+					TRACE(TRACE_DEBUG,"session->envelope_from: %s",session->envelope_from->addr);
+					if (strcmp(session->envelope_from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
-						g_slice_free(SMFEmailAddress_T,session->from);
-						session->from = NULL;
+						g_slice_free(SMFEmailAddress_T,session->envelope_from);
+						session->envelope_from = NULL;
 					} else {
 						if (strcmp(settings->backend,"undef") != 0) {
-								session->from->is_local = smf_lookup_check_user(session->from->addr);
-								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->from->addr,session->from->is_local);
+								session->envelope_from->is_local = smf_lookup_check_user(session->envelope_from->addr);
+								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->envelope_from->addr,session->envelope_from->is_local);
 						}
 						smtpd_code_reply(250);
 						state = ST_MAIL;
 					}
 				} else {
 					smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
-					g_slice_free(SMFEmailAddress_T,session->from);
-					session->from = NULL;
+					g_slice_free(SMFEmailAddress_T,session->envelope_from);
+					session->envelope_from = NULL;
 				}
 			}
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
@@ -436,29 +439,29 @@ int load(void) {
 				smtpd_string_reply("503 Error: need MAIL command\r\n");
 			} else {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
-				session->rcpts = g_realloc(session->rcpts,sizeof(session->rcpts[session->num_rcpts]));
-				session->rcpts[session->num_rcpts] = g_slice_new(SMFEmailAddress_T);
-				session->rcpts[session->num_rcpts]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
-				if (session->rcpts[session->num_rcpts] != NULL) {
-					if (strcmp(session->rcpts[session->num_rcpts]->addr,"") == 0) {
+				session->envelope_to = g_realloc(session->envelope_to,sizeof(session->envelope_to[session->envelope_to_num]));
+				session->envelope_to[session->envelope_to_num] = g_slice_new(SMFEmailAddress_T);
+				session->envelope_to[session->envelope_to_num]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+				if (session->envelope_to[session->envelope_to_num] != NULL) {
+					if (strcmp(session->envelope_to[session->envelope_to_num]->addr,"") == 0) {
 						/* empty rcpt to? */
 						smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
-						g_slice_free(SMFEmailAddress_T,session->rcpts[session->num_rcpts]);
+						g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
 					} else {
-						TRACE(TRACE_DEBUG,"session->rcpts[%d]: %s",session->num_rcpts, session->rcpts[session->num_rcpts]->addr);
+						TRACE(TRACE_DEBUG,"session->envelope_to[%d]: %s",session->envelope_to_num, session->envelope_to[session->envelope_to_num]->addr);
 						if (strcmp(settings->backend,"undef") != 0) {
-							session->rcpts[session->num_rcpts]->is_local = smf_lookup_check_user(session->rcpts[session->num_rcpts]->addr);
+							session->envelope_to[session->envelope_to_num]->is_local = smf_lookup_check_user(session->envelope_to[session->envelope_to_num]->addr);
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", 
-									session->rcpts[session->num_rcpts]->addr,
-									session->rcpts[session->num_rcpts]->is_local);
+									session->envelope_to[session->envelope_to_num]->addr,
+									session->envelope_to[session->envelope_to_num]->is_local);
 						}
 						smtpd_code_reply(250);
-						session->num_rcpts++;
+						session->envelope_to_num++;
 						state = ST_RCPT;
 					}
 				} else {
 					smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
-					g_slice_free(SMFEmailAddress_T,session->rcpts[session->num_rcpts]);
+					g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
 				}
 			}
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {

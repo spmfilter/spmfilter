@@ -32,10 +32,9 @@
 #include "smf_session.h"
 #include "smf_platform.h"
 #include "smf_lookup.h"
+#include "smf_message_private.h"
 
 #define THIS_MODULE "pipe"
-
-#define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
 /* copy headers from message object to own GMimeHeaderList */
 static void copy_header_func(const char *name, const char *value, gpointer data) {
@@ -127,15 +126,13 @@ int load(void) {
 	GMimeParser *parser;
 	gchar *line;
 	gsize length;
-	int i, fd;
+	int fd;
 	GError *error = NULL;
 #ifdef HAVE_GMIME24
 	GMimeHeaderList *headers;
 #else
 	GMimeHeader *headers;
 #endif
-	InternetAddressList *ia;
-	InternetAddress *addr;
 	SMFSession_T *session = smf_session_get();
 	
 	smf_core_gen_queue_file(&session->queue_file);
@@ -172,7 +169,7 @@ int load(void) {
 	g_io_channel_unref(in);
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
-	session->num_rcpts = 0;
+	session->envelope_to_num = 0;
 	
 	/* parse email data and fill session struct*/
 	/* extract message headers */
@@ -181,56 +178,18 @@ int load(void) {
 	parser = g_mime_parser_new_with_stream(out);
 	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
 	
-	session->from = g_slice_new(SMFEmailAddress_T);
-	session->from->addr = smf_core_get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(message),1);
+	smf_message_extract_addresses(message);
 
-	TRACE(TRACE_DEBUG,"session->from: %s",session->from->addr);
-	
-	session->from->is_local = smf_lookup_check_user(session->from->addr);
-	TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->from->addr,session->from->is_local);
-	
-
-	
 #ifdef HAVE_GMIME24
-	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
-	ia = g_mime_message_get_all_recipients(message);
-	for (i=0; i < internet_address_list_length(ia); i++) {
-		addr = internet_address_list_get_address(ia,i);
-		session->rcpts = malloc(sizeof(session->rcpts[session->num_rcpts]));
-		session->rcpts[session->num_rcpts] = malloc(sizeof(*session->rcpts[session->num_rcpts]));
-		session->rcpts[session->num_rcpts]->addr = smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-		TRACE(TRACE_DEBUG,"session->rcpts[%d]: %s",session->num_rcpts, session->rcpts[session->num_rcpts]->addr);
-		session->rcpts[session->num_rcpts]->is_local = smf_lookup_check_user(session->rcpts[session->num_rcpts]->addr);
-		TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->rcpts[session->num_rcpts]->addr,session->rcpts[session->num_rcpts]->is_local);
-		session->num_rcpts++;
-	}
-
 	headers = (void *)g_mime_object_get_header_list(message);
 	session->headers = (void *)g_mime_header_list_new();
 	g_mime_header_list_foreach(headers, copy_header_func, session->headers);
 #else
-	ia = (InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_TO);
-	internet_address_list_concat(ia,
-		(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_CC));
-	internet_address_list_concat(ia,
-		(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_BCC)); 
-	while(ia) {
-		addr = internet_address_list_get_address(ia);
-		session->rcpts = malloc(sizeof(session->rcpts[session->num_rcpts]));
-		session->rcpts[session->num_rcpts] = malloc(sizeof(*session->rcpts[session->num_rcpts]));
-		session->rcpts[session->num_rcpts]->addr = smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-		TRACE(TRACE_DEBUG,"session->rcpts[%d]: %s",session->num_rcpts, session->rcpts[session->num_rcpts]->addr);
-		session->rcpts[session->num_rcpts]->is_local = smf_lookup_check_user(session->rcpts[session->num_rcpts]->addr);
-		TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->rcpts[session->num_rcpts]->addr,session->rcpts[session->num_rcpts]->is_local);
-		session->num_rcpts++;
-		ia = internet_address_list_next(ia);
-	}
-
 	headers = (void *)g_mime_object_get_headers(message);
 	session->headers = (void *)g_mime_header_new();
 	g_mime_header_foreach(headers, copy_header_func, session->headers);
 #endif
-	
+
 	session->is_dirty = 0;
 
 	g_object_unref(parser);

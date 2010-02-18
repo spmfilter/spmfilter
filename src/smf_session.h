@@ -28,12 +28,17 @@ typedef struct {
 	/* hello we received */
 	char *helo;
 
-	/* recipients */
-	SMFEmailAddress_T **rcpts;
-	int num_rcpts;
+	/* envelope recipients */
+	SMFEmailAddress_T **envelope_to;
+	int envelope_to_num;
 
-	/* sender */
-	SMFEmailAddress_T *from;
+	/* envelope sender */
+	SMFEmailAddress_T *envelope_from;
+
+	SMFEmailAddress_T **message_to;
+	int message_to_num;
+
+	SMFEmailAddress_T *message_from;
 
 	/* size of message body */
 	size_t msgbodysize;
