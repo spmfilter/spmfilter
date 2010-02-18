@@ -52,6 +52,9 @@ int smf_message_copy_to_disk(char *path) {
 	GError *error = NULL;
 	gboolean header_done = FALSE;
 
+	if (path == NULL)
+		return -1;
+	
 	if ((fd = open(path,O_WRONLY|O_CREAT,S_IRWXU)) == -1) {
 		TRACE(TRACE_ERR,"failed opening destination file");
 		return -1;
@@ -278,50 +281,54 @@ void smf_message_extract_addresses(GMimeObject *message) {
 #ifdef HAVE_GMIME24
 	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
 	ia = g_mime_message_get_all_recipients(GMIME_MESSAGE(message));
-	for (i=0; i < internet_address_list_length(ia); i++) {
-		addr = internet_address_list_get_address(ia,i);
-		session->message_to[session->message_to_num] = malloc(
-				sizeof(*session->message_to[session->message_to_num]));
-		session->message_to[session->message_to_num]->addr =
-				smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-		TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
-				session->message_to_num,
-				session->message_to[session->message_to_num]->addr);
-	
-		if (strcmp(settings->backend,"undef") != 0) {
-			session->message_to[session->message_to_num]->is_local =
-					smf_lookup_check_user(session->message_to[session->message_to_num]->addr);
-			TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-					session->message_to[session->message_to_num]->addr,
-					session->message_to[session->message_to_num]->is_local);
+	if (ia != NULL) {
+		for (i=0; i < internet_address_list_length(ia); i++) {
+			addr = internet_address_list_get_address(ia,i);
+			session->message_to[session->message_to_num] = malloc(
+					sizeof(*session->message_to[session->message_to_num]));
+			session->message_to[session->message_to_num]->addr =
+					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
+			TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
+					session->message_to_num,
+					session->message_to[session->message_to_num]->addr);
+
+			if (strcmp(settings->backend,"undef") != 0) {
+				session->message_to[session->message_to_num]->is_local =
+						smf_lookup_check_user(session->message_to[session->message_to_num]->addr);
+				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
+						session->message_to[session->message_to_num]->addr,
+						session->message_to[session->message_to_num]->is_local);
+			}
+			session->message_to_num++;
 		}
-		session->message_to_num++;
 	}
 #else
 	ia = (InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_TO);
-	internet_address_list_concat(ia,
-		(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_CC));
-	internet_address_list_concat(ia,
-		(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_BCC));
-	while(ia) {
-		addr = internet_address_list_get_address(ia);
-		session->message_to = malloc(sizeof(session->message_to[session->message_to_num]));
-		session->message_to[session->message_to_num] = malloc(sizeof(*session->message_to[session->message_to_num]));
-		session->message_to[session->message_to_num]->addr =
-				smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-		TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
-				session->message_to_num,
-				session->message_to[session->message_to_num]->addr);
+	if (ia != NULL) {
+		internet_address_list_concat(ia,
+			(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_CC));
+		internet_address_list_concat(ia,
+			(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_BCC));
+		while(ia) {
+			addr = internet_address_list_get_address(ia);
+			session->message_to = malloc(sizeof(session->message_to[session->message_to_num]));
+			session->message_to[session->message_to_num] = malloc(sizeof(*session->message_to[session->message_to_num]));
+			session->message_to[session->message_to_num]->addr =
+					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
+			TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
+					session->message_to_num,
+					session->message_to[session->message_to_num]->addr);
 
-		if (strcmp(settings->backend,"undef") != 0) {
-			session->message_to[session->message_to_num]->is_local =
-					smf_lookup_check_user(session->message_to[session->message_to_num]->addr);
-			TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-					session->message_to[session->message_to_num]->addr,
-					session->message_to[session->message_to_num]->is_local);
+			if (strcmp(settings->backend,"undef") != 0) {
+				session->message_to[session->message_to_num]->is_local =
+						smf_lookup_check_user(session->message_to[session->message_to_num]->addr);
+				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
+						session->message_to[session->message_to_num]->addr,
+						session->message_to[session->message_to_num]->is_local);
+			}
+			session->message_to_num++;
+			ia = internet_address_list_next(ia);
 		}
-		session->message_to_num++;
-		ia = internet_address_list_next(ia);
 	}
 #endif
 

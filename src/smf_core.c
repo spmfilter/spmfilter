@@ -47,6 +47,8 @@
  * \returns extracted string
  */
 char *smf_core_get_substring(const char *pattern, const char *haystack, int pos) {
+	if (haystack == NULL)
+		return NULL;
 #if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
 	GMatchInfo *match_info = NULL;
