@@ -318,6 +318,9 @@ int smf_lookup_sql_user_exists(char *addr) {
 	char *query = NULL;
 	SMFSettings_T *settings = smf_settings_get();
 
+	if (addr == NULL)
+		return 0;
+
 	c = sql_con_get();
 	if (smf_lookup_expand_query(settings->sql_user_query, addr, &query) <= 0) {
 		TRACE(TRACE_ERR,"failed to expand sql query");
