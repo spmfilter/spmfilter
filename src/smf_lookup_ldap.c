@@ -266,6 +266,9 @@ int smf_lookup_ldap_user_exists(char *addr) {
 	LDAPMessage *msg = NULL;
 	SMFSettings_T *settings = smf_settings_get();
 
+	if (addr == NULL)
+		return 0;
+
 	if (smf_lookup_expand_query(settings->ldap_user_query, addr, &query) <= 0) {
 		TRACE(TRACE_ERR,"failed to expand ldap query");
 		return -1;
