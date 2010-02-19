@@ -27,6 +27,7 @@
 #include "smf_settings.h"
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
+#include "smf_core.h"
 
 #define THIS_MODULE "ldap_lookup"
 
@@ -269,7 +270,7 @@ int smf_lookup_ldap_user_exists(char *addr) {
 	if (addr == NULL)
 		return 0;
 
-	if (smf_lookup_expand_query(settings->ldap_user_query, addr, &query) <= 0) {
+	if (smf_core_expand_string(settings->ldap_user_query, addr, &query) <= 0) {
 		TRACE(TRACE_ERR,"failed to expand ldap query");
 		return -1;
 	}

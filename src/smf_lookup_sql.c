@@ -34,6 +34,7 @@
 #include "smf_trace.h"
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
+#include "smf_core.h"
 
 #define THIS_MODULE "sql_lookup"
 
@@ -322,7 +323,7 @@ int smf_lookup_sql_user_exists(char *addr) {
 		return 0;
 
 	c = sql_con_get();
-	if (smf_lookup_expand_query(settings->sql_user_query, addr, &query) <= 0) {
+	if (smf_core_expand_string(settings->sql_user_query, addr, &query) <= 0) {
 		TRACE(TRACE_ERR,"failed to expand sql query");
 		return -1;
 	}
