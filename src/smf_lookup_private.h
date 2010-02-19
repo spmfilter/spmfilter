@@ -18,17 +18,6 @@
 #ifndef _SMF_LOOKUP_PRIVATE_H
 #define	_SMF_LOOKUP_PRIVATE_H
 
-/** expands placeholders in a user querystring
- *
- * \param format format string to use as input
- * \param addr email address to use for replacements
- * \buf pointer to unallocated buffer for expanded format string, needs to
- *      free'd by caller if not required anymore
- *
- * \returns the number of replacements made or -1 in case of error
- */
-int smf_lookup_expand_query(char *format, char *addr, char **buf);
-
 /** Allocates memory for SMFLookupResult_T
  *
  * \returns newly allocated SMFLookupResult_T
