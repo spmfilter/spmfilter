@@ -16,7 +16,7 @@ cmake ../ <configure parameters>
 make
 make install
 
-If cmake has problems finding things, it may help to define these two environment
+If you encounter problems with cmake, it may help to set these two environment
 variables:
 
 CMAKE_INCLUDE_PATH
