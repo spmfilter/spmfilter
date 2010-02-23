@@ -80,7 +80,7 @@ int smf_lookup_disconnect(void) {
  */
 int smf_lookup_check_user(char *addr) {
 	SMFSettings_T *settings = smf_settings_get();
-
+	
 	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
 #ifdef HAVE_ZDB
 		if (settings->sql_user_query != NULL) {

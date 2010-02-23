@@ -23,7 +23,7 @@
 #include <time.h>
 #include <gmime/gmime.h>
 
-#include "smf_config.h"
+#include "spmfilter_config.h"
 #include "smf_settings.h"
 #include "smf_settings_private.h"
 #include "smf_trace.h"
@@ -106,7 +106,6 @@ int main(int argc, char *argv[]) {
 		TRACE(TRACE_ERR,"%s", g_module_error());
 		return -1;
 	}
-
 	/* start processing engine */
 	ret = load_engine();
 
