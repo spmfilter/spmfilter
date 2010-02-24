@@ -239,7 +239,7 @@ int smf_settings_parse_config(void) {
 	settings->nexthop_fail_msg = g_key_file_get_string(keyfile, "smtpd", "nexthop_fail_msg", NULL);
 	if (settings->nexthop_fail_msg == NULL) {
 		/* nexthop_fail_msg not configured, now we use default vaules */
-		settings->nexthop_fail_msg = "Requested action aborted: local error in processing";
+		settings->nexthop_fail_msg = g_strdup("Requested action aborted: local error in processing");
 	}
 
 	TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: %d", settings->nexthop_fail_code);
