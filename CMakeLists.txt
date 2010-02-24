@@ -113,6 +113,10 @@ if(ENABLE_DEBUG)
     add_definitions(-DDEBUG -g -O0 -Wall)
 endif(ENABLE_DEBUG)
 
+IF(APPLE)
+	set(_link_flags "${_link_flags} -flat_namespace")
+ENDIF(APPLE)
+
 # build stuff in src directory
 add_subdirectory(src)
 add_subdirectory(man)

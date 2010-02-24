@@ -40,10 +40,6 @@ if(HAVE_DB4)
 	list(APPEND LIB_SMF_SRC smf_lookup_db4.c)
 endif(HAVE_DB4)
 
-#if(HAVE_PCRE)
-#	list(APPEND COMMON_LIBS ${PCRE_LIBRARIES})
-#endif(HAVE_PCRE)
-
 list(REMOVE_DUPLICATES COMMON_LIBS)
 
 add_library(smf SHARED ${LIB_SMF_SRC})
@@ -68,11 +64,13 @@ set_property(SOURCE spmfilter.pc PROPERTY GENERATED TRUE)
 add_library(smtpd SHARED smf_smtpd.c smf_session.c)
 set_property(TARGET smtpd PROPERTY VERSION ${SMF_VERSION})
 set_property(TARGET smtpd PROPERTY SOVERSION ${SMF_VERSION})
+set_property(TARGET smtpd PROPERTY LINK_FLAGS ${_link_flags})
 target_link_libraries(smtpd ${COMMON_LIBS} smf)
 
 add_library(pipe SHARED smf_pipe.c smf_session.c)
 set_property(TARGET pipe PROPERTY VERSION ${SMF_VERSION})
 set_property(TARGET pipe PROPERTY SOVERSION ${SMF_VERSION})
+set_property(TARGET pipe PROPERTY LINK_FLAGS ${_link_flags})
 target_link_libraries(pipe ${COMMON_LIBS} smf)
 
 add_executable(spmfilter ${SPMFILTER_SRC})
