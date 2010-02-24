@@ -333,3 +333,38 @@ void smf_message_extract_addresses(GMimeObject *message) {
 #endif
 
 }
+
+/** Decodes an rfc2047 encoded 'text' header.
+ *
+ * \param text header text to decode
+ *
+ * \returns a newly allocated UTF-8 string representing the the decoded header.
+ */
+char *smf_message_decode_text(const char *text) {
+	return g_mime_utils_header_decode_text(text);
+}
+
+/** Encodes a 'text' header according to the rules in rfc2047.
+ *
+ * \param text text to encode
+ *
+ * \returns the encoded header. Useful for encoding headers like "Subject".
+ */
+char *smf_message_encode_text(const char *text) {
+	return g_mime_utils_header_encode_text(text);
+}
+
+/** Generates a unique Message-Id.
+ *
+ * \returns a unique string in an addr-spec format suitable for use as a Message-Id.
+ */
+char *smf_message_generate_message_id(void) {
+	char *mid = NULL;
+	char hostname[256];
+
+	gethostname(hostname,256);
+	mid = g_mime_utils_generate_message_id(hostname);
+	
+	return mid;
+}
+

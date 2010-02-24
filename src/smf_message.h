@@ -129,6 +129,27 @@ void smf_message_header_foreach(SMFHeaderForeachFunc func, void *user_data);
  */
 int smf_message_deliver(SMFMessage_T *msg_data);
 
+/** Decodes an rfc2047 encoded 'text' header.
+ *
+ * \param text header text to decode
+ *
+ * \returns a newly allocated UTF-8 string representing the the decoded header.
+ */
+char *smf_message_decode_text(const char *text);
+
+/** Encodes a 'text' header according to the rules in rfc2047.
+ *
+ * \param text text to encode
+ *
+ * \returns the encoded header. Useful for encoding headers like "Subject".
+ */
+char *smf_message_encode_text(const char *text);
+
+/** Generates a unique Message-Id.
+ * 
+ * \returns a unique string in an addr-spec format suitable for use as a Message-Id.
+ */
+char *smf_message_generate_message_id(void);
 
 #endif	/* _SMF_MESSAGE_H */
 

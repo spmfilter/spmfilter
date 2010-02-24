@@ -50,5 +50,6 @@ char *smf_smtp_codes_get(int code) {
 
 /** Free smtp codes */
 void smf_smtp_codes_free(void) {
-	g_hash_table_destroy(smtp_codes);
+	if (smtp_codes != NULL)
+		g_hash_table_destroy(smtp_codes);
 }
