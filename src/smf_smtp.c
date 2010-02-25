@@ -128,7 +128,7 @@ int smf_message_deliver(SMFMessage_T *msg_data) {
 static int authinteract (auth_client_request_t request, char **result, int fields, void *arg) {
 	int i;
 	
-	SMFMessage_T *msg_data = arg;
+	SMFMessage_T *msg_data = (SMFMessage_T *)arg;
 	for (i = 0; i < fields; i++) {
 		if (request[i].flags & AUTH_USER)
 			result[i] = g_strdup(msg_data->auth_user);	
