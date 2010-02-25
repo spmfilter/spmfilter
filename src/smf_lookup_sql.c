@@ -91,7 +91,7 @@ char *sql_get_dsn(char *host) {
 	if (settings->sql_driver != NULL) {
 		g_string_append_printf(sdsn,"%s://",settings->sql_driver);
 	} else {
-		TRACE(TRACE_ERR,"arning, no sql driver defined!");
+		TRACE(TRACE_ERR,"error, no sql driver defined!");
 		return NULL;
 	}
 
