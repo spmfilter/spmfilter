@@ -29,6 +29,7 @@
 #include "smf_trace.h"
 #include "smf_core.h"
 #include "smf_message.h"
+#include "smf_message_private.h"
 #include "smf_modules.h"
 #include "smf_lookup.h"
 #include "smf_settings.h"
@@ -189,13 +190,18 @@ void smf_message_header_prepend(char *header_name, char *header_value) {
  */
 void smf_message_header_append(char *header_name, char *header_value) {
 	SMFSession_T *session = smf_session_get();
-
+	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
+	header->status = HEADER_APPEND;
+	header->name = g_strdup(header_name);
+	header->value = g_strdup(header_value);
+	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
+/*
 #ifdef HAVE_GMIME24
 	g_mime_header_list_append((GMimeHeaderList *)session->headers,header_name,header_value);
 	session->is_dirty = 1;
 #else
 	TRACE(TRACE_WARNING,"function not implemented in GMime < 2.4");
-#endif
+#endif*/
 	return;
 }
 
@@ -363,8 +369,38 @@ char *smf_message_generate_message_id(void) {
 	char hostname[256];
 
 	gethostname(hostname,256);
-	mid = g_mime_utils_generate_message_id(hostname);
+	mid = g_strdup_printf("<%s>",g_mime_utils_generate_message_id(hostname));
 	
 	return mid;
 }
 
+/** Determines the best content encoding for the first len bytes of text.
+ *
+ * \param text text to encode
+ * \param len text length
+ *
+ * \returns a SMFContentEncoding that is determined to be the best encoding
+ *          type for the specified block of text. ("best" in this particular
+ *          case means smallest output size)
+ */
+SMFContentEncoding smf_message_best_encoding(unsigned char *text, size_t len) {
+	return (SMFContentEncoding) g_mime_utils_best_encoding(text,len);
+}
+
+/** Prepend text to subject
+ *
+ * \param text text to prepend
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_message_subject_prepend(char *text) {
+	SMFContentEncoding encoding;
+	char *subject = (char *)smf_message_header_get("subject");
+	if (subject == NULL)
+		return -1;
+//	encoding = smf_message_best_encoding((unsigned char *)subject,strlen(subject));
+
+//	TRACE(TRACE_DEBUG,"ENCODING: %d",encoding);
+	smf_message_header_set("subject",g_strdup_printf("%s %s",text,subject));
+	return 0;
+}
