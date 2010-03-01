@@ -35,6 +35,7 @@
 #include "smf_smtp_codes.h"
 #include "smf_core.h"
 #include "smf_lookup.h"
+#include "smf_message.h"
 #include "smf_message_private.h"
 
 #define THIS_MODULE "smtpd"
@@ -228,7 +229,8 @@ void process_data(void) {
 	gsize length;
 	int fd;
 	GMimeParser *parser;
-	GMimeObject *message;
+	GMimeMessage *message;
+//	char *message_id;
 #ifdef HAVE_GMIME24
 	GMimeHeaderList *headers;
 #else
@@ -248,25 +250,24 @@ void process_data(void) {
 	smtpd_string_reply("354 End data with <CR><LF>.<CR><LF>\r\n");
 	
 	/* start receiving data */
-	in = g_io_channel_unix_new(STDIN_FILENO);
+	in = g_io_channel_unix_new(dup(STDIN_FILENO));
 	g_io_channel_set_encoding(in, NULL, NULL);
+	g_io_channel_set_close_on_unref(in,TRUE);
 
 	if ((fd = open(session->queue_file,O_RDWR|O_CREAT)) == -1) {
-		smtpd_string_reply(CODE_552);
-		TRACE(TRACE_ERR,"failed writing queue file");
 		return;
 	}
 
 	out = g_mime_stream_fs_new(fd);
-
+	
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
 		
 		if (g_mime_stream_write(out,line,length) == -1) {
 			smtpd_string_reply(CODE_451);
+			g_mime_stream_close(out);
 			g_object_unref(out);
-			close(fd);
 			g_io_channel_unref(in);
 			g_free(line);
 			if (g_remove(session->queue_file) != 0)
@@ -277,39 +278,61 @@ void process_data(void) {
 		g_free(line);
 	}
 
+	g_io_channel_unref(in);
+
 	/* extract message headers */
 	g_mime_stream_flush(out);
 	g_mime_stream_seek(out,0,0);
+
 	parser = g_mime_parser_new_with_stream(out);
-	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
-	
+	message = g_mime_parser_construct_message(parser);
+	session->is_dirty = 0;
 #ifdef HAVE_GMIME24
-	headers = (void *)g_mime_object_get_header_list(message);
+	headers = g_mime_object_get_header_list(GMIME_OBJECT(message));
 	session->headers = (void *)g_mime_header_list_new();
-	g_mime_header_list_foreach(headers, copy_header_func, session->headers);
+	g_mime_header_list_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->headers);
 #else
 	headers = (void *)g_mime_object_get_headers(message);
 	session->headers = (void *)g_mime_header_new();
 	g_mime_header_foreach(headers, copy_header_func, session->headers);
 #endif
 	
-	session->is_dirty = 0;
-
-	smf_message_extract_addresses(message);
-
+	smf_message_extract_addresses(GMIME_OBJECT(message));
 	g_object_unref(parser);
 	g_object_unref(message);
+	g_mime_stream_close(out);
 	g_object_unref(out);
-	g_io_channel_unref(in);
-
 	close(fd);
 
+/*
+	if (session->message_from->addr == NULL) {
+		smf_message_header_append("From",g_strdup(session->envelope_from->addr));
+		TRACE(TRACE_DEBUG,"adding [from] header to message");
+		session->is_dirty = 1;
+	}
+
+	if (session->message_to_num == 0) {
+		smf_message_header_append("To",g_strdup("undisclosed-recipients:;"));
+		TRACE(TRACE_DEBUG,"adding [to] header to message");
+		session->is_dirty = 1;
+	}
+
+
+	message_id = (char *)smf_message_header_get("message-id");
+
+	if (message_id == NULL) {
+		message_id = smf_message_generate_message_id();
+		TRACE(TRACE_DEBUG,"no message id found, adding [%s]",message_id);
+		smf_message_header_append("Message-ID",message_id);
+		session->is_dirty = 1;
+	}
+*/
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
 
 	load_modules();
 	
-	if (g_remove(session->queue_file) != 0)
-		TRACE(TRACE_ERR,"failed to remove queue file");
+//	if (g_remove(session->queue_file) != 0)
+ //		TRACE(TRACE_ERR,"failed to remove queue file");
 	TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
 	return;
 }

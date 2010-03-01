@@ -89,6 +89,7 @@ int smf_message_deliver(SMFMessage_T *msg_data) {
 	
 	
 	fp = fopen(msg_data->message_file, "r");
+
 	smtp_set_message_fp(message, fp);
 	
 	if (msg_data->rcpts != NULL) {
