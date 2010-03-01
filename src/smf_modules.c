@@ -29,6 +29,7 @@
 #include "smf_core.h"
 #include "smf_session.h"
 #include "smf_message.h"
+#include "smf_message_private.h"
 #include "smf_settings.h"
 #include "smf_trace.h"
 #include "smf_modules.h"
@@ -58,79 +59,86 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 
 /** Flush modified message headers to queue file */
 int smf_modules_flush_dirty(SMFSession_T *session) {
-	gchar *line;
-	GIOChannel *in;
-	GMimeStream *out;
-	int fd;
-	GError *error = NULL;
+	FILE *fp, *fp2;
+	GMimeStream *stream, *stream2, *stream_filter;
+	GMimeParser *parser;
+	GMimeMessage *msg;
+	GMimeFilter *crlf;
 	char *new_queue_file;
-	gboolean header_done = FALSE;
-
-	if (session->is_dirty == 0)
-		return 0;
 
 	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
 
-	smf_core_gen_queue_file(&new_queue_file);
-	if ((fd = open(new_queue_file,O_RDWR|O_CREAT)) == -1) {
-		TRACE(TRACE_ERR,"failed writing queue file");
+	fp = fopen(session->queue_file, "r");
+	if(fp == NULL) {
+		TRACE(TRACE_ERR,"unable to open queue file");
 		return -1;
 	}
 
-	out = g_mime_stream_fs_new(fd);
+	stream = g_mime_stream_file_new(fp);
+	parser = g_mime_parser_new_with_stream(stream);
+	msg = g_mime_parser_construct_message(parser);
+	g_object_unref(parser);
+
+	while (session->dirty_headers) {
+		SMFHeaderModification_T *mod = (SMFHeaderModification_T *)((GSList *)session->dirty_headers)->data;
+		switch(mod->status) {
+			case HEADER_REMOVE:
+				TRACE(TRACE_DEBUG,"removing header [%s]",mod->name);
+				g_mime_object_remove_header(GMIME_OBJECT(msg),mod->name);
+				break;
+			case HEADER_APPEND:
+				TRACE(TRACE_DEBUG,"append header [%s] with value [%s]",mod->name,mod->value);
 #ifdef HAVE_GMIME24
-	if (g_mime_header_list_write_to_stream((GMimeHeaderList *)session->headers,out) == -1) {
-		TRACE(TRACE_ERR,"failed writing queue file");
-		close(fd);
-		g_object_unref(out);
-		g_remove(new_queue_file);
-		return -1;
-	}
+				g_mime_object_append_header(GMIME_OBJECT(msg),mod->name,mod->value);
 #else
-	if (g_mime_header_write_to_stream((GMimeHeader *)session->headers,out) == -1) {
-		TRACE(TRACE_ERR,"failed writing queue file");
-		close(fd);
-		g_object_unref(out);
-		g_remove(new_queue_file);
-		return -1;
-	}
+				g_mime_object_add_header(GMIME_OBJECT(msg),mod->name,mod->value);
 #endif
+				break;
+			case HEADER_PREPEND:
+				TRACE(TRACE_DEBUG,"prepend header [%s] with value [%s]",mod->name,mod->value);
+#ifdef HAVE_GMIME24
+				g_mime_object_prepend_header(GMIME_OBJECT(msg),mod->name,mod->value);
+#else
+				g_mime_object_add_header(GMIME_OBJECT(msg),mod->name,mod->value);
+#endif
+				break;
+			case HEADER_SET:
+				TRACE(TRACE_DEBUG,"header set");
+				g_mime_object_set_header(GMIME_OBJECT(msg),mod->name,mod->value);
+				break;
+			default:
+				break;
+		}
+		session->dirty_headers = ((GSList *)session->dirty_headers)->next;
+	}
 
-	if ((in = g_io_channel_new_file(session->queue_file,"r", &error)) == NULL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		close(fd);
-		g_object_unref(out);
-		g_remove(new_queue_file);
+	g_mime_stream_flush(stream);
+	smf_core_gen_queue_file(&new_queue_file);
+	fp2 = fopen(new_queue_file,"wb");
+	if (fp2 == NULL) {
+		TRACE(TRACE_ERR,"failed writing queue file");
+		g_object_unref(msg);
+		g_object_unref(parser);
+		g_object_unref(stream);
+		fclose(fp);
 		return -1;
 	}
-	g_io_channel_set_encoding(in, NULL, NULL);
+	stream2 = g_mime_stream_file_new(fp2);
+	stream_filter = g_mime_stream_filter_new(stream2);
+	crlf = g_mime_filter_crlf_new(TRUE,FALSE);
+	g_mime_stream_filter_add(GMIME_STREAM_FILTER(stream_filter), crlf);
+	
+	g_mime_object_write_to_stream(GMIME_OBJECT(msg),stream_filter);
+	g_mime_stream_flush(stream2);
+	g_mime_stream_close(stream_filter);
+	g_mime_stream_close(stream2);
+	g_mime_stream_close(stream);
+	g_object_unref(msg);
+	g_object_unref(stream2);
+	g_object_unref(stream);
 
-	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		if ((g_ascii_strcasecmp(line, "\r\n")==0)||(g_ascii_strcasecmp(line, "\n")==0))
-			header_done = TRUE;
-
-		if (header_done) {
-			if (g_mime_stream_write(out,line,strlen(line)) == -1) {
-				TRACE(TRACE_ERR,"failed writing queue file");
-				g_io_channel_shutdown(in,TRUE,NULL);
-				g_io_channel_unref(in);
-				close(fd);
-				g_object_unref(out);
-				g_free(line);
-				g_remove(new_queue_file);
-				return -1;
-			}
-		} else
-			continue;
-		g_free(line);
-	}
-
-	g_mime_stream_flush(out);
-	close(fd);
-	g_object_unref(out);
-	g_io_channel_shutdown(in,TRUE,NULL);
-	g_io_channel_unref(in);
+	fclose(fp);
+	fclose(fp2);
 
 	if (g_remove(session->queue_file) != 0) {
 		TRACE(TRACE_ERR,"failed to remove queue file");
@@ -141,9 +149,12 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 		TRACE(TRACE_ERR,"failed to rename queue file");
 		return -1;
 	}
+
 	g_free(new_queue_file);
+	g_slist_free((GSList *)session->dirty_headers);
 
 	session->is_dirty = 0;
+
 	return 0;
 }
 
@@ -191,9 +202,6 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 		runner = (ModuleLoadFunction)sym;
 		retval = runner(session);
 
-		if (smf_modules_flush_dirty(session) != 0)
-			TRACE(TRACE_ERR,"message flush failed");
-
 		/* clean up */
 		g_free(path);
 		g_module_close(mod);
@@ -220,6 +228,9 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	}
 
 	TRACE(TRACE_DEBUG, "module processing finished successfully.");
+
+//	if (smf_modules_flush_dirty(session) != 0)
+//		TRACE(TRACE_ERR,"message flush failed");
 
 	/* queue is done, if we're still here check for next hop and
 	 * deliver
