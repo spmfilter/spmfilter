@@ -55,6 +55,8 @@ typedef struct {
 	/* flag which indicates, if
 	 * any header was modified */
 	int is_dirty;
+
+	void *dirty_headers;
 } SMFSession_T;
 
 /** Retrieve SMFSession_T structure
