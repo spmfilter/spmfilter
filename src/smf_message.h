@@ -43,6 +43,26 @@ typedef struct {
 	char *nexthop;
 } SMFMessage_T;
 
+/** A Content-Transfer-Encoding enumeration.
+ *
+ * SMF_CONTENT_ENCODING_DEFAULT - Default transfer encoding.
+ * SMF_CONTENT_ENCODING_7BIT - 7bit text transfer encoding.
+ * SMF_CONTENT_ENCODING_8BIT - 8bit text transfer encoding.
+ * SMF_CONTENT_ENCODING_BINARY - Binary transfer encoding.
+ * SNF_CONTENT_ENCODING_BASE64 - Base64 transfer encoding.
+ * SMF_CONTENT_ENCODING_QUOTEDPRINTABLE - Quoted-printable transfer encoding.
+ * SMF_CONTENT_ENCODING_UUENCODE - Uuencode transfer encoding.
+ */
+typedef enum {
+	SMF_CONTENT_ENCODING_DEFAULT,
+	SMF_CONTENT_ENCODING_7BIT,
+	SMF_CONTENT_ENCODING_8BIT,
+	SMF_CONTENT_ENCODING_BINARY,
+	SMF_CONTENT_ENCODING_BASE64,
+	SMF_CONTENT_ENCODING_QUOTEDPRINTABLE,
+	SMF_CONTENT_ENCODING_UUENCODE,
+	SMF_NUM_ENCODINGS
+} SMFContentEncoding;
 
 /** Copy the current message to disk
  *
@@ -150,6 +170,25 @@ char *smf_message_encode_text(const char *text);
  * \returns a unique string in an addr-spec format suitable for use as a Message-Id.
  */
 char *smf_message_generate_message_id(void);
+
+/** Determines the best content encoding for the first len bytes of text.
+ *
+ * \param text text to encode
+ * \param len text length
+ *
+ * \returns a SMFContentEncoding that is determined to be the best encoding
+ *          type for the specified block of text. ("best" in this particular
+ *          case means smallest output size)
+ */
+SMFContentEncoding smf_message_best_encoding(unsigned char *text, size_t len);
+
+/** Prepend text to subject
+ *
+ * \param text text to prepend
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_message_subject_prepend(char *text);
 
 #endif	/* _SMF_MESSAGE_H */
 

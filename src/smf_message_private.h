@@ -20,5 +20,18 @@
 
 void smf_message_extract_addresses(GMimeObject *message);
 
+typedef enum {
+	HEADER_REMOVE = 0,
+	HEADER_APPEND = 1,
+	HEADER_PREPEND = 2,
+	HEADER_SET = 3,
+} SMFHeaderStatus_T;
+
+typedef struct {
+	SMFHeaderStatus_T status;
+	char *name;
+	char *value;
+} SMFHeaderModification_T;
+
 #endif	/* _SMF_MESSAGE_PRIVATE_H */
 

@@ -37,6 +37,7 @@ SMFSession_T *smf_session_get(void) {
 		session->queue_file = NULL;
 		session->envelope_to = NULL;
 		session->xforward_addr = NULL;
+		session->dirty_headers = NULL;
 	}
 	
 	return session;
@@ -64,6 +65,9 @@ void smf_session_free(void) {
 		g_slice_free(SMFEmailAddress_T,session->envelope_to[i]);
 	}
 	g_free(session->envelope_to);
+
+	if (session->dirty_headers != NULL)
+		g_slist_free((GSList *)session->headers);
 	g_slice_free(SMFSession_T,session);
 	session = NULL;
 }
