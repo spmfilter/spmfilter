@@ -59,22 +59,23 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 
 /** Flush modified message headers to queue file */
 int smf_modules_flush_dirty(SMFSession_T *session) {
-	FILE *fp, *fp2;
 	GMimeStream *stream, *stream2, *stream_filter;
 	GMimeParser *parser;
 	GMimeMessage *msg;
 	GMimeFilter *crlf;
 	char *new_queue_file;
+	int fd, fd2;
 
 	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
 
-	fp = fopen(session->queue_file, "r");
-	if(fp == NULL) {
+	if (session->dirty_headers == NULL)
+		return 0;
+
+	if ((fd = open(session->queue_file,O_RDONLY)) == -1) {
 		TRACE(TRACE_ERR,"unable to open queue file");
 		return -1;
 	}
-
-	stream = g_mime_stream_file_new(fp);
+	stream = g_mime_stream_fs_new(fd);
 	parser = g_mime_parser_new_with_stream(stream);
 	msg = g_mime_parser_construct_message(parser);
 	g_object_unref(parser);
@@ -114,31 +115,33 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 
 	g_mime_stream_flush(stream);
 	smf_core_gen_queue_file(&new_queue_file);
-	fp2 = fopen(new_queue_file,"wb");
-	if (fp2 == NULL) {
+
+	if ((fd2 = open(new_queue_file,O_RDWR|O_CREAT)) == -1) {
 		TRACE(TRACE_ERR,"failed writing queue file");
 		g_object_unref(msg);
 		g_object_unref(parser);
 		g_object_unref(stream);
-		fclose(fp);
+		close(fd);
 		return -1;
 	}
-	stream2 = g_mime_stream_file_new(fp2);
+
+	stream2 = g_mime_stream_fs_new(fd2);
 	stream_filter = g_mime_stream_filter_new(stream2);
 	crlf = g_mime_filter_crlf_new(TRUE,FALSE);
 	g_mime_stream_filter_add(GMIME_STREAM_FILTER(stream_filter), crlf);
 	
 	g_mime_object_write_to_stream(GMIME_OBJECT(msg),stream_filter);
 	g_mime_stream_flush(stream2);
+
+	close(fd);
+	close(fd2);
+
 	g_mime_stream_close(stream_filter);
 	g_mime_stream_close(stream2);
 	g_mime_stream_close(stream);
 	g_object_unref(msg);
 	g_object_unref(stream2);
 	g_object_unref(stream);
-
-	fclose(fp);
-	fclose(fp2);
 
 	if (g_remove(session->queue_file) != 0) {
 		TRACE(TRACE_ERR,"failed to remove queue file");
@@ -152,8 +155,7 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 
 	g_free(new_queue_file);
 	g_slist_free((GSList *)session->dirty_headers);
-
-	session->is_dirty = 0;
+	session->dirty_headers = NULL;
 
 	return 0;
 }
@@ -229,8 +231,8 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 
 	TRACE(TRACE_DEBUG, "module processing finished successfully.");
 
-//	if (smf_modules_flush_dirty(session) != 0)
-//		TRACE(TRACE_ERR,"message flush failed");
+	if (smf_modules_flush_dirty(session) != 0)
+		TRACE(TRACE_ERR,"message flush failed");
 
 	/* queue is done, if we're still here check for next hop and
 	 * deliver

@@ -190,8 +190,6 @@ int load(void) {
 	g_mime_header_foreach(headers, copy_header_func, session->headers);
 #endif
 
-	session->is_dirty = 0;
-
 	g_object_unref(parser);
 	g_object_unref(message);
 	g_object_unref(out);
