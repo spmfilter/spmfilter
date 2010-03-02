@@ -286,7 +286,6 @@ void process_data(void) {
 
 	parser = g_mime_parser_new_with_stream(out);
 	message = g_mime_parser_construct_message(parser);
-	session->is_dirty = 0;
 #ifdef HAVE_GMIME24
 	headers = g_mime_object_get_header_list(GMIME_OBJECT(message));
 	session->headers = (void *)g_mime_header_list_new();
@@ -308,13 +307,11 @@ void process_data(void) {
 	if (session->message_from->addr == NULL) {
 		smf_message_header_append("From",g_strdup(session->envelope_from->addr));
 		TRACE(TRACE_DEBUG,"adding [from] header to message");
-		session->is_dirty = 1;
 	}
 
 	if (session->message_to_num == 0) {
 		smf_message_header_append("To",g_strdup("undisclosed-recipients:;"));
 		TRACE(TRACE_DEBUG,"adding [to] header to message");
-		session->is_dirty = 1;
 	}
 
 
@@ -324,15 +321,14 @@ void process_data(void) {
 		message_id = smf_message_generate_message_id();
 		TRACE(TRACE_DEBUG,"no message id found, adding [%s]",message_id);
 		smf_message_header_append("Message-ID",message_id);
-		session->is_dirty = 1;
 	}
 */
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
 
 	load_modules();
 	
-//	if (g_remove(session->queue_file) != 0)
- //		TRACE(TRACE_ERR,"failed to remove queue file");
+	if (g_remove(session->queue_file) != 0)
+ 		TRACE(TRACE_ERR,"failed to remove queue file");
 	TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
 	return;
 }

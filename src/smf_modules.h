@@ -42,5 +42,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session);
 /** deliver a message to the nexthop */
 int smf_modules_deliver_nexthop(ProcessQueue_T *q, SMFSession_T *session);
 
+/** Flush modified message headers to queue file */
+int smf_modules_flush_dirty(SMFSession_T *session);
 #endif	/* _SMF_ODULES_H */
 
