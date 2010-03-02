@@ -51,7 +51,6 @@ int smf_message_copy_to_disk(char *path) {
 	int fd;
 	gchar *line;
 	GError *error = NULL;
-	gboolean header_done = FALSE;
 
 	if (path == NULL)
 		return -1;
@@ -63,25 +62,8 @@ int smf_message_copy_to_disk(char *path) {
 
 	out = g_mime_stream_fs_new(fd);
 
-	if (session->is_dirty) {
-#ifdef HAVE_GMIME24
-		if (g_mime_header_list_write_to_stream((GMimeHeaderList *)session->headers,out) == -1) {
-			TRACE(TRACE_ERR,"failed writing file");
-			close(fd);
-			g_object_unref(out);
-			return -1;
-		}
-#else
-		if (g_mime_header_write_to_stream((GMimeHeader *)session->headers,out) == -1) {
-			TRACE(TRACE_ERR,"failed writing file");
-			close(fd);
-			g_object_unref(out);
-			return -1;
-		}
-#endif
-	} else {
-		header_done = TRUE;
-	}
+	if (smf_modules_flush_dirty(session) != 0)
+		TRACE(TRACE_ERR,"message flush failed");
 
 	if ((in = g_io_channel_new_file(session->queue_file,"r", &error)) == NULL) {
 		TRACE(TRACE_ERR,"%s",error->message);
@@ -93,22 +75,16 @@ int smf_message_copy_to_disk(char *path) {
 	g_io_channel_set_encoding(in, NULL, NULL);
 
 	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		if ((g_ascii_strcasecmp(line, "\r\n")==0)||(g_ascii_strcasecmp(line, "\n")==0))
-			header_done = TRUE;
-
-		if (header_done) {
-			if (g_mime_stream_write(out,line,strlen(line)) == -1) {
-				TRACE(TRACE_ERR,"failed writing file");
-				g_io_channel_shutdown(in,TRUE,NULL);
-				g_io_channel_unref(in);
-				close(fd);
-				g_object_unref(out);
-				g_free(line);
-				g_remove(path);
-				return -1;
-			}
-		} else
-			continue;
+		if (g_mime_stream_write(out,line,strlen(line)) == -1) {
+			TRACE(TRACE_ERR,"failed writing file");
+			g_io_channel_shutdown(in,TRUE,NULL);
+			g_io_channel_unref(in);
+			close(fd);
+			g_object_unref(out);
+			g_free(line);
+			g_remove(path);
+			return -1;
+		}
 		g_free(line);
 	}
 
@@ -130,6 +106,13 @@ int smf_message_copy_to_disk(char *path) {
 const char *smf_message_header_get(const char *header_name) {
 	SMFSession_T *session = smf_session_get();
 	const char *header_value = NULL;
+
+	while (session->dirty_headers) {
+		SMFHeaderModification_T *mod = (SMFHeaderModification_T *)((GSList *)session->dirty_headers)->data;
+		if (g_ascii_strcasecmp(mod->name,header_name) == 0)
+			return mod->value;
+		session->dirty_headers = ((GSList *)session->dirty_headers)->next;
+	}
 #ifdef HAVE_GMIME24
 	header_value = g_mime_header_list_get((GMimeHeaderList *)session->headers,header_name);
 #else
@@ -144,21 +127,19 @@ const char *smf_message_header_get(const char *header_name) {
  * 
  * \returns 0 on success or -1 in case of error
  */
-int smf_message_header_remove(char *header_name) {
+void smf_message_header_remove(char *header_name) {
 	SMFSession_T *session = smf_session_get();
+	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
+	header->status = HEADER_REMOVE;
+	header->name = g_strdup(header_name);
+	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
 
 #ifdef HAVE_GMIME24
-	if (g_mime_header_list_remove((GMimeHeaderList *)session->headers,header_name)) {
-		session->is_dirty = 1;
-		return 0;
-	}
+	g_mime_header_list_remove((GMimeHeaderList *)session->headers,header_name);
 #else
-	if (g_mime_header_remove((GMimeHeader *)session->headers,header_name)) {
-		session->is_dirty = 1;
-		return 0;
-	}
+	g_mime_header_remove((GMimeHeader *)session->headers,header_name);
 #endif
-	return -1;
+	return;
 }
 
 /** Prepends a header. If value is NULL, a space will be set aside for it
@@ -170,13 +151,16 @@ int smf_message_header_remove(char *header_name) {
  */
 void smf_message_header_prepend(char *header_name, char *header_value) {
 	SMFSession_T *session = smf_session_get();
+	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
+	header->status = HEADER_PREPEND;
+	header->name = g_strdup(header_name);
+	header->value = g_strdup(header_value);
+	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
 
 #ifdef HAVE_GMIME24
 	g_mime_header_list_prepend((GMimeHeaderList *)session->headers,header_name,header_value);
-	session->is_dirty = 1;
 #else
 	g_mime_header_prepend((GMimeHeader *)session->headers,header_name,header_value);
-	session->is_dirty = 1;
 #endif
 	return;
  }
@@ -195,13 +179,12 @@ void smf_message_header_append(char *header_name, char *header_value) {
 	header->name = g_strdup(header_name);
 	header->value = g_strdup(header_value);
 	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
-/*
+
 #ifdef HAVE_GMIME24
 	g_mime_header_list_append((GMimeHeaderList *)session->headers,header_name,header_value);
-	session->is_dirty = 1;
 #else
 	TRACE(TRACE_WARNING,"function not implemented in GMime < 2.4");
-#endif*/
+#endif
 	return;
 }
 
@@ -219,13 +202,16 @@ void smf_message_header_append(char *header_name, char *header_value) {
  */
 void smf_message_header_set(char *header_name, char *header_value) {
 	SMFSession_T *session = smf_session_get();
+	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
+	header->status = HEADER_SET;
+	header->name = g_strdup(header_name);
+	header->value = g_strdup(header_value);
+	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
 
 #ifdef HAVE_GMIME24
 	g_mime_header_list_set((GMimeHeaderList *)session->headers,header_name,header_value);
-	session->is_dirty = 1;
 #else
 	g_mime_header_set((GMimeHeader *)session->headers,header_name,header_value);
-	session->is_dirty = 1;
 #endif
 	return;
 }

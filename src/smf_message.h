@@ -115,10 +115,8 @@ void smf_message_header_set(char *header_name, char *header_value);
 /** Removed the specified header if it exists
  *
  * \param header_name name of the header
- *
- * \returns 0 on success or -1 in case of error
  */
-int smf_message_header_remove(char *header_name);
+void smf_message_header_remove(char *header_name);
 
 /** Allocates a string buffer containing the raw rfc822 headers.
  *

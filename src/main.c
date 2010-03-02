@@ -84,6 +84,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	if (!g_module_supported()) {
+		TRACE(TRACE_ERR,"glib2 does not support dynamic loading of modules!");
+		return -1;
+	}
+
 	/* start clock, to see how long
 	 * the processing time takes */
 	start_process = clock();

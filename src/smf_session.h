@@ -52,10 +52,6 @@ typedef struct {
 	/* message header */
 	void *headers;
 
-	/* flag which indicates, if
-	 * any header was modified */
-	int is_dirty;
-
 	void *dirty_headers;
 } SMFSession_T;
 
