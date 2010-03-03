@@ -49,7 +49,7 @@ typedef struct {
 	char *nexthop_fail_msg;
 
 	/* configured lookup backend */
-	char *backend;
+	char **backend;
 
 	/* if multiple backend hosts are defined,
 	 * it's possible to balance connections

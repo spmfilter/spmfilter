@@ -26,6 +26,10 @@
 #include "smf_settings.h"
 #include "smf_trace.h"
 
+#ifdef HAVE_PCRE
+#include <pcre.h>
+#endif
+
 #define THIS_MODULE "lookup"
 
 /** Establish database/ldap connection
@@ -33,21 +37,26 @@
  * \returns 0 on success or -1 in case of error
  */
 int smf_lookup_connect(void) {
+	int i;
 	SMFSettings_T *settings = smf_settings_get();
 
 
-	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+	for (i=0; settings->backend[i] != NULL; i++) {
 #ifdef HAVE_ZDB
-		if(smf_lookup_sql_connect() != 0)
-			return -1;
+		if(g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {
+			if(smf_lookup_sql_connect() != 0)
+				return -1;
+		}
 #endif
-	} else if(g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
+
 #ifdef HAVE_LDAP
-		if(smf_lookup_ldap_connect() != 0)
-			return -1;
+		if(g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+			if(smf_lookup_ldap_connect() != 0)
+				return -1;
+		}
 #endif
 	}
-
+	
 	return 0;
 }
 
@@ -56,15 +65,18 @@ int smf_lookup_connect(void) {
  * \returns 0 on success or -1 in case of error
  */
 int smf_lookup_disconnect(void) {
+	int i;
 	SMFSettings_T *settings = smf_settings_get();
 
-	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+	for (i=0; settings->backend[i] != NULL; i++) {
 #ifdef HAVE_ZDB
-		smf_lookup_sql_disconnect();
+		if(g_ascii_strcasecmp(settings->backend[i],"sql") == 0)
+			smf_lookup_sql_disconnect();
 #endif
-	} else if (g_ascii_strcasecmp(settings->backend,"ldap") ==  0) {
+
 #ifdef HAVE_LDAP
-		smf_lookup_ldap_disconnect();
+		if (g_ascii_strcasecmp(settings->backend[i],"ldap") ==  0)
+			smf_lookup_ldap_disconnect();
 #endif
 	}
 
@@ -79,32 +91,30 @@ int smf_lookup_disconnect(void) {
  *          user is local
  */
 int smf_lookup_check_user(char *addr) {
+	int i;
 	SMFSettings_T *settings = smf_settings_get();
-	
-	if(g_ascii_strcasecmp(settings->backend,"sql") == 0) {
+
+	for (i=0; settings->backend[i] != NULL; i++) {
 #ifdef HAVE_ZDB
-		if (settings->sql_user_query != NULL) {
-			return smf_lookup_sql_user_exists(addr);
+		if(g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {
+			if (settings->sql_user_query != NULL) {
+				if (smf_lookup_sql_user_exists(addr) == 1)
+					return 1;
+			}
 		}
-#else
-		TRACE(TRACE_ERR,"spmfilter has not been built with sql backend");
-		return -1;
 #endif
-	}
 
-	if (g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
 #ifdef HAVE_LDAP
-		if (settings->ldap_user_query != NULL) {
-			return smf_lookup_ldap_user_exists(addr);
+		if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+			if (settings->ldap_user_query != NULL) {
+				if (smf_lookup_ldap_user_exists(addr) == 1)
+					return 1;
+			}
 		}
-#else
-		TRACE(TRACE_ERR,"spmfilter has not been built with ldap backend");
-		return -1;
 #endif
 	}
 
-	TRACE(TRACE_ERR,"no valid backend defined");
-	return -1;
+	return 0;
 }
 
 /** Query lookup backend.
@@ -117,8 +127,18 @@ int smf_lookup_check_user(char *addr) {
 SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
+	gboolean is_sql = FALSE;
+	int i;
 	SMFLookupResult_T *result = NULL;
 	SMFSettings_T *settings = smf_settings_get();
+#if (GLIB2_VERSION >= 21400)
+	GRegex *re = NULL;
+	GMatchInfo *match_info = NULL;
+#else
+	pcre *re;
+	int rc;
+	int ovector[30];
+#endif
 	
 	va_start(ap, q);
 	va_copy(cp, ap);
@@ -126,22 +146,40 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_end(cp);
 	g_strstrip(query);
 
-	if ((g_ascii_strcasecmp(settings->backend,"sql")) == 0) {
-#ifdef HAVE_ZDB
-		result = smf_lookup_sql_query(query);
-#else
-		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
-#endif
-	} else if ((g_ascii_strcasecmp(settings->backend,"ldap")) == 0) {
-#ifdef HAVE_LDAP
-		result = smf_lookup_ldap_query(query);
-#else
-		TRACE(TRACE_ERR,"spmfilter is built with ldap backend");
-#endif
-	} else {
-		TRACE(TRACE_ERR,"no valid backend defined");
+#if (GLIB2_VERSION >= 21400)
+	re = g_regex_new("/(^SELECT|^UPDATE|^DELETE|^INSERT)/", G_REGEX_CASELESS, 0, NULL);
+	g_regex_match(re, query, 0, &match_info);
+	if(g_match_info_matches(match_info)) {
+		is_sql = TRUE;
 	}
+	g_match_info_free(match_info);
+	g_regex_unref(re);
+#else
+	re = pcre_compile("/(^SELECT|^UPDATE|^DELETE|^INSERT)/", PCRE_CASELESS, NULL, NULL, NULL);
+	if(re != NULL) {
+		rc = pcre_exec(re, NULL, query, strlen(query), 0, 0, ovector, 30);
+		if(rc > 0) {
+			is_sql = TRUE;
+		}
+	}
+#endif
 
+	
+	for (i=0; settings->backend[i] != NULL; i++) {
+#ifdef HAVE_ZDB
+		if ((g_ascii_strcasecmp(settings->backend[i],"sql") == 0) && (is_sql == TRUE)) {
+			result = smf_lookup_sql_query(query);
+			break;
+		}
+#endif
+
+#ifdef HAVE_LDAP
+		if ((g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) && (is_sql == FALSE)) {
+			result = smf_lookup_ldap_query(query);
+			break;
+		}
+#endif
+	}
 	g_free(query);
 	return result;
 }
