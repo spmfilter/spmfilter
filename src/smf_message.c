@@ -380,13 +380,25 @@ SMFContentEncoding smf_message_best_encoding(unsigned char *text, size_t len) {
  * \returns 0 on success or -1 in case of error
  */
 int smf_message_subject_prepend(char *text) {
-	SMFContentEncoding encoding;
 	char *subject = (char *)smf_message_header_get("subject");
 	if (subject == NULL)
 		return -1;
-//	encoding = smf_message_best_encoding((unsigned char *)subject,strlen(subject));
 
-//	TRACE(TRACE_DEBUG,"ENCODING: %d",encoding);
+	// TODO: check subject encoding
+
 	smf_message_header_set("subject",g_strdup_printf("%s %s",text,subject));
+	return 0;
+}
+
+/** Append text to subject
+ *
+ * \param text text to append
+ *
+ * \return 0 on success or -1 in case of error
+ */
+int smf_message_subject_append(char *test) {
+	char *subject = (char *)smf_message_header_get("subject");
+
+	smf_message_header_set("subject",g_strdup_printf("%s %s",subject, test));
 	return 0;
 }
