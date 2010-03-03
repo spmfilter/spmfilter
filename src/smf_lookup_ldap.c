@@ -223,6 +223,7 @@ SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...) {
 	
 	if(ldap_count_entries(c,msg) <= 0) {
 		TRACE(TRACE_LOOKUP,"[%p] nothing found",c);
+		g_free(query);
 		return NULL;
 	} else
 		TRACE(TRACE_LOOKUP,"[%p] found [%d] entries", c, ldap_count_entries(c,msg));
@@ -252,6 +253,7 @@ SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...) {
 	}
 	ber_free(ptr,0);
 	ldap_msgfree(msg);
+	g_free(query);
 	return result;
 }
 
