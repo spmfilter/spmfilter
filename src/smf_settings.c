@@ -47,7 +47,7 @@ void smf_settings_free(SMFSettings_T *settings) {
 	g_free(settings->engine);
 	g_free(settings->nexthop);
 	g_free(settings->nexthop_fail_msg);
-	g_free(settings->backend);
+	g_strfreev(settings->backend);
 
 	g_slice_free(SMFSettings_T,settings);
 }
@@ -57,6 +57,7 @@ int smf_settings_parse_config(void) {
 	GKeyFile *keyfile;
 	gchar **code_keys;
 	gsize modules_length = 0;
+	gsize backend_length = 0;
 	gsize codes_length = 0;
 	gsize sql_num_hosts = 0;
 	gsize ldap_num_hosts = 0;
@@ -113,12 +114,12 @@ int smf_settings_parse_config(void) {
 		return -1;
 	}
 
-	settings->backend = g_key_file_get_string(keyfile, "global", "backend", NULL);
-	if (settings->backend == NULL)
+	settings->backend = g_key_file_get_string_list(keyfile, "global", "backend", &backend_length,NULL);
+/*	if (settings->backend == NULL)
 		settings->backend = g_strdup("undef");
 	else
 		settings->backend = g_strstrip(settings->backend);
-	
+*/
 	settings->backend_connection = g_key_file_get_string(keyfile,"global","backend_connection",NULL);
 	if (settings->backend_connection == NULL)
 		settings->backend_connection = g_strdup("failover");
@@ -137,19 +138,24 @@ int smf_settings_parse_config(void) {
 	}
 	TRACE(TRACE_DEBUG, "settings->module_fail: %d", settings->module_fail);
 	TRACE(TRACE_DEBUG, "settings->nexthop: %s", settings->nexthop);
-	TRACE(TRACE_DEBUG, "settings->backend: %s", settings->backend);
+//	TRACE(TRACE_DEBUG, "settings->backend: %s", settings->backend);
+	for (i=0; settings->backend[i] != NULL; i++) {
+		TRACE(TRACE_DEBUG,"settings->backend: %s",settings->backend[i]);
+	}
 	TRACE(TRACE_DEBUG, "settings->backend_connection: %s", settings->backend_connection);
 
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
-	if (g_ascii_strcasecmp(settings->backend,"sql") == 0) {
-		if (settings->sql_name == NULL) {
-			TRACE(TRACE_ERR, "config error: %s", error->message);
-			g_error_free(error);
-			return -1;
+	for (i=0; settings->backend[i] != NULL; i++) {
+		if (g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {
+			if (settings->sql_name == NULL) {
+				TRACE(TRACE_ERR, "config error: %s", error->message);
+				g_error_free(error);
+				return -1;
+			}
+			break;
 		}
 	}
-	
 	settings->sql_host = g_key_file_get_string_list(keyfile, "sql", "host", &sql_num_hosts,NULL);
 	settings->sql_num_hosts = sql_num_hosts;
 	settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
@@ -178,13 +184,15 @@ int smf_settings_parse_config(void) {
 	settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
 	settings->ldap_host = g_key_file_get_string_list(keyfile, "ldap", "host", &ldap_num_hosts,NULL);
 	settings->ldap_num_hosts = ldap_num_hosts;
-	if (g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
-		if (settings->ldap_uri == NULL && settings->ldap_host == NULL) {
-			TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
-			return -1;
+	for (i=0; settings->backend[i] != NULL; i++) {
+		if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+			if (settings->ldap_uri == NULL && settings->ldap_host == NULL) {
+				TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
+				return -1;
+			}
+			break;
 		}
 	}
-
 	settings->ldap_port = g_key_file_get_integer(keyfile,"ldap","port",NULL);
 	if (!settings->ldap_port)
 		settings->ldap_port = 389;
@@ -192,21 +200,25 @@ int smf_settings_parse_config(void) {
 	settings->ldap_bindpw = g_key_file_get_string(keyfile,"ldap","bindpw",NULL);
 
 	settings->ldap_base = g_key_file_get_string(keyfile,"ldap","base",NULL);
-	if ((settings->ldap_base == NULL) && (g_ascii_strcasecmp(settings->backend,"ldap") == 0)) {
-		TRACE(TRACE_ERR, "config error: %s", error->message);
-		return -1;
+	for (i=0; settings->backend[i] != NULL; i++) {
+		if ((g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) && (settings->ldap_base == NULL)) {
+			TRACE(TRACE_ERR, "config error: %s", error->message);
+			return -1;
+		}
 	}
 
 	settings->ldap_referrals = g_key_file_get_boolean(keyfile, "ldap","referrals",NULL);
 
 	settings->ldap_scope = g_key_file_get_string(keyfile, "ldap", "scope", NULL);
 	if (settings->ldap_scope != NULL) {
-		if (g_ascii_strcasecmp(settings->backend,"ldap") == 0) {
-			if ((g_ascii_strcasecmp(settings->ldap_scope,"subtree") != 0) &&
-					(g_ascii_strcasecmp(settings->ldap_scope,"onelevel") != 0) &&
-					(g_ascii_strcasecmp(settings->ldap_scope,"base") != 0)) {
-				TRACE(TRACE_ERR, "invalid ldap scope");
-				return -1;
+		for (i=0; settings->backend[i] != NULL; i++) {
+			if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+				if ((g_ascii_strcasecmp(settings->ldap_scope,"subtree") != 0) &&
+						(g_ascii_strcasecmp(settings->ldap_scope,"onelevel") != 0) &&
+						(g_ascii_strcasecmp(settings->ldap_scope,"base") != 0)) {
+					TRACE(TRACE_ERR, "invalid ldap scope");
+					return -1;
+				}
 			}
 		}
 	} else {

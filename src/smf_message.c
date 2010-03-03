@@ -284,7 +284,7 @@ void smf_message_extract_addresses(GMimeObject *message) {
 					session->message_to_num,
 					session->message_to[session->message_to_num]->addr);
 
-			if (strcmp(settings->backend,"undef") != 0) {
+			if (settings->backend != NULL) {
 				session->message_to[session->message_to_num]->is_local =
 						smf_lookup_check_user(session->message_to[session->message_to_num]->addr);
 				TRACE(TRACE_DEBUG,"[%s] is local [%d]",

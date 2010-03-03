@@ -439,7 +439,7 @@ int load(void) {
 						g_slice_free(SMFEmailAddress_T,session->envelope_from);
 						session->envelope_from = NULL;
 					} else {
-						if (strcmp(settings->backend,"undef") != 0) {
+						if (settings->backend != NULL) {
 								session->envelope_from->is_local = smf_lookup_check_user(session->envelope_from->addr);
 								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->envelope_from->addr,session->envelope_from->is_local);
 						}
@@ -468,7 +468,7 @@ int load(void) {
 						g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
 					} else {
 						TRACE(TRACE_DEBUG,"session->envelope_to[%d]: %s",session->envelope_to_num, session->envelope_to[session->envelope_to_num]->addr);
-						if (strcmp(settings->backend,"undef") != 0) {
+						if (settings->backend != NULL) {
 							session->envelope_to[session->envelope_to_num]->is_local = smf_lookup_check_user(session->envelope_to[session->envelope_to_num]->addr);
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", 
 									session->envelope_to[session->envelope_to_num]->addr,
