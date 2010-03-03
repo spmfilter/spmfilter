@@ -303,6 +303,7 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
 		smf_lookup_result_add(result,e);
 	}
 	TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->len);
+	g_free(query);
 	return result;
 }
 
