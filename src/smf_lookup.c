@@ -117,6 +117,7 @@ int smf_lookup_check_user(char *addr) {
 SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query;
+	SMFLookupResult_T *result = NULL;
 	SMFSettings_T *settings = smf_settings_get();
 	
 	va_start(ap, q);
@@ -127,21 +128,20 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 
 	if ((g_ascii_strcasecmp(settings->backend,"sql")) == 0) {
 #ifdef HAVE_ZDB
-		return smf_lookup_sql_query(query);
+		result = smf_lookup_sql_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is not built with sql backend");
-		return(NULL);
 #endif
 	} else if ((g_ascii_strcasecmp(settings->backend,"ldap")) == 0) {
 #ifdef HAVE_LDAP
-		return smf_lookup_ldap_query(query);
+		result = smf_lookup_ldap_query(query);
 #else
 		TRACE(TRACE_ERR,"spmfilter is built with ldap backend");
-		return(NULL);
 #endif
 	} else {
 		TRACE(TRACE_ERR,"no valid backend defined");
 	}
 
-	return NULL;
+	g_free(query);
+	return result;
 }
