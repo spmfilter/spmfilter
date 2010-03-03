@@ -188,5 +188,13 @@ SMFContentEncoding smf_message_best_encoding(unsigned char *text, size_t len);
  */
 int smf_message_subject_prepend(char *text);
 
+/** Append text to subject
+ *
+ * \param text text to append
+ *
+ * \return 0 on success or -1 in case of error
+ */
+int smf_message_subject_append(char *test);
+
 #endif	/* _SMF_MESSAGE_H */
 
