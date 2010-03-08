@@ -16,6 +16,7 @@
  */
 
 #include <glib.h>
+#include <gmime/gmime.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -183,4 +184,8 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
 
 	g_strfreev(parts);
 	return(rep_made);
+}
+
+void smf_core_object_unref(void *object) {
+	g_object_unref(object);
 }

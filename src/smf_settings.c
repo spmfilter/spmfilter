@@ -115,11 +115,6 @@ int smf_settings_parse_config(void) {
 	}
 
 	settings->backend = g_key_file_get_string_list(keyfile, "global", "backend", &backend_length,NULL);
-/*	if (settings->backend == NULL)
-		settings->backend = g_strdup("undef");
-	else
-		settings->backend = g_strstrip(settings->backend);
-*/
 	settings->backend_connection = g_key_file_get_string(keyfile,"global","backend_connection",NULL);
 	if (settings->backend_connection == NULL)
 		settings->backend_connection = g_strdup("failover");
@@ -138,7 +133,6 @@ int smf_settings_parse_config(void) {
 	}
 	TRACE(TRACE_DEBUG, "settings->module_fail: %d", settings->module_fail);
 	TRACE(TRACE_DEBUG, "settings->nexthop: %s", settings->nexthop);
-//	TRACE(TRACE_DEBUG, "settings->backend: %s", settings->backend);
 	for (i=0; settings->backend[i] != NULL; i++) {
 		TRACE(TRACE_DEBUG,"settings->backend: %s",settings->backend[i]);
 	}

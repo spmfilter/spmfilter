@@ -247,10 +247,10 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 
 int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	int i;
-	SMFMessage_T *msg;
+	SMFDeliverInfo_T *msg;
 	SMFSettings_T *settings = smf_settings_get();
 
-	msg = g_slice_new(SMFMessage_T);
+	msg = g_slice_new(SMFDeliverInfo_T);
 	msg->from = g_strdup(session->envelope_from->addr);
 
 	/* allocate memory for recipients */
@@ -285,7 +285,7 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	g_free(msg->from);
 	g_free(msg->message_file);
 	g_free(msg->nexthop);
-	g_slice_free(SMFMessage_T,msg);
+	g_slice_free(SMFDeliverInfo_T,msg);
 
 	return(0);
 }

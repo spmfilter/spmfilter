@@ -54,5 +54,16 @@ char *smf_core_get_maildir_filename(void);
  */
 int smf_core_expand_string(char *format, char *addr, char **buf);
 
+struct _SMFObject_T {
+	void *data;
+};
+
+/** Decreases the reference count of object. When its reference count drops to
+ *  0, the object is finalized (i.e. its memory is freed).
+ *
+ * \param object pointer to object
+ */
+void smf_core_object_unref(void *object);
+
 #endif	/* _SMF_CORE_H */
 

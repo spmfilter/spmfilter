@@ -15,13 +15,9 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdlib.h>
-
+#include <unistd.h>
 #include <glib.h>
-#include <glib/gstdio.h>
 #include <gmime/gmime.h>
 
 #include "spmfilter_config.h"
@@ -30,222 +26,12 @@
 #include "smf_core.h"
 #include "smf_message.h"
 #include "smf_message_private.h"
-#include "smf_modules.h"
 #include "smf_lookup.h"
 #include "smf_settings.h"
 
 #define THIS_MODULE "message"
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
-
-/** Copy the current message to disk
- *
- * \param path for the new message file
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_message_copy_to_disk(char *path) {
-	SMFSession_T *session = smf_session_get();
-	GIOChannel *in;
-	GMimeStream *out;
-	int fd;
-	gchar *line;
-	GError *error = NULL;
-
-	if (path == NULL)
-		return -1;
-	
-	if ((fd = open(path,O_WRONLY|O_CREAT,S_IRWXU)) == -1) {
-		TRACE(TRACE_ERR,"failed opening destination file");
-		return -1;
-	}
-
-	out = g_mime_stream_fs_new(fd);
-
-	if (smf_modules_flush_dirty(session) != 0)
-		TRACE(TRACE_ERR,"message flush failed");
-
-	if ((in = g_io_channel_new_file(session->queue_file,"r", &error)) == NULL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		close(fd);
-		g_object_unref(out);
-		return -1;
-	}
-	g_io_channel_set_encoding(in, NULL, NULL);
-
-	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		if (g_mime_stream_write(out,line,strlen(line)) == -1) {
-			TRACE(TRACE_ERR,"failed writing file");
-			g_io_channel_shutdown(in,TRUE,NULL);
-			g_io_channel_unref(in);
-			close(fd);
-			g_object_unref(out);
-			g_free(line);
-			g_remove(path);
-			return -1;
-		}
-		g_free(line);
-	}
-
-	g_mime_stream_flush(out);
-	close(fd);
-	g_object_unref(out);
-	g_io_channel_shutdown(in,TRUE,NULL);
-	g_io_channel_unref(in);
-
-	return 0;
-}
-
-/** Gets the value of the first header with the name requested.
- *
- * \param header_name name of the wanted header
- *
- * \returns requested header
- */
-const char *smf_message_header_get(const char *header_name) {
-	SMFSession_T *session = smf_session_get();
-	const char *header_value = NULL;
-
-	while (session->dirty_headers) {
-		SMFHeaderModification_T *mod = (SMFHeaderModification_T *)((GSList *)session->dirty_headers)->data;
-		if (g_ascii_strcasecmp(mod->name,header_name) == 0)
-			return mod->value;
-		session->dirty_headers = ((GSList *)session->dirty_headers)->next;
-	}
-#ifdef HAVE_GMIME24
-	header_value = g_mime_header_list_get((GMimeHeaderList *)session->headers,header_name);
-#else
-	header_value = g_mime_header_get((GMimeHeader *)session->headers,header_name);
-#endif
-	return header_value;
-}
-
-/** Removed the specified header if it exists
- *
- * \param header_name name of the header
- * 
- * \returns 0 on success or -1 in case of error
- */
-void smf_message_header_remove(char *header_name) {
-	SMFSession_T *session = smf_session_get();
-	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
-	header->status = HEADER_REMOVE;
-	header->name = g_strdup(header_name);
-	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
-
-#ifdef HAVE_GMIME24
-	g_mime_header_list_remove((GMimeHeaderList *)session->headers,header_name);
-#else
-	g_mime_header_remove((GMimeHeader *)session->headers,header_name);
-#endif
-	return;
-}
-
-/** Prepends a header. If value is NULL, a space will be set aside for it
- * (useful for setting the order of headers before values can be obtained
- * for them) otherwise the header will be unset.
- *
- * \param header_name name of the header
- * \param header_value new value for the header
- */
-void smf_message_header_prepend(char *header_name, char *header_value) {
-	SMFSession_T *session = smf_session_get();
-	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
-	header->status = HEADER_PREPEND;
-	header->name = g_strdup(header_name);
-	header->value = g_strdup(header_value);
-	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
-
-#ifdef HAVE_GMIME24
-	g_mime_header_list_prepend((GMimeHeaderList *)session->headers,header_name,header_value);
-#else
-	g_mime_header_prepend((GMimeHeader *)session->headers,header_name,header_value);
-#endif
-	return;
- }
-
-/** Appends a header. If value is NULL, a space will be set aside for it
- * (useful for setting the order of headers before values can be obtained
- * for them) otherwise the header will be unset.
- *
- * \param header_name name of the header
- * \param header_value new value for the header
- */
-void smf_message_header_append(char *header_name, char *header_value) {
-	SMFSession_T *session = smf_session_get();
-	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
-	header->status = HEADER_APPEND;
-	header->name = g_strdup(header_name);
-	header->value = g_strdup(header_value);
-	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
-
-#ifdef HAVE_GMIME24
-	g_mime_header_list_append((GMimeHeaderList *)session->headers,header_name,header_value);
-#else
-	TRACE(TRACE_WARNING,"function not implemented in GMime < 2.4");
-#endif
-	return;
-}
-
-/** Set the value of the specified header. If value is NULL and the header,
- * name, had not been previously set, a space will be set aside for it
- * (useful for setting the order of headers before values can be obtained
- * for them) otherwise the header will be unset.
- *
- * Note: If there are multiple headers with the specified field name,
- * the first instance of the header will be replaced and further instances
- * will be removed.
- *
- * \param header_name name of the header
- * \param header_value new value for the header
- */
-void smf_message_header_set(char *header_name, char *header_value) {
-	SMFSession_T *session = smf_session_get();
-	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
-	header->status = HEADER_SET;
-	header->name = g_strdup(header_name);
-	header->value = g_strdup(header_value);
-	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
-
-#ifdef HAVE_GMIME24
-	g_mime_header_list_set((GMimeHeaderList *)session->headers,header_name,header_value);
-#else
-	g_mime_header_set((GMimeHeader *)session->headers,header_name,header_value);
-#endif
-	return;
-}
-
-/** Allocates a string buffer containing the raw rfc822 headers.
- *
- * \returns a string containing the header block.
- */
-char *smf_message_header_to_string(void) {
-	SMFSession_T *session = smf_session_get();
-	char *header = NULL;
-
-#ifdef HAVE_GMIME24
-	header = g_mime_header_list_to_string((GMimeHeaderList *)session->headers);
-#else
-	header = g_mime_header_to_string((GMimeHeader *)session->headers);
-#endif
-	return header;
-}
-
-/** Calls func for each header name/value pair.
- *
- * \param func function to be called for each header.
- * \param user_data user data to be passed to the func.
- */
-void smf_message_header_foreach(SMFHeaderForeachFunc func, void *user_data) {
-	SMFSession_T *session = smf_session_get();
-
-#ifdef HAVE_GMIME24
-	g_mime_header_list_foreach((GMimeHeaderList *)session->headers,func,user_data);
-#else
-	g_mime_header_foreach((GMimeHeader *)session->headers,func,user_data);
-#endif
-}
 
 void smf_message_extract_addresses(GMimeObject *message) {
 	SMFSession_T *session = smf_session_get();
@@ -369,36 +155,80 @@ char *smf_message_generate_message_id(void) {
  *          type for the specified block of text. ("best" in this particular
  *          case means smallest output size)
  */
-SMFContentEncoding smf_message_best_encoding(unsigned char *text, size_t len) {
-	return (SMFContentEncoding) g_mime_utils_best_encoding(text,len);
+SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len) {
+	return (SMFContentEncoding_T) g_mime_utils_best_encoding(text,len);
 }
 
-/** Prepend text to subject
+/** Creates a new SMFMessage_T object
  *
- * \param text text to prepend
- *
- * \returns 0 on success or -1 in case of error
+ * \returns an empty message object
  */
-int smf_message_subject_prepend(char *text) {
-	char *subject = (char *)smf_message_header_get("subject");
-	if (subject == NULL)
-		return -1;
-
-	// TODO: check subject encoding
-
-	smf_message_header_set("subject",g_strdup_printf("%s %s",text,subject));
-	return 0;
+SMFMessage_T *smf_message_new(void) {
+	SMFMessage_T *message = NULL;
+	char *message_id;
+	message->data = g_mime_message_new(TRUE);
+	message_id = smf_message_generate_message_id();
+	smf_message_set_message_id(message,message_id);
+	return message;
 }
 
-/** Append text to subject
+/** Set the sender's name and address on the message object.
  *
- * \param text text to append
- *
- * \return 0 on success or -1 in case of error
+ * \param message SMFMessate_T object
+ * \param sender The name and address of the sender
  */
-int smf_message_subject_append(char *test) {
-	char *subject = (char *)smf_message_header_get("subject");
+void smf_message_set_sender(SMFMessage_T *message, const char *sender) {
+	g_mime_message_set_sender((GMimeMessage *)message->data,sender);
+}
 
-	smf_message_header_set("subject",g_strdup_printf("%s %s",subject, test));
-	return 0;
+/** Add a recipient of a chosen type to the message object.
+ *
+ * \param message SMFMessate_T object
+ * \param type A SMFRecipientType_T
+ * \param name The recipient's name (or NULL)
+ * \param addr The recipient's address
+ */
+void smf_mesage_add_recipient(SMFMessage_T *message,
+		SMFRecipientType_T type,
+		const char *name,
+		const char *addr) {
+	g_mime_message_add_recipient((GMimeMessage *)message->data,
+			type, name, addr);
+}
+
+/** Set the sender's Reply-To address on the message.
+ *
+ * \param message SMFMessage_T object
+ * \param reply_to The Reply-To address
+ */
+void smf_message_set_reply_to(SMFMessage_T *message, const char *reply_to) {
+	g_mime_message_set_reply_to((GMimeMessage *)message->data,reply_to);
+}
+
+/** Set the unencoded UTF-8 Subject field on a message.
+ *
+ * \param message SMFMessage_T object
+ * \param subject subject string
+ */
+void smf_message_set_subject(SMFMessage_T *message, const char *subject) {
+	g_mime_message_set_subject((GMimeMessage *)message->data,subject);
+}
+
+/** Sets the sent-date on a message.
+ *
+ * \param message SMFMessate_T object
+ * \param date Sent-date
+ * \param gmt_offset GMT date offset (in +/- hours)
+ */
+void smf_message_set_date(SMFMessage_T *message, time_t date, int gmt_offset) {
+	g_mime_message_set_date((GMimeMessage *)message->data,date,gmt_offset);
+}
+
+/** Set the Message-Id on a message
+ *
+ * \param message SMFMessage_T object
+ * \param message_id the message id
+ */
+void smf_message_set_message_id(SMFMessage_T *message,const char *message_id) {
+	g_mime_message_set_message_id((GMimeMessage *)message->data,message_id);
 }
