@@ -147,7 +147,7 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	g_strstrip(query);
 
 #if (GLIB2_VERSION >= 21400)
-	re = g_regex_new("/(^SELECT|^UPDATE|^DELETE|^INSERT)/", G_REGEX_CASELESS, 0, NULL);
+	re = g_regex_new("/(^SELECT|^UPDATE|^DELETE|^INSERT|^DROP|^CREATE|^ALTER)/", G_REGEX_CASELESS, 0, NULL);
 	g_regex_match(re, query, 0, &match_info);
 	if(g_match_info_matches(match_info)) {
 		is_sql = TRUE;

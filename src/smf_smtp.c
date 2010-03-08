@@ -36,7 +36,7 @@ static int authinteract (auth_client_request_t request, char **result, int field
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_message_deliver(SMFMessage_T *msg_data) {
+int smf_message_deliver(SMFDeliverInfo_T *msg_data) {
 	smtp_session_t session;
 	smtp_message_t message;
 	smtp_recipient_t recipient;
@@ -129,7 +129,7 @@ int smf_message_deliver(SMFMessage_T *msg_data) {
 static int authinteract (auth_client_request_t request, char **result, int fields, void *arg) {
 	int i;
 	
-	SMFMessage_T *msg_data = (SMFMessage_T *)arg;
+	SMFDeliverInfo_T *msg_data = (SMFDeliverInfo_T *)arg;
 	for (i = 0; i < fields; i++) {
 		if (request[i].flags & AUTH_USER)
 			result[i] = g_strdup(msg_data->auth_user);	
