@@ -18,6 +18,10 @@
 #ifndef _SMF_MESSAGE_H
 #define	_SMF_MESSAGE_H
 
+#include "smf_core.h"
+
+typedef struct _SMFObject_T SMFMessage_T;
+
 /* struct for messages send
  * via smtp_delivery */
 typedef struct {
@@ -41,7 +45,21 @@ typedef struct {
 
 	/* destination smtp server */
 	char *nexthop;
-} SMFMessage_T;
+
+	SMFMessage_T *message;
+} SMFDeliverInfo_T;
+
+/** A message recipient type.
+ *
+ * SMF_RECIPIENT_TYPE_TO - Represents the recipients in the To: header.
+ * SMF_RECIPIENT_TYPE_CC - Represents the recipients in the Cc: header.
+ * SMF_RECIPIENT_TYPE_BCC - Represents the recipients in the Bcc: header.
+ */
+typedef enum {
+	SMF_RECIPIENT_TYPE_TO,
+	SMF_RECIPIENT_TYPE_CC,
+	SMF_RECIPIENT_TYPE_BCC
+} SMFRecipientType_T;
 
 /** A Content-Transfer-Encoding enumeration.
  *
@@ -62,82 +80,7 @@ typedef enum {
 	SMF_CONTENT_ENCODING_QUOTEDPRINTABLE,
 	SMF_CONTENT_ENCODING_UUENCODE,
 	SMF_NUM_ENCODINGS
-} SMFContentEncoding;
-
-/** Copy the current message to disk
- *
- * \param path for the new message file
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_message_copy_to_disk(char *path);
-
-/** Gets the value of the first header with the name requested.
- *
- * \param header_name name of the wanted header
- *
- * \returns value of header or NULL in case of error
- */
-const char *smf_message_header_get(const char *header_name);
-
-/** Prepends a header. If value is NULL, a space will be set aside for it
- * (useful for setting the order of headers before values can be obtained
- * for them) otherwise the header will be unset.
- *
- * \param header_name name of the header
- * \param header_value new value for the header
- */
-void smf_message_header_prepend(char *header_name, char *header_value);
-
-/** Appends a header. If value is NULL, a space will be set aside for it
- * (useful for setting the order of headers before values can be obtained
- * for them) otherwise the header will be unset.
- *
- * \param header_name name of the header
- * \param header_value new value for the header
- */
-void smf_message_header_append(char *header_name, char *header_value);
-
-/** Set the value of the specified header. If value is NULL and the header,
- * name, had not been previously set, a space will be set aside for it
- * (useful for setting the order of headers before values can be obtained
- * for them) otherwise the header will be unset.
- *
- * Note: If there are multiple headers with the specified field name,
- * the first instance of the header will be replaced and further instances
- * will be removed.
- *
- * \param header_name name of the header
- * \param header_value new value for the header
- */
-void smf_message_header_set(char *header_name, char *header_value);
-
-/** Removed the specified header if it exists
- *
- * \param header_name name of the header
- */
-void smf_message_header_remove(char *header_name);
-
-/** Allocates a string buffer containing the raw rfc822 headers.
- *
- * \returns a string containing the header block.
- */
-char *smf_message_header_to_string(void);
-
-/** Function signature for the callback to smf_message_header_foreach()
- *
- * \param name the field name.
- * \param value the field value.
- * \param user_data the user-supplied callback data.
- */
-typedef void (*SMFHeaderForeachFunc) (const char *name, const char *value, void *user_data);
-
-/** Calls func for each header name/value pair.
- *
- * \param func function to be called for each header.
- * \param user_data user data to be passed to the func.
- */
-void smf_message_header_foreach(SMFHeaderForeachFunc func, void *user_data);
+} SMFContentEncoding_T;
 
 /** Deliver message
  *
@@ -145,7 +88,7 @@ void smf_message_header_foreach(SMFHeaderForeachFunc func, void *user_data);
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_message_deliver(SMFMessage_T *msg_data);
+int smf_message_deliver(SMFDeliverInfo_T *msg_data);
 
 /** Decodes an rfc2047 encoded 'text' header.
  *
@@ -178,23 +121,60 @@ char *smf_message_generate_message_id(void);
  *          type for the specified block of text. ("best" in this particular
  *          case means smallest output size)
  */
-SMFContentEncoding smf_message_best_encoding(unsigned char *text, size_t len);
+SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len);
 
-/** Prepend text to subject
+/** Creates a new SMFMessage_T object
  *
- * \param text text to prepend
- *
- * \returns 0 on success or -1 in case of error
+ * \returns an empty message object
  */
-int smf_message_subject_prepend(char *text);
+SMFMessage_T *smf_message_new(void);
 
-/** Append text to subject
- *
- * \param text text to append
- *
- * \return 0 on success or -1 in case of error
+/** Set the sender's name and address on the message object.
+ * 
+ * \param message SMFMessate_T object
+ * \param sender The name and address of the sender
  */
-int smf_message_subject_append(char *test);
+void smf_message_set_sender(SMFMessage_T *message, const char *sender);
+
+/** Add a recipient of a chosen type to the message object.
+ *
+ * \param message SMFMessate_T object
+ * \param type A SMFRecipientType_T
+ * \param name The recipient's name (or NULL)
+ * \param addr The recipient's address
+ */
+void smf_mesage_add_recipient(SMFMessage_T *message,
+		SMFRecipientType_T type,
+		const char *name,
+		const char *addr);
+
+/** Set the sender's Reply-To address on the message.
+ *
+ * \param message SMFMessage to change
+ * \param reply_to The Reply-To address
+ */
+void smf_message_set_reply_to(SMFMessage_T *message, const char *reply_to);
+
+/** Set the unencoded UTF-8 Subject field on a message.
+ *
+ * \param message SMFMessage_T object
+ * \param subject subject string
+ */
+void smf_message_set_subject(SMFMessage_T *message, const char *subject);
+
+/** Sets the sent-date on a message.
+ *
+ * \param message SMFMessate_T object
+ * \param date Sent-date
+ * \param gmt_offset GMT date offset (in +/- hours)
+ */
+void smf_message_set_date(SMFMessage_T *message, time_t date, int gmt_offset);
+
+/** Set the Message-Id on a message
+ *
+ * \param message SMFMessage_T object
+ * \param message_id the message id
+ */
+void smf_message_set_message_id(SMFMessage_T *message,const char *message_id);
 
 #endif	/* _SMF_MESSAGE_H */
-

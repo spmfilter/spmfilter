@@ -11,6 +11,7 @@ set(LIB_SMF_SRC
 	smf_settings.c
 	smf_group_settings.c
 	smf_message.c
+	smf_mime.c
 	smf_lookup.c
 	smf_lookup_result.c
 	smf_platform.c
@@ -53,6 +54,7 @@ set_property(TARGET smf PROPERTY PRIVATE_HEADER
 	smf_session.h
 	smf_trace.h
 	smf_message.h
+	smf_mime.h
 	smf_lookup.h
 )
 
