@@ -17,10 +17,30 @@
 
 #include <glib.h>
 #include <gmime/gmime.h>
+#include <string.h>
 
 #include "spmfilter_config.h"
 #include "smf_message.h"
 #include "smf_mime.h"
+
+/** Creates a new SMFDataWrapper_T object around buffer
+ *
+ * \param buffer content for data wrapper
+ * \param encoding contents encoding
+ *
+ * \returns a new SMFDataWrapper_T object
+ */
+SMFDataWrapper_T *smf_mime_data_wrapper_new(const char *buffer, SMFContentEncoding_T encoding) {
+	GMimeStream *stream;
+	SMFDataWrapper_T *wrapper;
+
+	stream = g_mime_stream_mem_new_with_buffer(buffer,strlen(buffer));
+	wrapper->data = g_mime_data_wrapper_new_with_stream(stream, encoding);
+
+	g_object_unref(stream);
+
+	return wrapper;
+}
 
 /** Creates a new MIME Part with a sepcified type. If type and
  *  subtype is NULL, object will be created with a default
@@ -69,6 +89,28 @@ void smf_mime_part_set_disposition(SMFMimePart_T *part, const char *disposition)
 #else
 	g_mime_part_set_content_disposition((GMimePart *)part->data,disposition);
 #endif
+}
+
+/** Sets the content object on the mime part.
+ *
+ * \param part a SMFMimePart_T object
+ * \param content a SMFDataWrapper_T content obeject
+ */
+void smf_mime_set_content(SMFMimePart_T *part, SMFDataWrapper_T *content) {
+	g_mime_part_set_content_object((GMimePart *)part->data,(GMimeDataWrapper *)content->data);
+}
+
+/** Gets the internal data-wrapper of the specified mime part, or NULL on error.
+ *
+ * \param part a SMFMimePart_T object
+ *
+ * \returns the data-wrapper for the mime part's contents.
+ */
+SMFDataWrapper_T *smf_mime_get_content(SMFMimePart_T *part) {
+	SMFDataWrapper_T *content;
+	content->data = g_mime_part_get_content_object((GMimePart *)part->data);
+
+	return content;
 }
 
 /** Creates a new MIME multipart object with a content-type of multipart/subtype.

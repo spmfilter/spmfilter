@@ -20,11 +20,17 @@
 
 #include "smf_message.h"
 
-typedef struct _SMFObject_T SMFMimePart_T;
-typedef struct _SMFObject_T SMFMultiPart_T;
-
 #define SMF_DISPOSITION_ATTACHMENT "attachment"
 #define SMF_DISPOSITION_INLINE "inline"
+
+/** Creates a new SMFDataWrapper_T object around buffer
+ *
+ * \param buffer content for data wrapper
+ * \param encoding contents encoding
+ *
+ * \returns a new SMFDataWrapper_T object
+ */
+SMFDataWrapper_T *smf_mime_data_wrapper_new(const char *buffer, SMFContentEncoding_T encoding);
 
 /** Creates a new MIME Part with a sepcified type. If type and
  *  subtype is NULL, object will be created with a default
@@ -52,6 +58,21 @@ void smf_mime_part_set_encoding(SMFMimePart_T *part, SMFContentEncoding_T encodi
  * \param disposition the content disposition
  */
 void smf_mime_part_set_disposition(SMFMimePart_T *part, const char *disposition);
+
+/** Sets the content object on the mime part.
+ *
+ * \param part a SMFMimePart_T object
+ * \param content a SMFDataWrapper_T content obeject
+ */
+void smf_mime_set_content(SMFMimePart_T *part, SMFDataWrapper_T *content);
+
+/** Gets the internal data-wrapper of the specified mime part, or NULL on error.
+ *
+ * \param part a SMFMimePart_T object
+ *
+ * \returns the data-wrapper for the mime part's contents.
+ */
+SMFDataWrapper_T *smf_mime_get_content(SMFMimePart_T *part);
 
 /** Creates a new MIME multipart object with a content-type of multipart/subtype.
  *
