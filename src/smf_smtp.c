@@ -17,12 +17,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #include <auth-client.h>
 #include <signal.h>
 #include <libesmtp.h>
 
+#include "smf_core.h"
 #include "smf_trace.h"
 #include "smf_message.h"
 
@@ -42,6 +45,8 @@ int smf_message_deliver(SMFDeliverInfo_T *msg_data) {
 	smtp_recipient_t recipient;
 	auth_context_t authctx = NULL;
 	const smtp_status_t *status;
+	char *tmp_file = NULL;
+	char *tmp_content = NULL;
 	FILE *fp;
 	struct sigaction sa;
 	char *nexthop = NULL;
@@ -87,9 +92,16 @@ int smf_message_deliver(SMFDeliverInfo_T *msg_data) {
 		smtp_set_reverse_path(message, "<>");
 	}
 	
-	
-	fp = fopen(msg_data->message_file, "r");
-
+	if ((msg_data->message_file == NULL) && (msg_data->message != NULL)) {
+		smf_core_gen_queue_file(&tmp_file);
+		tmp_content = smf_message_to_string(msg_data->message);
+		fp = fopen(tmp_file,"w+b");
+		fwrite(tmp_content,strlen(tmp_content),1,fp);
+		rewind(fp);
+		free(tmp_content);
+	} else {
+		fp = fopen(msg_data->message_file, "r");
+	}
 	smtp_set_message_fp(message, fp);
 	
 	if (msg_data->rcpts != NULL) {
@@ -121,6 +133,9 @@ int smf_message_deliver(SMFDeliverInfo_T *msg_data) {
 		auth_destroy_context(authctx);
 		auth_client_exit();
 	}
+
+	if (tmp_file != NULL) 
+		g_remove(tmp_file);
 
 	return 0;
 }

@@ -33,13 +33,22 @@
 SMFDataWrapper_T *smf_mime_data_wrapper_new(const char *buffer, SMFContentEncoding_T encoding) {
 	GMimeStream *stream;
 	SMFDataWrapper_T *wrapper;
-
+	wrapper = g_slice_new(SMFDataWrapper_T);
 	stream = g_mime_stream_mem_new_with_buffer(buffer,strlen(buffer));
 	wrapper->data = g_mime_data_wrapper_new_with_stream(stream, encoding);
 
 	g_object_unref(stream);
 
 	return wrapper;
+}
+
+/** Free SMFDataWrapper_T object
+ *
+ * \param wrapper SMFDataWrapper_T object
+ */
+void smf_mime_data_wrapper_unref(SMFDataWrapper_T *wrapper) {
+	g_object_unref(wrapper->data);
+	g_slice_free(wrapper,SMFDataWrapper_T);
 }
 
 /** Creates a new MIME Part with a sepcified type. If type and
@@ -53,7 +62,7 @@ SMFDataWrapper_T *smf_mime_data_wrapper_new(const char *buffer, SMFContentEncodi
  */
 SMFMimePart_T *smf_mime_part_new(const char *type, const char *subtype) {
 	SMFMimePart_T *part;
-
+	part = g_slice_new(SMFMimePart_T);
 	if ((type == NULL) && (subtype == NULL)) {
 		part->data = g_mime_part_new_with_type("text","plain");
 	} else {
@@ -61,6 +70,15 @@ SMFMimePart_T *smf_mime_part_new(const char *type, const char *subtype) {
 	}
 
 	return part;
+}
+
+/** Free SMFMimePart_T object
+ *
+ * \param part SMFMimePart_T object
+ */
+void smf_mime_part_unref(SMFMimePart_T *part) {
+	g_object_unref(part->data);
+	g_slice_free(part,SMFMimePart_T);
 }
 
 /** Set the content encoding for the specified mime part.
@@ -122,6 +140,7 @@ SMFDataWrapper_T *smf_mime_get_content(SMFMimePart_T *part) {
 SMFMultiPart_T *smf_mime_multipart_new(const char *subtype) {
 	SMFMultiPart_T *multipart;
 
+	multipart = g_slice_new(SMFMultiPart_T);
 	if (subtype == NULL) {
 		multipart->data = g_mime_multipart_new();
 	} else {
@@ -129,6 +148,15 @@ SMFMultiPart_T *smf_mime_multipart_new(const char *subtype) {
 	}
 
 	return multipart;
+}
+
+/** Free SMFMultiPart_T object
+ *
+ * \param multipart SMFMultiPart_T object
+ */
+void smf_mime_multipart_unref(SMFMultiPart_T *multipart) {
+	g_object_unref(multipart->data);
+	g_slice_free(multipart,SMFMultiPart_T);
 }
 
 /** Adds a mime part to the multipart.
