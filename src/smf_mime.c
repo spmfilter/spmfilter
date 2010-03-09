@@ -48,7 +48,7 @@ SMFDataWrapper_T *smf_mime_data_wrapper_new(const char *buffer, SMFContentEncodi
  */
 void smf_mime_data_wrapper_unref(SMFDataWrapper_T *wrapper) {
 	g_object_unref(wrapper->data);
-	g_slice_free(wrapper,SMFDataWrapper_T);
+	g_slice_free(SMFDataWrapper_T,wrapper);
 }
 
 /** Creates a new MIME Part with a sepcified type. If type and
@@ -78,7 +78,7 @@ SMFMimePart_T *smf_mime_part_new(const char *type, const char *subtype) {
  */
 void smf_mime_part_unref(SMFMimePart_T *part) {
 	g_object_unref(part->data);
-	g_slice_free(part,SMFMimePart_T);
+	g_slice_free(SMFMimePart_T,part);
 }
 
 /** Set the content encoding for the specified mime part.
@@ -156,7 +156,7 @@ SMFMultiPart_T *smf_mime_multipart_new(const char *subtype) {
  */
 void smf_mime_multipart_unref(SMFMultiPart_T *multipart) {
 	g_object_unref(multipart->data);
-	g_slice_free(multipart,SMFMultiPart_T);
+	g_slice_free(SMFMultiPart_T,multipart);
 }
 
 /** Adds a mime part to the multipart.
