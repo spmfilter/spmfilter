@@ -166,10 +166,20 @@ SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len) 
 SMFMessage_T *smf_message_new(void) {
 	SMFMessage_T *message = NULL;
 	char *message_id;
+	message = g_slice_new(SMFMessage_T);
 	message->data = g_mime_message_new(TRUE);
 	message_id = smf_message_generate_message_id();
 	smf_message_set_message_id(message,message_id);
 	return message;
+}
+
+/** Free SMFMessage_T object
+ *
+ * \param message SMFMessage_T object
+ */
+void smf_message_unref(SMFMessage_T *message) {
+	g_object_unref(message->data);
+	g_slice_free(message,SMFMessage_T);
 }
 
 /** Set the sender's name and address on the message object.
@@ -188,7 +198,7 @@ void smf_message_set_sender(SMFMessage_T *message, const char *sender) {
  * \param name The recipient's name (or NULL)
  * \param addr The recipient's address
  */
-void smf_mesage_add_recipient(SMFMessage_T *message,
+void smf_message_add_recipient(SMFMessage_T *message,
 		SMFRecipientType_T type,
 		const char *name,
 		const char *addr) {

@@ -32,6 +32,12 @@
  */
 SMFDataWrapper_T *smf_mime_data_wrapper_new(const char *buffer, SMFContentEncoding_T encoding);
 
+/** Free SMFDataWrapper_T object
+ *
+ * \param wrapper SMFDataWrapper_T object
+ */
+void smf_mime_data_wrapper_unref(SMFDataWrapper_T *wrapper);
+
 /** Creates a new MIME Part with a sepcified type. If type and
  *  subtype is NULL, object will be created with a default
  *  content-type of text/plain.
@@ -42,6 +48,12 @@ SMFDataWrapper_T *smf_mime_data_wrapper_new(const char *buffer, SMFContentEncodi
  * \returns an empty MIME Part object with the specified content-type.
  */
 SMFMimePart_T *smf_mime_part_new(const char *type, const char *subtype);
+
+/** Free SMFMimePart_T object
+ *
+ * \param part SMFMimePart_T object
+ */
+void smf_mime_part_unref(SMFMimePart_T *part);
 
 /** Set the content encoding for the specified mime part.
  *
@@ -81,6 +93,12 @@ SMFDataWrapper_T *smf_mime_get_content(SMFMimePart_T *part);
  * \returns a SMFMultiPart_T object
  */
 SMFMultiPart_T *smf_mime_multipart_new(const char *subtype);
+
+/** Free SMFMultiPart_T object
+ *
+ * \param multipart SMFMultiPart_T object
+ */
+void smf_mime_multipart_unref(SMFMultiPart_T *multipart);
 
 /** Adds a mime part to the multipart.
  *
