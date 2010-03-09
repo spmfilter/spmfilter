@@ -46,7 +46,9 @@ void smf_message_extract_addresses(GMimeObject *message) {
 
 	TRACE(TRACE_DEBUG,"session->message_from: %s",session->message_from->addr);
 
-	session->message_from->is_local = smf_lookup_check_user(session->message_from->addr);
+	if(settings->backend != NULL) {
+		session->message_from->is_local = smf_lookup_check_user(session->message_from->addr);
+	}
 	TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 			session->message_from->addr,
 			session->message_from->is_local);
