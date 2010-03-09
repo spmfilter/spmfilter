@@ -132,6 +132,12 @@ SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len);
  */
 SMFMessage_T *smf_message_new(void);
 
+/** Free SMFMessage_T object
+ *
+ * \param message SMFMessage_T object
+ */
+void smf_message_unref(SMFMessage_T *message);
+
 /** Set the sender's name and address on the message object.
  * 
  * \param message SMFMessate_T object
@@ -146,7 +152,7 @@ void smf_message_set_sender(SMFMessage_T *message, const char *sender);
  * \param name The recipient's name (or NULL)
  * \param addr The recipient's address
  */
-void smf_mesage_add_recipient(SMFMessage_T *message,
+void smf_message_add_recipient(SMFMessage_T *message,
 		SMFRecipientType_T type,
 		const char *name,
 		const char *addr);
