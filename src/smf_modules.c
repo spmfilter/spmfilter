@@ -66,10 +66,10 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	char *new_queue_file;
 	int fd, fd2;
 
-	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
-
 	if (session->dirty_headers == NULL)
 		return 0;
+
+	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
 
 	if ((fd = open(session->queue_file,O_RDONLY)) == -1) {
 		TRACE(TRACE_ERR,"unable to open queue file");
@@ -129,7 +129,7 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	stream_filter = g_mime_stream_filter_new(stream2);
 	crlf = g_mime_filter_crlf_new(TRUE,FALSE);
 	g_mime_stream_filter_add(GMIME_STREAM_FILTER(stream_filter), crlf);
-	
+
 	g_mime_object_write_to_stream(GMIME_OBJECT(msg),stream_filter);
 	g_mime_stream_flush(stream2);
 
