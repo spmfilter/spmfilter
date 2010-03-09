@@ -21,6 +21,9 @@
 #include "smf_core.h"
 
 typedef struct _SMFObject_T SMFMessage_T;
+typedef struct _SMFObject_T SMFMimePart_T;
+typedef struct _SMFObject_T SMFMultiPart_T;
+typedef struct _SMFObject_T SMFDataWrapper_T;
 
 /* struct for messages send
  * via smtp_delivery */
@@ -175,6 +178,28 @@ void smf_message_set_date(SMFMessage_T *message, time_t date, int gmt_offset);
  * \param message SMFMessage_T object
  * \param message_id the message id
  */
-void smf_message_set_message_id(SMFMessage_T *message,const char *message_id);
+void smf_message_set_message_id(SMFMessage_T *message, const char *message_id);
+
+/** Set the root-level MIME part of the message.
+ *
+ * \param message SMFMessage_T object
+ * \param part SMFMimePart_T object
+ */
+void smf_message_set_mime_part(SMFMessage_T *message, SMFMimePart_T *part);
+
+/** Set multipart object as root-level MIME part.
+ *
+ * \param message SMFMessage_T object
+ * \param multipart SMFMultiPart_t object
+ */
+void smf_message_set_multipart(SMFMessage_T *message, SMFMultiPart_T *multipart);
+
+/** Allocates a string buffer containing the contents of SMFMessage_T.
+ *
+ * \param message a SMFMessage_T object
+ *
+ * \returns an allocated string containing the contents of SMFMessage_T
+ */
+char *smf_message_to_string(SMFMessage_T *message);
 
 #endif	/* _SMF_MESSAGE_H */

@@ -232,3 +232,31 @@ void smf_message_set_date(SMFMessage_T *message, time_t date, int gmt_offset) {
 void smf_message_set_message_id(SMFMessage_T *message,const char *message_id) {
 	g_mime_message_set_message_id((GMimeMessage *)message->data,message_id);
 }
+
+/** Set the root-level MIME part of the message.
+ *
+ * \param message SMFMessage_T object
+ * \param part SMFMimePart_T object
+ */
+void smf_message_set_mime_part(SMFMessage_T *message, SMFMimePart_T *part) {
+	g_mime_message_set_mime_part((GMimeMessage *)message->data,(GMimeObject *)part->data);
+}
+
+/** Set multipart object as root-level MIME part.
+ *
+ * \param message SMFMessage_T object
+ * \param multipart SMFMultiPart_t object
+ */
+void smf_message_set_multipart(SMFMessage_T *message, SMFMultiPart_T *multipart) {
+	g_mime_message_set_mime_part((GMimeMessage *)message->data,(GMimeObject *)multipart->data);
+}
+
+/** Allocates a string buffer containing the contents of SMFMessage_T.
+ *
+ * \param message a SMFMessage_T object
+ *
+ * \returns an allocated string containing the contents of SMFMessage_T
+ */
+char *smf_message_to_string(SMFMessage_T *message) {
+	return g_mime_object_to_string((GMimeObject *)message->data);
+}
