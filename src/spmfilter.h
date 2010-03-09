@@ -19,11 +19,11 @@
 #define SPMFILTER_H
 
 #include <smf/smf_core.h>
+#include <smf/smf_lookup.h>
+#include <smf/smf_message.h>
+#include <smf/smf_mime.h>
 #include <smf/smf_session.h>
 #include <smf/smf_settings.h>
 #include <smf/smf_trace.h>
-#include <smf/smf_message.h>
-#include <smf/smf_lookup.h>
-
 
 #endif /* SPMFILTER_H */
