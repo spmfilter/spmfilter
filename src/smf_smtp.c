@@ -52,8 +52,7 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	struct sigaction sa;
 	char *nexthop = NULL;
 	int i;
-	GMimeStream *stream = NULL;
-	GMimeStream *stream_filter;
+	GMimeStream *stream, *stream_filter;
 	GMimeFilter *crlf;
 	
 	TRACE(TRACE_DEBUG,"initializing SMTP session");
@@ -149,8 +148,6 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	if (tmp_file != NULL)
 		g_remove(tmp_file);
 
-	if (stream != NULL)
-		g_object_unref(stream);
 	return 0;
 }
 
