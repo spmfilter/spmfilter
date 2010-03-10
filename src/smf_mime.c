@@ -22,6 +22,9 @@
 #include "spmfilter_config.h"
 #include "smf_message.h"
 #include "smf_mime.h"
+#include "smf_trace.h"
+
+#define THIS_MODULE "mime"
 
 /** Creates a new SMFDataWrapper_T object around buffer
  *
@@ -33,10 +36,14 @@
 SMFDataWrapper_T *smf_mime_data_wrapper_new(const char *buffer, SMFContentEncoding_T encoding) {
 	GMimeStream *stream;
 	SMFDataWrapper_T *wrapper;
-	wrapper = g_slice_new(SMFDataWrapper_T);
-	stream = g_mime_stream_mem_new_with_buffer(buffer,strlen(buffer));
-	wrapper->data = g_mime_data_wrapper_new_with_stream(stream, encoding);
 
+	if (buffer == NULL)
+		return NULL;
+
+	wrapper = g_slice_new(SMFDataWrapper_T);
+	stream = g_mime_stream_mem_new_with_buffer(buffer, strlen(buffer));
+
+	wrapper->data = g_mime_data_wrapper_new_with_stream(stream, encoding);
 	g_object_unref(stream);
 
 	return wrapper;
