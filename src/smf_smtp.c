@@ -91,12 +91,11 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 		/* bounce sender */
 		smtp_set_reverse_path(message, "<>");
 	}
-	
-	if ((msg_data->message_file == NULL) && (msg_data->message != NULL)) {
+	if (msg_data->message != NULL) {
 		smf_core_gen_queue_file(&tmp_file);
 		tmp_content = smf_message_to_string(msg_data->message);
-		fp = fopen(tmp_file,"w+b");
-		fwrite(tmp_content,strlen(tmp_content),1,fp);
+		fp = fopen(tmp_file,"w+");
+		fwrite(tmp_content, sizeof(char),strlen(tmp_content),fp);
 		rewind(fp);
 		free(tmp_content);
 	} else {
@@ -134,7 +133,7 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 		auth_client_exit();
 	}
 
-	if (tmp_file != NULL) 
+	if (tmp_file != NULL)
 		g_remove(tmp_file);
 
 	return 0;
