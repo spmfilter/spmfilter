@@ -20,6 +20,7 @@
 #include <string.h>
 #include <glib.h>
 #include <glib/gstdio.h>
+#include <gmime/gmime.h>
 
 #include <auth-client.h>
 #include <signal.h>
@@ -51,6 +52,9 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	struct sigaction sa;
 	char *nexthop = NULL;
 	int i;
+	GMimeStream *stream = NULL;
+	GMimeStream *stream_filter;
+	GMimeFilter *crlf;
 	
 	TRACE(TRACE_DEBUG,"initializing SMTP session");
 	
@@ -95,9 +99,18 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 		smf_core_gen_queue_file(&tmp_file);
 		tmp_content = smf_message_to_string(msg_data->message);
 		fp = fopen(tmp_file,"w+");
-		fwrite(tmp_content, sizeof(char),strlen(tmp_content),fp);
+	
+		stream = g_mime_stream_file_new(fp);
+		stream_filter = g_mime_stream_filter_new(stream);
+		crlf = g_mime_filter_crlf_new(TRUE,FALSE);
+		g_mime_stream_filter_add(GMIME_STREAM_FILTER(stream_filter), crlf);
+
+		g_mime_stream_write_string(stream_filter,tmp_content);
+		g_mime_stream_flush(stream);
+		g_object_unref(crlf);
+		g_object_unref(stream_filter);
 		rewind(fp);
-		free(tmp_content);
+		g_free(tmp_content);
 	} else {
 		fp = fopen(msg_data->message_file, "r");
 	}
@@ -136,6 +149,8 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	if (tmp_file != NULL)
 		g_remove(tmp_file);
 
+	if (stream != NULL)
+		g_object_unref(stream);
 	return 0;
 }
 

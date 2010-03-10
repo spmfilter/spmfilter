@@ -95,9 +95,9 @@ void smf_mime_part_unref(SMFMimePart_T *part) {
  */
 void smf_mime_part_set_encoding(SMFMimePart_T *part, SMFContentEncoding_T encoding) {
 #ifdef HAVE_GMIME24
-	g_mime_part_set_content_encoding((GMimePart *)part->data, (GMimeContentEncoding) encoding);
+	g_mime_part_set_content_encoding((GMimePart *)part->data, encoding);
 #else
-	g_mime_part_set_content_encoding((GMimePart *)part->data, (GMimePartEncodingType) encoding);
+	g_mime_part_set_content_encoding((GMimePart *)part->data, encoding);
 #endif
 }
 
