@@ -33,6 +33,59 @@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
+/** Creates a new SMFMessageEnvelope_T object
+ *
+ * \returns an empty SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_new(void) {
+	SMFMessageEnvelope_T *envelope = NULL;
+
+	envelope = g_slice_new(SMFMessageEnvelope_T);
+	envelope->rcpts = NULL;
+	envelope->num_rcpts = 0;
+
+	return envelope;
+}
+
+/** Free SMFMessageEnvelope_T object
+ *
+ * \param message SMFMessageEnvelope_T object
+ */
+void smf_message_envelope_unref(SMFMessageEnvelope_T *envelope) {
+	int i;
+	/* free all allocated recipient resources */
+	for (i = 0; i < envelope->num_rcpts; i++) {
+		g_free(envelope->rcpts[i]);
+	}
+
+	/* free all other message stuff */
+	g_free(envelope->from);
+	g_free(envelope->message_file);
+	g_free(envelope->nexthop);
+	if (envelope->message != NULL)
+		smf_message_unref(envelope->message);
+	g_slice_free(SMFMessageEnvelope_T,envelope);
+}
+
+/** Add new recipient to envelope
+ *
+ * \param envelope SMFMessageEnvelope_T object
+ * \param rcpt rcpt address
+ *
+ * \returns SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, const char *rcpt) {
+	if (envelope->rcpts == NULL) {
+		envelope->rcpts = g_malloc(sizeof(envelope->rcpts[1]));
+	} else {
+		envelope->rcpts = g_realloc(envelope->rcpts,sizeof(envelope->rcpts[envelope->num_rcpts]));
+	}
+	envelope->rcpts[envelope->num_rcpts] = g_strdup(rcpt);
+	envelope->num_rcpts += 1;
+	
+	return envelope;
+}
+
 void smf_message_extract_addresses(GMimeObject *message) {
 	SMFSession_T *session = smf_session_get();
 	SMFSettings_T *settings = smf_settings_get();
@@ -181,7 +234,7 @@ SMFMessage_T *smf_message_new(void) {
  */
 void smf_message_unref(SMFMessage_T *message) {
 	g_object_unref(message->data);
-	g_slice_free(message,SMFMessage_T);
+	g_slice_free(SMFMessage_T,message);
 }
 
 /** Set the sender's name and address on the message object.

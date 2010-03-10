@@ -50,7 +50,7 @@ typedef struct {
 	char *nexthop;
 
 	SMFMessage_T *message;
-} SMFDeliverInfo_T;
+} SMFMessageEnvelope_T;
 
 /** A message recipient type.
  *
@@ -85,13 +85,34 @@ typedef enum {
 	SMF_NUM_ENCODINGS
 } SMFContentEncoding_T;
 
+/** Creates a new SMFMessageEnvelope_T object
+ *
+ * \returns an empty SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_new(void);
+
+/** Free SMFMessageEnvelope_T object
+ *
+ * \param message SMFMessageEnvelope_T object
+ */
+void smf_message_envelope_unref(SMFMessageEnvelope_T *envelope);
+
+/** Add new recipient to envelope
+ *
+ * \param envelope SMFMessageEnvelope_T object
+ * \param rcpt rcpt address
+ *
+ * \returns SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, const char *rcpt);
+
 /** Deliver message
  *
  * \param msg_data Messate_T structure
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_message_deliver(SMFDeliverInfo_T *msg_data);
+int smf_message_deliver(SMFMessageEnvelope_T *msg_data);
 
 /** Decodes an rfc2047 encoded 'text' header.
  *

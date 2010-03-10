@@ -247,45 +247,27 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 
 int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	int i;
-	SMFDeliverInfo_T *msg;
+	SMFMessageEnvelope_T *envelope;
 	SMFSettings_T *settings = smf_settings_get();
 
-	msg = g_slice_new(SMFDeliverInfo_T);
-	msg->from = g_strdup(session->envelope_from->addr);
-
-	/* allocate memory for recipients */
-	msg->rcpts = g_malloc(sizeof(msg->rcpts[session->envelope_to_num]));
-	if(msg->rcpts == NULL) {
-		TRACE(TRACE_ERR, "failed to allocated memory for recipients!");
-		return(-1);
-	}
+	envelope = smf_message_envelope_new();
+	envelope->from = g_strdup(session->envelope_from->addr);
 
 	/* copy recipients in place */
 	for (i = 0; i < session->envelope_to_num; i++) {
-		msg->rcpts[i] = g_strdup(session->envelope_to[i]->addr);
+		envelope = smf_message_envelope_add_rcpt(envelope,session->envelope_to[i]->addr);
 	}
 
-	msg->num_rcpts = session->envelope_to_num;
-	msg->message_file = g_strdup(session->queue_file);
-	msg->nexthop = g_strup(settings->nexthop);
+	envelope->message_file = g_strdup(session->queue_file);
+	envelope->nexthop = g_strup(settings->nexthop);
 
 	/* now deliver, if delivery fails, call error hook */
-	if (smf_message_deliver(msg) != 0) {
+	if (smf_message_deliver(envelope) != 0) {
 		TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
 		q->nexthop_error(NULL);
 		return(-1);
 	}
 
-	/* free all allocated recipient resources */
-	for (i = 0; i < session->envelope_to_num; i++) {
-		g_free(msg->rcpts[i]);
-	}
-
-	/* free all other message stuff */
-	g_free(msg->from);
-	g_free(msg->message_file);
-	g_free(msg->nexthop);
-	g_slice_free(SMFDeliverInfo_T,msg);
-
+	smf_message_envelope_unref(envelope);
 	return(0);
 }
