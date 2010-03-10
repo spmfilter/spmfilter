@@ -216,11 +216,11 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 					settings->modules[i]);
 				return(-1);
 			} else if(retval == 1) {
-				TRACE(TRACE_ERR, "module %s failed to run, will continue with next module!",
+				TRACE(TRACE_DEBUG, "module %s stopped processing!",
 					settings->modules[i]);
-				continue;
+				return(0);
 			} else if(retval == 2) {
-				TRACE(TRACE_ERR, "module %s stopped processing, will now begin nexthop processing !",
+				TRACE(TRACE_DEBUG, "module %s stopped processing, will now begin nexthop processing!",
 					settings->modules[i]);
 				break;
 			}
