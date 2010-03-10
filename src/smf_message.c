@@ -181,7 +181,7 @@ SMFMessage_T *smf_message_new(void) {
  */
 void smf_message_unref(SMFMessage_T *message) {
 	g_object_unref(message->data);
-	g_slice_free(message,SMFMessage_T);
+	g_slice_free(SMFMessage_T, message);
 }
 
 /** Set the sender's name and address on the message object.
