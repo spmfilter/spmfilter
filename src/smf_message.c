@@ -196,7 +196,7 @@ char *smf_message_generate_message_id(void) {
 	char hostname[256];
 
 	gethostname(hostname,256);
-	mid = g_strdup_printf("<%s>",g_mime_utils_generate_message_id(hostname));
+	mid = g_strdup(g_mime_utils_generate_message_id(hostname));
 	
 	return mid;
 }
