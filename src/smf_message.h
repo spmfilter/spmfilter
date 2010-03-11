@@ -240,6 +240,14 @@ void smf_message_get_date(SMFMessage_T *message, time_t *date, int *tz_offset);
  */
 void smf_message_set_message_id(SMFMessage_T *message, const char *message_id);
 
+/** Get the Message-Id of a message
+ *
+ * \param message SMFMessage_T object
+ *
+ * \returns the message id
+ */
+const char *smf_message_get_message_id(SMFMessage_T *message);
+
 /** Set the root-level MIME part of the message.
  *
  * \param message SMFMessage_T object

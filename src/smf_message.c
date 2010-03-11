@@ -342,6 +342,16 @@ void smf_message_set_message_id(SMFMessage_T *message,const char *message_id) {
 	g_mime_message_set_message_id((GMimeMessage *)message->data,message_id);
 }
 
+/** Get the Message-Id of a message
+ *
+ * \param message SMFMessage_T object
+ *
+ * \returns the message id
+ */
+const char *smf_message_get_message_id(SMFMessage_T *message) {
+	return g_mime_message_get_message_id((GMimeMessage *)message->data);
+}
+
 /** Set the root-level MIME part of the message.
  *
  * \param message SMFMessage_T object
