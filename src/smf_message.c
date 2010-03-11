@@ -351,5 +351,6 @@ int smf_message_to_file(SMFMessage_T *message, const char *filename) {
 	g_mime_stream_flush(stream);
 	g_mime_stream_close(stream);
 	g_object_unref(stream);
+	close(fd);
 	return 0;
 }
