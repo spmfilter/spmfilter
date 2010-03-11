@@ -229,4 +229,13 @@ void smf_message_set_multipart(SMFMessage_T *message, SMFMultiPart_T *multipart)
  */
 char *smf_message_to_string(SMFMessage_T *message);
 
+/** Write SMFMessage_T object to disk.
+ *
+ * \param message SMFMessage_T object
+ * \param filename destination file
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_message_to_file(SMFMessage_T *message, const char *filename);
+
 #endif	/* _SMF_MESSAGE_H */
