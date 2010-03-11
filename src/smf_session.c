@@ -87,7 +87,7 @@ void smf_session_free(void) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_session_copy_to_disk(char *path) {
+int smf_session_to_file(char *path) {
 	SMFSession_T *session = smf_session_get();
 	GIOChannel *in;
 	GMimeStream *out;

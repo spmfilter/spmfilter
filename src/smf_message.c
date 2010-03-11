@@ -17,6 +17,9 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <glib.h>
 #include <gmime/gmime.h>
 
@@ -324,4 +327,29 @@ void smf_message_set_multipart(SMFMessage_T *message, SMFMultiPart_T *multipart)
  */
 char *smf_message_to_string(SMFMessage_T *message) {
 	return g_mime_object_to_string((GMimeObject *)message->data);
+}
+
+/** Write SMFMessage_T object to disk.
+ *
+ * \param message SMFMessage_T object
+ * \param filename destination file
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_message_to_file(SMFMessage_T *message, const char *filename) {
+	GMimeStream *stream;
+	int fd;
+	
+	if ((fd = open(filename,O_WRONLY|O_CREAT)) == -1) {
+		TRACE(TRACE_ERR,"unable to create %s",filename);
+		return -1;
+	}
+
+	stream = g_mime_stream_fs_new(fd);
+	g_mime_object_write_to_stream((GMimeObject *)message->data,stream);
+	
+	g_mime_stream_flush(stream);
+	g_mime_stream_close(stream);
+	g_object_unref(stream);
+	return 0;
 }
