@@ -301,8 +301,6 @@ int smf_session_subject_prepend(char *text) {
 	if (subject == NULL)
 		return -1;
 
-	// TODO: check subject encoding
-
 	smf_session_header_set("subject",g_strdup_printf("%s %s",text,subject));
 	return 0;
 }
@@ -318,4 +316,42 @@ int smf_session_subject_append(char *test) {
 
 	smf_session_header_set("subject",g_strdup_printf("%s %s",subject, test));
 	return 0;
+}
+
+/** Retrieve a SMFMessage_T object from the
+ *  current session.
+ *
+ * \returns SMFMessage_T object
+ */
+SMFMessage_T *smf_session_get_message(void) {
+	SMFSession_T *session = smf_session_get();
+	SMFMessage_T *message;
+	GMimeStream *stream, *mem_stream;
+	GMimeParser *parser;
+	int fd;
+
+	message = smf_message_new();
+
+	if ((fd = open(session->queue_file,O_RDONLY)) == -1) {
+		return NULL;
+	}
+
+	stream = g_mime_stream_fs_new(fd);
+	
+	mem_stream = g_mime_stream_mem_new();
+	g_mime_stream_write_to_stream(stream,mem_stream);
+
+	g_mime_stream_seek(mem_stream,0,0);
+
+	parser = g_mime_parser_new_with_stream(mem_stream);
+	message->data = g_mime_parser_construct_message(parser);
+
+	g_object_unref(parser);
+	g_mime_stream_close(stream);
+	g_object_unref(stream);
+	close(fd);
+	g_object_unref(mem_stream);
+
+
+	return message;
 }

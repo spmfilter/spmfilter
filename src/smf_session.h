@@ -18,6 +18,8 @@
 #ifndef _SMF_SESSION_H
 #define	_SMF_SESSION_H
 
+#include "smf_message.h"
+
 typedef struct {
 	char *addr;
 	int is_local;
@@ -154,5 +156,11 @@ int smf_session_subject_prepend(char *text);
  */
 int smf_session_subject_append(char *test);
 
+/** Retrieve a SMFMessage_T object from the
+ *  current session.
+ *
+ * \returns SMFMessage_T object
+ */
+SMFMessage_T *smf_session_get_message(void);
 #endif	/* _SMF_SESSION_H */
 
