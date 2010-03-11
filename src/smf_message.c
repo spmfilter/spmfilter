@@ -302,6 +302,16 @@ void smf_message_set_subject(SMFMessage_T *message, const char *subject) {
 	g_mime_message_set_subject((GMimeMessage *)message->data,subject);
 }
 
+/** Gets the subject from message
+ *
+ * \param message SMFMessage_T object
+ *
+ * \returns the message subject
+ */
+const char *smf_message_get_subject(SMFMessage_T *message) {
+	return g_mime_message_get_subject((GMimeMessage *)message->data);
+}
+
 /** Sets the sent-date on a message.
  *
  * \param message SMFMessate_T object
@@ -310,6 +320,17 @@ void smf_message_set_subject(SMFMessage_T *message, const char *subject) {
  */
 void smf_message_set_date(SMFMessage_T *message, time_t date, int gmt_offset) {
 	g_mime_message_set_date((GMimeMessage *)message->data,date,gmt_offset);
+}
+
+/** Stores the date in time_t format in date. If tz_offset is non-NULL, then
+ *  the timezone offset in will be stored in tz_offset.
+ *
+ * \param message SMFMessage_T object
+ * \param date pointer to a date in time_t
+ * \param tz_offset pointer to timezone offset (in +/- hours)
+ */
+void smf_message_get_date(SMFMessage_T *message, time_t *date, int *tz_offset) {
+	g_mime_message_get_date((GMimeMessage *)message->data,date,tz_offset);
 }
 
 /** Set the Message-Id on a message
