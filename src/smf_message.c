@@ -249,6 +249,16 @@ void smf_message_set_sender(SMFMessage_T *message, const char *sender) {
 	g_mime_message_set_sender((GMimeMessage *)message->data,sender);
 }
 
+/** Gets the email address of the sender from message.
+ *
+ * \param message SMFmessage_T object
+ *
+ * \returns the sender's name and address of the message.
+ */
+const char *smf_message_get_sender(SMFMessage_T *message) {
+	return g_mime_message_get_sender((GMimeMessage *)message->data);
+}
+
 /** Add a recipient of a chosen type to the message object.
  *
  * \param message SMFMessate_T object
@@ -271,6 +281,16 @@ void smf_message_add_recipient(SMFMessage_T *message,
  */
 void smf_message_set_reply_to(SMFMessage_T *message, const char *reply_to) {
 	g_mime_message_set_reply_to((GMimeMessage *)message->data,reply_to);
+}
+
+/** Gets the Reply-To address from message.
+ *
+ * \param message SMFMessage_T object
+ *
+ * \returns the sender's Reply-To address from the message.
+ */
+const char *smf_message_get_reply_to(SMFMessage_T *message) {
+	return g_mime_message_get_reply_to((GMimeMessage *)message->data);
 }
 
 /** Set the unencoded UTF-8 Subject field on a message.

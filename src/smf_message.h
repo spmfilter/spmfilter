@@ -161,10 +161,18 @@ void smf_message_unref(SMFMessage_T *message);
 
 /** Set the sender's name and address on the message object.
  * 
- * \param message SMFMessate_T object
+ * \param message SMFMessage_T object
  * \param sender The name and address of the sender
  */
 void smf_message_set_sender(SMFMessage_T *message, const char *sender);
+
+/** Gets the email address of the sender from message.
+ * 
+ * \param message SMFmessage_T object
+ * 
+ * \returns the sender's name and address of the message.
+ */
+const char *smf_message_get_sender(SMFMessage_T *message);
 
 /** Add a recipient of a chosen type to the message object.
  *
@@ -184,6 +192,14 @@ void smf_message_add_recipient(SMFMessage_T *message,
  * \param reply_to The Reply-To address
  */
 void smf_message_set_reply_to(SMFMessage_T *message, const char *reply_to);
+
+/** Gets the Reply-To address from message.
+ *
+ * \param message SMFMessage_T object
+ *
+ * \returns the sender's Reply-To address from the message.
+ */
+const char *smf_message_get_reply_to(SMFMessage_T *message);
 
 /** Set the unencoded UTF-8 Subject field on a message.
  *
