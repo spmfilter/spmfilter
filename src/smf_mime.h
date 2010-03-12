@@ -62,6 +62,14 @@ void smf_mime_part_unref(SMFMimePart_T *part);
  */
 void smf_mime_part_set_encoding(SMFMimePart_T *part, SMFContentEncoding_T encoding);
 
+/** Gets the content encoding of the mime part.
+ *
+ * \param part SMFMimePart_T object
+ *
+ * \returns a SMFContentEncoding_T
+ */
+SMFContentEncoding_T smf_mime_part_get_encoding(SMFMimePart_T *part);
+
 /** Sets the disposition to disposition which may be one of SMD_DISPOSITION_ATTACHMENT
  *  or SMF_DISPOSITION_INLINE or, by your choice, any other string which would
  *  indicate how the MIME part should be displayed by the MUA.
