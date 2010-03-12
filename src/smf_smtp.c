@@ -100,7 +100,11 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 		fp = fopen(tmp_file,"w+");
 	
 		stream = g_mime_stream_file_new(fp);
+#ifdef HAVE_GMIME24
 		stream_filter = g_mime_stream_filter_new(stream);
+#else
+		stream_filter = g_mime_stream_filter_new_with_stream(stream);
+#endif
 		crlf = g_mime_filter_crlf_new(TRUE,FALSE);
 		g_mime_stream_filter_add(GMIME_STREAM_FILTER(stream_filter), crlf);
 
