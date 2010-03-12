@@ -79,6 +79,14 @@ SMFContentEncoding_T smf_mime_part_get_encoding(SMFMimePart_T *part);
  */
 void smf_mime_part_set_disposition(SMFMimePart_T *part, const char *disposition);
 
+/** Gets the MIME object's disposition if set or NULL otherwise.
+ *
+ * \param part a SMFMimePart_T
+ *
+ * \returns the disposition string
+ */
+const char *smf_mime_part_get_dispostion(SMFMimePart_T *part);
+
 /** Sets the content object on the mime part.
  *
  * \param part a SMFMimePart_T object
