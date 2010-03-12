@@ -130,6 +130,20 @@ void smf_mime_part_set_disposition(SMFMimePart_T *part, const char *disposition)
 #endif
 }
 
+/** Gets the MIME object's disposition if set or NULL otherwise.
+ *
+ * \param part a SMFMimePart_T
+ *
+ * \returns the disposition string
+ */
+const char *smf_mime_part_get_dispostion(SMFMimePart_T *part) {
+#ifdef HAVE_GMIME24
+	return g_mime_object_get_disposition((GMimeObject *)part->data);
+#else
+	return g_mime_part_get_content_disposition((GMimePart *)part->data);
+#endif
+}
+
 /** Sets the content object on the mime part.
  *
  * \param part a SMFMimePart_T object
