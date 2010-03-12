@@ -166,6 +166,66 @@ SMFDataWrapper_T *smf_mime_get_content(SMFMimePart_T *part) {
 	return content;
 }
 
+/** Set the content description for the specified mime part.
+ *
+ * \param part a SMFMimePart_T
+ * \param description content description
+ */
+void smf_mime_set_content_description(SMFMimePart_T *part, const char *description) {
+	g_mime_part_set_content_description((GMimePart *)part->data,description);
+}
+
+/** Gets the value of the Content-Description for the specified mime part if
+ *  it exists or NULL otherwise.
+ *
+ * \param part a SMFMimePart_T
+ *
+ * \returns content description
+ */
+const char *smf_mime_get_content_description(SMFMimePart_T *part) {
+	return g_mime_part_get_content_description((GMimePart *)part->data);
+}
+
+/** Set the content id for the specified mime part.
+ *
+ * \param part a SMFMimePart_T
+ * \param content_id the content id
+ */
+void smf_mime_set_content_id(SMFMimePart_T *part, const char *content_id) {
+	g_mime_part_set_content_id((GMimePart *)part->data,content_id);
+}
+
+/** Gets the content id of the specified mime part if it exists, or NULL otherwise.
+ *
+ * \param part a SMFMimePart_T
+ *
+ * \returns the content id
+ */
+const char *smf_mime_get_content_id(SMFMimePart_T *part) {
+	return g_mime_part_get_content_id((GMimePart *)part->data);
+}
+
+/** Sets the "filename" parameter on the Content-Disposition and also sets
+ *  the "name" parameter on the Content-Type.
+ *
+ * \param part a SMFMimePart_T
+ * \param filename the filename of the Mime Part's content
+ */
+void smf_mime_set_filename(SMFMimePart_T *part, const char *filename) {
+	g_mime_part_set_filename((GMimePart *)part->data,filename);
+}
+
+/** Gets the filename of the specificed mime part, or NULL if the mime part
+ *  does not have the filename or name parameter set.
+ *
+ * \param part a SMFMimePart_T
+ *
+ * \returns the filename of the specified MIME Part
+ */
+const char *smf_mime_get_filename(SMFMimePart_T *part) {
+	return g_mime_part_get_filename((GMimePart *)part->data);
+}
+
 /** Creates a new MIME multipart object with a content-type of multipart/subtype.
  *
  * \param subtype content-type subtype. If subtype is NULL, a multipart object
