@@ -62,6 +62,14 @@ void smf_mime_part_unref(SMFMimePart_T *part);
  */
 void smf_mime_part_set_encoding(SMFMimePart_T *part, SMFContentEncoding_T encoding);
 
+/** Gets the content encoding of the mime part.
+ *
+ * \param part SMFMimePart_T object
+ *
+ * \returns a SMFContentEncoding_T
+ */
+SMFContentEncoding_T smf_mime_part_get_encoding(SMFMimePart_T *part);
+
 /** Sets the disposition to disposition which may be one of SMD_DISPOSITION_ATTACHMENT
  *  or SMF_DISPOSITION_INLINE or, by your choice, any other string which would
  *  indicate how the MIME part should be displayed by the MUA.
@@ -170,4 +178,13 @@ void smf_mime_multipart_clear(SMFMultiPart_T *multipart);
  * \returns the number of mime parts contained within the multipart.
  */
 int smf_mime_muiltpart_get_count(SMFMultiPart_T *multipart);
+
+/** Recursively calls callback on each of multipart's subparts.
+ *
+ * \param multipart a SMFMultiPart_T object
+ * \param callback unction to call for each of multipart's subparts.
+ * \param user_data user-supplied callback data
+ */
+void smf_mime_multipart_foreach(SMFMultiPart_T *multipart,
+		SMFObjectForeachFunc callback, void *user_data);
 #endif	/* _SMF_MIME_H */
