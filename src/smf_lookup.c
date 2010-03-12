@@ -25,6 +25,7 @@
 #include "smf_lookup_private.h"
 #include "smf_settings.h"
 #include "smf_trace.h"
+#include "smf_core.h"
 
 #ifdef HAVE_PCRE
 #include <pcre.h>
