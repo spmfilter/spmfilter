@@ -221,11 +221,14 @@ void smf_mime_multipart_set_boundary(SMFMultiPart_T *multipart, const char *boun
  */
 const char *smf_mime_multipart_get_boundary(SMFMultiPart_T *multipart);
 
+
+#ifdef HAVE_GMIME24
 /** Removes all subparts from multipart.
  *
  * \param multipart a SMFMultiPart_T object
  */
 void smf_mime_multipart_clear(SMFMultiPart_T *multipart);
+#endif
 
 /** Gets the number of mime parts contained within the multipart.
  *
