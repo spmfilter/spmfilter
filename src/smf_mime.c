@@ -282,3 +282,15 @@ int smf_mime_muiltpart_get_count(SMFMultiPart_T *multipart) {
 	return g_mime_multipart_get_number((GMimeMultipart *)multipart->data);
 #endif
 }
+
+/** Recursively calls callback on each of multipart's subparts.
+ *
+ * \param multipart a SMFMultiPart_T object
+ * \param callback unction to call for each of multipart's subparts.
+ * \param user_data user-supplied callback data
+ */
+void smf_mime_multipart_foreach(SMFMultiPart_T *multipart,
+		SMFObjectForeachFunc callback, void *user_data) {
+	g_mime_multipart_foreach((GMimeMultipart *)multipart->data,
+			(GMimeObjectForeachFunc) callback, user_data);
+}

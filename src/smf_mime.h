@@ -170,4 +170,13 @@ void smf_mime_multipart_clear(SMFMultiPart_T *multipart);
  * \returns the number of mime parts contained within the multipart.
  */
 int smf_mime_muiltpart_get_count(SMFMultiPart_T *multipart);
+
+/** Recursively calls callback on each of multipart's subparts.
+ *
+ * \param multipart a SMFMultiPart_T object
+ * \param callback unction to call for each of multipart's subparts.
+ * \param user_data user-supplied callback data
+ */
+void smf_mime_multipart_foreach(SMFMultiPart_T *multipart,
+		SMFObjectForeachFunc callback, void *user_data);
 #endif	/* _SMF_MIME_H */
