@@ -144,7 +144,11 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	}
 
 	stream2 = g_mime_stream_fs_new(fd2);
+#ifdef HAVE_GMIME24
 	stream_filter = g_mime_stream_filter_new(stream2);
+#else
+	g_mime_stream_filter_new_with_stream
+#endif
 	crlf = g_mime_filter_crlf_new(TRUE,FALSE);
 	g_mime_stream_filter_add(GMIME_STREAM_FILTER(stream_filter), crlf);
 
