@@ -19,7 +19,9 @@
 #define	_SMF_MESSAGE_H
 
 #include "smf_core.h"
+#include "spmfilter_config.h"
 
+typedef struct _SMFObject_T SMFObject_T;
 typedef struct _SMFObject_T SMFMessage_T;
 typedef struct _SMFObject_T SMFMimePart_T;
 typedef struct _SMFObject_T SMFMultiPart_T;
@@ -278,5 +280,30 @@ char *smf_message_to_string(SMFMessage_T *message);
  * \returns 0 on success or -1 in case of error
  */
 int smf_message_to_file(SMFMessage_T *message, const char *filename);
+
+#ifdef HAVE_GMIME24
+/** The function signature for a callback to smf_message_foreach() and smf_mime_multipart_foreach().
+ *
+ * \param parent parent SMFObject_T
+ * \param part a SMFObject_T
+ * \param user_data User-supplied callback data.
+ */
+typedef void (*SMFObjectForeachFunc) (SMFObject_T *parent, SMFObject_T *part, void *user_data);
+#else
+/** The function signature for a callback to smf_message_foreach() and smf_mime_multipart_foreach().
+ *
+ * \param part a SMFObject_T
+ * \param user_data User-supplied callback data.
+ */
+typedef void (*SMFObjectForeachFunc) (SMFObject_T *part, void *user_data);
+#endif
+
+/** Recursively calls callback on each of the mime parts in the mime message.
+ *
+ * \param message SMFMessage_T object
+ * \param callback function to call on each of the mime parts contained by the mime message
+ * \param user-supplied callback data
+ */
+void smf_message_foreach(SMFMessage_T *message,	SMFObjectForeachFunc callback, void  *user_data);
 
 #endif	/* _SMF_MESSAGE_H */

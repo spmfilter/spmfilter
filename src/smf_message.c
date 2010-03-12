@@ -405,3 +405,20 @@ int smf_message_to_file(SMFMessage_T *message, const char *filename) {
 	close(fd);
 	return 0;
 }
+
+/** Recursively calls callback on each of the mime parts in the mime message.
+ *
+ * \param message SMFMessage_T object
+ * \param callback function to call on each of the mime parts contained by the mime message
+ * \param user-supplied callback data
+ */
+void smf_message_foreach(SMFMessage_T *message,
+		SMFObjectForeachFunc callback, void  *user_data) {
+#ifdef HAVE_GMIME24
+	g_mime_message_foreach((GMimeMessage *)message->data,
+			(GMimeObjectForeachFunc) callback, user_data);
+#else
+	g_mime_message_foreach_part((GMimeMessage *)message->data,
+			(GMimePartFunc) callback,user_data);
+#endif
+}
