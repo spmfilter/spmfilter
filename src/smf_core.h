@@ -18,6 +18,12 @@
 #ifndef _SMF_CORE_H
 #define	_SMF_CORE_H
 
+/* GLIB2 VERSION INFORMATION */
+#define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
+	+ GLIB_MINOR_VERSION * 100 \
+	+ GLIB_MICRO_VERSION)
+
+
 /** Generate a new queue file name
  *
  * \buf pointer to unallocated buffer for filename, needs to
