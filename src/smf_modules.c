@@ -58,14 +58,14 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 }
 
 /* build full filename to modules states dir */
-static char *smf_modules_state_file(const char *spooldir, const char *msgid) {
+static char *smf_modules_state_file(char *spooldir,char *msgid) {
 	GChecksum *sum;
-	gchar *hex;
+	guchar *hex;
 	char buf[1024];
 
 	/* hexdigest */
 	sum = g_checksum_new(G_CHECKSUM_MD5);
-	g_checksum_update(sum, msgid, strlen(msgid));
+	g_checksum_update(sum, (guchar *)msgid, strlen(msgid));
 	hex = g_checksum_get_string(sum);
 
 	/* format */
