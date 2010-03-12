@@ -37,7 +37,7 @@
 
 #define THIS_MODULE "smf_modules"
 
-
+/* initialize the processing queue */
 ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 	int (*processerr)(int retval, void *args),
 	int (*nhoperr)(void *args))
@@ -55,6 +55,24 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 	q->nexthop_error = nhoperr;
 
 	return q;
+}
+
+/* build full filename to modules states dir */
+static char *smf_modules_state_file(char *spooldir,char *msgid) {
+	GChecksum *sum;
+	guchar *hex;
+	char buf[1024];
+
+	/* hexdigest */
+	sum = g_checksum_new(G_CHECKSUM_MD5);
+	g_checksum_update(sum, (guchar *)msgid, strlen(msgid));
+	hex = g_checksum_get_string(sum);
+
+	/* format */
+	snprintf(buf, sizeof(buf), "%s/%s.modules", spooldir, hex);
+
+	g_checksum_free(sum);
+	return(strdup(buf));
 }
 
 /** Flush modified message headers to queue file */
@@ -168,6 +186,12 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	GModule *mod;
 	gpointer *sym;
 	SMFSettings_T *settings = smf_settings_get();
+	char *state_file;
+
+	/* initialize message file here */
+	state_file = smf_modules_state_file(settings->queue_dir,
+		smf_session_header_get("message-id"));
+	TRACE(TRACE_DEBUG, "state file => %s", state_file);
 
 	for(i=0;settings->modules[i] != NULL; i++) {
 		path = (gchar *)smf_build_module_path(LIB_DIR, settings->modules[i]);
