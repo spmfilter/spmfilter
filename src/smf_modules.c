@@ -60,7 +60,7 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 /* build full filename to modules states dir */
 static char *smf_modules_state_file(char *spooldir,char *msgid) {
 	GChecksum *sum;
-	guchar *hex;
+	const gchar *hex;
 	char buf[1024];
 
 	/* hexdigest */
