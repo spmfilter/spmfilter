@@ -94,7 +94,6 @@ void smf_message_extract_addresses(GMimeObject *message) {
 	SMFSettings_T *settings = smf_settings_get();
 	InternetAddressList *ia;
 	InternetAddress *addr;
-	int i;
 
 	/* get the from field */
 	session->message_from = g_slice_new(SMFEmailAddress_T);
@@ -139,12 +138,31 @@ void smf_message_extract_addresses(GMimeObject *message) {
 		}
 	}
 #else
-	ia = (InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_TO);
+	/* all recipients from to */
+	ia = (InternetAddressList *)g_mime_message_get_recipients(
+		(GMimeMessage *)message,
+		GMIME_RECIPIENT_TYPE_TO
+	);
 	if (ia != NULL) {
-		internet_address_list_concat(ia,
-			(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_CC));
-		internet_address_list_concat(ia,
-			(InternetAddressList *)g_mime_message_get_recipients(message,GMIME_RECIPIENT_TYPE_BCC));
+
+		/* all recipients from cc */
+		internet_address_list_concat(
+			ia,
+			(InternetAddressList *)g_mime_message_get_recipients(
+				(GMimeMessage *)message,
+				GMIME_RECIPIENT_TYPE_CC
+			)
+		);
+
+		/* all recipients from bcc */
+		internet_address_list_concat(
+			ia,
+			(InternetAddressList *)g_mime_message_get_recipients(
+				(GMimeMessage *)message,
+				GMIME_RECIPIENT_TYPE_BCC
+			)
+		);
+
 		while(ia) {
 			addr = internet_address_list_get_address(ia);
 			session->message_to = malloc(sizeof(session->message_to[session->message_to_num]));
@@ -155,7 +173,7 @@ void smf_message_extract_addresses(GMimeObject *message) {
 					session->message_to_num,
 					session->message_to[session->message_to_num]->addr);
 
-			if (strcmp(settings->backend,"undef") != 0) {
+			if (settings->backend != NULL) {
 				session->message_to[session->message_to_num]->is_local =
 						smf_lookup_check_user(session->message_to[session->message_to_num]->addr);
 				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
@@ -269,9 +287,29 @@ const char *smf_message_get_sender(SMFMessage_T *message) {
 void smf_message_add_recipient(SMFMessage_T *message,
 		SMFRecipientType_T type,
 		const char *name,
-		const char *addr) {
-	g_mime_message_add_recipient((GMimeMessage *)message->data,
-			type, name, addr);
+		const char *addr)
+{
+#ifdef HAVE_GMIME24
+	g_mime_message_add_recipient(
+		(GMimeMessage *)message->data,
+		(GMimeRecipientType)type,
+		name, addr
+	);
+#else
+	GMimeMessage *msg = (GMimeMessage *)message->data;
+
+	switch(type) {
+		case SMF_RECIPIENT_TYPE_TO:
+			g_mime_message_add_recipient(msg, GMIME_RECIPIENT_TYPE_TO, name, addr);
+			break;
+		case SMF_RECIPIENT_TYPE_CC:
+			g_mime_message_add_recipient(msg, GMIME_RECIPIENT_TYPE_CC, name, addr);
+			break;
+		case SMF_RECIPIENT_TYPE_BCC:
+			g_mime_message_add_recipient(msg, GMIME_RECIPIENT_TYPE_CC, name, addr);
+			break;
+	}
+#endif
 }
 
 /** Set the sender's Reply-To address on the message.
