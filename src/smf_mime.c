@@ -349,6 +349,7 @@ const char *smf_mime_multipart_get_boundary(SMFMultiPart_T *multipart) {
 	return g_mime_multipart_get_boundary((GMimeMultipart *)multipart->data);
 }
 
+#ifdef HAVE_GMIME24
 /** Removes all subparts from multipart.
  *
  * \param multipart a SMFMultiPart_T object
@@ -356,6 +357,7 @@ const char *smf_mime_multipart_get_boundary(SMFMultiPart_T *multipart) {
 void smf_mime_multipart_clear(SMFMultiPart_T *multipart) {
 	g_mime_multipart_clear((GMimeMultipart *)multipart->data);
 }
+#endif
 
 /** Gets the number of mime parts contained within the multipart.
  *
@@ -378,7 +380,13 @@ int smf_mime_muiltpart_get_count(SMFMultiPart_T *multipart) {
  * \param user_data user-supplied callback data
  */
 void smf_mime_multipart_foreach(SMFMultiPart_T *multipart,
-		SMFObjectForeachFunc callback, void *user_data) {
-	g_mime_multipart_foreach((GMimeMultipart *)multipart->data,
-			(GMimeObjectForeachFunc) callback, user_data);
+		SMFObjectForeachFunc callback, void *user_data)
+{
+#ifdef HAVE_GMIME24
+	g_mime_multipart_foreach(
+		(GMimeMultipart *)multipart->data,
+		(GMimeObjectForeachFunc) callback,
+		user_data
+	);
+#endif
 }
