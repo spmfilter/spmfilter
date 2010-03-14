@@ -117,6 +117,7 @@ void smf_message_extract_addresses(GMimeObject *message) {
 	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
 	ia = g_mime_message_get_all_recipients(GMIME_MESSAGE(message));
 	if (ia != NULL) {
+		int i;
 		for (i=0; i < internet_address_list_length(ia); i++) {
 			addr = internet_address_list_get_address(ia,i);
 			session->message_to[session->message_to_num] = malloc(
