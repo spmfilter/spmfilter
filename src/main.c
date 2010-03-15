@@ -31,7 +31,6 @@
 #include "smf_lookup_private.h"
 #include "smf_core.h"
 #include "smf_platform.h"
-#include "smf_md5.h"
 
 #define THIS_MODULE "spmfilter"
 
