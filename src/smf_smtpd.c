@@ -142,7 +142,6 @@ static int handle_q_error(void *args) {
 
 /* handle processing errors when running queue 
  *
- * FIXME: clean documentation
  * return codes:
  * -1 = Error in processing, spmfilter will send 4xx Error to MTA
  * 0 = All ok, the next plugin will be started.
