@@ -71,5 +71,12 @@ struct _SMFObject_T {
  */
 void smf_core_object_unref(void *object);
 
-#endif	/* _SMF_CORE_H */
+/** generate md5 hexdigest for string
+ * 
+ * \params data String to generate md5sum for
+ * 
+ * \returns Pointer to hexdigest string on success, NULL on error
+ */
+char *smf_md5sum(const char *data);
 
+#endif	/* _SMF_CORE_H */

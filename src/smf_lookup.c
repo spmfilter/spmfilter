@@ -41,7 +41,6 @@ int smf_lookup_connect(void) {
 	int i;
 	SMFSettings_T *settings = smf_settings_get();
 
-
 	for (i=0; settings->backend[i] != NULL; i++) {
 #ifdef HAVE_ZDB
 		if(g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {

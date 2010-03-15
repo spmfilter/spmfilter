@@ -27,6 +27,7 @@
 #include "smf_core.h"
 #include "smf_settings.h"
 #include "smf_trace.h"
+#include "smf_md5.h"
 
 #ifdef HAVE_PCRE
 #include <pcre.h>
@@ -184,4 +185,21 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
 
 void smf_core_object_unref(void *object) {
 	g_object_unref(object);
+}
+
+char *smf_md5sum(const char *data) {
+	md5_state_t state;
+	md5_byte_t digest[16];
+	int offset = 0;
+	char *hex = (char *)calloc(16*2+1,sizeof(char));
+
+	md5_init(&state);
+	md5_append(&state, (const md5_byte_t *)data, strlen(data));
+	md5_finish(&state, digest);
+
+	for(offset=0; offset<16; offset++) {
+		sprintf(hex + offset * 2, "%02x", digest[offset]);
+	}
+
+	return(hex);
 }
