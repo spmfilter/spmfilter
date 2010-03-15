@@ -91,7 +91,7 @@ static GHashTable *smf_modules_stf_processed_modules(FILE *fh) {
 	char buf[128];
 	gchar **parts;
 
-	t = g_hash_table_new(g_str_hash, g_str_equal);
+	t = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
 	fseek(fh, 0, SEEK_SET); /* rewind the file */
 
 	while(fgets(buf, 128, fh) != NULL) {
@@ -314,10 +314,10 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	}
 
 	/* close the statefile handle and and destroy the modlist */
+	TRACE(TRACE_DEBUG, "module processing finished successfully.");
 	fclose(stfh);
 	g_hash_table_destroy(modlist);
-
-	TRACE(TRACE_DEBUG, "module processing finished successfully.");
+	/* FIXME: remove state file after successful delivery */
 
 	if (smf_modules_flush_dirty(session) != 0)
 		TRACE(TRACE_ERR,"message flush failed");
