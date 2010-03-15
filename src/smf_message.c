@@ -62,9 +62,12 @@ void smf_message_envelope_unref(SMFMessageEnvelope_T *envelope) {
 	}
 
 	/* free all other message stuff */
-	g_free(envelope->from);
-	g_free(envelope->message_file);
-	g_free(envelope->nexthop);
+	if (envelope->from != NULL) 
+		g_free(envelope->from);
+	if (envelope->message_file != NULL)
+		g_free(envelope->message_file);
+	if (envelope->nexthop != NULL)
+		g_free(envelope->nexthop);
 	if (envelope->message != NULL)
 		smf_message_unref(envelope->message);
 	g_slice_free(SMFMessageEnvelope_T,envelope);
