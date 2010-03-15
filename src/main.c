@@ -29,7 +29,9 @@
 #include "smf_trace.h"
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
+#include "smf_core.h"
 #include "smf_platform.h"
+#include "smf_md5.h"
 
 #define THIS_MODULE "spmfilter"
 
@@ -69,9 +71,11 @@ int main(int argc, char *argv[]) {
 		return -1;
 
 	/* connect to database/ldap server, if necessary */
-	if (smf_lookup_connect() != 0) {
-		TRACE(TRACE_ERR,"Unable to establish lookup connection!");
-		return -1;
+	if(settings->backend != NULL) {
+		if (smf_lookup_connect() != 0) {
+			TRACE(TRACE_ERR,"Unable to establish lookup connection!");
+			return -1;
+		}
 	}
 
 	/* check queue dir */
@@ -111,6 +115,7 @@ int main(int argc, char *argv[]) {
 		TRACE(TRACE_ERR,"%s", g_module_error());
 		return -1;
 	}
+
 	/* start processing engine */
 	ret = load_engine();
 
