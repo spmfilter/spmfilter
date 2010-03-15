@@ -34,6 +34,7 @@
 #include "smf_trace.h"
 #include "smf_modules.h"
 #include "smf_platform.h"
+#include "smf_md5.h"
 
 #define THIS_MODULE "smf_modules"
 
@@ -58,21 +59,55 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 }
 
 /* build full filename to modules states dir */
-static char *smf_modules_state_file(char *spooldir,char *msgid) {
-	GChecksum *sum;
-	const gchar *hex;
+static FILE *smf_modules_stf_handle(void) {
+	char *hex;
 	char buf[1024];
+	FILE *fh;
+	SMFSettings_T *st = smf_settings_get();
 
-	/* hexdigest */
-	sum = g_checksum_new(G_CHECKSUM_MD5);
-	g_checksum_update(sum, (guchar *)msgid, strlen(msgid));
-	hex = g_checksum_get_string(sum);
+	/* build path to file*/
+	hex = smf_md5sum(smf_session_header_get("message-id"));
+	snprintf(buf, sizeof(buf), "%s/%s.modules", st->queue_dir, hex);
+	free(hex);
 
-	/* format */
-	snprintf(buf, sizeof(buf), "%s/%s.modules", spooldir, hex);
+	/* open file and return handle */
+	fh = fopen(buf, "a+");
+	if(fh == NULL) {
+		TRACE(TRACE_ERR, "failed to open message state file => %s", buf);
+	}
 
-	g_checksum_free(sum);
-	return(strdup(buf));
+	return(fh);
+}
+
+/* write an entry to the state file */
+static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
+	fprintf(fh, "%s:ok\n", mod);
+	return(0);
+}
+
+/* load the list of processed modules from file */
+static GHashTable *smf_modules_stf_processed_modules(FILE *fh) {
+	GHashTable *t;
+	char buf[128];
+	gchar **parts;
+
+	t = g_hash_table_new(g_str_hash, g_str_equal);
+	fseek(fh, 0, SEEK_SET); /* rewind the file */
+
+	while(fgets(buf, 128, fh) != NULL) {
+		parts = g_strsplit(g_strchomp(buf), ":",2);
+		
+		if(parts[0] != NULL) {
+			g_hash_table_insert(t,
+				(gpointer *)(g_strdup(parts[0])),
+				(gpointer *)(g_strdup(parts[1]))
+			);
+
+			g_strfreev(parts);
+		}
+	}
+
+	return(t);
 }
 
 /** Flush modified message headers to queue file */
@@ -187,24 +222,37 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	int retval;
 	ModuleLoadFunction runner;
 	gchar *path;
+	char *curmod;
 	GModule *mod;
 	gpointer *sym;
+	GHashTable *modlist;
+	FILE *stfh = NULL;
 	SMFSettings_T *settings = smf_settings_get();
-	char *state_file;
 
 	/* initialize message file here */
-	state_file = smf_modules_state_file(settings->queue_dir,
-		smf_session_header_get("message-id"));
-	TRACE(TRACE_DEBUG, "state file => %s", state_file);
+	stfh = smf_modules_stf_handle();
+	if(NULL == stfh) {
+		return(-1);
+	}
+	modlist = smf_modules_stf_processed_modules(stfh);
 
 	for(i=0;settings->modules[i] != NULL; i++) {
-		path = (gchar *)smf_build_module_path(LIB_DIR, settings->modules[i]);
+		curmod = settings->modules[i];
+
+		/* check if the module is in our modlist, if yes, the module has
+		 * already been processed and can be skipped */
+		if(g_hash_table_lookup(modlist, (gpointer *)curmod) != NULL) {
+			TRACE(TRACE_INFO, "skipping modules => %s", curmod);
+			continue;
+		}
+
+		path = (gchar *)smf_build_module_path(LIB_DIR, curmod);
 		if(path == NULL) {
-			TRACE(TRACE_DEBUG, "failed to build module path for %s", settings->modules[i]);
+			TRACE(TRACE_DEBUG, "failed to build module path for %s", curmod);
 			return(-1);
 		}
 
-		TRACE(TRACE_DEBUG, "preparing to run module %s", settings->modules[i]);
+		TRACE(TRACE_DEBUG, "preparing to run module %s", curmod);
 
 		mod = g_module_open(path, G_MODULE_BIND_LAZY);
 		if (!mod) {
@@ -240,22 +288,34 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 			retval = q->processing_error(retval, NULL);
 
 			if(retval == 0) {
-				TRACE(TRACE_ERR, "module %s failed to run, will stop processing!",
-					settings->modules[i]);
+				TRACE(TRACE_ERR, "module %s failed, stopping processing!", curmod);
+				g_hash_table_destroy(modlist);
+				fclose(stfh);
+
 				return(-1);
 			} else if(retval == 1) {
-				TRACE(TRACE_DEBUG, "module %s stopped processing!",
-					settings->modules[i]);
+				TRACE(TRACE_WARNING, "module %s stopped processing!", curmod);
+				g_hash_table_destroy(modlist);
+				fclose(stfh);
+
 				return(0);
 			} else if(retval == 2) {
-				TRACE(TRACE_DEBUG, "module %s stopped processing, will now begin nexthop processing!",
-					settings->modules[i]);
+				TRACE(
+					TRACE_DEBUG,
+					"module %s stopped processing, turning to nexthop processing!",
+					curmod
+				);
 				break;
 			}
+		} else {
+			TRACE(TRACE_DEBUG, "module %s finished successfully", curmod);
+			smf_modules_stf_write_entry(stfh, settings->modules[i]);
 		}
-
-		TRACE(TRACE_DEBUG, "module %s finished successfully", settings->modules[i]);
 	}
+
+	/* close the statefile handle and and destroy the modlist */
+	fclose(stfh);
+	g_hash_table_destroy(modlist);
 
 	TRACE(TRACE_DEBUG, "module processing finished successfully.");
 
