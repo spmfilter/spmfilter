@@ -18,6 +18,7 @@
 #ifndef _SMF_MESSAGE_H
 #define	_SMF_MESSAGE_H
 
+#include <time.h>
 #include "smf_core.h"
 #include "spmfilter_config.h"
 
