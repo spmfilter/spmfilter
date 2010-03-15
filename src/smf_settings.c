@@ -38,7 +38,6 @@ void smf_settings_set(SMFSettings_T **s) {
 	settings = *s;
 }
 
-/* FIXME: i will break on SMTP QUIT command */
 void smf_settings_free(SMFSettings_T *settings) {
 	smf_smtp_codes_free();
 	g_strfreev(settings->modules);

@@ -62,9 +62,11 @@ void smf_session_free(void) {
 	g_free(session->helo);
 	g_free(session->xforward_addr);
 
-	// TODO: unref headers, dirty_headers
-//	g_free(session->header->data);
-//	g_slice_free(Header_T,session->header);
+#ifdef HAVE_GMIME24
+	g_mime_header_list_destroy((GMimeHeaderList *)session->headers);
+#else
+	g_mime_header_destroy((GMimeHeader *)session->headers);
+#endif
 
 	if (session->envelope_from != NULL)
 		g_free(session->envelope_from->addr);
