@@ -41,5 +41,14 @@ typedef enum {
 void trace(SMFTrace_T level, const char * module, const char * function, int line, const char *formatstring, ...);
 
 
+#define TRDEBUG(fmt, ...) TRACE(TRACE_DEBUG, fmt, ##__VA_ARGS__)
+#define TRINFO(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+#define TRNOTICE(fmt, ...) TRACE(TRACE_NOTICE, fmt, ##__VA_ARGS__)
+#define TRWARN(fmt, ...) TRACE(TRACE_WARN, fmt, ##__VA_ARGS__)
+#define TRERR(fmt, ...) TRACE(TRACE_ERR, fmt, ##__VA_ARGS__)
+#define TRCRIT(fmt, ...) TRACE(TRACE_CRIT, fmt, ##__VA_ARGS__)
+#define TRALERT(fmt, ...) TRACE(TRACE_ALERT, fmt, ##__VA_ARGS__)
+#define TREMERG(fmt, ...) TRACE(TRACE_EMERG, fmt, ##__VA_ARGS__)
+
 #endif	/* _SMF_TRACE_H */
 
