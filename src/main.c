@@ -128,8 +128,10 @@ int main(int argc, char *argv[]) {
 		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 	}
 
-	if (smf_lookup_disconnect() != 0)
-		TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
+	if(settings->backend != NULL) {
+		if (smf_lookup_disconnect() != 0)
+			TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
+	}
 
 	/* free all stuff */
 	if (!g_module_close(module))
