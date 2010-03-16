@@ -46,6 +46,12 @@ SMFMessageEnvelope_T *smf_message_envelope_new(void) {
 	envelope = g_slice_new(SMFMessageEnvelope_T);
 	envelope->rcpts = NULL;
 	envelope->num_rcpts = 0;
+	envelope->message_file = NULL;
+	envelope->message = NULL;
+	envelope->auth_pass = NULL;
+	envelope->auth_user = NULL;
+	envelope->from = NULL;
+	envelope->nexthop = NULL;
 
 	return envelope;
 }
