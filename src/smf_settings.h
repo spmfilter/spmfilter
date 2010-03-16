@@ -102,7 +102,7 @@ SMFSettings_T *smf_settings_get(void);
 int smf_settings_group_load(char *group_name);
 
 /** Returns the raw value associated with key under the selected group.
- *  Use group_settings_get_string() to retrieve an unescaped UTF-8 string.
+ *  Use smf_settings_group_get_string() to retrieve an unescaped UTF-8 string.
  *
  * \param key a key
  *
