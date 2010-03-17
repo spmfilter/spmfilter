@@ -307,4 +307,63 @@ typedef void (*SMFObjectForeachFunc) (SMFObject_T *part, void *user_data);
  */
 void smf_message_foreach(SMFMessage_T *message,	SMFObjectForeachFunc callback, void  *user_data);
 
+/** Gets the value of the first header with the name requested.
+ *
+ * \param message a SMFMessage_T object
+ * \param header_name name of the wanted header
+ *
+ * \returns value of header or NULL in case of error
+ */
+const char *smf_message_header_get(SMFMessage_T *message, const char *header_name);
+
+/** Prepends a header. If value is NULL, a space will be set aside for it
+ * (useful for setting the order of headers before values can be obtained
+ * for them) otherwise the header will be unset.
+ *
+ * \param message a SMFMessage_T object
+ * \param header_name name of the header
+ * \param header_value new value for the header
+ */
+void smf_message_header_prepend(SMFMessage_T *message, char *header_name, char *header_value);
+
+/** Appends a header. If value is NULL, a space will be set aside for it
+ * (useful for setting the order of headers before values can be obtained
+ * for them) otherwise the header will be unset.
+ *
+ * \param message a SMFMessage_T object
+ * \param header_name name of the header
+ * \param header_value new value for the header
+ */
+void smf_message_header_append(SMFMessage_T *message, char *header_name, char *header_value);
+
+/** Set the value of the specified header. If value is NULL and the header,
+ * name, had not been previously set, a space will be set aside for it
+ * (useful for setting the order of headers before values can be obtained
+ * for them) otherwise the header will be unset.
+ *
+ * Note: If there are multiple headers with the specified field name,
+ * the first instance of the header will be replaced and further instances
+ * will be removed.
+ *
+ * \param message a SMFMessage_T object
+ * \param header_name name of the header
+ * \param header_value new value for the header
+ */
+void smf_message_header_set(SMFMessage_T *message, char *header_name, char *header_value);
+
+/** Removed the specified header if it exists
+ *
+ * \param message a SMFMessage_T object
+ * \param header_name name of the header
+ */
+void smf_message_header_remove(SMFMessage_T *message, char *header_name);
+
+/** Allocates a string buffer containing the raw rfc822 headers.
+ *
+ * \param message a SMFMessage_T object
+ *
+ * \returns a string containing the header block.
+ */
+char *smf_message_header_to_string(SMFMessage_T *message);
+
 #endif	/* _SMF_MESSAGE_H */
