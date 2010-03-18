@@ -228,6 +228,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	GHashTable *modlist;
 	FILE *stfh = NULL;
 	SMFSettings_T *settings = smf_settings_get();
+	gchar *header = NULL;
 
 	/* initialize message file here */
 	stfh = smf_modules_stf_handle();
@@ -319,6 +320,12 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	g_hash_table_destroy(modlist);
 	/* FIXME: remove state file after successful delivery */
 
+	if (settings->add_header == 1) {
+		header = g_strdup_printf("processed %s",g_strjoinv(",",settings->modules));
+		smf_session_header_append("X-Spmfilter",header);
+	}
+
+	g_free(header);
 	if (smf_modules_flush_dirty(session) != 0)
 		TRACE(TRACE_ERR,"message flush failed");
 

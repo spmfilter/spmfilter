@@ -46,6 +46,7 @@ SMFSession_T *smf_session_get(void) {
 		session->envelope_to = NULL;
 		session->xforward_addr = NULL;
 		session->dirty_headers = NULL;
+		session->msgbodysize = 0;
 	}
 	
 	return session;

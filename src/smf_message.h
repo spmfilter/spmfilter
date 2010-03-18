@@ -111,11 +111,11 @@ SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelo
 
 /** Deliver message
  *
- * \param msg_data Messate_T structure
+ * \param msg_data SMFMessageEnvelope_T object
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_message_deliver(SMFMessageEnvelope_T *msg_data);
+int smf_message_deliver(SMFMessageEnvelope_T *envelope);
 
 /** Decodes an rfc2047 encoded 'text' header.
  *
@@ -144,7 +144,7 @@ char *smf_message_generate_message_id(void);
  * \param text text to encode
  * \param len text length
  *
- * \returns a SMFContentEncoding that is determined to be the best encoding
+ * \returns a SMFContentEncoding_T that is determined to be the best encoding
  *          type for the specified block of text. ("best" in this particular
  *          case means smallest output size)
  */

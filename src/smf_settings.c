@@ -139,6 +139,9 @@ int smf_settings_parse_config(void) {
 	}
 	TRACE(TRACE_DEBUG, "settings->backend_connection: %s", settings->backend_connection);
 
+	settings->add_header = g_key_file_get_boolean(keyfile, "global", "add_header",NULL);
+	TRACE(TRACE_DEBUG, "settings->add_header: %d", settings->add_header);
+
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
 	if(settings->backend != NULL) {

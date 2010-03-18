@@ -62,6 +62,9 @@ typedef struct {
 	 */
 	char *backend_connection;
 
+	/* add spmfilter processing header */
+	int add_header;
+
 	/* zdb settings */
 	char *sql_driver;
 	char *sql_name;
