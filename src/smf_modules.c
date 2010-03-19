@@ -59,10 +59,9 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 }
 
 /* build full filename to modules states dir */
-static FILE *smf_modules_stf_handle(void) {
+static char *smf_modules_stf_path(void) {
 	char *hex;
 	char buf[1024];
-	FILE *fh;
 	SMFSettings_T *st = smf_settings_get();
 
 	/* build path to file*/
@@ -70,13 +69,7 @@ static FILE *smf_modules_stf_handle(void) {
 	snprintf(buf, sizeof(buf), "%s/%s.modules", st->queue_dir, hex);
 	free(hex);
 
-	/* open file and return handle */
-	fh = fopen(buf, "a+");
-	if(fh == NULL) {
-		TRACE(TRACE_ERR, "failed to open message state file => %s", buf);
-	}
-
-	return(fh);
+	return(strdup(buf));
 }
 
 /* write an entry to the state file */
@@ -226,13 +219,20 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	GModule *mod;
 	gpointer *sym;
 	GHashTable *modlist;
+	char *stf_filename = NULL;
 	FILE *stfh = NULL;
 	SMFSettings_T *settings = smf_settings_get();
 	gchar *header = NULL;
 
-	/* initialize message file here */
-	stfh = smf_modules_stf_handle();
-	if(NULL == stfh) {
+	/* initialize message file  and load processed modules */
+	stf_filename = smf_modules_stf_path();
+	stfh = fopen(stf_filename, "a+");
+	if(stfh == NULL) {
+		TRACE(TRACE_ERR, "failed to open message state file => %s", stf_filename);
+
+		if(stf_filename != NULL)
+			free(stf_filename);
+
 		return(-1);
 	}
 	modlist = smf_modules_stf_processed_modules(stfh);
@@ -292,12 +292,14 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 				TRACE(TRACE_ERR, "module %s failed, stopping processing!", curmod);
 				g_hash_table_destroy(modlist);
 				fclose(stfh);
+				free(stf_filename);
 
 				return(-1);
 			} else if(retval == 1) {
 				TRACE(TRACE_WARNING, "module %s stopped processing!", curmod);
 				g_hash_table_destroy(modlist);
 				fclose(stfh);
+				free(stf_filename);
 
 				return(0);
 			} else if(retval == 2) {
@@ -314,11 +316,15 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 		}
 	}
 
-	/* close the statefile handle and and destroy the modlist */
+	/* close file, cleanup modlist and remove state file */
 	TRACE(TRACE_DEBUG, "module processing finished successfully.");
 	fclose(stfh);
 	g_hash_table_destroy(modlist);
-	/* FIXME: remove state file after successful delivery */
+
+	if(unlink(stf_filename) != 0) {
+		TRERR("Failed to unlink state file => %s", stf_filename);
+	}
+	free(stf_filename);
 
 	if (settings->add_header == 1) {
 		header = g_strdup_printf("processed %s",g_strjoinv(",",settings->modules));
