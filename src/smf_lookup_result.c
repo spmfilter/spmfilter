@@ -27,7 +27,9 @@
  * \returns newly allocated SMFLookupResult_T
  */
 SMFLookupResult_T *smf_lookup_result_new(void) {
-	return (SMFLookupResult_T *)g_ptr_array_new();
+	SMFLookupResult_T * r = (SMFLookupResult_T *)g_ptr_array_new();
+	r->len = 0;
+	return 0;
 }
 
 /** Adds a new element on to the end of the list.
