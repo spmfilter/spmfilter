@@ -73,7 +73,7 @@ typedef enum {
  * SMF_CONTENT_ENCODING_7BIT - 7bit text transfer encoding.
  * SMF_CONTENT_ENCODING_8BIT - 8bit text transfer encoding.
  * SMF_CONTENT_ENCODING_BINARY - Binary transfer encoding.
- * SNF_CONTENT_ENCODING_BASE64 - Base64 transfer encoding.
+ * SMF_CONTENT_ENCODING_BASE64 - Base64 transfer encoding.
  * SMF_CONTENT_ENCODING_QUOTEDPRINTABLE - Quoted-printable transfer encoding.
  * SMF_CONTENT_ENCODING_UUENCODE - Uuencode transfer encoding.
  */
