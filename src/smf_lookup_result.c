@@ -55,10 +55,12 @@ SMFLookupElement_T *smf_lookup_result_index(SMFLookupResult_T *l, int i) {
  */
 void smf_lookup_result_free(SMFLookupResult_T *l) {
 	int i;
-	for (i = 0; i < l->len; i++) {
-		g_hash_table_unref((GHashTable *)smf_lookup_result_index(l,i));
+	if (l!=NULL) {
+		for (i = 0; i < l->len; i++) {
+			g_hash_table_unref((GHashTable *)smf_lookup_result_index(l,i));
+		}
+		g_free(l);
 	}
-	g_free(l);
 }
 
 
