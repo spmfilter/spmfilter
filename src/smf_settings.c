@@ -16,6 +16,7 @@
  */
 
 #include <glib.h>
+#include <math.h>
 
 #include "spmfilter_config.h"
 #include "smf_smtp_codes.h"
@@ -146,6 +147,12 @@ int smf_settings_parse_config(void) {
 		}
 	}
 	TRACE(TRACE_DEBUG, "settings->add_header: %d", settings->add_header);
+
+	settings->max_size = (unsigned long) floor(g_key_file_get_double(keyfile, "global", "max_size",NULL) + 0.5);
+	if (!settings->max_size) {
+		settings->max_size = 0;
+	}
+	TRACE(TRACE_DEBUG, "settings->max_size: %d", settings->max_size);
 
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);

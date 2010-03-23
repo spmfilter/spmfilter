@@ -65,6 +65,9 @@ typedef struct {
 	/* add spmfilter processing header */
 	int add_header;
 
+	/* maximal message size in bytes */
+	unsigned long max_size;
+
 	/* zdb settings */
 	char *sql_driver;
 	char *sql_name;

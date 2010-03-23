@@ -38,6 +38,10 @@
 #include "smf_message.h"
 #include "smf_message_private.h"
 
+#ifdef HAVE_PCRE
+#include <pcre.h>
+#endif
+
 #define THIS_MODULE "smtpd"
 
 #define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
@@ -55,6 +59,8 @@
 #define ST_RCPT 4
 #define ST_DATA 5
 #define ST_QUIT 6
+
+#define RE_MAIL_FROM "^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?(?:\\W*SIZE=(\\d+))?"
 
 /* copy headers from message object to own GMimeHeaderList */
 static void copy_header_func(const char *name, const char *value, gpointer data) {
@@ -338,6 +344,17 @@ int load(void) {
 	int state=ST_INIT;
 	SMFSettings_T *settings = smf_settings_get();
 	SMFSession_T *session = smf_session_get();
+	const char *requested_size = NULL;
+	const char *mail_from_addr = NULL;
+#if (GLIB2_VERSION >= 21400)
+	GRegex *re = NULL;
+	GMatchInfo *match_info = NULL;
+#else
+	pcre *re;
+	int ovector[30];
+	int rc, erroffset;
+	const char *error;
+#endif
 
 	gethostname(hostname,256);
 
@@ -395,7 +412,7 @@ int load(void) {
 					smtpd_string_reply("501 Syntax: EHLO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"session->helo: %s",session->helo);
-					smtpd_string_reply("250-%s\r\n250 XFORWARD NAME ADDR PROTO HELO SOURCE\r\n",hostname);
+					smtpd_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 SIZE\r\n",hostname);
 					state = ST_HELO;
 				}
 			} else {
@@ -428,7 +445,62 @@ int load(void) {
 				smtpd_string_reply("503 Error: nested MAIL command\r\n");
 			} else {
 				session->envelope_from = g_slice_new(SMFEmailAddress_T);
-				session->envelope_from->addr = smf_core_get_substring("^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+#if (GLIB2_VERSION >= 21400)
+				re = g_regex_new(RE_MAIL_FROM, G_REGEX_CASELESS, 0, NULL);
+				g_regex_match(re, line, 0, &match_info);
+				if(g_match_info_matches(match_info)) {
+					mail_from_addr = g_match_info_fetch(match_info, 1);
+					if (mail_from_addr != NULL) {
+						session->envelope_from->addr = g_strdup(mail_from_addr);
+						free((char *)mail_from_addr);
+					}
+					if (settings->max_size != 0 )
+						requested_size = g_match_info_fetch(match_info, 2);
+				} else {
+					smtpd_code_reply(CODE_552);
+					g_slice_free(SMFEmailAddress_T,session->envelope_from);
+					session->envelope_from = NULL;
+				}
+				g_match_info_free(match_info);
+				g_regex_unref(re);
+#else
+				re = pcre_compile(RE_MAIL_FROM,
+						PCRE_CASELESS, &error, &erroffset, NULL);
+				if(re != NULL) {
+					rc = pcre_exec(re, NULL, line, strlen(line), 0, 0, ovector, 30);
+					if (rc > 0) {
+						pcre_get_substring(line,ovector,rc,1,&mail_from_addr);
+						if (mail_from_addr != NULL) {
+							session->envelope_from->addr = g_strdup(mail_from_addr);
+							free((char *)mail_from_addr);
+						}
+						if (settings->max_size != 0 )
+							pcre_get_substring(line,ovector,rc,2,&requested_size);
+					} else{
+						smtpd_code_reply(CODE_552);
+						g_slice_free(SMFEmailAddress_T,session->envelope_from);
+						session->envelope_from = NULL;
+					}
+				} else {
+					smtpd_code_reply(CODE_552);
+					g_slice_free(SMFEmailAddress_T,session->envelope_from);
+					session->envelope_from = NULL;
+				}
+#endif
+
+				if (settings->max_size != 0) {
+					if (requested_size != NULL) {
+						unsigned long l;
+						l = (unsigned long) strtol(requested_size,NULL,10);
+						if (l > settings->max_size) {
+							smtpd_string_reply("552 Message size limit exceeded\r\n");
+							g_slice_free(SMFEmailAddress_T,session->envelope_from);
+							session->envelope_from = NULL;
+							continue;
+						}
+					}
+				}
+
 				if (session->envelope_from->addr != NULL){
 					TRACE(TRACE_DEBUG,"session->envelope_from: %s",session->envelope_from->addr);
 					if (strcmp(session->envelope_from->addr,"") == 0) {

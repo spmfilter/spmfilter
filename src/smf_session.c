@@ -73,14 +73,21 @@ void smf_session_free(void) {
 #endif
 	}
 
-	if (session->envelope_from != NULL)
-		g_free(session->envelope_from->addr);
-	g_slice_free(SMFEmailAddress_T,session->envelope_from);
-	for (i = 0; i < session->envelope_to_num; i++) {
-		g_free(session->envelope_to[i]->addr);
-		g_slice_free(SMFEmailAddress_T,session->envelope_to[i]);
+	if (session->envelope_from != NULL) {
+		if (session->envelope_from->addr != NULL)
+			g_free(session->envelope_from->addr);
+		g_slice_free(SMFEmailAddress_T,session->envelope_from);
 	}
-	g_free(session->envelope_to);
+	
+	if (session->envelope_to != NULL) {
+		for (i = 0; i < session->envelope_to_num; i++) {
+			if (session->envelope_to[i] != NULL) {
+				g_free(session->envelope_to[i]->addr);
+				g_slice_free(SMFEmailAddress_T,session->envelope_to[i]);
+			}
+		}
+		g_free(session->envelope_to);
+	}
 
 	if (session->dirty_headers != NULL)
 		g_slist_free((GSList *)session->headers);
