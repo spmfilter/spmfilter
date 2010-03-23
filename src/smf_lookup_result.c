@@ -18,6 +18,7 @@
 #include <glib.h>
 
 #include "smf_lookup.h"
+#include "smf_trace.h"
 
 #define THIS_MODULE "lookup_result"
 
@@ -57,9 +58,10 @@ void smf_lookup_result_free(SMFLookupResult_T *l) {
 	int i;
 	if (l!=NULL) {
 		for (i = 0; i < l->len; i++) {
-			g_hash_table_unref((GHashTable *)smf_lookup_result_index(l,i));
+			SMFLookupElement_T *e = smf_lookup_result_index(l,i);
+			g_hash_table_destroy((GHashTable *)e);
 		}
-		g_free(l);
+		g_ptr_array_free((GPtrArray *)l,TRUE);
 	}
 }
 
