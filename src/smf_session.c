@@ -47,6 +47,8 @@ SMFSession_T *smf_session_get(void) {
 		session->xforward_addr = NULL;
 		session->dirty_headers = NULL;
 		session->msgbodysize = 0;
+		session->headers = NULL;
+		session->dirty_headers = NULL;
 	}
 	
 	return session;
@@ -63,11 +65,13 @@ void smf_session_free(void) {
 	g_free(session->helo);
 	g_free(session->xforward_addr);
 
+	if (session->headers != NULL) {
 #ifdef HAVE_GMIME24
-	g_mime_header_list_destroy((GMimeHeaderList *)session->headers);
+		g_mime_header_list_destroy((GMimeHeaderList *)session->headers);
 #else
-	g_mime_header_destroy((GMimeHeader *)session->headers);
+		g_mime_header_destroy((GMimeHeader *)session->headers);
 #endif
+	}
 
 	if (session->envelope_from != NULL)
 		g_free(session->envelope_from->addr);
