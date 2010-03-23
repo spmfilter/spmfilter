@@ -395,7 +395,7 @@ int load(void) {
 					smtpd_string_reply("501 Syntax: EHLO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"session->helo: %s",session->helo);
-					smtpd_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 DSN\r\n",hostname);
+					smtpd_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n",hostname);
 					state = ST_HELO;
 				}
 			} else {
