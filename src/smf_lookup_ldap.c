@@ -82,7 +82,7 @@ char *ldap_get_uri(char *host) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int ldap_bind(char *uri) {
+int smf_ldap_bind(char *uri) {
 	int ret, err;
 	struct berval *cred;
 	SMFSettings_T *settings = smf_settings_get();
@@ -120,7 +120,7 @@ int ldap_failover_connect(void) {
 	
 	for (i=0; i < settings->ldap_num_hosts; i++) {
 		uri = ldap_get_uri(settings->ldap_host[i]);
-		if (ldap_bind(uri) != 0) {
+		if (smf_ldap_bind(uri) != 0) {
 			continue;
 		} else {
 			return 0;
@@ -166,7 +166,7 @@ int smf_lookup_ldap_connect(void) {
 		TRACE(TRACE_LOOKUP, "set ldap referrals to off");
 	}
 
-	if (ldap_bind(uri) != 0) {
+	if (smf_ldap_bind(uri) != 0) {
 		if (ldap_failover_connect() != 0) {
 			TRACE(TRACE_ERR,"failover connection failed");
 			return -1;
