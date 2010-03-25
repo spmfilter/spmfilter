@@ -176,12 +176,10 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 #ifdef HAVE_LDAP
 		if ((g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) && (is_sql == FALSE)) {
 			result = smf_lookup_ldap_query(query);
-			TRDEBUG("smf_lookup_query 1: result len is => %d", result->len);
 			break;
 		}
 #endif
 	}
 	g_free(query);
-	TRDEBUG("smf_lookup_query 2: result len is => %d", result->len);
 	return result;
 }
