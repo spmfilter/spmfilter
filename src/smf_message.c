@@ -90,7 +90,10 @@ SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelo
 	if (envelope->rcpts == NULL) {
 		envelope->rcpts = g_malloc(sizeof(envelope->rcpts[1]));
 	} else {
-		envelope->rcpts = g_realloc(envelope->rcpts,sizeof(envelope->rcpts[envelope->num_rcpts]));
+		envelope->rcpts = g_realloc(
+			envelope->rcpts,
+			sizeof(SMFMessage_T) * (envelope->num_rcpts + 1)
+		);
 	}
 	envelope->rcpts[envelope->num_rcpts] = g_strdup(rcpt);
 	envelope->num_rcpts += 1;
