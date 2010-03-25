@@ -37,6 +37,7 @@
 #include "smf_lookup.h"
 #include "smf_message.h"
 #include "smf_message_private.h"
+#include "smf/smf_trace.h"
 
 #ifdef HAVE_PCRE
 #include <pcre.h>
@@ -528,7 +529,14 @@ int load(void) {
 				smtpd_string_reply("503 Error: need MAIL command\r\n");
 			} else {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
-				session->envelope_to = g_realloc(session->envelope_to,sizeof(session->envelope_to[session->envelope_to_num]));
+
+				/* reallocate memory to make room for additional recipients */
+				session->envelope_to = g_realloc(
+					session->envelope_to,
+					sizeof(SMFEmailAddress_T) * (session->envelope_to_num + 1)
+				);
+
+				/* allocate resources for the individual recipient */
 				session->envelope_to[session->envelope_to_num] = g_slice_new(SMFEmailAddress_T);
 				session->envelope_to[session->envelope_to_num]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
 				if (session->envelope_to[session->envelope_to_num] != NULL) {

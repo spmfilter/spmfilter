@@ -251,6 +251,7 @@ SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...) {
 		}
 		smf_lookup_result_add(result,e);
 	}
+
 	ber_free(ptr,0);
 	ldap_msgfree(msg);
 	g_free(query);
