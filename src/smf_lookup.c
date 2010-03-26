@@ -85,12 +85,9 @@ int smf_lookup_disconnect(void) {
 
 /** Check if given user is local
  *
- * \param addr email address
- *
- * \returns 0 if user is not local, 1 if
- *          user is local
+ * \param a SMFEmailAddress_T object
  */
-int smf_lookup_check_user(char *addr) {
+void smf_lookup_check_user(SMFEmailAddress_T *user) {
 	int i;
 	SMFSettings_T *settings = smf_settings_get();
 
@@ -98,8 +95,7 @@ int smf_lookup_check_user(char *addr) {
 #ifdef HAVE_ZDB
 		if(g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {
 			if (settings->sql_user_query != NULL) {
-				if (smf_lookup_sql_user_exists(addr) == 1)
-					return 1;
+				smf_lookup_sql_check_user(user);
 			}
 		}
 #endif
@@ -107,14 +103,17 @@ int smf_lookup_check_user(char *addr) {
 #ifdef HAVE_LDAP
 		if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
 			if (settings->ldap_user_query != NULL) {
-				if (smf_lookup_ldap_user_exists(addr) == 1)
-					return 1;
+				smf_lookup_ldap_check_user(user);
 			}
 		}
 #endif
 	}
 
-	return 0;
+	if (user->user_data != NULL)
+		user->is_local = 1;
+	else
+		user->is_local = 0;
+
 }
 
 /** Query lookup backend.

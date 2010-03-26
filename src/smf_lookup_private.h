@@ -18,6 +18,8 @@
 #ifndef _SMF_LOOKUP_PRIVATE_H
 #define	_SMF_LOOKUP_PRIVATE_H
 
+#include "smf_session.h"
+
 /** Allocates memory for SMFLookupResult_T
  *
  * \returns newly allocated SMFLookupResult_T
@@ -48,6 +50,24 @@ SMFLookupElement_T *smf_lookup_element_new(void);
  * \param *value the value to associate with the key
  */
 void smf_lookup_element_add(SMFLookupElement_T *e, char *key, void *value);
+
+/** Check if given user is local
+ *
+ * \param user a SMFEmailAddress_T object
+ */
+void smf_lookup_check_user(SMFEmailAddress_T *user);
+
+/** Check if given user exists in ldap directory
+ *
+ * \param user a SMFEmailAddress_T object
+ */
+void smf_lookup_ldap_check_user(SMFEmailAddress_T *user);
+
+/** Check if given user exists in database
+ *
+ * \param user a SMFEmailAddress_T object
+ */
+void smf_lookup_sql_check_user(SMFEmailAddress_T *user);
 
 #endif	/* _SMF_LOOKUP_PRIVATE_H */
 

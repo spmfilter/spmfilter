@@ -308,38 +308,14 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
 }
 
 
-/** check if given user exists in database
+/** Check if given user exists in database
  *
- * \param addr email adress of user
- *
- * \return 1 if the user exists, otherwise 0
+ * \param user a SMFEmailAddress_T object
  */
-int smf_lookup_sql_user_exists(char *addr) {
-	Connection_T c = NULL;
-	ResultSet_T r = NULL;
-	char *query = NULL;
+void smf_lookup_sql_check_user(SMFEmailAddress_T *user) {
 	SMFSettings_T *settings = smf_settings_get();
 
-	if (addr == NULL)
-		return 0;
-
-	c = sql_con_get();
-	if (smf_core_expand_string(settings->sql_user_query, addr, &query) <= 0) {
-		TRACE(TRACE_ERR,"failed to expand sql query");
-		return -1;
-	}
-	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-	r = Connection_executeQuery(c,query,NULL);
-	if (query != NULL)
-		free(query);
-	if (ResultSet_next(r)) {
-		TRACE(TRACE_LOOKUP, "found user [%s]",addr);
-		sql_con_close(c);
-		return 1;
-	} else {
-		TRACE(TRACE_LOOKUP, "user [%s] does not exist", addr);
-		sql_con_close(c);
-		return 0;
-	}
+	user->user_data = NULL;
+	user->user_data = smf_lookup_sql_query(settings->sql_user_query,user->addr);
 }
 
