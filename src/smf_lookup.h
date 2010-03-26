@@ -64,15 +64,6 @@ SMFLookupElement_T *smf_lookup_result_index(SMFLookupResult_T *l, int i);
  */
 void *smf_lookup_element_get(SMFLookupElement_T *e, char *key);
 
-/** Check if given user is local
- *
- * \param addr email address
- *
- * \returns 0 if user is not local, 1 if
- *          user is local
- */
-int smf_lookup_check_user(char *addr);
-
 /** Query lookup backend.
  *
  * \param q a standard printf() format string
@@ -121,14 +112,6 @@ void smf_lookup_sql_disconnect(void);
  */
 SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...);
 
-/** Check if given user exists in database
- *
- * \param addr email adress of user
- *
- * \return 1 if the user exists, otherwise 0
- */
-int smf_lookup_sql_user_exists(char *addr);
-
 /** Connect to ldap server
  *
  * \returns 0 on success or -1 in case of error
@@ -146,13 +129,5 @@ void smf_lookup_ldap_disconnect(void);
  * \returns SMFLookupResult_T
  */
 SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...);
-
-/** Check if given user exists in ldap directory
- *
- * \param addr email adress of user
- *
- * \return 1 if the user exists, otherwise 0
- */
-int smf_lookup_ldap_user_exists(char *addr);
 
 #endif	/* _SMF_LOOKUP_H */

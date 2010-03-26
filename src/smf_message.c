@@ -30,6 +30,7 @@
 #include "smf_message.h"
 #include "smf_message_private.h"
 #include "smf_lookup.h"
+#include "smf_lookup_private.h"
 #include "smf_settings.h"
 
 #define THIS_MODULE "message"
@@ -114,7 +115,7 @@ void smf_message_extract_addresses(GMimeObject *message) {
 	TRACE(TRACE_DEBUG,"session->message_from: %s",session->message_from->addr);
 
 	if(settings->backend != NULL) {
-		session->message_from->is_local = smf_lookup_check_user(session->message_from->addr);
+		smf_lookup_check_user(session->message_from);
 	}
 	TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 			session->message_from->addr,
@@ -141,8 +142,7 @@ void smf_message_extract_addresses(GMimeObject *message) {
 					session->message_to[session->message_to_num]->addr);
 
 			if (settings->backend != NULL) {
-				session->message_to[session->message_to_num]->is_local =
-						smf_lookup_check_user(session->message_to[session->message_to_num]->addr);
+				smf_lookup_check_user(session->message_to[session->message_to_num]);
 				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 						session->message_to[session->message_to_num]->addr,
 						session->message_to[session->message_to_num]->is_local);
@@ -187,8 +187,7 @@ void smf_message_extract_addresses(GMimeObject *message) {
 					session->message_to[session->message_to_num]->addr);
 
 			if (settings->backend != NULL) {
-				session->message_to[session->message_to_num]->is_local =
-						smf_lookup_check_user(session->message_to[session->message_to_num]->addr);
+				smf_lookup_check_user(session->message_to[session->message_to_num]);
 				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 						session->message_to[session->message_to_num]->addr,
 						session->message_to[session->message_to_num]->is_local);

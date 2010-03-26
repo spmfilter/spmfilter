@@ -35,9 +35,9 @@
 #include "smf_smtp_codes.h"
 #include "smf_core.h"
 #include "smf_lookup.h"
+#include "smf_lookup_private.h"
 #include "smf_message.h"
 #include "smf_message_private.h"
-#include "smf/smf_trace.h"
 
 #ifdef HAVE_PCRE
 #include <pcre.h>
@@ -478,12 +478,12 @@ int load(void) {
 						if (settings->max_size != 0 )
 							pcre_get_substring(line,ovector,rc,2,&requested_size);
 					} else{
-						smtpd_code_reply(CODE_552);
+						smtpd_string_reply(CODE_552);
 						g_slice_free(SMFEmailAddress_T,session->envelope_from);
 						session->envelope_from = NULL;
 					}
 				} else {
-					smtpd_code_reply(CODE_552);
+					smtpd_string_reply(CODE_552);
 					g_slice_free(SMFEmailAddress_T,session->envelope_from);
 					session->envelope_from = NULL;
 				}
@@ -511,7 +511,7 @@ int load(void) {
 						session->envelope_from = NULL;
 					} else {
 						if (settings->backend != NULL) {
-								session->envelope_from->is_local = smf_lookup_check_user(session->envelope_from->addr);
+								smf_lookup_check_user(session->envelope_from);
 								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->envelope_from->addr,session->envelope_from->is_local);
 						}
 						smtpd_code_reply(250);
@@ -547,7 +547,7 @@ int load(void) {
 					} else {
 						TRACE(TRACE_DEBUG,"session->envelope_to[%d]: %s",session->envelope_to_num, session->envelope_to[session->envelope_to_num]->addr);
 						if (settings->backend != NULL) {
-							session->envelope_to[session->envelope_to_num]->is_local = smf_lookup_check_user(session->envelope_to[session->envelope_to_num]->addr);
+							smf_lookup_check_user(session->envelope_to[session->envelope_to_num]);
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", 
 									session->envelope_to[session->envelope_to_num]->addr,
 									session->envelope_to[session->envelope_to_num]->is_local);

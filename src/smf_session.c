@@ -74,8 +74,10 @@ void smf_session_free(void) {
 	}
 
 	if (session->envelope_from != NULL) {
-		if (session->envelope_from->addr != NULL)
+		if (session->envelope_from->addr != NULL) {
 			g_free(session->envelope_from->addr);
+			smf_lookup_result_free(session->envelope_from->user_data);
+		}
 		g_slice_free(SMFEmailAddress_T,session->envelope_from);
 	}
 	
@@ -83,10 +85,30 @@ void smf_session_free(void) {
 		for (i = 0; i < session->envelope_to_num; i++) {
 			if (session->envelope_to[i] != NULL) {
 				g_free(session->envelope_to[i]->addr);
+				smf_lookup_result_free(session->envelope_to[i]->user_data);
 				g_slice_free(SMFEmailAddress_T,session->envelope_to[i]);
 			}
 		}
 		g_free(session->envelope_to);
+	}
+
+	if (session->message_from != NULL) {
+		if (session->message_from->addr != NULL) {
+			g_free(session->message_from->addr);
+			smf_lookup_result_free(session->message_from->user_data);
+		}
+		g_slice_free(SMFEmailAddress_T,session->message_from);
+	}
+
+	if (session->message_to != NULL) {
+		for (i = 0; i < session->message_to_num; i++) {
+			if (session->message_to[i] != NULL) {
+				g_free(session->message_to[i]->addr);
+				smf_lookup_result_free(session->message_to[i]->user_data);
+				g_slice_free(SMFEmailAddress_T,session->message_to[i]);
+			}
+		}
+		g_free(session->message_to);
 	}
 
 	if (session->dirty_headers != NULL)

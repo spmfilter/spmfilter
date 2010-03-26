@@ -28,6 +28,7 @@
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
 #include "smf_core.h"
+#include "smf_session.h"
 
 #define THIS_MODULE "ldap_lookup"
 
@@ -260,38 +261,11 @@ SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...) {
 
 /** Check if given user exists in ldap directory
  *
- * \param addr email adress of user
- *
- * \return 1 if the user exists, otherwise 0
+ * \param user a SMFEmailAddress_T object
  */
-int smf_lookup_ldap_user_exists(char *addr) {
-	char *query;
-	LDAP *c = ldap_con_get();
-	LDAPMessage *msg = NULL;
+void smf_lookup_ldap_check_user(SMFEmailAddress_T *user) {
 	SMFSettings_T *settings = smf_settings_get();
 
-	if (addr == NULL)
-		return 0;
-
-	if (smf_core_expand_string(settings->ldap_user_query, addr, &query) <= 0) {
-		TRACE(TRACE_ERR,"failed to expand ldap query");
-		return -1;
-	}
-	TRACE(TRACE_LOOKUP,"[%p] [%s]",ld,query);
-
-	if (ldap_search_ext_s(c,settings->ldap_base,get_scope(),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS) {
-		TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);
-		ldap_msgfree(msg);
-		return -1;
-	}
-
-	if(ldap_count_entries(c,msg) > 0) {
-		TRACE(TRACE_LOOKUP, "found user [%s]",addr);
-		ldap_msgfree(msg);
-		return 1;
-	} else {
-		TRACE(TRACE_LOOKUP, "user [%s] does not exist", addr);
-		ldap_msgfree(msg);
-		return 0;
-	}
+	user->user_data = NULL;
+	user->user_data = smf_lookup_ldap_query(settings->ldap_user_query,user->addr);
 }
