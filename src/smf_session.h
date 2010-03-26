@@ -19,10 +19,12 @@
 #define	_SMF_SESSION_H
 
 #include "smf_message.h"
+#include "smf_lookup.h"
 
 typedef struct {
 	char *addr;
 	int is_local;
+	SMFLookupResult_T *user_data;
 } SMFEmailAddress_T;
 
 
