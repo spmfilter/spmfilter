@@ -216,6 +216,9 @@ void event_cb (smtp_session_t session, int event_no, void *arg,...) {
 		case SMTP_EV_MESSAGEDATA:
 		case SMTP_EV_MESSAGESENT:
 		case SMTP_EV_DISCONNECT: break;
+		case SMTP_EV_EXTNA_STARTTLS:
+			TRACE(TRACE_DEBUG, "StartTLS extension not supported by MTA");
+			break;
 		case SMTP_EV_WEAK_CIPHER: {
 			int bits;
 			bits = va_arg(alist, long); ok = va_arg(alist, int*);
@@ -227,6 +230,7 @@ void event_cb (smtp_session_t session, int event_no, void *arg,...) {
 		case SMTP_EV_INVALID_PEER_CERTIFICATE: {
 			long vfy_result;
 			vfy_result = va_arg(alist, long); ok = va_arg(alist, int*);
+			TRACE(TRACE_DEBUG, "Invalid peer certificate (error %ld)", vfy_result);
 			*ok = handle_invalid_peer_certificate(vfy_result);
 			break;
 		}
