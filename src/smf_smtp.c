@@ -22,6 +22,7 @@
 #include <glib/gstdio.h>
 #include <gmime/gmime.h>
 
+#include <openssl/ssl.h>
 #include <auth-client.h>
 #include <signal.h>
 #include <libesmtp.h>
@@ -31,6 +32,9 @@
 #include "smf_message.h"
 
 static int authinteract (auth_client_request_t request, char **result, int fields, void *arg);
+static int tlsinteract (char *buf, int buflen, int rwflag, void *arg);
+void event_cb (smtp_session_t session, int event_no, void *arg, ...);
+int handle_invalid_peer_certificate(long vfy_result);
 
 #define THIS_MODULE "smtp"
 
@@ -81,6 +85,10 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 		return -1;
 	}
 	
+	smtp_starttls_enable(session,Starttls_ENABLED);
+	smtp_starttls_set_password_cb (tlsinteract, NULL);
+	smtp_set_eventcb(session, event_cb, NULL);
+
 	if ((msg_data->auth_user != NULL) && (msg_data->auth_pass != NULL)) {
 		authctx = auth_create_context();
 		auth_set_mechanism_flags(authctx, AUTH_PLUGIN_PLAIN, 0);
@@ -176,4 +184,115 @@ static int authinteract (auth_client_request_t request, char **result, int field
   return 1;
 } 
 
+static int tlsinteract(char *buf, int buflen, int rwflag, void *arg) {
+	return 0;
+}
 
+void event_cb (smtp_session_t session, int event_no, void *arg,...) {
+	va_list alist;
+	int *ok;
+
+	va_start(alist, arg);
+	switch(event_no) {
+		case SMTP_EV_CONNECT:
+		case SMTP_EV_MAILSTATUS:
+		case SMTP_EV_RCPTSTATUS:
+		case SMTP_EV_MESSAGEDATA:
+		case SMTP_EV_MESSAGESENT:
+		case SMTP_EV_DISCONNECT: break;
+		case SMTP_EV_WEAK_CIPHER: {
+			int bits;
+			bits = va_arg(alist, long); ok = va_arg(alist, int*);
+			TRACE(TRACE_DEBUG,"SMTP_EV_WEAK_CIPHER, bits=%d - accepted.\n", bits);
+			*ok = 1; break;
+		}
+		case SMTP_EV_STARTTLS_OK:
+			TRACE(TRACE_DEBUG,"SMTP_EV_STARTTLS_OK - TLS started here."); break;
+		case SMTP_EV_INVALID_PEER_CERTIFICATE: {
+			long vfy_result;
+			vfy_result = va_arg(alist, long); ok = va_arg(alist, int*);
+			*ok = handle_invalid_peer_certificate(vfy_result);
+			break;
+		}
+		case SMTP_EV_NO_PEER_CERTIFICATE: {
+			ok = va_arg(alist, int*);
+			TRACE(TRACE_DEBUG,"SMTP_EV_NO_PEER_CERTIFICATE - accepted.");
+			*ok = 1; break;
+		}
+		case SMTP_EV_WRONG_PEER_CERTIFICATE: {
+			ok = va_arg(alist, int*);
+			TRACE(TRACE_DEBUG,"SMTP_EV_WRONG_PEER_CERTIFICATE - accepted.");
+			*ok = 1; break;
+		}
+		case SMTP_EV_NO_CLIENT_CERTIFICATE: {
+			ok = va_arg(alist, int*);
+			TRACE(TRACE_DEBUG,"SMTP_EV_NO_CLIENT_CERTIFICATE - accepted.");
+			*ok = 1; break;
+		}
+		default:
+			TRACE(TRACE_DEBUG,"Got event: %d - ignored.\n", event_no);
+	}
+	va_end(alist);
+}
+
+int handle_invalid_peer_certificate(long vfy_result) {
+	const char *k ="rare error";
+	switch(vfy_result) {
+		case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
+			k="X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT"; break;
+		case X509_V_ERR_UNABLE_TO_GET_CRL:
+			k="X509_V_ERR_UNABLE_TO_GET_CRL"; break;
+		case X509_V_ERR_UNABLE_TO_DECRYPT_CERT_SIGNATURE:
+			k="X509_V_ERR_UNABLE_TO_DECRYPT_CERT_SIGNATURE"; break;
+		case X509_V_ERR_UNABLE_TO_DECRYPT_CRL_SIGNATURE:
+			k="X509_V_ERR_UNABLE_TO_DECRYPT_CRL_SIGNATURE"; break;
+		case X509_V_ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY:
+			k="X509_V_ERR_UNABLE_TO_DECODE_ISSUER_PUBLIC_KEY"; break;
+		case X509_V_ERR_CERT_SIGNATURE_FAILURE:
+			k="X509_V_ERR_CERT_SIGNATURE_FAILURE"; break;
+		case X509_V_ERR_CRL_SIGNATURE_FAILURE:
+			k="X509_V_ERR_CRL_SIGNATURE_FAILURE"; break;
+		case X509_V_ERR_CERT_NOT_YET_VALID:
+			k="X509_V_ERR_CERT_NOT_YET_VALID"; break;
+		case X509_V_ERR_CERT_HAS_EXPIRED:
+			k="X509_V_ERR_CERT_HAS_EXPIRED"; break;
+		case X509_V_ERR_CRL_NOT_YET_VALID:
+			k="X509_V_ERR_CRL_NOT_YET_VALID"; break;
+		case X509_V_ERR_CRL_HAS_EXPIRED:
+			k="X509_V_ERR_CRL_HAS_EXPIRED"; break;
+		case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
+			k="X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD"; break;
+		case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
+			k="X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD"; break;
+		case X509_V_ERR_ERROR_IN_CRL_LAST_UPDATE_FIELD:
+			k="X509_V_ERR_ERROR_IN_CRL_LAST_UPDATE_FIELD"; break;
+		case X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD:
+			k="X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD"; break;
+		case X509_V_ERR_OUT_OF_MEM:
+			k="X509_V_ERR_OUT_OF_MEM"; break;
+		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
+			k="X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT"; break;
+		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
+			k="X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN"; break;
+		case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
+			k="X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY"; break;
+		case X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:
+			k="X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE"; break;
+		case X509_V_ERR_CERT_CHAIN_TOO_LONG:
+			k="X509_V_ERR_CERT_CHAIN_TOO_LONG"; break;
+		case X509_V_ERR_CERT_REVOKED:
+			k="X509_V_ERR_CERT_REVOKED"; break;
+		case X509_V_ERR_INVALID_CA:
+			k="X509_V_ERR_INVALID_CA"; break;
+		case X509_V_ERR_PATH_LENGTH_EXCEEDED:
+			k="X509_V_ERR_PATH_LENGTH_EXCEEDED"; break;
+		case X509_V_ERR_INVALID_PURPOSE:
+			k="X509_V_ERR_INVALID_PURPOSE"; break;
+		case X509_V_ERR_CERT_UNTRUSTED:
+			k="X509_V_ERR_CERT_UNTRUSTED"; break;
+		case X509_V_ERR_CERT_REJECTED:
+			k="X509_V_ERR_CERT_REJECTED"; break;
+	}
+	TRACE(TRACE_DEBUG,"SMTP_EV_INVALID_PEER_CERTIFICATE: %ld: %s\n", vfy_result, k);
+	return 1; /* Accept the problem */
+}
