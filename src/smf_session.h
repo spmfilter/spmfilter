@@ -27,7 +27,6 @@ typedef struct {
 	SMFLookupResult_T *user_data;
 } SMFEmailAddress_T;
 
-
 typedef struct {
 	/* hello we received */
 	char *helo;

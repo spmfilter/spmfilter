@@ -154,6 +154,15 @@ int smf_settings_parse_config(void) {
 	}
 	TRACE(TRACE_DEBUG, "settings->max_size: %d", settings->max_size);
 
+	settings->tls = g_key_file_get_integer(keyfile,"global","tls_enable",NULL);
+	if (!settings->tls)
+		settings->tls = 0;
+	TRACE(TRACE_DEBUG, "settings->tls: %d", settings->tls);
+
+	settings->tls_pass = g_key_file_get_string(keyfile,"global","tls_pass",NULL);
+	TRACE(TRACE_DEBUG, "settings->tls_pass: %s", settings->tls_pass);
+
+
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
 	if(settings->backend != NULL) {

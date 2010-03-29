@@ -30,11 +30,13 @@
 #include "smf_core.h"
 #include "smf_trace.h"
 #include "smf_message.h"
+#include "smf_settings.h"
 
 static int authinteract (auth_client_request_t request, char **result, int fields, void *arg);
 static int tlsinteract (char *buf, int buflen, int rwflag, void *arg);
 void event_cb (smtp_session_t session, int event_no, void *arg, ...);
 int handle_invalid_peer_certificate(long vfy_result);
+void print_recipient_status (smtp_recipient_t recipient, const char *mailbox, void *arg);
 
 #define THIS_MODULE "smtp"
 
@@ -58,14 +60,15 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	int i,ret;
 	GMimeStream *stream, *stream_filter;
 	GMimeFilter *crlf;
-	
+	SMFSettings_T *settings = smf_settings_get();
+
 	TRACE(TRACE_DEBUG,"initializing SMTP session");
 	
 	auth_client_init ();	
 	
 	session = smtp_create_session();
 	message = smtp_add_message(session);
-	
+
 	sa.sa_handler = SIG_IGN;
 	sigemptyset (&sa.sa_mask);
 	sa.sa_flags = 0;
@@ -85,8 +88,8 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 		return -1;
 	}
 	
-	smtp_starttls_enable(session,Starttls_ENABLED);
-	smtp_starttls_set_password_cb (tlsinteract, NULL);
+	smtp_starttls_enable(session,settings->tls);
+	smtp_starttls_set_password_cb(tlsinteract, NULL);
 	smtp_set_eventcb(session, event_cb, NULL);
 
 	if ((msg_data->auth_user != NULL) && (msg_data->auth_pass != NULL)) {
@@ -145,6 +148,7 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 		return -1;
 	} else {
 		status = smtp_message_transfer_status(message);
+		smtp_enumerate_recipients(message, print_recipient_status, NULL);
 		TRACE(TRACE_DEBUG,"smtp client got status '%d - %s'",status->code,status->text);
 		if (status->code != 250)
 			ret = -1;
@@ -185,7 +189,19 @@ static int authinteract (auth_client_request_t request, char **result, int field
 } 
 
 static int tlsinteract(char *buf, int buflen, int rwflag, void *arg) {
-	return 0;
+	char *pw;
+	int len;
+	SMFSettings_T *settings = smf_settings_get();
+
+	if (settings->tls_pass) {
+		pw = settings->tls_pass;
+		len = strlen (pw);
+		if (len + 1 > buflen)
+			return 0;
+		strcpy (buf, pw);
+		return len;
+	} else
+		return 0;
 }
 
 void event_cb (smtp_session_t session, int event_no, void *arg,...) {
@@ -295,4 +311,12 @@ int handle_invalid_peer_certificate(long vfy_result) {
 	}
 	TRACE(TRACE_DEBUG,"SMTP_EV_INVALID_PEER_CERTIFICATE: %ld: %s\n", vfy_result, k);
 	return 1; /* Accept the problem */
+}
+
+/* Callback to prnt the recipient status */
+void print_recipient_status (smtp_recipient_t recipient, const char *mailbox, void *arg) {
+	const smtp_status_t *status;
+
+	status = smtp_recipient_status (recipient);
+	TRACE(TRACE_DEBUG,"%s: %d %s", mailbox, status->code, status->text);
 }
