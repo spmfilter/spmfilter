@@ -237,11 +237,6 @@ void process_data(void) {
 	GMimeParser *parser;
 	GMimeMessage *message;
 	char *message_id;
-#ifdef HAVE_GMIME24
-	GMimeHeaderList *headers;
-#else
-	GMimeHeader *headers;
-#endif
 	SMFSession_T *session = smf_session_get();
 
 	smf_core_gen_queue_file(&session->queue_file);
@@ -293,13 +288,11 @@ void process_data(void) {
 	parser = g_mime_parser_new_with_stream(out);
 	message = g_mime_parser_construct_message(parser);
 #ifdef HAVE_GMIME24
-	headers = g_mime_object_get_header_list(GMIME_OBJECT(message));
 	session->headers = (void *)g_mime_header_list_new();
 	g_mime_header_list_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->headers);
 #else
-	headers = (void *)g_mime_object_get_headers(message);
 	session->headers = (void *)g_mime_header_new();
-	g_mime_header_foreach(headers, copy_header_func, session->headers);
+	g_mime_header_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->headers);
 #endif
 	
 	smf_message_extract_addresses(GMIME_OBJECT(message));
@@ -458,7 +451,7 @@ int load(void) {
 					if (settings->max_size != 0 )
 						requested_size = g_match_info_fetch(match_info, 2);
 				} else {
-					smtpd_code_reply(CODE_552);
+					smtpd_string_reply(CODE_552);
 					g_slice_free(SMFEmailAddress_T,session->envelope_from);
 					session->envelope_from = NULL;
 				}
