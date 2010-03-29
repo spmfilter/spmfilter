@@ -51,7 +51,7 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	FILE *fp;
 	struct sigaction sa;
 	char *nexthop = NULL;
-	int i;
+	int i,ret;
 	GMimeStream *stream, *stream_filter;
 	GMimeFilter *crlf;
 	
@@ -138,6 +138,10 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	} else {
 		status = smtp_message_transfer_status(message);
 		TRACE(TRACE_DEBUG,"smtp client got status '%d - %s'",status->code,status->text);
+		if (status->code != 250)
+			ret = -1;
+		else
+			ret = 0;
 	}
 	
 	g_free(nexthop);
@@ -152,7 +156,7 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	if (tmp_file != NULL)
 		g_remove(tmp_file);
 
-	return 0;
+	return ret;
 }
 
 
