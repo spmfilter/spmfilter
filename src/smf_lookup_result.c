@@ -49,7 +49,10 @@ void smf_lookup_result_add(SMFLookupResult_T *l, SMFLookupElement_T *elem_data) 
  * \returns SMFLookupElement_T at the given index
  */
 SMFLookupElement_T *smf_lookup_result_index(SMFLookupResult_T *l, int i) {
-	return (SMFLookupElement_T *)g_ptr_array_index((GPtrArray *)l,i);
+	if (l != NULL)
+		return (SMFLookupElement_T *)g_ptr_array_index((GPtrArray *)l,i);
+	else
+		return NULL;
 }
 
 /** Frees all of the memory used by SMFLookupResult_T
