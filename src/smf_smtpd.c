@@ -506,7 +506,9 @@ int load(void) {
 						if (settings->backend != NULL) {
 								smf_lookup_check_user(session->envelope_from);
 								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->envelope_from->addr,session->envelope_from->is_local);
-						}
+						} else 
+							session->envelope_from->user_data = NULL;
+
 						smtpd_code_reply(250);
 						state = ST_MAIL;
 					}
@@ -544,7 +546,8 @@ int load(void) {
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", 
 									session->envelope_to[session->envelope_to_num]->addr,
 									session->envelope_to[session->envelope_to_num]->is_local);
-						}
+						} else
+							session->envelope_to[session->envelope_to_num]->user_data = NULL;
 						smtpd_code_reply(250);
 						session->envelope_to_num++;
 						state = ST_RCPT;
