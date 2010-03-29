@@ -111,12 +111,24 @@ failover	=	when you configure the backend profile for failover, spmfilter fails 
 			to the next host in the list if it cannot connect to the first host.
 .fi
 
-.IP "\add_header\fR"
+.IP "\fBadd_header\fR"
 If true, spmfilter will add a header with the processed modules.
 
-.IP "\max_size\fR"
-he maximal size in bytes of a message
+.IP "\fBmax_size\fR"
+The maximal size in bytes of a message
 
+.IP "\fBtls_enable\fR
+Enable TLS for client connections. If set to 2 the protocol will quit rather
+than transferring any messages if the STARTTLS extension is not available.
+
+.nf
+0 = disable starttls
+1 = use STARTTLS, if available (default)
+2 = require STARTTLS
+.fi
+
+.IP "\fBtls_pass\fR
+Passphrase for SSL certificate, if needed.
 
 .SS "The [smtpd] section"
 .P
