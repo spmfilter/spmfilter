@@ -49,10 +49,7 @@ void smf_lookup_result_add(SMFLookupResult_T *l, SMFLookupElement_T *elem_data) 
  * \returns SMFLookupElement_T at the given index
  */
 SMFLookupElement_T *smf_lookup_result_index(SMFLookupResult_T *l, int i) {
-	if (l != NULL)
-		return (SMFLookupElement_T *)g_ptr_array_index((GPtrArray *)l,i);
-	else
-		return NULL;
+	return (SMFLookupElement_T *)g_ptr_array_index((GPtrArray *)l,i);
 }
 
 /** Frees all of the memory used by SMFLookupResult_T
@@ -64,7 +61,8 @@ void smf_lookup_result_free(SMFLookupResult_T *l) {
 	if (l!=NULL) {
 		for (i = 0; i < l->len; i++) {
 			SMFLookupElement_T *e = smf_lookup_result_index(l,i);
-			g_hash_table_destroy((GHashTable *)e);
+			if (e != NULL)
+				g_hash_table_destroy((GHashTable *)e);
 		}
 		g_ptr_array_free((GPtrArray *)l,TRUE);
 	}

@@ -116,7 +116,8 @@ void smf_message_extract_addresses(GMimeObject *message) {
 
 	if(settings->backend != NULL) {
 		smf_lookup_check_user(session->message_from);
-	}
+	} else
+		session->message_from->user_data = NULL;
 	TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 			session->message_from->addr,
 			session->message_from->is_local);
@@ -146,7 +147,8 @@ void smf_message_extract_addresses(GMimeObject *message) {
 				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 						session->message_to[session->message_to_num]->addr,
 						session->message_to[session->message_to_num]->is_local);
-			}
+			} else
+				session->message_to[session->message_to_num]->user_data = NULL;
 			session->message_to_num++;
 		}
 	}
@@ -191,7 +193,8 @@ void smf_message_extract_addresses(GMimeObject *message) {
 				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 						session->message_to[session->message_to_num]->addr,
 						session->message_to[session->message_to_num]->is_local);
-			}
+			} else
+				session->message_to[session->message_to_num]->user_data = NULL;
 			session->message_to_num++;
 			ia = internet_address_list_next(ia);
 		}
