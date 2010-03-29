@@ -18,6 +18,12 @@
 #ifndef _SMF_SETTINGS_H
 #define	_SMF_SETTINGS_H
 
+typedef enum {
+	SMF_TLS_DISABLED,
+	SMF_TLS_ENABLED,
+	SMF_TLS_REQUIRED
+} SMFTlsOption_T;
+
 typedef struct {
 	/* debug flag */
 	int debug;
@@ -67,6 +73,12 @@ typedef struct {
 
 	/* maximal message size in bytes */
 	unsigned long max_size;
+
+	/* enable/disable TLS */
+	SMFTlsOption_T tls;
+
+	/* password for ssl cert */
+	char *tls_pass;
 
 	/* zdb settings */
 	char *sql_driver;
