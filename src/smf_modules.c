@@ -174,10 +174,12 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	stream2 = g_mime_stream_fs_new(fd2);
 #ifdef HAVE_GMIME24
 	stream_filter = g_mime_stream_filter_new(stream2);
+	crlf = g_mime_filter_crlf_new(TRUE,FALSE);
 #else
 	stream_filter = g_mime_stream_filter_new_with_stream(stream2);
+	crlf = g_mime_filter_crlf_new(GMIME_FILTER_CRLF_ENCODE,GMIME_FILTER_CRLF_MODE_CRLF_ONLY);
 #endif
-	crlf = g_mime_filter_crlf_new(TRUE,FALSE);
+	
 	g_mime_stream_filter_add(GMIME_STREAM_FILTER(stream_filter), crlf);
 
 	g_mime_object_write_to_stream(GMIME_OBJECT(msg),stream_filter);
