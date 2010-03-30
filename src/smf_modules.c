@@ -286,10 +286,10 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 		/* clean up */
 		g_free(path);
 		g_module_close(mod);
-
+		
 		if(retval != 0) {
 			retval = q->processing_error(retval, NULL);
-
+			
 			if(retval == 0) {
 				TRACE(TRACE_ERR, "module %s failed, stopping processing!", curmod);
 				g_hash_table_destroy(modlist);
@@ -354,11 +354,28 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	SMFSettings_T *settings = smf_settings_get();
 
 	envelope = smf_message_envelope_new();
-	envelope->from = g_strdup(session->envelope_from->addr);
+	if (session->envelope_from != NULL)
+		envelope->from = g_strdup(session->envelope_from->addr);
+	else if (session->message_from != NULL)
+		envelope->from = g_strdup(session->message_from->addr);
+	else
+		envelope->from = g_strdup("<>");
 
-	/* copy recipients in place */
-	for (i = 0; i < session->envelope_to_num; i++) {
-		envelope = smf_message_envelope_add_rcpt(envelope,session->envelope_to[i]->addr);
+	if (session->envelope_to != NULL) {
+		/* copy recipients in place */
+		for (i = 0; i < session->envelope_to_num; i++) {
+			envelope = smf_message_envelope_add_rcpt(envelope,session->envelope_to[i]->addr);
+		}
+	} else if (session->message_to != NULL) {
+		/* copy recipients in place */
+		for (i = 0; i < session->message_to_num; i++) {
+			envelope = smf_message_envelope_add_rcpt(envelope,session->message_to[i]->addr);
+		}
+
+	} else {
+		/* hmm....i've no recipients */
+		TRACE(TRACE_ERR,"got no recipients");
+		return -1;
 	}
 
 	envelope->message_file = g_strdup(session->queue_file);
