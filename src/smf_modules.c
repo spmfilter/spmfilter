@@ -303,7 +303,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 				fclose(stfh);
 				free(stf_filename);
 
-				return(0);
+				return(1);
 			} else if(retval == 2) {
 				TRACE(
 					TRACE_DEBUG,
