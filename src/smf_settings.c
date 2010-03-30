@@ -146,6 +146,8 @@ int smf_settings_parse_config(void) {
 			if (error->code == G_KEY_FILE_ERROR_KEY_NOT_FOUND) {
 				settings->add_header = 1;
 			}
+			g_error_free(error);
+			error = NULL;
 		} 
 	}
 	TRACE(TRACE_DEBUG, "settings->add_header: %d", settings->add_header);
@@ -225,11 +227,12 @@ int smf_settings_parse_config(void) {
 	settings->ldap_binddn = g_key_file_get_string(keyfile,"ldap","binddn",NULL);
 	settings->ldap_bindpw = g_key_file_get_string(keyfile,"ldap","bindpw",NULL);
 
-	settings->ldap_base = g_key_file_get_string(keyfile,"ldap","base",NULL);
+	settings->ldap_base = g_key_file_get_string(keyfile,"ldap","base",&error);
 	if(settings->backend != NULL) {
 		for (i=0; settings->backend[i] != NULL; i++) {
 			if ((g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) && (settings->ldap_base == NULL)) {
 				TRACE(TRACE_ERR, "config error: %s", error->message);
+				g_error_free(error);
 				return -1;
 			}
 		}
