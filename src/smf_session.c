@@ -49,6 +49,8 @@ SMFSession_T *smf_session_get(void) {
 		session->msgbodysize = 0;
 		session->headers = NULL;
 		session->dirty_headers = NULL;
+		session->message_from = NULL;
+		session->message_to = NULL;
 	}
 	
 	return session;
