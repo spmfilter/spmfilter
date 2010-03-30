@@ -219,11 +219,13 @@ int load_modules(void) {
 	ret = smf_modules_process(q,session);
 	free(q);
 
-	if(ret != 0) {
+	if(ret == -1) {
 		TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
 		return(-1);
+	} else if (ret == 1) {
+		return(0);
 	}
-
+	
 	smtpd_string_reply(CODE_250_ACCEPTED);
 	return(0);
 }
