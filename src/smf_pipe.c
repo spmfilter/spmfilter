@@ -74,7 +74,7 @@ static int handle_q_processing_error(int retval, void *args) {
 				return(0);
 		}
 	} else if(retval == 1) {
-		return(2);
+		return(1);
 	}
 
 	/* if none of the above matched, halt processing, this is just
