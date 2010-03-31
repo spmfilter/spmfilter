@@ -111,7 +111,7 @@ int load_modules(void) {
 	free(q);
 
 	if(ret != 0) {
-		TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
+		TRACE(TRACE_DEBUG, "pipe engine failed to process modules!");
 		return(-1);
 	}
 
