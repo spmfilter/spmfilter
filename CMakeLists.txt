@@ -125,7 +125,32 @@ add_subdirectory(man)
 # * * * custom targets * * *
 set(SMF_ARCHIVE_NAME "${CMAKE_PROJECT_NAME}-${SMF_VERSION}")
 
-add_custom_target(dist
-    COMMAND hg archive --prefix="${SMF_ARCHIVE_NAME}" -t tgz "${SMF_ARCHIVE_NAME}.tar.gz"
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+set(CPACK_PACKAGE_NAME "spmfilter")
+set(CPACK_PACKAGE_VENDOR "spmfilter.org")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "spmfilter - mail filtering framework")
+set(CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_CURRENT_SOURCE_DIR}/README)
+set(CPACK_GENERATOR TGZ)
+set(CPACK_PACKAGE_VERSION ${SMF_VERSION})
+set(CPACK_PACKAGE_VERSION_MAJOR ${SMF_MAJOR_VERSION})
+set(CPACK_PACKAGE_VERSION_MINOR ${SMF_MINOR_VERSION})
+set(CPACK_PACKAGE_VERSION_PATCH ${SMF_MICROT_VERSION})
+set(CPACK_COMPONENTS_ALL applications libraries headers)
 
+
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${SMF_VERSION}")
+set(CPACK_SOURCE_GENERATOR TGZ)
+set(CPACK_SOURCE_IGNORE_FILES
+"\\\\.hg"
+"nbproject"
+"cmake_build"
+"build\\\\.properties"
+"spmfilter-Makefile\\\\.mk"
+"spmfilter\\\\.pc$"
+"spmfilter_config\\\\.h$"
+)
+
+set(CPACK_RPM_PACKAGE_SUMMARY ${CPACK_PACKAGE_DESCRIPTION_SUMMARY})
+set(CPACK_RPM_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
+set(CPACK_RPM_PACKAGE_VERSION ${SMF_VERSION})
+
+include(CPack)
