@@ -125,8 +125,6 @@ void smf_message_extract_addresses(GMimeObject *message) {
 	/* now check the to field */
 	session->message_to_num = 0;
 
-	session->message_to = malloc(sizeof(session->message_to[session->message_to_num]));
-
 #ifdef HAVE_GMIME24
 	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
 	ia = g_mime_message_get_all_recipients(GMIME_MESSAGE(message));
@@ -134,15 +132,20 @@ void smf_message_extract_addresses(GMimeObject *message) {
 		int i;
 		for (i=0; i < internet_address_list_length(ia); i++) {
 			addr = internet_address_list_get_address(ia,i);
-			session->message_to[session->message_to_num] = malloc(
-					sizeof(*session->message_to[session->message_to_num]));
+			session->message_to = g_realloc(
+					session->message_to,
+					sizeof(SMFEmailAddress_T) * (session->message_to_num + 1)
+				);
+			session->message_to[session->message_to_num] = g_slice_new(SMFEmailAddress_T);
 			session->message_to[session->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
+			
 			TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
 					session->message_to_num,
 					session->message_to[session->message_to_num]->addr);
 
 			if (settings->backend != NULL) {
+				session->message_to[session->message_to_num]->user_data = NULL;
 				smf_lookup_check_user(session->message_to[session->message_to_num]);
 				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 						session->message_to[session->message_to_num]->addr,
@@ -180,8 +183,10 @@ void smf_message_extract_addresses(GMimeObject *message) {
 
 		while(ia) {
 			addr = internet_address_list_get_address(ia);
-			session->message_to = malloc(sizeof(session->message_to[session->message_to_num]));
-			session->message_to[session->message_to_num] = malloc(sizeof(*session->message_to[session->message_to_num]));
+			session->message_to = g_realloc(
+					session->message_to,
+					sizeof(SMFEmailAddress_T) * (session->message_to_num + 1)
+				);
 			session->message_to[session->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
 			TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
@@ -189,6 +194,7 @@ void smf_message_extract_addresses(GMimeObject *message) {
 					session->message_to[session->message_to_num]->addr);
 
 			if (settings->backend != NULL) {
+				session->message_to[session->message_to_num]->user_data = NULL;
 				smf_lookup_check_user(session->message_to[session->message_to_num]);
 				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 						session->message_to[session->message_to_num]->addr,
