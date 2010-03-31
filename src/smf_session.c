@@ -82,7 +82,7 @@ void smf_session_free(void) {
 		}
 		g_slice_free(SMFEmailAddress_T,session->envelope_from);
 	}
-	
+
 	if (session->envelope_to != NULL) {
 		for (i = 0; i < session->envelope_to_num; i++) {
 			if (session->envelope_to[i] != NULL) {

@@ -66,7 +66,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/spmfilter/*
 %{_libdir}/pkgconfig/spmfilter.pc
 %attr(0755,root,root) %{_bindir}/spmfilter
-%attr(0700,mailnull,mailnull) %{_var}/spool/spmfilter
+%attr(0755,mailnull,mailnull) %{_var}/spool/spmfilter
 
 %changelog
 * Wed Mar 31 2010 Axel Steiner <ast@treibsand.com>
