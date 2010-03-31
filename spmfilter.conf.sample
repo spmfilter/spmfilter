@@ -1,14 +1,68 @@
 [global]
+
+# The  "engine" option allows you to specify the spmfilter engine.
+# It's possible to switch the engine for  receiving  mails.  There
+# are two engines in spmfilter for receiving emails:
+#
+# smtpd - This engine allows to inject emails via smtp to
+#         spmfilter. But please note, with this engine, spmfilter has to be
+#         started with inetd, Postfix or similar TCP server programs.
+#
+# pipe - The pipe engine lets you inject emails via shell
+#        pipe to spmfilter. This is usefully, when you don't need a full
+#        smtp server.
 engine = smtpd
-debug = true
-modules = dkim;spam
+
+# Enables verbose debugging output. Debugging output will be written to the
+# configured syslog facility.
+debug = false
+
+# Specifies the modules, which will be loaded at runtime. All modules  will 
+# be process in the same order, as listed. Module names have to be separated by a semicolon.
+modules = 
+
+# The nexthop parameter specifies the final destination, after a mail is
+# processed by spmfilter. The  value  can  be  a  hostname  or  IP
+# address,  with  a  port number, e.g. localhost:2525 to send filtered mails to
+# localhost at port 2525.
 nexthop = localhost:2525
 
 # If one module fails, there are 3 options:
 # 1 = proceed and ignore
 # 2 = cancel further processing and return permanet error
 # 3 = cancel further processing and return temporary error (default)
-module_fail = 2
+module_fail = 3
+
+# Define lookup backend, this can be either  sql  or  ldap.  Every backend 
+# has it's own config section, [sql] and [ldap].
+backend=
+
+# If  there  are multiple server configured in the specified backend, it's  
+# possible  to  define  a  failover  or  load-balancing behaviour. 
+# Possible values are:
+#
+# balance  = when you configure the backend profile for load balancing, spmfilter
+#            distributes connections across the list of hosts. If the actual host is
+#            not reachable, spmfilter switches back to failover configuration.
+#
+# failover = when you configure the backend profile for failover, spmfilter fails over
+#            to the next host in the list if it cannot connect to the first host.
+backend_connection=
+
+# If true, spmfilter will add a header with the processed modules.
+add_header=true
+
+# The maximal size in bytes of a message
+max_size=0
+
+# Enable TLS for client connections. If set to 2 the protocol will
+# quit  rather  than  transferring  any  messages  if the STARTTLS
+# extension is not available.
+#
+# 0 = disable starttls
+# 1 = use STARTTLS, if available (default)
+# 2 = require STARTTLS
+tls_enable=0
 
 [smtpd]
 # The fail code is used as response code for the 
@@ -18,4 +72,60 @@ nexthop_fail_code = 451
 # If delivery to nexthop fails, this message will be reported 
 # to the sending MTA with fail code. 
 nexthop_fail_msg = Requested action aborted: local error in processing
+
+
+#[sql]
+
+# SQL database driver. Supported drivers are mysql, pgsql, sqlite.
+#driver =
+
+# List of available database hosts, separated by a semicolon.  Set to 
+# localhost if database is on the same host as spmfilter.
+#host =
+
+# Database name, or path to database if driver is set to sqlite.
+#name =
+
+# Database username.
+#user =
+
+# Database password.
+#pass =
+
+# If you store user information within a SQL database in your net-
+# work  infrastructure,  you can configure spmfilter to query your
+# SQL database to determine either a user exists in your system or
+# not.
+#
+# This parameter supports the following '%' expansions:
+#   %s = replaced by the full email address.
+#   %u = replaced by the local part of the email address.
+#   %d = replaced by the domain part of the email address.
+#user_query = SELECT * FROM users WHERE email='%s'
+
+#[ldap]
+
+# List  of  available LDAP hosts, separated by a semicolon. Set to
+# localhost if LDAP server is on the same host as spmfilter.
+#host =
+
+# Bind DN of LDAP user
+#binddn =
+
+# Password of LDAP user
+#bindpw =
+
+# Base DN (distinguishing name) for the LDAP server.
+#base =
+
+# If you store user information within a LDAP  directory  in  your
+# network  infrastructure,  you  can  configure spmfilter to query
+# your LDAP directory to determine either a user  exists  in  your
+# system or not.
+#
+# This parameter supports the following '%' expansions:
+#   %s = replaced by the full email address.
+#   %u = replaced by the local part of the email address.
+#   %d = replaced by the domain part of the email address.
+#user_query = (mail=%s)
 

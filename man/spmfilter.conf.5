@@ -1,4 +1,4 @@
-.TH "spmfilter.conf" "5" "30 July 2009" "" ""
+.TH "spmfilter.conf" "5" "30 Mar 2010" "" ""
 
 .SH "NAME"
 .P
@@ -100,15 +100,17 @@ possible to define a failover or load-balancing behaviour. Possible
 values are:
 
 .nf
-balance	=	when you configure the backend profile for load balancing, spmfilter 
-			distributes connections across the list of hosts. If the actual host is 
-			not reachable, spmfilter switches back to failover configuration.
+balance	=	when you configure the backend profile for load 
+			balancing, spmfilter distributes connections across
+			the list of hosts. If the actual host is not reachable,
+			spmfilter switches back to failover configuration.
 .fi
 
 
 .nf
-failover	=	when you configure the backend profile for failover, spmfilter fails over
-			to the next host in the list if it cannot connect to the first host.
+failover	=	when you configure the backend profile for 
+			failover, spmfilter fails over to the next host in
+			the list if it cannot connect to the first host.
 .fi
 
 .IP "\fBadd_header\fR"
@@ -240,15 +242,28 @@ What follows is a sample configuration file:
 .nf
 [global]
 engine = smtpd
-debug = true
-modules=dkim;spam
+debug = false
+modules=clamav
+module_fail = 3
 nexthop = localhost:2525
-.fi 
- 
+max_size = 0
+tls_enable = 1
+backend = sql
+backend_connection = balance
 
-The \fBglobal\fR section specifies that smtpd module should be used as engine; debugging is active;
-the modules dkim and spam should be loaded; and filtered mails are delivered
-to localhost port 2525.
+[sql]
+driver = postgresql
+host = 192.168.0.1;192.168.0.2
+name = maildb
+user = mail
+pass = password
+user_query = SELECT * FROM accounts WHERE email='%s'
+
+[clamav]
+host = 127.0.0.1
+port = 3310
+add_header = true
+.fi 
 
 .SH "FILES" 
 .P
