@@ -1,15 +1,16 @@
 WHAT IS SPMFILTER?
 ------------------
 
-spmfilter is a mail filtering framework, written in C. It attempts 
-to be a general filtering framework for any purposes. The API 
-enables spmfilter plugins to access messages as they are being 
-processed by the MTA. This allows them to examine and modify message 
-content and meta-information during the SMTP transaction. Plugins 
-are loaded at runtime and can be processed in any sequence, the 
-processing chain can also be altered by a single plugin, for example 
-if the plugin has to stop the further processing.
-
+spmfilter is a high-performance mail filtering framework, written in C.
+It attempts to be a general filtering framework for any purposes. Filtering
+mechanisms are provided by plugins, the API enables spmfilter plugins to access
+messages as they are being processed by the MTA. This allows them to examine
+and modify message content and meta-information during the SMTP transaction.
+Plugins are loaded at runtime and can be processed in any sequence, the
+processing chain can also be altered by a single plugin, for example if the
+plugin has to stop further processing (e.g. the clamav-plugin detected malicious
+software like a virus and the infected message is actually discarded - so
+further processing is stopped by the plugin).
 
 WEB SITE
 --------
