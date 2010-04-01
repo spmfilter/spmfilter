@@ -109,9 +109,10 @@ void smf_lookup_check_user(SMFEmailAddress_T *user) {
 #endif
 	}
 
-	if (user->user_data != NULL) 
-		user->is_local = 1;
-	else
+	if (user->user_data != NULL) {
+		if (user->user_data->len != 0)
+			user->is_local = 1;
+	} else
 		user->is_local = 0;
 }
 

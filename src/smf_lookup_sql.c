@@ -95,7 +95,8 @@ char *sql_get_dsn(char *host) {
 		return NULL;
 	}
 
-	g_string_append_printf(sdsn, "%s", host);
+	if (host != NULL)
+		g_string_append_printf(sdsn, "%s", host);
 	
 	if (settings->sql_port)
 		g_string_append_printf(sdsn, "%u", settings->sql_port);
@@ -223,7 +224,10 @@ int smf_lookup_sql_connect(void) {
 			(g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0))
 		dsn = sql_get_dsn(sql_get_rand_host());
 	else {
-		dsn = sql_get_dsn(settings->sql_host[0]);
+		if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0)
+			dsn = sql_get_dsn(settings->sql_host[0]);
+		else
+			dsn = sql_get_dsn(NULL);
 		active_server = 0;
 	}
 
@@ -304,6 +308,7 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
 	}
 	TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->len);
 	g_free(query);
+	sql_con_close(c);
 	return result;
 }
 
