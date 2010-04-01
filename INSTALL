@@ -44,9 +44,9 @@ parameters there. Here is an example for "build.properties":
 
 	set(PREFIX /opt/spmfilter)
 	set(ENABLE_DEBUG TRUE)
-	set(WITH_ZDB TRUE)
-	set(WITH_DB4 TRUE)
-	set(WITH_LDAP TRUE)
+	set(WITHOUT_ZDB TRUE)
+	set(WITHOUT_DB4 TRUE)
+	set(WITHOUT_LDAP TRUE)
 
 
 
