@@ -2,11 +2,11 @@
 #
 
 find_library(HAVE_LDAP ldap)
-if(HAVE_LDAP-NOTFOUND)
-	message(FATAL_ERROR "ldap has been enabled but library coud not be found")
-else(HAVE_LDAP-NOTFOUND)
+if(HAVE_LDAP)
 	get_filename_component(LDAP_PATH "${HAVE_LDAP}" PATH)
 	string(REGEX REPLACE "lib$" "include" LDAP_INCLUDE_PATH ${LDAP_PATH})
-	message(STATUS "Found ldap library ${HAVE_LDAP}")
-	message(STATUS "Found ldap include path ${LDAP_INCLUDE_PATH}")
-endif(HAVE_LDAP-NOTFOUND)
+	message(STATUS "  found ldap library ${HAVE_LDAP}")
+	message(STATUS "  found ldap include path ${LDAP_INCLUDE_PATH}")
+else(HAVE_LDAP)
+	message(STATUS "  ldap library could not be found, disabling ldap backend.")
+endif(HAVE_LDAP)
