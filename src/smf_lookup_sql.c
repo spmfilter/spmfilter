@@ -319,8 +319,11 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
  */
 void smf_lookup_sql_check_user(SMFEmailAddress_T *user) {
 	SMFSettings_T *settings = smf_settings_get();
+	char *query;
 
+	smf_core_expand_string(settings->sql_user_query,user->addr,&query);
 	user->user_data = NULL;
-	user->user_data = smf_lookup_sql_query(settings->sql_user_query,user->addr);
+	user->user_data = smf_lookup_sql_query(query);
+	free(query);
 }
 
