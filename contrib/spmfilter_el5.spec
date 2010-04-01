@@ -39,8 +39,7 @@ actually discarded - so further processing is stopped by the plugin).
 %setup -q -n %{name}-%{version}
 
 %build
-cmake -DPREFIX=/usr -DENABLE_DEBUG:BOOL=TRUE \
--DWITH_LDAP:BOOL=TRUE -DWITH_ZDB:BOOL=TRUE -DWITH_DB4:BOOl=TRUE .
+cmake -DPREFIX=/usr -DENABLE_DEBUG:BOOL=TRUE .
 make 
   
 %install
