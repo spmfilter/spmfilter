@@ -265,7 +265,10 @@ SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...) {
  */
 void smf_lookup_ldap_check_user(SMFEmailAddress_T *user) {
 	SMFSettings_T *settings = smf_settings_get();
+	char *query;
 
+	smf_core_expand_string(settings->ldap_user_query,user->addr,&query);
 	user->user_data = NULL;
-	user->user_data = smf_lookup_ldap_query(settings->ldap_user_query,user->addr);
+	user->user_data = smf_lookup_ldap_query(query);
+	free(query);
 }
