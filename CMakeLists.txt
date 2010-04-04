@@ -10,8 +10,13 @@ if(PREFIX)
     SET(CMAKE_INSTALL_PREFIX ${PREFIX})
 endif(PREFIX)
 
+# check libdir
+if(NOT LIBDIR)
+        set(LIBDIR "lib")
+endif(NOT LIBDIR)
+
 # internal project settings
-set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib/spmfilter")
+set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${LIBDIR}/spmfilter")
 message(STATUS "using smf library dir ${SMF_LIB_DIR}")
 
 # ********* NO NEED TO CHANGE ANYTHING BELOW **********
