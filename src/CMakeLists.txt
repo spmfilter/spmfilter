@@ -1,5 +1,5 @@
 set(SPMFILTER_SRC
-    main.c
+	main.c
 )
 
 set(LIB_SMF_SRC
@@ -14,9 +14,9 @@ set(LIB_SMF_SRC
 	smf_platform.c
 	smf_session.c
 	smf_settings.c
-    smf_smtp.c
-    smf_smtp_codes.c
-    smf_trace.c
+	smf_smtp.c
+	smf_smtp_codes.c
+	smf_trace.c
 )
 
 set(COMMON_LIBS m esmtp ${GMODULE_LIBRARIES} ${GMIME_LIBRARIES})
@@ -28,13 +28,13 @@ else(HAVE_GLIB214)
 endif(HAVE_GLIB214)
 
 if(HAVE_ZDB)
-    list(APPEND COMMON_LIBS zdb)
-    list(APPEND LIB_SMF_SRC smf_lookup_sql.c)
+	list(APPEND COMMON_LIBS zdb)
+	list(APPEND LIB_SMF_SRC smf_lookup_sql.c)
 endif(HAVE_ZDB)
 
 if(HAVE_LDAP)
-    list(APPEND COMMON_LIBS ldap lber)
-    list(APPEND LIB_SMF_SRC smf_lookup_ldap.c)
+	list(APPEND COMMON_LIBS ldap lber)
+	list(APPEND LIB_SMF_SRC smf_lookup_ldap.c)
 endif(HAVE_LDAP)
 
 if(HAVE_DB4)
