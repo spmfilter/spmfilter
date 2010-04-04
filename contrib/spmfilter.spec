@@ -11,7 +11,7 @@ Requires: glib2
 Requires: libesmtp
 Requires: pcre
 Requires: openldap
-Requires: gmime24
+Requires: gmime >= 2.2
 Requires: libzdb
 
 BuildRequires: glib2-devel
@@ -22,7 +22,7 @@ BuildRequires: gcc-c++
 BuildRequires: cmake
 BuildRequires: openssl-devel
 BuildRequires: openldap-devel
-BuildRequires: gmime24-devel
+BuildRequires: gmime-devel >= 2.2
 BuildRequires: libzdb-devel
 
 
