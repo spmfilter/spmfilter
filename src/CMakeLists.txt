@@ -81,11 +81,11 @@ target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} smf)
 
 install(TARGETS smf smtpd pipe spmfilter
 	RUNTIME DESTINATION sbin
-	LIBRARY DESTINATION lib/spmfilter
+	LIBRARY DESTINATION ${LIBDIR}/spmfilter
 	PUBLIC_HEADER DESTINATION include/spmfilter
 	PRIVATE_HEADER DESTINATION include/spmfilter/smf
 )
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/spmfilter.pc
-	DESTINATION lib/pkgconfig
+	DESTINATION ${LIBDIR}/pkgconfig
 )
