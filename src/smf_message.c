@@ -112,15 +112,17 @@ void smf_message_extract_addresses(GMimeObject *message) {
 	session->message_from = g_slice_new(SMFEmailAddress_T);
 	session->message_from->addr = smf_core_get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(GMIME_MESSAGE(message)),1);
 
-	TRACE(TRACE_DEBUG,"session->message_from: %s",session->message_from->addr);
-
-	if(settings->backend != NULL) {
-		smf_lookup_check_user(session->message_from);
-	} else
-		session->message_from->user_data = NULL;
-	TRACE(TRACE_DEBUG,"[%s] is local [%d]",
+	if (session->message_from->addr != NULL) {
+		TRACE(TRACE_DEBUG,"session->message_from: %s",session->message_from->addr);
+	
+		if(settings->backend != NULL) {
+			smf_lookup_check_user(session->message_from);
+		} else
+			session->message_from->user_data = NULL;
+		TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 			session->message_from->addr,
 			session->message_from->is_local);
+	}
 
 	/* now check the to field */
 	session->message_to_num = 0;
@@ -140,19 +142,23 @@ void smf_message_extract_addresses(GMimeObject *message) {
 			session->message_to[session->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
 			
-			TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
-					session->message_to_num,
-					session->message_to[session->message_to_num]->addr);
+			if (session->message_to[session->message_to_num]->addr != NULL) {
+				TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
+						session->message_to_num,
+						session->message_to[session->message_to_num]->addr);
 
-			if (settings->backend != NULL) {
-				session->message_to[session->message_to_num]->user_data = NULL;
-				smf_lookup_check_user(session->message_to[session->message_to_num]);
-				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-						session->message_to[session->message_to_num]->addr,
-						session->message_to[session->message_to_num]->is_local);
-			} else
-				session->message_to[session->message_to_num]->user_data = NULL;
-			session->message_to_num++;
+				if (settings->backend != NULL) {
+					session->message_to[session->message_to_num]->user_data = NULL;
+					if (session->message_to[session->message_to_num]->addr != NULL) {
+						smf_lookup_check_user(session->message_to[session->message_to_num]);
+						TRACE(TRACE_DEBUG,"[%s] is local [%d]",
+							session->message_to[session->message_to_num]->addr,
+							session->message_to[session->message_to_num]->is_local);
+					}
+				} else
+					session->message_to[session->message_to_num]->user_data = NULL;
+				session->message_to_num++;
+			}
 		}
 	}
 #else
@@ -189,19 +195,21 @@ void smf_message_extract_addresses(GMimeObject *message) {
 				);
 			session->message_to[session->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-			TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
-					session->message_to_num,
-					session->message_to[session->message_to_num]->addr);
+			if (session->message_to[session->message_to_num]->addr != NULL) {
+				TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
+						session->message_to_num,
+						session->message_to[session->message_to_num]->addr);
 
-			if (settings->backend != NULL) {
-				session->message_to[session->message_to_num]->user_data = NULL;
-				smf_lookup_check_user(session->message_to[session->message_to_num]);
-				TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-						session->message_to[session->message_to_num]->addr,
-						session->message_to[session->message_to_num]->is_local);
-			} else
-				session->message_to[session->message_to_num]->user_data = NULL;
-			session->message_to_num++;
+				if (settings->backend != NULL) {
+					session->message_to[session->message_to_num]->user_data = NULL;
+					smf_lookup_check_user(session->message_to[session->message_to_num]);
+					TRACE(TRACE_DEBUG,"[%s] is local [%d]",
+							session->message_to[session->message_to_num]->addr,
+							session->message_to[session->message_to_num]->is_local);
+				} else
+					session->message_to[session->message_to_num]->user_data = NULL;
+				session->message_to_num++;
+			}
 			ia = internet_address_list_next(ia);
 		}
 	}
