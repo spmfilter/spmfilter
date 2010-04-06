@@ -55,6 +55,6 @@ Installation Names
 ==================
 
 By default, `make install' installs the package's commands under
-`/usr/local/bin', include files under `/usr/local/include', etc.  You
+`/usr/local/sbin', include files under `/usr/local/include', etc.  You
 can specify an installation prefix other than `/usr/local' by giving
 `cmake' the option `-DPREFIX:STRING=/usr/local'.
