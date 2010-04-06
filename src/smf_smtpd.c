@@ -125,6 +125,9 @@ void smtpd_code_reply(int code) {
 			case 552:
 				fprintf(stdout,CODE_552);
 				break;
+			default:
+				fprintf(stdout,CODE_451);
+				break;
 		}
 	}
 	fflush(stdout);
