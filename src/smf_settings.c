@@ -115,6 +115,8 @@ int smf_settings_parse_config(void) {
 	}
 
 	settings->backend = g_key_file_get_string_list(keyfile, "global", "backend", &backend_length,NULL);
+	if (backend_length == 0)
+		settings->backend = NULL;
 	settings->backend_connection = g_key_file_get_string(keyfile,"global","backend_connection",NULL);
 	if (settings->backend_connection == NULL)
 		settings->backend_connection = g_strdup("failover");
