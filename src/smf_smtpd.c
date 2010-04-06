@@ -177,7 +177,7 @@ static int handle_q_processing_error(int retval, void *args) {
 	} else if(retval == 2) {
 		smtpd_string_reply(CODE_250_ACCEPTED);
 		return(2);
-	} else if(retval >= 400) {
+	} else {
 		smtpd_code_reply(retval);
 		return(1);
 	}
