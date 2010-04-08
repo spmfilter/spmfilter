@@ -15,6 +15,7 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -456,20 +457,18 @@ char *smf_message_to_string(SMFMessage_T *message) {
  */
 int smf_message_to_file(SMFMessage_T *message, const char *filename) {
 	GMimeStream *stream;
-	int fd;
+	FILE *fd;
 	
-	if ((fd = open(filename,O_WRONLY|O_CREAT)) == -1) {
+	if ((fd = fopen(filename,"wb+")) == NULL) {
 		TRACE(TRACE_ERR,"unable to create %s",filename);
 		return -1;
 	}
 
-	stream = g_mime_stream_fs_new(fd);
+	stream = g_mime_stream_file_new(fd);
 	g_mime_object_write_to_stream((GMimeObject *)message->data,stream);
 	
 	g_mime_stream_flush(stream);
-	g_mime_stream_close(stream);
 	g_object_unref(stream);
-	close(fd);
 	return 0;
 }
 
