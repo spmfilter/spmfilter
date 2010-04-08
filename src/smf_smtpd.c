@@ -238,7 +238,7 @@ void process_data(void) {
 	GMimeStream *out;
 	gchar *line;
 	gsize length;
-	int fd;
+	FILE *fd;
 	GMimeParser *parser;
 	GMimeMessage *message;
 	char *message_id;
@@ -260,11 +260,11 @@ void process_data(void) {
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_close_on_unref(in,TRUE);
 
-	if ((fd = open(session->queue_file,O_RDWR|O_CREAT)) == -1) {
+	if ((fd = fopen(session->queue_file,"wb")) == NULL) {
 		return;
 	}
 
-	out = g_mime_stream_fs_new(fd);
+	out = g_mime_stream_file_new(fd);
 	
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
@@ -272,7 +272,6 @@ void process_data(void) {
 		
 		if (g_mime_stream_write(out,line,length) == -1) {
 			smtpd_string_reply(CODE_451);
-			g_mime_stream_close(out);
 			g_object_unref(out);
 			g_io_channel_unref(in);
 			g_free(line);
@@ -303,10 +302,7 @@ void process_data(void) {
 	smf_message_extract_addresses(GMIME_OBJECT(message));
 	g_object_unref(parser);
 	g_object_unref(message);
-	g_mime_stream_close(out);
 	g_object_unref(out);
-	close(fd);
-
 
 	if (session->message_from->addr == NULL) {
 		smf_session_header_append("From",g_strdup(session->envelope_from->addr));
