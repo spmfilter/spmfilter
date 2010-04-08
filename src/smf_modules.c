@@ -170,7 +170,6 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 		g_object_unref(msg);
 		g_object_unref(parser);
 		g_object_unref(stream);
-		fclose(fd);
 		return -1;
 	}
 

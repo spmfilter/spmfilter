@@ -126,7 +126,7 @@ int load(void) {
 	GMimeParser *parser;
 	gchar *line;
 	gsize length;
-	int fd;
+	FILE *fd;
 	GError *error = NULL;
 #ifdef HAVE_GMIME24
 	GMimeHeaderList *headers;
@@ -143,12 +143,12 @@ int load(void) {
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	g_io_channel_set_encoding(in, NULL, NULL);
 
-	if ((fd = open(session->queue_file,O_RDWR|O_CREAT)) == -1) {
+	if ((fd = fopen(session->queue_file,"wb")) == NULL) {
 		TRACE(TRACE_ERR,"failed writing queue file");
 		return -1;
 	}
 
-	out = g_mime_stream_fs_new(fd);
+	out = g_mime_stream_file_new(fd);
 
 
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
@@ -156,7 +156,6 @@ int load(void) {
 			TRACE(TRACE_ERR,"%s",error->message);
 			g_io_channel_unref(in);
 			g_object_unref(out);
-			close(fd);
 			g_free(line);
 			remove(session->queue_file);
 			g_error_free(error);
@@ -194,9 +193,6 @@ int load(void) {
 	g_object_unref(message);
 	g_object_unref(out);
 	g_io_channel_unref(in);
-
-	close(fd);
-
 
 	if (load_modules() != 0) {
 		remove(session->queue_file);

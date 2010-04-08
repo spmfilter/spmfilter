@@ -15,6 +15,7 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -129,19 +130,19 @@ int smf_session_to_file(char *path) {
 	SMFSession_T *session = smf_session_get();
 	GIOChannel *in;
 	GMimeStream *out;
-	int fd;
+	FILE *fd;
 	gchar *line;
 	GError *error = NULL;
 
 	if (path == NULL)
 		return -1;
 
-	if ((fd = open(path,O_WRONLY|O_CREAT,S_IRWXU)) == -1) {
+	if ((fd = fopen(path,"wb")) == NULL) {
 		TRACE(TRACE_ERR,"failed opening destination file");
 		return -1;
 	}
 
-	out = g_mime_stream_fs_new(fd);
+	out = g_mime_stream_file_new(fd);
 
 	if (smf_modules_flush_dirty(session) != 0)
 		TRACE(TRACE_ERR,"message flush failed");
@@ -149,7 +150,6 @@ int smf_session_to_file(char *path) {
 	if ((in = g_io_channel_new_file(session->queue_file,"r", &error)) == NULL) {
 		TRACE(TRACE_ERR,"%s",error->message);
 		g_error_free(error);
-		close(fd);
 		g_object_unref(out);
 		return -1;
 	}
@@ -160,7 +160,6 @@ int smf_session_to_file(char *path) {
 			TRACE(TRACE_ERR,"failed writing file");
 			g_io_channel_shutdown(in,TRUE,NULL);
 			g_io_channel_unref(in);
-			close(fd);
 			g_object_unref(out);
 			g_free(line);
 			g_remove(path);
@@ -170,7 +169,6 @@ int smf_session_to_file(char *path) {
 	}
 
 	g_mime_stream_flush(out);
-	close(fd);
 	g_object_unref(out);
 	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
@@ -366,15 +364,15 @@ SMFMessage_T *smf_session_get_message(void) {
 	SMFMessage_T *message;
 	GMimeStream *stream, *mem_stream;
 	GMimeParser *parser;
-	int fd;
+	FILE *fd;
 
 	message = smf_message_new();
 
-	if ((fd = open(session->queue_file,O_RDONLY)) == -1) {
+	if ((fd = fopen(session->queue_file,"r")) == NULL) {
 		return NULL;
 	}
 
-	stream = g_mime_stream_fs_new(fd);
+	stream = g_mime_stream_file_new(fd);
 	
 	mem_stream = g_mime_stream_mem_new();
 	g_mime_stream_write_to_stream(stream,mem_stream);
@@ -385,11 +383,8 @@ SMFMessage_T *smf_session_get_message(void) {
 	message->data = g_mime_parser_construct_message(parser);
 
 	g_object_unref(parser);
-	g_mime_stream_close(stream);
 	g_object_unref(stream);
-	close(fd);
 	g_object_unref(mem_stream);
-
 
 	return message;
 }
