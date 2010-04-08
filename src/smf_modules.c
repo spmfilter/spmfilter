@@ -295,11 +295,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 				return(-1);
 			} else if(retval == 1) {
 				TRACE(TRACE_WARNING, "module %s stopped processing!", curmod);
-				g_hash_table_destroy(modlist);
-				fclose(stfh);
-				free(stf_filename);
-
-				return(1);
+				break;
 			} else if(retval == 2) {
 				TRACE(
 					TRACE_DEBUG,
