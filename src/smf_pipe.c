@@ -143,7 +143,7 @@ int load(void) {
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	g_io_channel_set_encoding(in, NULL, NULL);
 
-	if ((fd = fopen(session->queue_file,"wb")) == NULL) {
+	if ((fd = fopen(session->queue_file,"wb+")) == NULL) {
 		TRACE(TRACE_ERR,"failed writing queue file");
 		return -1;
 	}
@@ -176,7 +176,7 @@ int load(void) {
 	g_mime_stream_seek(out,0,0);
 	parser = g_mime_parser_new_with_stream(out);
 	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
-	
+
 	smf_message_extract_addresses(message);
 
 #ifdef HAVE_GMIME24
