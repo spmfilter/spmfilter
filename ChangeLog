@@ -1,0 +1,6 @@
+2010-04-08	Axel Steiner <ast@treibsand.com>
+	* smf_modules.c (smf_modules_process) state file was not removed, when
+	plugin stops processing.
+
+2010-04-08	Sebastian Jäkel <sj@space.net> / Axel Steiner <ast@treibsand.com>
+	* fixed Bug #7, multiple free of filepointers
