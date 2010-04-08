@@ -110,18 +110,20 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	GMimeMessage *msg;
 	GMimeFilter *crlf;
 	char *new_queue_file;
-	int fd, fd2;
+	FILE *fd, *fd2;
 
 	if (session->dirty_headers == NULL)
 		return 0;
 
 	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
 
-	if ((fd = open(session->queue_file,O_RDONLY)) == -1) {
+	fd = fopen(session->queue_file,"r");
+	if(NULL == fd) {
 		TRACE(TRACE_ERR,"unable to open queue file");
 		return -1;
 	}
-	stream = g_mime_stream_fs_new(fd);
+
+	stream = g_mime_stream_file_new(fd);
 	parser = g_mime_parser_new_with_stream(stream);
 	msg = g_mime_parser_construct_message(parser);
 	g_object_unref(parser);
@@ -162,16 +164,17 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	g_mime_stream_flush(stream);
 	smf_core_gen_queue_file(&new_queue_file);
 
-	if ((fd2 = open(new_queue_file,O_RDWR|O_CREAT)) == -1) {
+	fd2 = fopen(new_queue_file, "w+");
+	if(NULL == fd2) {
 		TRACE(TRACE_ERR,"failed writing queue file");
 		g_object_unref(msg);
 		g_object_unref(parser);
 		g_object_unref(stream);
-		close(fd);
+		fclose(fd);
 		return -1;
 	}
 
-	stream2 = g_mime_stream_fs_new(fd2);
+	stream2 = g_mime_stream_file_new(fd2);
 #ifdef HAVE_GMIME24
 	stream_filter = g_mime_stream_filter_new(stream2);
 	crlf = g_mime_filter_crlf_new(TRUE,FALSE);
@@ -185,8 +188,8 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	g_mime_object_write_to_stream(GMIME_OBJECT(msg),stream_filter);
 	g_mime_stream_flush(stream2);
 
-	close(fd);
-	close(fd2);
+	fclose(fd);
+	fclose(fd2);
 
 	g_mime_stream_close(stream_filter);
 	g_mime_stream_close(stream2);
