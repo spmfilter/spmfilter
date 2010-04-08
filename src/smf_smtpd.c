@@ -260,7 +260,7 @@ void process_data(void) {
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_close_on_unref(in,TRUE);
 
-	if ((fd = fopen(session->queue_file,"wb")) == NULL) {
+	if ((fd = fopen(session->queue_file,"wb+")) == NULL) {
 		return;
 	}
 
