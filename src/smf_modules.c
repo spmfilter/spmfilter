@@ -188,12 +188,6 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	g_mime_object_write_to_stream(GMIME_OBJECT(msg),stream_filter);
 	g_mime_stream_flush(stream2);
 
-	fclose(fd);
-	fclose(fd2);
-
-	g_mime_stream_close(stream_filter);
-	g_mime_stream_close(stream2);
-	g_mime_stream_close(stream);
 	g_object_unref(msg);
 	g_object_unref(stream2);
 	g_object_unref(stream);
