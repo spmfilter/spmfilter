@@ -21,6 +21,7 @@
 #include <glib/gstdio.h>
 #include <gmodule.h>
 #include <time.h>
+#include <syslog.h>
 #include <gmime/gmime.h>
 
 #include "spmfilter_config.h"
@@ -64,6 +65,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	g_option_context_free(context);
+
+	openlog("spmfilter", LOG_PID, LOG_MAIL);
 
 	/* parse config file and fill settings struct */
 	if (smf_settings_parse_config() != 0)
