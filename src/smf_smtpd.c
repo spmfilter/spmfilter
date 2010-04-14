@@ -263,9 +263,9 @@ void process_data(void) {
 	if ((fd = fopen(session->queue_file,"wb+")) == NULL) {
 		return;
 	}
-
-	out = g_mime_stream_file_new(fd);
 	
+	out = g_mime_stream_file_new(fd);
+
 	while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
