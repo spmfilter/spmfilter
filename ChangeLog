@@ -1,3 +1,11 @@
+2010-04-14	Axel Steiner <ast@treibsand.com>
+	* smf_smtp_codes.c (smf_smtp_codes_insert, smf_smtp_codes_get) changed
+	  hashing function for smtp codes, refs #6
+	* smf_modules.c (smf_modules_process) fix bug in plugin handling
+
+2010-04-08	Axel Steiner <ast@treibsand.com>
+	* main.c (main) set syslog facility to LOG_MAIL
+
 2010-04-08	Axel Steiner <ast@treibsand.com>
 	* smf_modules.c (smf_modules_process) state file was not removed, when
 	plugin stops processing.
