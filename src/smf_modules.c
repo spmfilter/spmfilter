@@ -295,7 +295,12 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 				return(-1);
 			} else if(retval == 1) {
 				TRACE(TRACE_WARNING, "module %s stopped processing!", curmod);
-				break;
+				g_hash_table_destroy(modlist);
+				fclose(stfh);
+				if(unlink(stf_filename) != 0)
+					TRERR("Failed to unlink state file => %s", stf_filename);
+				free(stf_filename);
+				return(0);
 			} else if(retval == 2) {
 				TRACE(
 					TRACE_DEBUG,

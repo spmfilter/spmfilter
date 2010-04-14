@@ -30,9 +30,11 @@ GHashTable *smtp_codes = NULL;
  * \param msg smtp return message
  */
 void smf_smtp_codes_insert(int code, char *msg) {
+	char *strcode = g_strdup_printf("%d",code);
 	if (smtp_codes == NULL)
-		smtp_codes = (void *)g_hash_table_new((GHashFunc)g_int_hash,(GEqualFunc)g_int_equal);
-	g_hash_table_insert(smtp_codes,&code, msg);
+		smtp_codes = g_hash_table_new_full(g_str_hash, g_str_equal,free,free);
+	g_hash_table_insert(smtp_codes, g_strdup(strcode), g_strdup(msg));
+	free(strcode);
 }
 
 /** Get smtp return code message of given code
@@ -42,9 +44,10 @@ void smf_smtp_codes_insert(int code, char *msg) {
  * \returns smtp return message for given code
  */
 char *smf_smtp_codes_get(int code) {
-	if (smtp_codes != NULL)
-		return g_hash_table_lookup(smtp_codes,&code);
-	else
+	char *strcode = g_strdup_printf("%d",code);
+	if (smtp_codes != NULL) {
+		return g_hash_table_lookup(smtp_codes,strcode);
+	} else
 		return NULL;
 }
 
