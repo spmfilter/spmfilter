@@ -52,6 +52,7 @@ SMFSession_T *smf_session_get(void) {
 		session->dirty_headers = NULL;
 		session->message_from = NULL;
 		session->message_to = NULL;
+		session->response_msg = NULL;
 	}
 	
 	return session;
@@ -67,6 +68,7 @@ void smf_session_free(void) {
 	g_free(session->queue_file);
 	g_free(session->helo);
 	g_free(session->xforward_addr);
+	g_free(session->response_msg);
 
 	if (session->headers != NULL) {
 #ifdef HAVE_GMIME24

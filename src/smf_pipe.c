@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <glib.h>
+#include <glib/gprintf.h>
 #include <gmodule.h>
 #include <unistd.h>
 #include <gmime/gmime.h>
@@ -65,7 +66,8 @@ static int handle_q_error(void *args) {
  */
 static int handle_q_processing_error(int retval, void *args) {
 	SMFSettings_T *settings = smf_settings_get();
-
+	SMFSession_T *session = smf_session_get();
+	
 	if (retval == -1) {
 		switch (settings->module_fail) {
 			case 1: 
@@ -75,8 +77,13 @@ static int handle_q_processing_error(int retval, void *args) {
 		}
 	} else if(retval == 1) {
 		return(1);
+	} else if(retval == 2) {
+		return(2);
+	} else {
+		if (session->response_msg != NULL) 
+			g_printerr("%s\n",session->response_msg);
+		return(1);
 	}
-
 	/* if none of the above matched, halt processing, this is just
 	 * for safety purposes
 	 */

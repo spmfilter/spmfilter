@@ -162,6 +162,7 @@ static int handle_q_error(void *args) {
  */
 static int handle_q_processing_error(int retval, void *args) {
 	SMFSettings_T *settings = smf_settings_get();
+	SMFSession_T *session = smf_session_get();
 
 	if (retval == -1) {
 		switch (settings->module_fail) {
@@ -178,7 +179,13 @@ static int handle_q_processing_error(int retval, void *args) {
 		smtpd_string_reply(CODE_250_ACCEPTED);
 		return(2);
 	} else {
-		smtpd_code_reply(retval);
+		if (session->response_msg != NULL) {
+			char *smtp_response;
+			smtp_response = g_strdup_printf("%d %s\r\n",retval,session->response_msg);
+			smtpd_string_reply(smtp_response);
+			free(smtp_response);
+		} else
+			smtpd_code_reply(retval);
 		return(1);
 	}
 
