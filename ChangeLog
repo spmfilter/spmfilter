@@ -1,3 +1,6 @@
+2010-04-15	Axel Steiner <ast@treibsand.com>
+	* smf_modues.c (smf_modules_process) fixed wrong return code
+
 2010-04-14	Axel Steiner <ast@treibsand.com>
 	* smf_smtp_codes.c (smf_smtp_codes_insert, smf_smtp_codes_get) changed
 	  hashing function for smtp codes, refs #6
