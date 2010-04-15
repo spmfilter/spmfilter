@@ -1,5 +1,12 @@
 2010-04-15	Axel Steiner <ast@treibsand.com>
 	* smf_modues.c (smf_modules_process) fixed wrong return code
+	* smf_session.h added new field (response_msg) to SMFSession_T struct
+	* smf_session.c (smf_session_get, smf_session_free) modified session
+	  functions for new field.
+	* smf_smtpd.c (handle_q_processing_error) using now new response_msg field
+	  if not null.
+	* smf_pipe.c (handle_q_processing_error) using now new response_msg field
+	  if not null.
 
 2010-04-14	Axel Steiner <ast@treibsand.com>
 	* smf_smtp_codes.c (smf_smtp_codes_insert, smf_smtp_codes_get) changed
