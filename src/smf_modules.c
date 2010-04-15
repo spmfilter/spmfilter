@@ -300,7 +300,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 				if(unlink(stf_filename) != 0)
 					TRERR("Failed to unlink state file => %s", stf_filename);
 				free(stf_filename);
-				return(0);
+				return(1);
 			} else if(retval == 2) {
 				TRACE(
 					TRACE_DEBUG,
