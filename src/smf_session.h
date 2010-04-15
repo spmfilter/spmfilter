@@ -55,6 +55,9 @@ typedef struct {
 	/* message header */
 	void *headers;
 	void *dirty_headers;
+
+	/* custom response message */
+	char *response_msg;
 } SMFSession_T;
 
 /** Retrieve SMFSession_T structure
