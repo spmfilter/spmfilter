@@ -18,6 +18,44 @@
 #ifndef _SMF_DAEMON_H
 #define	_SMF_DAEMON_H
 
+#define BACKLOG 16
+
+#define SOCKADDR_LEN NI_MAXSERV+NI_MAXHOST
+
+typedef struct {
+    FILE *tx, *rx;
+    struct sockaddr_storage caddr;
+    socklen_t caddr_len;
+    char src_ip[NI_MAXHOST];  /* client IP-number */
+    char src_port[NI_MAXSERV];/* client IP-port */
+    struct sockaddr_storage saddr;
+    socklen_t saddr_len;
+    char dst_ip[NI_MAXHOST]; /* server IP-number */
+    char dst_port[NI_MAXSERV];/* server IP-port */
+    char *clientname;	  /* resolved client ip */
+    int timeout;		  /* server timeout (seconds) */
+} SMFClientInfo_T;
+
+typedef struct {
+    char *pid_file;
+    char *state_file;
+    int start_children;
+    int min_spare_children;
+    int max_spare_children;
+    int max_children;
+    int child_max_connect;
+    int timeout;
+    char **iplist;
+    int ipcount;
+    int *listen_sockets;
+    int port;
+    int backlog;
+    int socket;
+    char *pid_dir;
+    char *state_dir;
+    int (*ClientHandler) (SMFClientInfo_T *);
+} SMFDaemonConfig_T;
+
 int smf_daemon_mainloop(void);
 
 #endif	/* _SMF_DAEMON_H */
