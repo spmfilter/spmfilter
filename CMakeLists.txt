@@ -87,6 +87,14 @@ if(NOT WITHOUT_DB4)
 	link_directories(${DB4_PATH})
 endif(NOT WITHOUT_DB4)
 
+#check libevent
+if(NOT WITHOUT_DAEMON)
+	message(STATUS "checking for one of the modules 'libevent'")
+	find_package(Event)
+	include_directories(${EVENT_INCLUDE_DIR})
+	link_directories(${EVENT_PATH})
+endif(NOT WITHOUT_DAEMON)
+
 # check out current version
 set(THREE_PART_VERSION_REGEX "[0-9]+\\.[0-9]+\\.[0-9]+")
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION SMF_VERSION)

@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <event.h>
 #include <glib.h>
 
 #include "smf_settings.h"
@@ -99,6 +100,7 @@ int smf_daemon_run(void) {
 	srand((int) ((int) time(NULL) + (int) getpid()));
 
 	TRACE(TRACE_DEBUG,"setup event loop");
+
 
 //	smf_daemon_pidfile();
 
