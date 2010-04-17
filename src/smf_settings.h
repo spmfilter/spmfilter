@@ -83,12 +83,6 @@ typedef struct {
         /* daemonize? */
         int daemon;
 
-        /* daemon bind ip */
-        char *bind_ip;
-
-        /* daemon port */
-        int bind_port;
-
 	/* zdb settings */
 	char *sql_driver;
 	char *sql_name;
