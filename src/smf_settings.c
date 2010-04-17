@@ -48,8 +48,6 @@ void smf_settings_free(SMFSettings_T *settings) {
 	g_free(settings->nexthop);
 	g_free(settings->nexthop_fail_msg);
 	g_strfreev(settings->backend);
-	g_free(settings->bind_ip);
-
 	g_slice_free(SMFSettings_T,settings);
 }
 
