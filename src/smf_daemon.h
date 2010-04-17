@@ -19,45 +19,44 @@
 #define	_SMF_DAEMON_H
 
 #define BACKLOG 16
-
+#define HARD_MAX_CHILDREN 300
 #define SOCKADDR_LEN NI_MAXSERV+NI_MAXHOST
-/*
+
 typedef struct {
-    FILE *tx, *rx;
-    struct sockaddr_storage caddr;
-    socklen_t caddr_len;
-    char src_ip[NI_MAXHOST];
-    char src_port[NI_MAXSERV];
-    struct sockaddr_storage saddr;
-    socklen_t saddr_len;
-    char dst_ip[NI_MAXHOST]; 
-    char dst_port[NI_MAXSERV];
-    char *clientname;	  
-    int timeout;
-} SMFClientInfo_T;
-*/
+	pid_t pid;
+	time_t ctime;
+	unsigned char status;
+	unsigned long count;
+	char client[128];
+} SMFChildState_T;
+
 typedef struct {
-    char *pid_file;
-    char *state_file;
-    int start_children;
-    int min_spare_children;
-    int max_spare_children;
-    int max_children;
-    int child_max_connect;
-    int timeout;
-    char **iplist;
-    int ipcount;
-    int *listen_sockets;
-    int port;
-    int backlog;
-    int socket;
-    char *pid_dir;
-    char *state_dir;
-    char *effective_user;
-    char *effective_group;
+	char *pid_file;
+	char *state_file;
+	int start_children;
+	int min_spare_children;
+	int max_spare_children;
+	int max_children;
+	int child_max_connect;
+	int timeout;
+	char **iplist;
+	int ipcount;
+	int *listen_sockets;
+	int port;
+	int backlog;
+	int socket;
+	char *pid_dir;
+	char *state_dir;
+	char *effective_user;
+	char *effective_group;
 } SMFDaemonConfig_T;
+
+typedef struct {
+	unsigned int lock;
+	SMFDaemonConfig_T *config;
+	SMFChildState_T[HARD_MAX_CHILDREN];
+} SMFScoreBoard_T;
 
 int smf_daemon_mainloop(void);
 
 #endif	/* _SMF_DAEMON_H */
-
