@@ -1,10 +1,10 @@
 set(SPMFILTER_SRC
 	main.c
+	smf_daemon.c
 )
 
 set(LIB_SMF_SRC
 	smf_core.c
-	smf_daemon.c
 	smf_group_settings.c
 	smf_lookup.c
 	smf_lookup_result.c
