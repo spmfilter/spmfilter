@@ -32,6 +32,7 @@
 #include "smf_lookup_private.h"
 #include "smf_core.h"
 #include "smf_platform.h"
+#include "smf_daemon.h"
 
 #define THIS_MODULE "spmfilter"
 
@@ -105,6 +106,9 @@ int main(int argc, char *argv[]) {
 	/* init gmime */
 	g_mime_init(0);
 
+	if (settings->daemon == 1)
+		smf_daemon_mainloop();
+	
 	/* try to open engine module */
 	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
 	if (!module) {

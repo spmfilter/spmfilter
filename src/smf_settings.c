@@ -170,7 +170,7 @@ int smf_settings_parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->tls_pass: %s", settings->tls_pass);
 
 	settings->daemon = g_key_file_get_boolean(keyfile,"global","daemon",NULL);
-	TRACE(TRACE_DEBUG, "settings->daemon: %s", settings->daemon);
+	TRACE(TRACE_DEBUG, "settings->daemon: %d", settings->daemon);
 
 	settings->bind_ip = g_key_file_get_string(keyfile,"global","bindip",NULL);
 	TRACE(TRACE_DEBUG, "settings->bind_ip: %s", settings->bind_ip);
