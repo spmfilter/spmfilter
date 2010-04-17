@@ -172,12 +172,6 @@ int smf_settings_parse_config(void) {
 	settings->daemon = g_key_file_get_boolean(keyfile,"global","daemon",NULL);
 	TRACE(TRACE_DEBUG, "settings->daemon: %d", settings->daemon);
 
-	settings->bind_ip = g_key_file_get_string(keyfile,"global","bindip",NULL);
-	TRACE(TRACE_DEBUG, "settings->bind_ip: %s", settings->bind_ip);
-
-	settings->bind_port = g_key_file_get_integer(keyfile, "global", "bindport",NULL);
-	TRACE(TRACE_DEBUG, "settings->bind_port: %d", settings->bind_port);
-
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
 	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
 	if(settings->backend != NULL) {
