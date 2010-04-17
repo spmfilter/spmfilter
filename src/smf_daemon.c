@@ -25,7 +25,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-
+#include <assert.h>
 #include <glib.h>
 
 #include "smf_daemon.h"
@@ -170,13 +170,142 @@ int smf_daemon_set_sighandler() {
 	return 0;
 }
 
+void smf_daemon_clear_config(SMFDaemonConfig *config) {
+	assert(config);
 
+	g_strfreev(config->iplist);
+	g_free(config->listenSockets);
+
+	config->listenSockets = NULL;
+	config->iplist = NULL;
+
+	memset(config, 0, sizeof(SMFDaemonConfig_T));
+}
+
+
+char *smf_daemon_get_pidfile(SMFDaemonConfig_T *config) {
+	char *res;
+	GString *s;
+	res = g_build_filename(config->pid_dir, "spmfilter", NULL);
+	s = g_string_new("");
+	g_string_printf(s, "%s%s", res, DEFAULT_PID_EXT);
+	g_free(res);
+	res = s->str;
+	g_string_free(s,FALSE);
+	return res;
+}
+
+void smf_daemon_load_config(SMFDaemonConfig_T *config) {
+	GError *error = NULL;
+	GKeyFile *keyfile;
+	int ip;
+	SMFSettings_T *settings = smf_settings_get();
+
+	keyfile = g_key_file_new ();
+	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
+		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
+		g_error_free(error);
+		exit(-1);
+	}
+
+	config->start_children = g_key_file_get_integer(keyfile, "daemon", "start_children",NULL);
+	if (!config->start_children) {
+		config->start_children = 3;
+	}
+
+	TRACE(TRACE_DEBUG,"server will create  [%d] children",config->start_children);
+
+	config->child_max_connect = g_key_file_get_integer(keyfile, "daemon", "max_connetcs",NULL);
+	if (!config->child_max_connect) {
+		config->child_max_connect = 15;
+	}
+	TRACE(TRACE_DEBUG, "children will make max. [%d] connections",config->child_max_connect);
+
+
+	config->timeout = g_key_file_get_integer(keyfile, "daemon", "timeout",NULL);
+	if (!config->timeout) {
+		config->timeout = 60;
+	}
+	TRACE(TRACE_DEBUG, ""timeout [%d] seconds",config->timeout);
+
+	config->port = g_key_file_get_integer(keyfile, "daemon", "port", NULL);
+	if (!config->port) {
+		config->port = 1025;
+	}
+	TRACE(TRACE_DEBUG, "binding to PORT [%d]",config->port);
+
+	// If there was a SIGHUP, then we're resetting an active config.
+	g_strfreev(config->iplist);
+	g_free(config->listenSockets);
+
+	config->iplist = g_key_file_get_string_list(keyfile,"daemon","bindip",&config->ipcount,NULL);
+	if (config->ipcount < 1) {
+		TRACE(TRACE_FATAL, "no value for bindip in config file");
+	}
+
+	for (ip = 0; ip < config->ipcount; ip++) {
+		// Remove whitespace from each list entry, then log it.
+		g_strstrip(config->iplist[ip]);
+		TRACE(TRACE_DEBUG, "binding to IP [%s]", config->iplist[ip]);
+	}
+
+	config->backlog = g_key_file_get_integer(keyfile, "daemon", "backlog", NULL);
+	if (!config->backlog) {
+		TRACE(TRACE_DEBUG, "no value for BACKLOG in config file. Using default value [%d]",
+			BACKLOG);
+		config->backlog = BACKLOG;
+	}
+
+	config->effective_user = g_key_file_get_string(keyfile, "daemon", "effective_user", NULL);
+	if (strlen(config->effective_user) == 0)
+		TRACE(TRACE_FATAL, "no value for EFFECTIVE_USER in config file");
+
+	config->effective_group = g_key_file_get_string(keyfile, "daemon", "effective_group", NULL);
+	if (strlen(config->effective_group) == 0)
+		TRACE(TRACE_FATAL, "no value for EFFECTIVE_GROUP in config file");
+
+	config->min_spare_children = g_key_file_get_integer(keyfile, "daemon", "min_spare_children", NULL);
+	if (!config->min_spare_children) {
+		config->min_spare_children = 2;
+	}
+	TRACE(TRACE_DEBUG, "will maintain minimum of [%d] spare children in reserve",
+		config->min_spare_children;
+	
+	config->max_spare_children = g_key_file_get_integer(keyfile, "daemon", "max_spare_children", NULL);
+	if (!config->max_spare_children) {
+		config->max_spare_children = 4;
+	}
+	TRACE(TRACE_DEBUG, "will maintain maximum of [%d] spare children in reserve",
+		config->max_spare_children;
+
+	config->max_children = g_key_file_get_integer(keyfile, "daemon", "max_children", NULL);
+	if (!config->max_children) {
+		config->max_children = 10;
+	}
+	TRACE(TRACE_DEBUG, "will allow maximum of [%d] children",
+		config->max_children;
+	
+	g_key_file_free(keyfile);
+}
 
 int smf_daemon_mainloop(void) {
+	SMFDaemonConfig_T config;
+
+	memset(&config, 0, sizeof(SMFDaemonConfig_T));
 
 	smf_daemon_set_sighandler();
 
+	smf_daemon_load_config(&config);
+	/* We write the pidFile after daemonize because
+	 * we may actually be a child of the original process. */
+	if (! config->pid_file)
+		config->pid_file = smf_daemon_get_pidfile(config);
+
 	smf_daemon_daemonize();
+
+
+	smf_daemon_set_sighandler();
+
 
 
 	/* This is the actual main loop. */

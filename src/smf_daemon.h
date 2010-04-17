@@ -21,21 +21,21 @@
 #define BACKLOG 16
 
 #define SOCKADDR_LEN NI_MAXSERV+NI_MAXHOST
-
+/*
 typedef struct {
     FILE *tx, *rx;
     struct sockaddr_storage caddr;
     socklen_t caddr_len;
-    char src_ip[NI_MAXHOST];  /* client IP-number */
-    char src_port[NI_MAXSERV];/* client IP-port */
+    char src_ip[NI_MAXHOST];
+    char src_port[NI_MAXSERV];
     struct sockaddr_storage saddr;
     socklen_t saddr_len;
-    char dst_ip[NI_MAXHOST]; /* server IP-number */
-    char dst_port[NI_MAXSERV];/* server IP-port */
-    char *clientname;	  /* resolved client ip */
-    int timeout;		  /* server timeout (seconds) */
+    char dst_ip[NI_MAXHOST]; 
+    char dst_port[NI_MAXSERV];
+    char *clientname;	  
+    int timeout;
 } SMFClientInfo_T;
-
+*/
 typedef struct {
     char *pid_file;
     char *state_file;
@@ -53,7 +53,8 @@ typedef struct {
     int socket;
     char *pid_dir;
     char *state_dir;
-    int (*ClientHandler) (SMFClientInfo_T *);
+    char *effective_user;
+    char *effective_group;
 } SMFDaemonConfig_T;
 
 int smf_daemon_mainloop(void);
