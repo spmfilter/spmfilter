@@ -49,7 +49,7 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 	va_list ap;
 	va_list cp;
 	gchar *message = NULL;
-	size_t l, maxlen=120;
+	size_t l, maxlen=1024;
 	SMFSettings_T *settings = smf_settings_get();
 	
 	/* Return now if we're not logging anything. */
