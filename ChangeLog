@@ -1,3 +1,6 @@
+2010-04-21	Werner Detter <werner@aloah-from-hell.de>
+	* smf_lookup_db4.c changed name of lookup-function 
+	* smf_trace.c increased maxlen trace-messages
 2010-04-15	Axel Steiner <ast@treibsand.com>
 	* smf_modues.c (smf_modules_process) fixed wrong return code
 	* smf_session.h added new field (response_msg) to SMFSession_T struct

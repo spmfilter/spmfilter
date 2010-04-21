@@ -31,7 +31,7 @@
  *
  * \returns the values associated with key,  or NULL if the key is not found
  */
-char *db4_query(char *database, char *key) {
+char *smf_lookup_db4_query(char *database, char *key) {
 	DB *dbp;
 	DBT db_key, db_value;
 	int ret;
