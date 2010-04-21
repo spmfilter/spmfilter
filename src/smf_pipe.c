@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <gmodule.h>
@@ -135,13 +136,18 @@ int load(void) {
 	gsize length;
 	FILE *fd;
 	GError *error = NULL;
+	clock_t start_process, stop_process;
 #ifdef HAVE_GMIME24
 	GMimeHeaderList *headers;
 #else
 	GMimeHeader *headers;
 #endif
 	SMFSession_T *session = smf_session_get();
-	
+
+	/* start clock, to see how long
+	 * the processing time takes */
+	start_process = clock();
+
 	smf_core_gen_queue_file(&session->queue_file);
 
 	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->queue_file);
@@ -200,6 +206,11 @@ int load(void) {
 	g_object_unref(message);
 	g_object_unref(out);
 	g_io_channel_unref(in);
+
+	/* processing is done, we can
+	 * stop our clock */
+	stop_process = clock();
+	TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 
 	if (load_modules() != 0) {
 		remove(session->queue_file);
