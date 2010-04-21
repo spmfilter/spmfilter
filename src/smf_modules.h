@@ -19,8 +19,10 @@
 #define	_SMF_MODULES_H
 
 #include "smf_session.h"
+#include "smf_settings.h"
 
 typedef int (*ModuleLoadFunction)(SMFSession_T *session);
+typedef int (*LoadEngine) (SMFSettings_T *settings, int fd);
 
 struct process_queue_ {
 	int (*load_error)(void *args);
@@ -44,5 +46,7 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q, SMFSession_T *session);
 
 /** Flush modified message headers to queue file */
 int smf_modules_flush_dirty(SMFSession_T *session);
+
+int smf_modules_engine_load(SMFSettings_T *settings, int fd);
 #endif	/* _SMF_ODULES_H */
 
