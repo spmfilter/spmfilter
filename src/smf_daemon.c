@@ -18,48 +18,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <assert.h>
-#include <grp.h>
-#include <pwd.h>
-#include <signal.h>
 #include <glib.h>
 
-#include "smf_daemon.h"
 #include "smf_settings.h"
 #include "smf_trace.h"
-
+#include "smf_daemon.h"
+#include "smf_modules.h"
 
 #define THIS_MODULE "daemon"
 
-volatile sig_atomic_t general_stop_requested = 0;
-volatile sig_atomic_t restart = 0;
-volatile sig_atomic_t main_stop = 0;
-volatile sig_atomic_t main_restart = 0;
-volatile sig_atomic_t main_status = 0;
-volatile sig_atomic_t main_sig = 0;
-volatile sig_atomic_t get_sigchld = 0;
-volatile sig_atomic_t alarm_occured = 0;
-
-int isChildProcess = 0;
-int isGrandChildProcess = 0;
-pid_t parent_pid = 0;
-ChildInfo_t childinfo;
-
-static FILE *state_fd;
-static char *statefile;
-
-static void smf_daemon_parentsighandler(int sig);
+volatile sig_atomic_t GeneralStopRequested = 0;
 
 static int smf_daemon_bind(int sock, struct sockaddr *saddr, socklen_t len, int backlog) {
 	int err;
-	/* bind the address */
 	if ((bind(sock, saddr, len)) == -1) {
 		err = errno;
 		TRACE(TRACE_DEBUG, "failed");
@@ -72,7 +52,6 @@ static int smf_daemon_bind(int sock, struct sockaddr *saddr, socklen_t len, int 
 		return err;
 	}
 
-	TRACE(TRACE_DEBUG, "done");
 	return 0;
 }
 
@@ -86,9 +65,9 @@ static int smf_daemon_create_inet_socket(const char * const ip, int port, int ba
 	hints.ai_flags = AI_PASSIVE;
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
 
-	memset(service, 0, sizeof(char));
-	snprintf(service, sizeof(char), "%d", port);
+	service = g_strdup_printf("%d",port);
 
 	n = getaddrinfo(ip, service, &hints, &res);
 	if (n < 0) {
@@ -110,300 +89,29 @@ static int smf_daemon_create_inet_socket(const char * const ip, int port, int ba
 	smf_daemon_bind(sock, res->ai_addr, res->ai_addrlen, backlog);
 	freeaddrinfo(ressave);
 
-	// unblock
 	flags = fcntl(sock, F_GETFL);
 	fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 
 	return sock;
 }
 
-static void smf_daemon_close_sockets(SMFDaemonConfig_T *config) {
-	int i;
-
-	for (i = 0; i < config->ipcount; i++) {
-		close(config->listen_sockets[i]);
-	}
-}
-
-int smf_daemon_drop_privileges(char *newuser, char *newgroup) {
-	/* will drop running program's priviledges to newuser and newgroup */
-	struct passwd *pwd;
-	struct group *grp;
-
-	grp = getgrnam(newgroup);
-
-	if (grp == NULL) {
-		TRACE(TRACE_ERR, "could not find group %s\n", newgroup);
-		return -1;
-	}
-
-	pwd = getpwnam(newuser);
-	if (pwd == NULL) {
-		TRACE(TRACE_ERR, "could not find user %s\n", newuser);
-		return -1;
-	}
-
-	if (setgid(grp->gr_gid) != 0) {
-		TRACE(TRACE_ERR, "could not set gid to %s\n", newgroup);
-		return -1;
-	}
-
-	if (setuid(pwd->pw_uid) != 0) {
-		TRACE(TRACE_ERR, "could not set uid to %s\n", newuser);
-		return -1;
-	}
-	return 0;
-}
-
-void smf_daemon_parentsighandler(int sig) {
-	int saved_errno = errno;
-	restart = 0;
-
-	switch (sig) {
-		case SIGCHLD:
-			/* ignore, wait for child in main loop */
-			/* but we need to catch zombie */
-			get_sigchld = 1;
-			break;
-
-		case SIGSEGV:
-			sleep(60);
-			_exit(1);
-			break;
-
-		case SIGHUP:
-			restart = 1;
-			general_stop_requested = 1;
-			break;
-
-		case SIGUSR1:
-			main_status = 1;
-			break;
-
-		case SIGALRM:
-			alarm_occured = 1;
-			break;
-
-		default:
-			general_stop_requested = 1;
-			break;
-	}
-
-	errno = saved_errno;
-}
-
-int smf_daemon_set_parentsighandler(void) {
-	struct sigaction act;
-	struct sigaction sact;
-
-	/* init & install signal handlers */
-	memset(&act, 0, sizeof(act));
-	memset(&sact, 0, sizeof(sact));
-
-	act.sa_sigaction = smf_daemon_parentsighandler;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-
-	sact.sa_sigaction = smf_daemon_parentsighandler;
-	sigemptyset(&sact.sa_mask);
-	sact.sa_flags = SA_NOCLDSTOP;
-
-	sigaction(SIGCHLD, &sact, 0);
-	sigaction(SIGINT, &sact, 0);
-	sigaction(SIGQUIT, &sact, 0);
-	sigaction(SIGILL, &sact, 0);
-	sigaction(SIGBUS, &sact, 0);
-	sigaction(SIGFPE, &sact, 0);
-	sigaction(SIGSEGV, &sact, 0);
-	sigaction(SIGTERM, &sact, 0);
-	sigaction(SIGHUP, &sact, 0);
-	sigaction(SIGUSR1, &sact, 0);
-	sigaction(SIGALRM, &act, 0);
-
-	return 0;
-}
-
-int smf_daemon_setup(SMFDaemonConfig_T *config) {
-	parent_pid = getpid();
-	restart = 0;
-	general_stop_requested = 0;
-	get_sigchld = 0;
-	smf_daemon_set_parentsighandler();
-
-	childinfo.maxConnect = config->child_max_connect;
-	childinfo.listenSockets = g_memdup(config->listen_sockets, config->ipcount * sizeof(int));
-	childinfo.numSockets = config->ipcount;
-	childinfo.timeout = config->timeout;
-
-	return 0;
-}
-
-int smf_daemon_start(SMFDaemon_Config_T *config) {
-	int stopped = 0;
-	pid_t chpid;
-
-	if (!config)
-		TRACE(TRACE_FATAL, "NULL configuration");
-
-	if (smf_daemon_setup(config))
-		return -1;
-
- 	smf_daemon_new_scoreboard(conf);
-
- 	manage_start_children();
- 	manage_spare_children();
-
- 	TRACE(TRACE_DEBUG, "starting main service loop");
- 	while (!GeneralStopRequested) {
-		if(get_sigchld){
-			get_sigchld = 0;
-			while((chpid = waitpid(-1,(int*)NULL,WNOHANG)) > 0)
-				scoreboard_release(chpid);
-		}
-
-		if (mainStatus) {
-			mainStatus = 0;
-			scoreboard_state();
-		}
-
-		if (db_check_connection() != 0) {
-
-			if (! stopped)
-				manage_stop_children();
-
-			stopped=1;
-			sleep(10);
-
-		} else {
-			if (stopped) {
-				manage_start_children();
-				stopped=0;
-			}
-
-			manage_spare_children();
-			sleep(1);
-		}
-	}
-
- 	manage_stop_children();
-
-	return Restart;
-}
-
-int smf_daemon_run(SMFDaemonConfig_T *config) {
-	int main_stop = 0;
-	int main_restart = 0;
-	int main_status = 0;
-	int main_sig = 0;
-	int serrno, status, result = 0;
-	pid_t pid = -1;
-	int i;
-
-	config->listen_sockets = g_new0(int, confgif->ipcount);
-
-	for (i = 0; i < config->ipcount; i++) {
-		config->listen_sockets[i] = smf_daemon_create_inet_socket(
-				config->iplist[i], config->port, config->backlog);
-		}
-	}
-
-	switch ((pid = fork())) {
-		case -1:
-			serrno = errno;
-			smf_daemon_close_sockets(config);
-			TRACE(TRACE_ERR, "fork failed [%s]", strerror(serrno));
-			errno = serrno;
-			break;
-
-		case 0:
-			/* child process */
-			isChildProcess = 1;
-			if (smf_daemon_drop_privileges(config->effective_user,
-					config->effective_group) < 0) {
-				main_stop = 1;
-				TRACE(TRACE_ERR,"unable to drop privileges");
-				return 0;
-			}
-
-			result = smf_daemon_start(conf);
-			TRACE(TRACE_INFO, "server done, restart = [%d]",
-				result);
-			exit(result);
-			break;
-	}
-}
-
 pid_t smf_daemon_daemonize(void) {
+	int sid;
+
 	// double-fork
 	if (fork()) exit(0);
-	setsid();
+	sid = setsid();
 	if (fork()) exit(0);
 
 	chdir("/");
 	umask(0077);
 
-	TRACE(TRACE_DEBUG, "sid: [%d]", getsid(0));
+	TRACE(TRACE_DEBUG, "daemon sid: [%d]", sid);
 
-	return getsid(0);
+	return sid;
 }
 
-int smf_daemon_set_sighandler() {
-	struct sigaction act;
-
-	/* init & install signal handlers */
-	memset(&act, 0, sizeof(act));
-
-	act.sa_sigaction = smf_daemon_set_sighandler;
-	sigemptyset(&act.sa_mask);
-	act.sa_flags = 0;
-
-	sigaction(SIGINT, &act, 0);
-	sigaction(SIGQUIT, &act, 0);
-	sigaction(SIGTERM, &act, 0);
-	sigaction(SIGHUP, &act, 0);
-	sigaction(SIGUSR1, &act, 0);
-
-	return 0;
-}
-
-void smf_daemon_clear_config(SMFDaemonConfig *config) {
-	assert(config);
-
-	g_strfreev(config->iplist);
-	g_free(config->listenSockets);
-
-	config->listenSockets = NULL;
-	config->iplist = NULL;
-
-	memset(config, 0, sizeof(SMFDaemonConfig_T));
-}
-
-
-char *smf_daemon_get_pidfile(SMFDaemonConfig_T *config) {
-	char *res;
-	GString *s;
-	res = g_build_filename(config->pid_dir, "spmfilter", NULL);
-	s = g_string_new("");
-	g_string_printf(s, "%s.pid", res);
-	g_free(res);
-	res = s->str;
-	g_string_free(s,FALSE);
-	return res;
-}
-
-char * smf_daemon_get_statefile(SMFDaemonConfig_T *config) {
-	char *res;
-	GString *s;
-	res = g_build_filename(config->state_dir, "spmfilter", NULL);
-	s = g_string_new("");
-	g_string_printf(s, "%s.state", res);
-	g_free(res);
-	res = s->str;
-	g_string_free(s,FALSE);
-	return res;
-}
-
-void smf_daemon_load_config(SMFDaemonConfig_T *config) {
+int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	GError *error = NULL;
 	GKeyFile *keyfile;
 	int ip;
@@ -413,7 +121,7 @@ void smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
 		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
 		g_error_free(error);
-		exit(-1);
+		return -1;
 	}
 
 	config->start_children = g_key_file_get_integer(keyfile, "daemon", "start_children",NULL);
@@ -421,31 +129,32 @@ void smf_daemon_load_config(SMFDaemonConfig_T *config) {
 		config->start_children = 3;
 	}
 
-	TRACE(TRACE_DEBUG,"server will create  [%d] children",config->start_children);
+	TRACE(TRACE_DEBUG,"daemon->start_children: %d",config->start_children);
 
-	config->child_max_connect = g_key_file_get_integer(keyfile, "daemon", "max_connetcs",NULL);
-	if (!config->child_max_connect) {
-		config->child_max_connect = 15;
+	config->max_connects = g_key_file_get_integer(keyfile, "daemon", "max_connetcs",NULL);
+	if (!config->max_connects) {
+		config->max_connects = 15;
 	}
-	TRACE(TRACE_DEBUG, "children will make max. [%d] connections",config->child_max_connect);
+	TRACE(TRACE_DEBUG, "daemon->max_connects",config->max_connects);
 
 
 	config->timeout = g_key_file_get_integer(keyfile, "daemon", "timeout",NULL);
 	if (!config->timeout) {
 		config->timeout = 60;
 	}
-	TRACE(TRACE_DEBUG, ""timeout [%d] seconds",config->timeout);
+	TRACE(TRACE_DEBUG, "daemon->timeout: %d",config->timeout);
 
-	config->port = g_key_file_get_integer(keyfile, "daemon", "port", NULL);
+	config->port = g_key_file_get_integer(keyfile, "daemon", "bindport", NULL);
 	if (!config->port) {
-		config->port = 1025;
+		config->port = 10025;
 	}
-	TRACE(TRACE_DEBUG, "binding to PORT [%d]",config->port);
+	TRACE(TRACE_DEBUG, "daemon->port: %d",config->port);
 
 	// If there was a SIGHUP, then we're resetting an active config.
 	g_strfreev(config->iplist);
-	g_free(config->listenSockets);
+	g_free(config->listen_sockets);
 
+	config->ipcount = 0;
 	config->iplist = g_key_file_get_string_list(keyfile,"daemon","bindip",&config->ipcount,NULL);
 	if (config->ipcount < 1) {
 		TRACE(TRACE_ERR, "no value for bindip in config file");
@@ -454,120 +163,197 @@ void smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	for (ip = 0; ip < config->ipcount; ip++) {
 		// Remove whitespace from each list entry, then log it.
 		g_strstrip(config->iplist[ip]);
-		TRACE(TRACE_DEBUG, "binding to IP [%s]", config->iplist[ip]);
+		TRACE(TRACE_DEBUG, "daemon->bindip: %s", config->iplist[ip]);
 	}
 
 	config->backlog = g_key_file_get_integer(keyfile, "daemon", "backlog", NULL);
 	if (!config->backlog) {
-		TRACE(TRACE_DEBUG, "no value for BACKLOG in config file. Using default value [%d]",
-			BACKLOG);
+		TRACE(TRACE_DEBUG, "no value for backlog in config file, using default");
 		config->backlog = BACKLOG;
 	}
+	TRACE(TRACE_DEBUG,"daemon->backlog: %d", config->backlog);
 
 	config->effective_user = g_key_file_get_string(keyfile, "daemon", "effective_user", NULL);
-	if (strlen(config->effective_user) == 0)
+	if (config->effective_user == NULL)
 		TRACE(TRACE_ERR, "no value for EFFECTIVE_USER in config file");
 
+	TRACE(TRACE_DEBUG,"daemon->effective_user: %s", config->effective_user);
+
 	config->effective_group = g_key_file_get_string(keyfile, "daemon", "effective_group", NULL);
-	if (strlen(config->effective_group) == 0)
+	if (config->effective_group == NULL)
 		TRACE(TRACE_ERR, "no value for EFFECTIVE_GROUP in config file");
+
+	TRACE(TRACE_DEBUG,"daemon->effective_group: %s", config->effective_group);
 
 	config->min_spare_children = g_key_file_get_integer(keyfile, "daemon", "min_spare_children", NULL);
 	if (!config->min_spare_children) {
 		config->min_spare_children = 2;
 	}
-	TRACE(TRACE_DEBUG, "will maintain minimum of [%d] spare children in reserve",
-		config->min_spare_children;
-	
+	TRACE(TRACE_DEBUG, "daemon->min_spare_children: %d", config->min_spare_children);
+
 	config->max_spare_children = g_key_file_get_integer(keyfile, "daemon", "max_spare_children", NULL);
 	if (!config->max_spare_children) {
 		config->max_spare_children = 4;
 	}
-	TRACE(TRACE_DEBUG, "will maintain maximum of [%d] spare children in reserve",
-		config->max_spare_children;
+	TRACE(TRACE_DEBUG, "daemon->max_spare_children: %d", config->max_spare_children);
 
 	config->max_children = g_key_file_get_integer(keyfile, "daemon", "max_children", NULL);
 	if (!config->max_children) {
 		config->max_children = 10;
 	}
-	TRACE(TRACE_DEBUG, "will allow maximum of [%d] children",
-		config->max_children;
+	TRACE(TRACE_DEBUG, "daemon->max_children: %d", config->max_children);
 
 	config->pid_dir = g_key_file_get_string(keyfile, "daemon", "pid_dir", NULL);
-	if (strlen(config->pid_dir) == 0)
+	if (config->pid_dir == NULL)
 		TRACE(TRACE_ERR, "no value for PID_DIR in config file");
+	
+	TRACE(TRACE_DEBUG,"daemon->pid_dir: %s", config->pid_dir);
 
-	config->state_dir = g_key_file_get_string(keyfile, "daemon", "state_dir", NULL);
-	if (strlen(config->state_dir) == 0)
-		TRACE(TRACE_ERR, "no value for STATE_DIR in config file");
+	config->foreground = g_key_file_get_boolean(keyfile, "daemon", "foreground", NULL);
+	TRACE(TRACE_DEBUG,"daemon->foreground: %d", config->foreground);
 
 	g_key_file_free(keyfile);
+
+	return 0;
 }
 
-static void smf_daemon_remove_statefile(void) {
-	int res;
+int smf_daemon_start(SMFDaemonConfig_T *config) {
+	if (!config)
+		TRACE(TRACE_ERR, "NULL configuration");
 
-	if (isChildProcess)
-		return;
-
-	if (statefile_fd) {
-		res = fclose(statefile_fd);
-		if (res) TRACE(TRACE_ERR, "Error closing statefile: [%s].",
-			strerror(errno));
-		statefile_fd = NULL;
+	TRACE(TRACE_DEBUG, "starting main service loop");
+ 	while (!GeneralStopRequested) {
+		
 	}
 
-	if (statefile) {
-		res = unlink(statefile);
-		if (res) TRACE(TRACE_ERR, "Error unlinking statefile [%s]: [%s].",
-			statefile_to_remove, strerror(errno));
-		g_free(statefile);
-		statefile = NULL;
-	}
-
+	return 0;
 }
 
-void smf_daemon_create_statefile(char *state_file) {
-	TRACE(TRACE_DEBUG, "Creating statefile at [%s].", state_file);
-	if (!(state_fd = fopen(state_file, "w"))) {
-		TRACE(TRACE_ERR, "Cannot open statefile [%s], error was [%s]",
-			state_file, strerror(errno));
-	}
-	chmod(state_file, 0644);
-	if (state_fd == NULL) {
-		TRACE(TRACE_ERR, "Could not create statefile [%s].", state_file);
+int smf_daemon_run(SMFDaemonConfig_T *config) {
+	int i;
+	pid_t pid = -1;
+	int serrno, status, result = 0;
+	
+	config->listen_sockets = g_new0(int, config->ipcount);
+
+	for (i = 0; i < config->ipcount; i++) {
+		config->listen_sockets[i] = smf_daemon_create_inet_socket(
+			config->iplist[i], config->port, config->backlog);
+
 	}
 
-	atexit(smf_daemon_remove_statefile);
-	statefile = g_strdup(state_file);
+	switch ((pid = fork())) {
+		case -1:
+			serrno = errno;
+			TRACE(TRACE_ERR, "fork failed [%s]", strerror(serrno));
+			errno = serrno;
+			break;
+		case 0:
+			/* child process */
+			result = smf_daemon_start(config);
+			TRACE(TRACE_INFO, "server done, restart = [%d]", result);
+			exit(result);
+			break;
+		default:
+			/* parent process, wait for child to exit */
+			while (waitpid(pid, &status, WNOHANG | WUNTRACED) == 0) {
+				sleep(2);
+			}
+			break;		
+	}
+
+	return result;
 }
 
-int smf_daemon_mainloop(void) {
+int smf_daemon_mainloop(SMFSettings_T *settings) {
 	SMFDaemonConfig_T config;
+	int i;
+	fd_set rfds;
+	int maxfd = -1;
 
 	memset(&config, 0, sizeof(SMFDaemonConfig_T));
-
-	smf_daemon_set_sighandler();
-
-	smf_daemon_load_config(&config);
-
-	/* We write the pidFile after daemonize because
-	 * we may actually be a child of the original process. */
-	if (! config->pid_file)
-		config->pid_file = smf_daemon_get_pidfile(config);
-
-	if (! config->state_file)
-		config->state_file = smf_daemon_get_statefile(config);
-	smf_daemon_create_statefile(config->state_file);
-
-	smf_daemon_daemonize();
-	smf_daemon_set_sighandler();
-
-	/* This is the actual main loop. */
-	while (!main_stop && smf_daemon_run(config)) {
-		sleep(2);
+	if (smf_daemon_load_config(&config) != 0) {
+		TRACE(TRACE_ERR,"failed to load daemon config");
+		return -1;
 	}
 
-	TRACE(TRACE_INFO, "leaving main loop");
+	if (config.foreground != 1) {
+		if (smf_daemon_daemonize() == -1) {
+			TRACE(TRACE_DEBUG,"daemonize failed");
+			return -1;
+		}
+	}
+/*
+	while (smf_daemon_run(&config)) {
+		sleep(2);
+	}
+*/
+
+	config.listen_sockets = g_new0(int, config.ipcount);
+	config.num_sockets = 0;
+	for (i = 0; i < config.ipcount; i++) {
+		config.listen_sockets[i] = smf_daemon_create_inet_socket(
+			config.iplist[i], config.port, config.backlog);
+		if (config.listen_sockets[i] > maxfd)
+			maxfd = config.listen_sockets[i];
+		config.num_sockets++;
+	}
+
+
+	/*  Loop infinitely to accept and service connections  */
+	while ( 1 ) {
+		FD_ZERO(&rfds);
+		for (i = 0; i < config.num_sockets; i++) 
+			FD_SET(config.listen_sockets[i], &rfds);
+		
+
+		int returned = select(maxfd + 1, &rfds, NULL, NULL, NULL);
+		if (returned) {
+			for (i = 0; i < config.num_sockets; i++) {
+				if (FD_ISSET(config.listen_sockets[i], &rfds)) {
+					int conn;
+					pid_t pid;
+					/*  Wait for connection  */
+					int listener = config.listen_sockets[i];
+					if ( (conn = accept(listener, NULL, NULL)) < 0 ) {
+						TRACE(TRACE_ERR,"Error calling accept()");
+						return -1;
+					}
+
+					/*  Fork child process to service connection  */
+					if ( (pid = fork()) == 0 ) {
+						/* This is now the forked child process, so
+						 * close listening socket and service request   */
+						if ( close(listener)  < 0 ) {
+							TRACE(TRACE_ERR,"Error closing listening socket in child.");
+							return -1;
+						}
+
+						smf_modules_engine_load(settings, conn);
+
+						/*  Close connected socket and exit  */
+						if ( close(conn) < 0 ) {
+							TRACE(TRACE_ERR,"Error closing connection socket.");
+							return -1;
+						}
+						exit(EXIT_SUCCESS);
+					}
+
+					/* If we get here, we are still in the parent process,
+					 * so close the connected socket, clean up child processes,
+					 * and go back to accept a new connection.                   */
+
+					if ( close(conn) < 0 ) {
+						TRACE(TRACE_ERR,"Error closing connection socket in parent.");
+						return -1;
+					}
+					waitpid(-1, NULL, WNOHANG);
+		
+				}
+			}
+		}
+	}
+
+
 	return 0;
 }

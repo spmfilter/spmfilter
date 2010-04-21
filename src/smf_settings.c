@@ -168,6 +168,10 @@ int smf_settings_parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->tls_pass: %s", settings->tls_pass);
 
 	settings->daemon = g_key_file_get_boolean(keyfile,"global","daemon",NULL);
+	if (g_ascii_strcasecmp(settings->engine,"pipe") == 0) {
+		TRACE(TRACE_ERR,"pipe engine can not be used in daemon mode");
+		return -1;
+	}
 	TRACE(TRACE_DEBUG, "settings->daemon: %d", settings->daemon);
 
 	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
