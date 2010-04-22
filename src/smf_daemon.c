@@ -36,8 +36,6 @@
 
 #define THIS_MODULE "daemon"
 
-volatile sig_atomic_t GeneralStopRequested = 0;
-
 static int smf_daemon_bind(int sock, struct sockaddr *saddr, socklen_t len, int backlog) {
 	int err;
 	if ((bind(sock, saddr, len)) == -1) {
@@ -131,9 +129,9 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 
 	TRACE(TRACE_DEBUG,"daemon->start_children: %d",config->start_children);
 
-	config->max_connects = g_key_file_get_integer(keyfile, "daemon", "max_connetcs",NULL);
-	if (!config->max_connects) {
-		config->max_connects = 15;
+	config->process_limit = g_key_file_get_integer(keyfile, "daemon", "process_limit",NULL);
+	if (!config->process_limit) {
+		config->process_limit = 15;
 	}
 	TRACE(TRACE_DEBUG, "daemon->max_connects",config->max_connects);
 
@@ -215,54 +213,6 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	g_key_file_free(keyfile);
 
 	return 0;
-}
-
-int smf_daemon_start(SMFDaemonConfig_T *config) {
-	if (!config)
-		TRACE(TRACE_ERR, "NULL configuration");
-
-	TRACE(TRACE_DEBUG, "starting main service loop");
- 	while (!GeneralStopRequested) {
-		
-	}
-
-	return 0;
-}
-
-int smf_daemon_run(SMFDaemonConfig_T *config) {
-	int i;
-	pid_t pid = -1;
-	int serrno, status, result = 0;
-	
-	config->listen_sockets = g_new0(int, config->ipcount);
-
-	for (i = 0; i < config->ipcount; i++) {
-		config->listen_sockets[i] = smf_daemon_create_inet_socket(
-			config->iplist[i], config->port, config->backlog);
-
-	}
-
-	switch ((pid = fork())) {
-		case -1:
-			serrno = errno;
-			TRACE(TRACE_ERR, "fork failed [%s]", strerror(serrno));
-			errno = serrno;
-			break;
-		case 0:
-			/* child process */
-			result = smf_daemon_start(config);
-			TRACE(TRACE_INFO, "server done, restart = [%d]", result);
-			exit(result);
-			break;
-		default:
-			/* parent process, wait for child to exit */
-			while (waitpid(pid, &status, WNOHANG | WUNTRACED) == 0) {
-				sleep(2);
-			}
-			break;		
-	}
-
-	return result;
 }
 
 int smf_daemon_mainloop(SMFSettings_T *settings) {
