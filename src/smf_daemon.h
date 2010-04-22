@@ -28,7 +28,7 @@ typedef struct {
 	int min_spare_children;
 	int max_spare_children;
 	int max_children;
-	int max_connects;
+	int process_limit;
 	int timeout;
 	char **iplist;
 	unsigned int ipcount;
