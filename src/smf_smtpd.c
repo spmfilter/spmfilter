@@ -173,10 +173,15 @@ static int handle_q_processing_error(int retval, void *args) {
 					return(0);
 		}
 	} else if(retval == 1) {
-		smtpd_string_reply(CODE_250_ACCEPTED);
+		if (session->response_msg != NULL) {
+			char *smtp_response;
+			smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
+			smtpd_string_reply(smtp_response);
+			free(smtp_response);
+		} else
+			smtpd_string_reply(CODE_250_ACCEPTED);
 		return(1);
 	} else if(retval == 2) {
-		smtpd_string_reply(CODE_250_ACCEPTED);
 		return(2);
 	} else {
 		if (session->response_msg != NULL) {
@@ -235,8 +240,14 @@ int load_modules(void) {
 	} else if (ret == 1) {
 		return(0);
 	}
-	
-	smtpd_string_reply(CODE_250_ACCEPTED);
+
+	if (session->response_msg != NULL) {
+		char *smtp_response;
+		smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
+		smtpd_string_reply(smtp_response);
+		free(smtp_response);
+	} else
+		smtpd_string_reply(CODE_250_ACCEPTED);
 	return(0);
 }
 
