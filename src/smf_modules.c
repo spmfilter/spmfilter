@@ -388,3 +388,35 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	smf_message_envelope_unref(envelope);
 	return(0);
 }
+
+int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
+	GModule *module;
+	LoadEngine load_engine;
+	gchar *engine_path;
+	int ret;
+
+	/* check if engine module starts with lib */
+	engine_path = smf_build_module_path(LIB_DIR, settings->engine);
+
+	/* try to open engine module */
+	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
+	if (!module) {
+		TRACE(TRACE_ERR,"%s\n", g_module_error());
+		return -1;
+	}
+
+	/* check if the module provides the function load() */
+	if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
+		TRACE(TRACE_ERR,"%s", g_module_error());
+		return -1;
+	}
+
+	/* start processing engine */
+	ret = load_engine(settings,fd);
+
+	if (!g_module_close(module))
+		TRACE(TRACE_WARNING,"%s", g_module_error());
+	g_free(engine_path);
+
+	return ret;
+}

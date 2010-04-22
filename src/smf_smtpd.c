@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <glib.h>
+#include <time.h>
 #include <gmodule.h>
 #include <glib/gstdio.h>
 #include <gmime/gmime.h>
@@ -63,6 +64,9 @@
 
 #define RE_MAIL_FROM "^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?(?:\\W*SIZE=(\\d+))?"
 
+static int sock_in;
+static int sock_out;
+
 /* copy headers from message object to own GMimeHeaderList */
 static void copy_header_func(const char *name, const char *value, gpointer data) {
 #ifdef HAVE_GMIME24
@@ -91,10 +95,20 @@ void stuffing(char chain[]) {
 /* smtp answer with format string as arg */
 void smtpd_string_reply(const char *format, ...) {
 	va_list ap;
+	GIOChannel *out = NULL;
+	gchar *msg;
 	va_start(ap, format);
-	vfprintf(stdout,format,ap);
+
+	out = g_io_channel_unix_new(sock_out);
+	g_io_channel_set_encoding(out, NULL, NULL);
+	g_io_channel_set_close_on_unref(out,FALSE);
+	msg = g_strdup_vprintf(format,ap);
 	va_end(ap);
-	fflush(stdout);
+	g_io_channel_write_chars(out,msg,strlen(msg),NULL,NULL);
+	g_io_channel_flush(out,NULL);
+	g_io_channel_unref(out);
+	g_free(msg);
+
 }
 
 /** Write SMTP answer to stdout
@@ -103,34 +117,43 @@ void smtpd_string_reply(const char *format, ...) {
  */
 void smtpd_code_reply(int code) {
 	char *code_msg;
+	GIOChannel *out = NULL;
+
+	out = g_io_channel_unix_new(sock_out);
+	g_io_channel_set_encoding(out, NULL, NULL);
+	g_io_channel_set_close_on_unref(out,FALSE);
+	
 	/* we don't need to free code_msg, will be
 	 * freed by smtp_code_free() */
 	code_msg = smf_smtp_codes_get(code);
 	if (code_msg!=NULL) {
-		fprintf(stdout,"%d %s\r\n",code,code_msg);
+		gchar *msg;
+		msg = g_strdup_printf("%d %s\r\n",code,code_msg);
+		g_io_channel_write_chars(out,msg,strlen(msg),NULL,NULL);
 	} else {
 		switch(code) {
 			case 221:
-				fprintf(stdout,CODE_221);
+				g_io_channel_write_chars(out,CODE_221,strlen(CODE_221),NULL,NULL);
 				break;
 			case 250:
-				fprintf(stdout,CODE_250);
+				g_io_channel_write_chars(out,CODE_250,strlen(CODE_250),NULL,NULL);
 				break;
 			case 451:
-				fprintf(stdout,CODE_451);
+				g_io_channel_write_chars(out,CODE_451,strlen(CODE_451),NULL,NULL);
 				break;
 			case 502:
-				fprintf(stdout,CODE_502);
+				g_io_channel_write_chars(out,CODE_502,strlen(CODE_502),NULL,NULL);
 				break;
 			case 552:
-				fprintf(stdout,CODE_552);
+				g_io_channel_write_chars(out,CODE_552,strlen(CODE_552),NULL,NULL);
 				break;
 			default:
-				fprintf(stdout,CODE_451);
+				g_io_channel_write_chars(out,CODE_451,strlen(CODE_451),NULL,NULL);
 				break;
 		}
 	}
-	fflush(stdout);
+	g_io_channel_flush(out,NULL);
+	g_io_channel_unref(out);
 }
 
 /* error handler used when building module queue
@@ -274,9 +297,9 @@ void process_data(void) {
 	smtpd_string_reply("354 End data with <CR><LF>.<CR><LF>\r\n");
 	
 	/* start receiving data */
-	in = g_io_channel_unix_new(dup(STDIN_FILENO));
+	in = g_io_channel_unix_new(sock_in);
 	g_io_channel_set_encoding(in, NULL, NULL);
-	g_io_channel_set_close_on_unref(in,TRUE);
+	g_io_channel_set_close_on_unref(in,FALSE);
 
 	if ((fd = fopen(session->queue_file,"wb+")) == NULL) {
 		return;
@@ -350,15 +373,15 @@ void process_data(void) {
 	return;
 }
 
-int load(void) {
+int load(SMFSettings_T *settings,int sock) {
 	char hostname[256];
 	GIOChannel *in;
 	char *line;
 	int state=ST_INIT;
-	SMFSettings_T *settings = smf_settings_get();
 	SMFSession_T *session = smf_session_get();
 	const char *requested_size = NULL;
 	const char *mail_from_addr = NULL;
+	clock_t start_process, stop_process;
 #if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
 	GMatchInfo *match_info = NULL;
@@ -369,12 +392,25 @@ int load(void) {
 	const char *error;
 #endif
 
-	gethostname(hostname,256);
+	/* start clock, to see how long
+	 * the processing time takes */
+	start_process = clock();
 
+	gethostname(hostname,256);
+	
+	if (sock == 0) {
+		sock_in = sock;
+		sock_out = 1;
+	} else {
+		sock_in = sock;
+		sock_out = sock;
+	}
+	
 	smtpd_string_reply("220 %s spmfilter\r\n",hostname);
 	session->envelope_to_num = 0;
-	in = g_io_channel_unix_new(STDIN_FILENO);
+	in = g_io_channel_unix_new(sock_in);
 	g_io_channel_set_encoding(in, NULL, NULL);
+	g_io_channel_set_close_on_unref(in,FALSE);
 	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
 		g_strstrip(line);
 		TRACE(TRACE_DEBUG,"client smtp dialog: '%s'",line);
@@ -608,10 +644,14 @@ int load(void) {
 		g_free(line);
 	} 
 	
-	g_io_channel_shutdown(in,TRUE,NULL);
 	g_io_channel_unref(in);
 
 	smf_session_free();
-	
+
+	/* processing is done, we can
+	 * stop our clock */
+	stop_process = clock();
+	TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
+
 	return 0;
 }
