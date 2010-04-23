@@ -18,8 +18,11 @@
 #ifndef _SMF_DAEMON_H
 #define	_SMF_DAEMON_H
 
+#define SERVER_IP "127.0.0.1"
 #define SERVER_PORT	10026
 #define BACKLOG 16
+
+#define	max(a,b) ((a) > (b) ? (a) : (b))
 
 typedef struct {
 	char *pid_file;
@@ -42,26 +45,15 @@ typedef struct {
 	int foreground;
 } SMFDaemonConfig_T;
 
-
-/*
-#define BACKLOG 16
-#define HARD_MAX_CHILDREN 300
-#define SOCKADDR_LEN NI_MAXSERV+NI_MAXHOST
-
 typedef struct {
-	pid_t pid;
-	time_t ctime;
-	unsigned char status;
-	unsigned long count;
-	char client[128];
-} SMFChildState_T;
+	pid_t child_pid; /* process ID */
+	int child_pipefd; /* parent's stream pipe to/from child */
+	int child_status; /* 0 = ready */
+	long child_count; /* #connections handled */
+} SMFDaemonChild_T;
 
-typedef struct {
-	unsigned int lock;
-	SMFDaemonConfig_T *config;
-	SMFChildState_T[HARD_MAX_CHILDREN];
-} SMFScoreBoard_T;
-*/
+SMFDaemonChild_T *cptr; /* array of Child structures; calloc'ed */
+
 int smf_daemon_mainloop(SMFSettings_T *settings);
 
 #endif	/* _SMF_DAEMON_H */
