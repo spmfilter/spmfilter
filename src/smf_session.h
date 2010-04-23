@@ -58,6 +58,9 @@ typedef struct {
 
 	/* custom response message */
 	char *response_msg;
+
+	int sock_in;
+	int sock_out;
 } SMFSession_T;
 
 #if 0
