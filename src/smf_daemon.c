@@ -36,24 +36,9 @@
 
 #define THIS_MODULE "daemon"
 
-static int nchildren;
-
-pid_t smf_daemon_daemonize(void) {
-	int sid;
-
-	// double-fork
-	if (fork()) exit(0);
-
-	sid = setsid();
-	chdir("/");
-	umask(0);
-
-	if (fork()) exit(0);
-	
-	TRACE(TRACE_DEBUG, "daemon sid: [%d]", sid);
-
-	return sid;
-}
+//static int nchildren;
+static GMainLoop *event_loop;
+static int child_pipe[2];
 
 int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	GError *error = NULL;
@@ -150,7 +135,7 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	config->pid_dir = g_key_file_get_string(keyfile, "daemon", "pid_dir", NULL);
 	if (config->pid_dir == NULL)
 		TRACE(TRACE_ERR, "no value for PID_DIR in config file");
-	
+
 	TRACE(TRACE_DEBUG,"daemon->pid_dir: %s", config->pid_dir);
 
 	config->foreground = g_key_file_get_boolean(keyfile, "daemon", "foreground", NULL);
@@ -161,6 +146,24 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	return 0;
 }
 
+pid_t smf_daemon_daemonize(void) {
+	int sid;
+
+	// double-fork
+	if (fork()) exit(0);
+
+	sid = setsid();
+	chdir("/");
+	umask(0077);
+
+	if (fork()) exit(0);
+	
+	TRACE(TRACE_DEBUG, "daemon sid: [%d]", sid);
+
+	return sid;
+}
+
+#if 0
 ssize_t write_fd(int fd, void *ptr, size_t nbytes, int sendfd) {
 	struct msghdr msg;
 	struct iovec iov[1];
@@ -333,9 +336,146 @@ void sig_int(int signo) {
 
 	exit(0);
 }
+#endif
+
+static int smf_daemon_create_socket(const char * const ip, int port, int backlog) {
+	struct addrinfo hints, *res, *ressave;
+	int sock, n, flags, err;
+	int so_reuseaddress = 1;
+	char *service;
+
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_flags = AI_PASSIVE;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype  = SOCK_STREAM;
+
+	service = g_strdup_printf("%d",port);
+
+	n = getaddrinfo(ip, service, &hints, &res);
+	if (n < 0) {
+		TRACE(TRACE_ERR, "getaddrinfo::error [%s]", gai_strerror(n));
+		return -1;
+	}
+
+	ressave = res;
+	if ((sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
+		int serr = errno;
+		freeaddrinfo(ressave);
+		TRACE(TRACE_ERR, "%s", strerror(serr));
+	}
+
+	TRACE(TRACE_DEBUG, "create socket [%s:%d] backlog [%d]", ip, port, backlog);
+
+	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &so_reuseaddress, sizeof(so_reuseaddress));
+
+	/* bind the address */
+	if ((bind(sock, res->ai_addr, res->ai_addrlen)) == -1) {
+		err = errno;
+		TRACE(TRACE_DEBUG, "failed");
+		return err;
+	}
+
+	if ((listen(sock, backlog)) == -1) {
+		err = errno;
+		TRACE(TRACE_DEBUG, "failed");
+		return err;
+	}
+
+	freeaddrinfo(ressave);
+
+	// unblock
+	flags = fcntl(sock, F_GETFL);
+	fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+
+	return sock;
+}
+
+static gboolean child_exit(GIOChannel *io, GIOCondition cond, void *user_data) {
+	int status, fd = g_io_channel_unix_get_fd(io);
+	pid_t child_pid;
+
+	if (read(fd, &child_pid, sizeof(child_pid)) != sizeof(child_pid)) {
+		TRACE(TRACE_ERR, "child_exit: unable to read child pid from pipe");
+		return TRUE;
+	}
+
+	if (waitpid(child_pid, &status, 0) != child_pid)
+		TRACE(TRACE_ERR,"waitpid(%d) failed", child_pid);
+	else
+		TRACE(TRACE_DEBUG,"child %d exited", child_pid);
+
+	return TRUE;
+}
+
+static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer data) {
+	int fd, client;
+	fd = g_io_channel_unix_get_fd(chan);
+	
+	/* wait for a client to talk to us */
+	if ((client = accept (fd, 0, 0)) == -1) {
+		TRACE(TRACE_WARNING,"accept failed");
+		return TRUE;
+	}
+
+	smf_modules_engine_load((SMFSettings_T *)data, client);
+	close(client);
+	return TRUE;
+}
+
 
 int smf_daemon_mainloop(SMFSettings_T *settings) {
 	SMFDaemonConfig_T config;
+	GIOChannel *child_io;
+	int i;
+
+	memset(&config, 0, sizeof(SMFDaemonConfig_T));
+	if (smf_daemon_load_config(&config) != 0) {
+		TRACE(TRACE_ERR,"failed to load daemon config");
+		return -1;
+	}
+
+	if (config.foreground != 1) {
+		if (smf_daemon_daemonize() == -1) {
+			TRACE(TRACE_DEBUG,"daemonize failed");
+			return -1;
+		}
+	}
+
+	config.listen_sockets = g_new0(int, config.ipcount);
+	config.num_sockets = 0;
+
+	for (i = 0; i < config.ipcount; i++) {
+		config.listen_sockets[i] = smf_daemon_create_socket(config.iplist[i], config.port, config.backlog);
+		config.num_sockets++;
+	}
+
+	if (pipe(child_pipe) < 0) {
+		TRACE(TRACE_ERR, "pipe(): %s (%d)", strerror(errno), errno);
+		exit(1);
+	}
+
+	child_io = g_io_channel_unix_new(child_pipe[0]);
+	g_io_channel_set_close_on_unref(child_io, TRUE);
+	g_io_add_watch(child_io,
+		G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
+		child_exit, NULL);
+	g_io_channel_unref(child_io);
+
+	event_loop = g_main_loop_new(NULL, FALSE);
+
+	for (i = 0; i < config.num_sockets; i++) {
+		GIOChannel *ctl_io;
+		ctl_io = g_io_channel_unix_new(config.listen_sockets[i]);
+		g_io_channel_set_close_on_unref(ctl_io, TRUE);
+		g_io_channel_set_encoding(ctl_io, NULL, NULL);
+		g_io_add_watch(ctl_io, G_IO_IN, smf_daemon_event, settings);
+		g_io_channel_unref(ctl_io);
+	}
+
+	g_main_loop_run(event_loop);
+
+	g_main_loop_unref(event_loop);
+#if 0
 	int listenfd, i, navail, nsel, connfd, rc;
 	int maxfd = -1;
 	void sig_int(int);
@@ -417,7 +557,7 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 		/* find any newly-available children */
 		for (i = 0; i < nchildren; i++) {
 			if (FD_ISSET(cptr[i].child_pipefd, &rset)) {
-				if ( (n = read(cptr[i].child_pipefd, &rc, 1)) == 0)
+				if ((n = read(cptr[i].child_pipefd, &rc, 1)) == 0)
 					TRACE(TRACE_ERR,"child %d terminated unexpectedly", i);
 				cptr[i].child_status = 0;
 				navail++;
@@ -426,6 +566,6 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 			}
 		}
 	}
-	
+#endif
 	return 0;
 }

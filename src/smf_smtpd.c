@@ -552,7 +552,7 @@ int load(SMFSettings_T *settings,int sock) {
 
 				if (session->envelope_from->addr != NULL){
 					TRACE(TRACE_DEBUG,"session->envelope_from: %s",session->envelope_from->addr);
-					if (strcmp(session->envelope_from->addr,"") == 0) {
+					if (g_ascii_strcasecmp(session->envelope_from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
 						g_slice_free(SMFEmailAddress_T,session->envelope_from);
