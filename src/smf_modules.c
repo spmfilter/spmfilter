@@ -380,7 +380,7 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	/* now deliver, if delivery fails, call error hook */
 	if (smf_message_deliver(envelope) != 0) {
 		TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
-		q->nexthop_error(NULL);
+		q->nexthop_error(session);
 		return(-1);
 	}
 
