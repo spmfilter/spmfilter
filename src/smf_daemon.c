@@ -38,7 +38,11 @@
 
 //static int nchildren;
 static GMainLoop *event_loop;
+GThreadPool *pool;
 static int child_pipe[2];
+
+G_LOCK_DEFINE_STATIC (thread_counter_pools);
+int maxfd;
 
 int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	GError *error = NULL;
@@ -52,13 +56,14 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 		g_error_free(error);
 		return -1;
 	}
-
+#if 0
 	config->start_children = g_key_file_get_integer(keyfile, "daemon", "start_children",NULL);
 	if (!config->start_children) {
 		config->start_children = 3;
 	}
 
 	TRACE(TRACE_DEBUG,"daemon->start_children: %d",config->start_children);
+#endif
 
 	config->process_limit = g_key_file_get_integer(keyfile, "daemon", "process_limit",NULL);
 	if (!config->process_limit) {
@@ -114,6 +119,7 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 
 	TRACE(TRACE_DEBUG,"daemon->effective_group: %s", config->effective_group);
 
+#if 0
 	config->min_spare_children = g_key_file_get_integer(keyfile, "daemon", "min_spare_children", NULL);
 	if (!config->min_spare_children) {
 		config->min_spare_children = 2;
@@ -137,7 +143,7 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 		TRACE(TRACE_ERR, "no value for PID_DIR in config file");
 
 	TRACE(TRACE_DEBUG,"daemon->pid_dir: %s", config->pid_dir);
-
+#endif
 	config->foreground = g_key_file_get_boolean(keyfile, "daemon", "foreground", NULL);
 	TRACE(TRACE_DEBUG,"daemon->foreground: %d", config->foreground);
 
@@ -407,18 +413,79 @@ static gboolean child_exit(GIOChannel *io, GIOCondition cond, void *user_data) {
 	return TRUE;
 }
 
-static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer data) {
-	int fd, client;
-	fd = g_io_channel_unix_get_fd(chan);
-	
-	/* wait for a client to talk to us */
-	if ((client = accept (fd, 0, 0)) == -1) {
-		TRACE(TRACE_WARNING,"accept failed");
-		return TRUE;
-	}
+static void smf_daemon_handle(gpointer data, gpointer user_data) {
+	int i, conn;
+	fd_set rfds;
+	SMFDaemonClient_T *client = data;
 
-	smf_modules_engine_load((SMFSettings_T *)data, client);
-	close(client);
+	FD_ZERO(&rfds);
+	for (i = 0; i < client->config->num_sockets; i++)
+		FD_SET(client->config->listen_sockets[i], &rfds);
+
+	if (select(maxfd + 1, &rfds, NULL, NULL, NULL)) {
+		for (i = 0; i < client->config->num_sockets; i++) {
+			if (FD_ISSET(client->config->listen_sockets[i], &rfds)) {
+				int listener = client->config->listen_sockets[i];
+				if ((conn = accept(listener, 0, 0)) == -1) {
+					TRACE(TRACE_WARNING,"accept failed");
+				} else {
+					smf_modules_engine_load((SMFSettings_T *)user_data, conn);
+					close(conn);
+				}
+			}
+		}
+	}
+/*	int i,fd, client;
+	fd = GPOINTER_TO_UINT(data);
+	smf_modules_engine_load((SMFSettings_T *)user_data, fd);
+		close(client); */
+/*
+	G_LOCK (thread_counter_pools);
+
+	if ((client = accept(fd, 0, 0)) == -1) {
+		TRACE(TRACE_WARNING,"accept failed");
+	} else {
+
+		smf_modules_engine_load((SMFSettings_T *)user_data, client);
+		close(client);
+	}
+	G_UNLOCK (thread_counter_pools);
+ */
+}
+
+static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer data) {
+	SMFDaemonClient_T *client;
+
+	client = g_slice_new(SMFDaemonClient_T);
+	client->fd = g_io_channel_unix_get_fd(chan);
+	client->config = data;
+
+	g_thread_pool_push(pool, client, NULL);
+/*
+	fd_set rfds;
+	int i,master_fd, client;
+	SMFDaemonConfig_T *config = data;
+	master_fd = g_io_channel_unix_get_fd(chan);
+
+	
+	FD_ZERO(&rfds);
+	for (i = 0; i < config->num_sockets; i++)
+		FD_SET(config->listen_sockets[i], &rfds);
+
+	if (select(maxfd + 1, &rfds, NULL, NULL, NULL)) {
+		for (i = 0; i < config->num_sockets; i++) {
+			if (FD_ISSET(config->listen_sockets[i], &rfds)) {
+				int listener = config->listen_sockets[i];
+				if ((client = accept(listener, 0, 0)) == -1) {
+					TRACE(TRACE_WARNING,"accept failed");
+				} else {
+					g_thread_pool_push(pool, GUINT_TO_POINTER(client), NULL);
+				}
+			}
+		}
+	}
+*/
+
 	return TRUE;
 }
 
@@ -444,8 +511,11 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 	config.listen_sockets = g_new0(int, config.ipcount);
 	config.num_sockets = 0;
 
+	maxfd = -1;
 	for (i = 0; i < config.ipcount; i++) {
 		config.listen_sockets[i] = smf_daemon_create_socket(config.iplist[i], config.port, config.backlog);
+		if (config.listen_sockets[i] > maxfd)
+			maxfd = config.listen_sockets[i];
 		config.num_sockets++;
 	}
 
@@ -468,9 +538,12 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 		ctl_io = g_io_channel_unix_new(config.listen_sockets[i]);
 		g_io_channel_set_close_on_unref(ctl_io, TRUE);
 		g_io_channel_set_encoding(ctl_io, NULL, NULL);
-		g_io_add_watch(ctl_io, G_IO_IN, smf_daemon_event, settings);
+		g_io_add_watch(ctl_io, G_IO_IN, smf_daemon_event, &config);
 		g_io_channel_unref(ctl_io);
 	}
+
+	g_thread_init(NULL);
+	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.process_limit,TRUE,NULL);
 
 	g_main_loop_run(event_loop);
 

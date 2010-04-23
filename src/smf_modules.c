@@ -40,8 +40,8 @@
 
 /* initialize the processing queue */
 ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
-	int (*processerr)(int retval, void *args),
-	int (*nhoperr)(void *args))
+		int (*processerr)(int retval, void *args),
+		int (*nhoperr)(void *args))
 {
 	ProcessQueue_T *q;
 
@@ -54,18 +54,17 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 	q->load_error = loaderr;
 	q->processing_error = processerr;
 	q->nexthop_error = nhoperr;
-
 	return q;
 }
 
 /* build full filename to modules states dir */
-static char *smf_modules_stf_path(void) {
+static char *smf_modules_stf_path(SMFSession_T *session) {
 	char *hex;
 	char buf[1024];
 	SMFSettings_T *st = smf_settings_get();
 
 	/* build path to file*/
-	hex = smf_md5sum(smf_session_header_get("message-id"));
+	hex = smf_md5sum(smf_session_header_get(session,"message-id"));
 	snprintf(buf, sizeof(buf), "%s/%s.modules", st->queue_dir, hex);
 	free(hex);
 
@@ -223,7 +222,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	gchar *header = NULL;
 
 	/* initialize message file  and load processed modules */
-	stf_filename = smf_modules_stf_path();
+	stf_filename = smf_modules_stf_path(session);
 	stfh = fopen(stf_filename, "a+");
 	if(stfh == NULL) {
 		TRACE(TRACE_ERR, "failed to open message state file => %s", stf_filename);
@@ -284,7 +283,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 		g_module_close(mod);
 		
 		if(retval != 0) {
-			retval = q->processing_error(retval, NULL);
+			retval = q->processing_error(retval, session);
 			
 			if(retval == 0) {
 				TRACE(TRACE_ERR, "module %s failed, stopping processing!", curmod);
@@ -327,7 +326,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 
 	if (settings->add_header == 1) {
 		header = g_strdup_printf("processed %s",g_strjoinv(",",settings->modules));
-		smf_session_header_append("X-Spmfilter",header);
+		smf_session_header_append(session,"X-Spmfilter",header);
 	}
 
 	g_free(header);

@@ -78,7 +78,7 @@ set_property(TARGET pipe PROPERTY LINK_FLAGS ${_link_flags})
 target_link_libraries(pipe ${COMMON_LIBS} smf)
 
 add_executable(spmfilter ${SPMFILTER_SRC})
-target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} smf)
+target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GTHREAD_LIBRARIES} smf)
 
 install(TARGETS smf smtpd pipe spmfilter
 	RUNTIME DESTINATION sbin
