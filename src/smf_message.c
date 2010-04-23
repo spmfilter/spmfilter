@@ -103,8 +103,7 @@ SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelo
 	return envelope;
 }
 
-void smf_message_extract_addresses(GMimeObject *message) {
-	SMFSession_T *session = smf_session_get();
+void smf_message_extract_addresses(SMFSession_T *session, GMimeObject *message) {
 	SMFSettings_T *settings = smf_settings_get();
 	InternetAddressList *ia;
 	InternetAddress *addr;

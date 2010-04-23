@@ -185,7 +185,7 @@ static int handle_q_error(void *args) {
  */
 static int handle_q_processing_error(int retval, void *args) {
 	SMFSettings_T *settings = smf_settings_get();
-	SMFSession_T *session = smf_session_get();
+	SMFSession_T *session = (SMFSession_T *)args;
 
 	if (retval == -1) {
 		switch (settings->module_fail) {
@@ -237,10 +237,9 @@ static int handle_nexthop_error(void *args) {
 	return(0);
 }
 
-int load_modules(void) {
+int load_modules(SMFSession_T *session) {
 	int ret;
 	ProcessQueue_T *q;
-	SMFSession_T *session = smf_session_get();
 
 	/* initialize the modules queue handler */
 	q = smf_modules_pqueue_init(
@@ -274,7 +273,7 @@ int load_modules(void) {
 	return(0);
 }
 
-void process_data(void) {
+void process_data(SMFSession_T *session) {
 	GIOChannel *in;
 	GMimeStream *out;
 	gchar *line;
@@ -283,7 +282,6 @@ void process_data(void) {
 	GMimeParser *parser;
 	GMimeMessage *message;
 	char *message_id;
-	SMFSession_T *session = smf_session_get();
 
 	smf_core_gen_queue_file(&session->queue_file);
 	if (session->queue_file == NULL) {
@@ -340,32 +338,32 @@ void process_data(void) {
 	g_mime_header_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->headers);
 #endif
 	
-	smf_message_extract_addresses(GMIME_OBJECT(message));
+	smf_message_extract_addresses(session,GMIME_OBJECT(message));
 	g_object_unref(parser);
 	g_object_unref(message);
 	g_object_unref(out);
 
 	if (session->message_from->addr == NULL) {
-		smf_session_header_append("From",g_strdup(session->envelope_from->addr));
+		smf_session_header_append(session,"From",g_strdup(session->envelope_from->addr));
 		TRACE(TRACE_DEBUG,"adding [from] header to message");
 	}
 
 	if (session->message_to_num == 0) {
-		smf_session_header_append("To",g_strdup("undisclosed-recipients:;"));
+		smf_session_header_append(session,"To",g_strdup("undisclosed-recipients:;"));
 		TRACE(TRACE_DEBUG,"adding [to] header to message");
 	}
 
-	message_id = (char *)smf_session_header_get("message-id");
+	message_id = (char *)smf_session_header_get(session,"message-id");
 
 	if (message_id == NULL) {
 		message_id = smf_message_generate_message_id();
 		TRACE(TRACE_DEBUG,"no message id found, adding [%s]",message_id);
-		smf_session_header_append("Message-ID",message_id);
+		smf_session_header_append(session,"Message-ID",message_id);
 	}
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
 
-	load_modules();
+	load_modules(session);
 	
 	if (g_remove(session->queue_file) != 0)
  		TRACE(TRACE_ERR,"failed to remove queue file");
@@ -378,7 +376,7 @@ int load(SMFSettings_T *settings,int sock) {
 	GIOChannel *in;
 	char *line;
 	int state=ST_INIT;
-	SMFSession_T *session = smf_session_get();
+	SMFSession_T *session = smf_session_new();
 	const char *requested_size = NULL;
 	const char *mail_from_addr = NULL;
 	clock_t start_process, stop_process;
@@ -427,9 +425,9 @@ int load(SMFSettings_T *settings,int sock) {
 			 * command had been issued.
 			 */
 			if (state != ST_INIT) {
-				smf_session_free();
+				smf_session_free(session);
 				/* reinit session */
-				session = smf_session_get();
+				session = smf_session_new();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
 			session->helo = smf_core_get_substring("^HELO\\s(.*)$",line, 1);
@@ -450,9 +448,9 @@ int load(SMFSettings_T *settings,int sock) {
 			 * received later...
 			 */
 			if (state != ST_INIT) {
-				smf_session_free();
+				smf_session_free(session);
 				/* reinit session */
-				session = smf_session_get();
+				session = smf_session_new();
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			session->helo = smf_core_get_substring("^EHLO\\s(.*)$",line,1);
@@ -622,13 +620,13 @@ int load(SMFSettings_T *settings,int sock) {
 			} else {
 				state = ST_DATA;
 				TRACE(TRACE_DEBUG,"SMTP: 'data' received");
-				process_data();
+				process_data(session);
 			}
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
-			smf_session_free();
+			smf_session_free(session);
 			/* reinit session */
-			session = smf_session_get();
+			session = smf_session_new();
 			smtpd_code_reply(250);
 			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
@@ -646,7 +644,7 @@ int load(SMFSettings_T *settings,int sock) {
 	
 	g_io_channel_unref(in);
 
-	smf_session_free();
+	smf_session_free(session);
 
 	/* processing is done, we can
 	 * stop our clock */
