@@ -1,6 +1,15 @@
+2010-04-23	Axel Steiner <ast@treibsand.com>
+	* smf_message.c (smf_message_extract_addresses) fixed initialization bug
+
+2010-04-22	Axel Steiner <ast@treibsand.com>
+	* smf_smtpd.c (handle_q_processing_error) fixed bug in return code handling.
+	  If a plugin returned 2, the smtp message was displayed twice.
+	* smf_smtpd.c (load_modules) added response message check
+
 2010-04-21	Werner Detter <werner@aloah-from-hell.de>
 	* smf_lookup_db4.c changed name of lookup-function 
 	* smf_trace.c increased maxlen trace-messages
+
 2010-04-15	Axel Steiner <ast@treibsand.com>
 	* smf_modues.c (smf_modules_process) fixed wrong return code
 	* smf_session.h added new field (response_msg) to SMFSession_T struct
