@@ -64,9 +64,6 @@
 
 #define RE_MAIL_FROM "^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?(?:\\W*SIZE=(\\d+))?"
 
-static int sock_in;
-static int sock_out;
-
 /* copy headers from message object to own GMimeHeaderList */
 static void copy_header_func(const char *name, const char *value, gpointer data) {
 #ifdef HAVE_GMIME24
@@ -93,13 +90,14 @@ void stuffing(char chain[]) {
 }
 
 /* smtp answer with format string as arg */
-void smtpd_string_reply(const char *format, ...) {
+void smtpd_string_reply(int sock, const char *format, ...) {
 	va_list ap;
 	GIOChannel *out = NULL;
 	gchar *msg;
 	va_start(ap, format);
 
-	out = g_io_channel_unix_new(sock_out);
+	TRACE(TRACE_DEBUG,"USING SOCK: %d",sock);
+	out = g_io_channel_unix_new(sock);
 	g_io_channel_set_encoding(out, NULL, NULL);
 	g_io_channel_set_close_on_unref(out,FALSE);
 	msg = g_strdup_vprintf(format,ap);
@@ -115,11 +113,11 @@ void smtpd_string_reply(const char *format, ...) {
  *
  * \param wanted smtp code
  */
-void smtpd_code_reply(int code) {
+void smtpd_code_reply(int sock, int code) {
 	char *code_msg;
 	GIOChannel *out = NULL;
 
-	out = g_io_channel_unix_new(sock_out);
+	out = g_io_channel_unix_new(sock);
 	g_io_channel_set_encoding(out, NULL, NULL);
 	g_io_channel_set_close_on_unref(out,FALSE);
 	
@@ -161,12 +159,12 @@ void smtpd_code_reply(int code) {
  */
 static int handle_q_error(void *args) {
 	SMFSettings_T *settings = smf_settings_get();
-
+	SMFSession_T *session = (SMFSession_T *)args;
 	switch (settings->module_fail) {
 		case 1: return(1);
-		case 2: smtpd_code_reply(552);
+		case 2: smtpd_code_reply(session->sock_out,552);
 				return(0);
-		case 3: smtpd_code_reply(451);
+		case 3: smtpd_code_reply(session->sock_out,451);
 				return(0);
 	}
 
@@ -190,19 +188,19 @@ static int handle_q_processing_error(int retval, void *args) {
 	if (retval == -1) {
 		switch (settings->module_fail) {
 			case 1: return(1);
-			case 2: smtpd_code_reply(552);
+			case 2: smtpd_code_reply(session->sock_out,552);
 					return(0);
-			case 3: smtpd_code_reply(451);
+			case 3: smtpd_code_reply(session->sock_out,451);
 					return(0);
 		}
 	} else if(retval == 1) {
 		if (session->response_msg != NULL) {
 			char *smtp_response;
 			smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
-			smtpd_string_reply(smtp_response);
+			smtpd_string_reply(session->sock_out,smtp_response);
 			free(smtp_response);
 		} else
-			smtpd_string_reply(CODE_250_ACCEPTED);
+			smtpd_string_reply(session->sock_out,CODE_250_ACCEPTED);
 		return(1);
 	} else if(retval == 2) {
 		return(2);
@@ -210,10 +208,10 @@ static int handle_q_processing_error(int retval, void *args) {
 		if (session->response_msg != NULL) {
 			char *smtp_response;
 			smtp_response = g_strdup_printf("%d %s\r\n",retval,session->response_msg);
-			smtpd_string_reply(smtp_response);
+			smtpd_string_reply(session->sock_out,smtp_response);
 			free(smtp_response);
 		} else
-			smtpd_code_reply(retval);
+			smtpd_code_reply(session->sock_out,retval);
 		return(1);
 	}
 
@@ -227,8 +225,9 @@ static int handle_q_processing_error(int retval, void *args) {
 /* handle nexthop delivery error */
 static int handle_nexthop_error(void *args) {
 	SMFSettings_T *settings = smf_settings_get();
-
-	smtpd_string_reply(g_strdup_printf(
+	SMFSession_T *session = (SMFSession_T *)args;
+	
+	smtpd_string_reply(session->sock_out,g_strdup_printf(
 		"%d %s\r\n",
 		settings->nexthop_fail_code,
 		settings->nexthop_fail_msg)
@@ -266,10 +265,10 @@ int load_modules(SMFSession_T *session) {
 	if (session->response_msg != NULL) {
 		char *smtp_response;
 		smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
-		smtpd_string_reply(smtp_response);
+		smtpd_string_reply(session->sock_out,smtp_response);
 		free(smtp_response);
 	} else
-		smtpd_string_reply(CODE_250_ACCEPTED);
+		smtpd_string_reply(session->sock_out,CODE_250_ACCEPTED);
 	return(0);
 }
 
@@ -286,16 +285,16 @@ void process_data(SMFSession_T *session) {
 	smf_core_gen_queue_file(&session->queue_file);
 	if (session->queue_file == NULL) {
 		TRACE(TRACE_ERR,"failed to create spool file!");
-		smtpd_code_reply(552);
+		smtpd_code_reply(session->sock_out, 552);
 		return;
 	}
 		
 	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->queue_file);
 		
-	smtpd_string_reply("354 End data with <CR><LF>.<CR><LF>\r\n");
+	smtpd_string_reply(session->sock_out,"354 End data with <CR><LF>.<CR><LF>\r\n");
 	
 	/* start receiving data */
-	in = g_io_channel_unix_new(sock_in);
+	in = g_io_channel_unix_new(session->sock_in);
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_close_on_unref(in,FALSE);
 
@@ -310,7 +309,7 @@ void process_data(SMFSession_T *session) {
 		if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
 		
 		if (g_mime_stream_write(out,line,length) == -1) {
-			smtpd_string_reply(CODE_451);
+			smtpd_string_reply(session->sock_out,CODE_451);
 			g_object_unref(out);
 			g_io_channel_unref(in);
 			g_free(line);
@@ -397,16 +396,16 @@ int load(SMFSettings_T *settings,int sock) {
 	gethostname(hostname,256);
 	
 	if (sock == 0) {
-		sock_in = sock;
-		sock_out = 1;
+		session->sock_in = sock;
+		session->sock_out = 1;
 	} else {
-		sock_in = sock;
-		sock_out = sock;
+		session->sock_in = sock;
+		session->sock_out = sock;
 	}
 	
-	smtpd_string_reply("220 %s spmfilter\r\n",hostname);
+	smtpd_string_reply(session->sock_out,"220 %s spmfilter\r\n",hostname);
 	session->envelope_to_num = 0;
-	in = g_io_channel_unix_new(sock_in);
+	in = g_io_channel_unix_new(session->sock_in);
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_close_on_unref(in,FALSE);
 	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
@@ -415,7 +414,7 @@ int load(SMFSettings_T *settings,int sock) {
 		
 		if (g_ascii_strncasecmp(line,"quit",4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'quit' received"); 
-			smtpd_code_reply(221);
+			smtpd_code_reply(session->sock_out,221);
 			state = ST_QUIT;
 			break;
 		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
@@ -434,14 +433,14 @@ int load(SMFSettings_T *settings,int sock) {
 			TRACE(TRACE_DEBUG,"HELO: %s",session->helo);
 			if (session->helo != NULL) {
 				if (strcmp(session->helo,"") == 0)  {
-					smtpd_string_reply("501 Syntax: HELO hostname\r\n");
+					smtpd_string_reply(session->sock_out,"501 Syntax: HELO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"session->helo: %s",session->helo);
-					smtpd_string_reply("250 %s\r\n",hostname);
+					smtpd_string_reply(session->sock_out,"250 %s\r\n",hostname);
 					state = ST_HELO;
 				}
 			} else {
-				smtpd_string_reply("501 Syntax: HELO hostname\r\n");
+				smtpd_string_reply(session->sock_out,"501 Syntax: HELO hostname\r\n");
 			}
 		} else if (g_ascii_strncasecmp(line, "ehlo", 4)==0) {
 			/* Same here....clear all buffers, if ehlo command is
@@ -456,23 +455,24 @@ int load(SMFSettings_T *settings,int sock) {
 			session->helo = smf_core_get_substring("^EHLO\\s(.*)$",line,1);
 			if (session->helo != NULL) {
 				if (strcmp(session->helo,"") == 0) {
-					smtpd_string_reply("501 Syntax: EHLO hostname\r\n");
+					smtpd_string_reply(session->sock_out,"501 Syntax: EHLO hostname\r\n");
 				} else {
 					TRACE(TRACE_DEBUG,"session->helo: %s",session->helo);
-					smtpd_string_reply("250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 SIZE\r\n",hostname);
+					smtpd_string_reply(session->sock_out,
+							"250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 SIZE\r\n",hostname);
 					state = ST_HELO;
 				}
 			} else {
-				smtpd_string_reply("501 Syntax: HELO hostname\r\n");
+				smtpd_string_reply(session->sock_out,"501 Syntax: HELO hostname\r\n");
 			}
 		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'xforward name' received");
 			session->xforward_addr = smf_core_get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
 			TRACE(TRACE_DEBUG,"session->xforward_addr: %s",session->xforward_addr);
-			smtpd_code_reply(250);
+			smtpd_code_reply(session->sock_out,250);
 			state = ST_XFWD;
 		} else if (g_ascii_strncasecmp(line, "xforward proto", 13)==0) {
-			smtpd_code_reply(250);
+			smtpd_code_reply(session->sock_out,250);
 			state = ST_XFWD;
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
 			/* The MAIL command begins a mail transaction. Once started, 
@@ -489,7 +489,7 @@ int load(SMFSettings_T *settings,int sock) {
 			TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
 			if (state == ST_MAIL) {
 				/* we already got the mail command */
-				smtpd_string_reply("503 Error: nested MAIL command\r\n");
+				smtpd_string_reply(session->sock_out,"503 Error: nested MAIL command\r\n");
 			} else {
 				session->envelope_from = g_slice_new(SMFEmailAddress_T);
 #if (GLIB2_VERSION >= 21400)
@@ -504,7 +504,7 @@ int load(SMFSettings_T *settings,int sock) {
 					if (settings->max_size != 0 )
 						requested_size = g_match_info_fetch(match_info, 2);
 				} else {
-					smtpd_string_reply(CODE_552);
+					smtpd_string_reply(session->sock_out,CODE_552);
 					g_slice_free(SMFEmailAddress_T,session->envelope_from);
 					session->envelope_from = NULL;
 				}
@@ -524,12 +524,12 @@ int load(SMFSettings_T *settings,int sock) {
 						if (settings->max_size != 0 )
 							pcre_get_substring(line,ovector,rc,2,&requested_size);
 					} else{
-						smtpd_string_reply(CODE_552);
+						smtpd_string_reply(session->sock_out,CODE_552);
 						g_slice_free(SMFEmailAddress_T,session->envelope_from);
 						session->envelope_from = NULL;
 					}
 				} else {
-					smtpd_string_reply(CODE_552);
+					smtpd_string_reply(session->sock_out,CODE_552);
 					g_slice_free(SMFEmailAddress_T,session->envelope_from);
 					session->envelope_from = NULL;
 				}
@@ -540,7 +540,7 @@ int load(SMFSettings_T *settings,int sock) {
 						unsigned long l;
 						l = (unsigned long) strtol(requested_size,NULL,10);
 						if (l > settings->max_size) {
-							smtpd_string_reply("552 Message size limit exceeded\r\n");
+							smtpd_string_reply(session->sock_out,"552 Message size limit exceeded\r\n");
 							g_slice_free(SMFEmailAddress_T,session->envelope_from);
 							session->envelope_from = NULL;
 							continue;
@@ -552,7 +552,7 @@ int load(SMFSettings_T *settings,int sock) {
 					TRACE(TRACE_DEBUG,"session->envelope_from: %s",session->envelope_from->addr);
 					if (g_ascii_strcasecmp(session->envelope_from->addr,"") == 0) {
 						/* check for emtpy string */
-						smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
+						smtpd_string_reply(session->sock_out,"501 Syntax: MAIL FROM:<address>\r\n");
 						g_slice_free(SMFEmailAddress_T,session->envelope_from);
 						session->envelope_from = NULL;
 					} else {
@@ -562,11 +562,11 @@ int load(SMFSettings_T *settings,int sock) {
 						} else 
 							session->envelope_from->user_data = NULL;
 
-						smtpd_code_reply(250);
+						smtpd_code_reply(session->sock_out,250);
 						state = ST_MAIL;
 					}
 				} else {
-					smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
+					smtpd_string_reply(session->sock_out,"501 Syntax: MAIL FROM:<address>\r\n");
 					g_slice_free(SMFEmailAddress_T,session->envelope_from);
 					session->envelope_from = NULL;
 				}
@@ -574,7 +574,7 @@ int load(SMFSettings_T *settings,int sock) {
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
 			if ((state != ST_MAIL) && (state != ST_RCPT)) {
 				/* someone wants to break smtp rules... */
-				smtpd_string_reply("503 Error: need MAIL command\r\n");
+				smtpd_string_reply(session->sock_out,"503 Error: need MAIL command\r\n");
 			} else {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 
@@ -590,7 +590,7 @@ int load(SMFSettings_T *settings,int sock) {
 				if (session->envelope_to[session->envelope_to_num] != NULL) {
 					if (strcmp(session->envelope_to[session->envelope_to_num]->addr,"") == 0) {
 						/* empty rcpt to? */
-						smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
+						smtpd_string_reply(session->sock_out,"501 Syntax: RCPT TO:<address>\r\n");
 						g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
 					} else {
 						TRACE(TRACE_DEBUG,"session->envelope_to[%d]: %s",session->envelope_to_num, session->envelope_to[session->envelope_to_num]->addr);
@@ -601,22 +601,22 @@ int load(SMFSettings_T *settings,int sock) {
 									session->envelope_to[session->envelope_to_num]->is_local);
 						} else
 							session->envelope_to[session->envelope_to_num]->user_data = NULL;
-						smtpd_code_reply(250);
+						smtpd_code_reply(session->sock_out,250);
 						session->envelope_to_num++;
 						state = ST_RCPT;
 					}
 				} else {
-					smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
+					smtpd_string_reply(session->sock_out,"501 Syntax: RCPT TO:<address>\r\n");
 					g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
 				}
 			}
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {
 			if ((state != ST_RCPT) && (state != ST_MAIL)) {
 				/* someone wants to break smtp rules... */
-				smtpd_string_reply("503 Error: need RCPT command\r\n");
+				smtpd_string_reply(session->sock_out,"503 Error: need RCPT command\r\n");
 			} else if ((state != ST_RCPT) && (state == ST_MAIL)) {
 				/* we got the mail command but no rcpt to */
-				smtpd_string_reply("554 Error: no valid recipients\r\n");
+				smtpd_string_reply(session->sock_out,"554 Error: no valid recipients\r\n");
 			} else {
 				state = ST_DATA;
 				TRACE(TRACE_DEBUG,"SMTP: 'data' received");
@@ -627,17 +627,17 @@ int load(SMFSettings_T *settings,int sock) {
 			smf_session_free(session);
 			/* reinit session */
 			session = smf_session_new();
-			smtpd_code_reply(250);
+			smtpd_code_reply(session->sock_out,250);
 			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'noop' received");
-			smtpd_code_reply(250);
+			smtpd_code_reply(session->sock_out,250);
 		} else if (g_ascii_strcasecmp(line,"")!=0){
 			TRACE(TRACE_DEBUG,"SMTP: wtf?!");
-			smtpd_code_reply(502);
+			smtpd_code_reply(session->sock_out,502);
 		} else {
 			TRACE(TRACE_DEBUG,"SMTP: got empty line");
-			smtpd_string_reply("500 Error: bad syntax\r\n");
+			smtpd_string_reply(session->sock_out,"500 Error: bad syntax\r\n");
 		}
 		g_free(line);
 	} 
