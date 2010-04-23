@@ -54,6 +54,12 @@ if(GMODULE_FOUND)
     link_directories(${GMODULE_LIBRARY_DIRS})
 endif(GMODULE_FOUND)
 
+pkg_search_module(GTHREAD REQUIRED gthread-2.0)
+if(GTHREAD_FOUND)
+    include_directories(${GTHREAD_INCLUDE_DIRS})
+    link_directories(${GTHREAD_LIBRARY_DIRS})
+endif(GTHREAD_FOUND)
+
 pkg_search_module(GMIME REQUIRED gmime-2.4 gmime-2.0)
 if(GMIME_FOUND)
     include_directories(${GMIME_INCLUDE_DIRS})

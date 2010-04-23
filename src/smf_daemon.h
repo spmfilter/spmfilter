@@ -22,15 +22,11 @@
 #define SERVER_PORT	10026
 #define BACKLOG 16
 
-#define	max(a,b) ((a) > (b) ? (a) : (b))
+//#define	max(a,b) ((a) > (b) ? (a) : (b))
 
 typedef struct {
 	char *pid_file;
 	char *pid_dir;
-	int start_children;
-	int min_spare_children;
-	int max_spare_children;
-	int max_children;
 	int process_limit;
 	int timeout;
 	char **iplist;
@@ -46,6 +42,12 @@ typedef struct {
 } SMFDaemonConfig_T;
 
 typedef struct {
+	int fd;
+	SMFDaemonConfig_T *config;
+} SMFDaemonClient_T;
+
+#if 0
+typedef struct {
 	pid_t child_pid; /* process ID */
 	int child_pipefd; /* parent's stream pipe to/from child */
 	int child_status; /* 0 = ready */
@@ -53,6 +55,7 @@ typedef struct {
 } SMFDaemonChild_T;
 
 SMFDaemonChild_T *cptr; /* array of Child structures; calloc'ed */
+#endif
 
 int smf_daemon_mainloop(SMFSettings_T *settings);
 

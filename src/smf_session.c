@@ -31,6 +31,7 @@
 
 #define THIS_MODULE "session"
 
+#if 0
 SMFSession_T *session = NULL;
 
 /** Initialize SMFSession_T structure
@@ -58,11 +59,33 @@ SMFSession_T *smf_session_get(void) {
 	return session;
 }
 
+#endif
+
+SMFSession_T *smf_session_new(void) {
+	SMFSession_T *session;
+	TRACE(TRACE_DEBUG,"initialize session data");
+	session = g_slice_new(SMFSession_T);
+	session->helo = NULL;
+	session->envelope_from = NULL;
+	session->queue_file = NULL;
+	session->envelope_to = NULL;
+	session->xforward_addr = NULL;
+	session->dirty_headers = NULL;
+	session->msgbodysize = 0;
+	session->headers = NULL;
+	session->dirty_headers = NULL;
+	session->message_from = NULL;
+	session->message_to = NULL;
+	session->response_msg = NULL;
+
+	return session;
+}
+
 /** Free SMFSession_T structure
  *
  * \param session SMFSession_T type
  */
-void smf_session_free(void) {
+void smf_session_free(SMFSession_T *session) {
 	int i;
 	TRACE(TRACE_DEBUG,"destroy session data");
 	g_free(session->queue_file);
@@ -128,8 +151,7 @@ void smf_session_free(void) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_session_to_file(char *path) {
-	SMFSession_T *session = smf_session_get();
+int smf_session_to_file(SMFSession_T *session, char *path) {
 	GIOChannel *in;
 	GMimeStream *out;
 	FILE *fd;
@@ -184,8 +206,7 @@ int smf_session_to_file(char *path) {
  *
  * \returns requested header
  */
-const char *smf_session_header_get(const char *header_name) {
-	SMFSession_T *session = smf_session_get();
+const char *smf_session_header_get(SMFSession_T *session, const char *header_name) {
 	const char *header_value = NULL;
 
 	while (session->dirty_headers) {
@@ -208,8 +229,7 @@ const char *smf_session_header_get(const char *header_name) {
  *
  * \returns 0 on success or -1 in case of error
  */
-void smf_session_header_remove(char *header_name) {
-	SMFSession_T *session = smf_session_get();
+void smf_session_header_remove(SMFSession_T *session, char *header_name) {
 	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
 	header->status = HEADER_REMOVE;
 	header->name = g_strdup(header_name);
@@ -230,8 +250,7 @@ void smf_session_header_remove(char *header_name) {
  * \param header_name name of the header
  * \param header_value new value for the header
  */
-void smf_session_header_prepend(char *header_name, char *header_value) {
-	SMFSession_T *session = smf_session_get();
+void smf_session_header_prepend(SMFSession_T *session, char *header_name, char *header_value) {
 	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
 	header->status = HEADER_PREPEND;
 	header->name = g_strdup(header_name);
@@ -253,8 +272,7 @@ void smf_session_header_prepend(char *header_name, char *header_value) {
  * \param header_name name of the header
  * \param header_value new value for the header
  */
-void smf_session_header_append(char *header_name, char *header_value) {
-	SMFSession_T *session = smf_session_get();
+void smf_session_header_append(SMFSession_T *session, char *header_name, char *header_value) {
 	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
 	header->status = HEADER_APPEND;
 	header->name = g_strdup(header_name);
@@ -281,8 +299,7 @@ void smf_session_header_append(char *header_name, char *header_value) {
  * \param header_name name of the header
  * \param header_value new value for the header
  */
-void smf_session_header_set(char *header_name, char *header_value) {
-	SMFSession_T *session = smf_session_get();
+void smf_session_header_set(SMFSession_T *session, char *header_name, char *header_value) {
 	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
 	header->status = HEADER_SET;
 	header->name = g_strdup(header_name);
@@ -301,8 +318,7 @@ void smf_session_header_set(char *header_name, char *header_value) {
  *
  * \returns a string containing the header block.
  */
-char *smf_session_header_to_string(void) {
-	SMFSession_T *session = smf_session_get();
+char *smf_session_header_to_string(SMFSession_T *session) {
 	char *header = NULL;
 
 #ifdef HAVE_GMIME24
@@ -318,8 +334,7 @@ char *smf_session_header_to_string(void) {
  * \param func function to be called for each header.
  * \param user_data user data to be passed to the func.
  */
-void smf_session_header_foreach(SMFHeaderForeachFunc func, void *user_data) {
-	SMFSession_T *session = smf_session_get();
+void smf_session_header_foreach(SMFSession_T *session, SMFHeaderForeachFunc func, void *user_data) {
 
 #ifdef HAVE_GMIME24
 	g_mime_header_list_foreach((GMimeHeaderList *)session->headers,func,user_data);
@@ -334,12 +349,12 @@ void smf_session_header_foreach(SMFHeaderForeachFunc func, void *user_data) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_session_subject_prepend(char *text) {
-	char *subject = (char *)smf_session_header_get("subject");
+int smf_session_subject_prepend(SMFSession_T *session, char *text) {
+	char *subject = (char *)smf_session_header_get(session, "subject");
 	if (subject == NULL)
 		return -1;
 
-	smf_session_header_set("subject",g_strdup_printf("%s %s",text,subject));
+	smf_session_header_set(session, "subject",g_strdup_printf("%s %s",text,subject));
 	return 0;
 }
 
@@ -349,10 +364,10 @@ int smf_session_subject_prepend(char *text) {
  *
  * \return 0 on success or -1 in case of error
  */
-int smf_session_subject_append(char *test) {
-	char *subject = (char *)smf_session_header_get("subject");
+int smf_session_subject_append(SMFSession_T *session, char *test) {
+	char *subject = (char *)smf_session_header_get(session,"subject");
 
-	smf_session_header_set("subject",g_strdup_printf("%s %s",subject, test));
+	smf_session_header_set(session,"subject",g_strdup_printf("%s %s",subject, test));
 	return 0;
 }
 
@@ -361,8 +376,7 @@ int smf_session_subject_append(char *test) {
  *
  * \returns SMFMessage_T object
  */
-SMFMessage_T *smf_session_get_message(void) {
-	SMFSession_T *session = smf_session_get();
+SMFMessage_T *smf_session_get_message(SMFSession_T *session) {
 	SMFMessage_T *message;
 	GMimeStream *stream, *mem_stream;
 	GMimeParser *parser;
