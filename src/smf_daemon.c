@@ -36,74 +36,20 @@
 
 #define THIS_MODULE "daemon"
 
-static int smf_daemon_bind(int sock, struct sockaddr *saddr, socklen_t len, int backlog) {
-	int err;
-	if ((bind(sock, saddr, len)) == -1) {
-		err = errno;
-		TRACE(TRACE_DEBUG, "failed");
-		return err;
-	}
-
-	if ((listen(sock, backlog)) == -1) {
-		err = errno;
-		TRACE(TRACE_DEBUG, "failed");
-		return err;
-	}
-
-	return 0;
-}
-
-static int smf_daemon_create_inet_socket(const char * const ip, int port, int backlog) {
-	struct addrinfo hints, *res, *ressave;
-	int sock, n, flags;
-	int so_reuseaddress = 1;
-	char *service;
-
-	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_flags = AI_PASSIVE;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_protocol = IPPROTO_TCP;
-
-	service = g_strdup_printf("%d",port);
-
-	n = getaddrinfo(ip, service, &hints, &res);
-	if (n < 0) {
-		TRACE(TRACE_ERR, "getaddrinfo::error [%s]", gai_strerror(n));
-		return -1;
-	}
-
-	ressave = res;
-	if ((sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
-		int serr = errno;
-		freeaddrinfo(ressave);
-		TRACE(TRACE_ERR, "%s", strerror(serr));
-	}
-
-	TRACE(TRACE_DEBUG, "create socket [%s:%d] backlog [%d]", ip, port, backlog);
-
-	setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &so_reuseaddress, sizeof(so_reuseaddress));
-
-	smf_daemon_bind(sock, res->ai_addr, res->ai_addrlen, backlog);
-	freeaddrinfo(ressave);
-
-	flags = fcntl(sock, F_GETFL);
-	fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-
-	return sock;
-}
+static int nchildren;
 
 pid_t smf_daemon_daemonize(void) {
 	int sid;
 
 	// double-fork
 	if (fork()) exit(0);
+
 	sid = setsid();
-	if (fork()) exit(0);
-
 	chdir("/");
-	umask(0077);
+	umask(0);
 
+	if (fork()) exit(0);
+	
 	TRACE(TRACE_DEBUG, "daemon sid: [%d]", sid);
 
 	return sid;
@@ -133,7 +79,7 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	if (!config->process_limit) {
 		config->process_limit = 15;
 	}
-	TRACE(TRACE_DEBUG, "daemon->max_connects",config->max_connects);
+	TRACE(TRACE_DEBUG, "daemon->process_limit",config->process_limit);
 
 
 	config->timeout = g_key_file_get_integer(keyfile, "daemon", "timeout",NULL);
@@ -215,11 +161,189 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	return 0;
 }
 
+ssize_t write_fd(int fd, void *ptr, size_t nbytes, int sendfd) {
+	struct msghdr msg;
+	struct iovec iov[1];
+
+	union {
+		struct cmsghdr	cm;
+		char control[CMSG_SPACE(sizeof(int))];
+	} control_un;
+	struct cmsghdr	*cmptr;
+
+	msg.msg_control = control_un.control;
+	msg.msg_controllen = sizeof(control_un.control);
+
+	cmptr = CMSG_FIRSTHDR(&msg);
+	cmptr->cmsg_len = CMSG_LEN(sizeof(int));
+	cmptr->cmsg_level = SOL_SOCKET;
+	cmptr->cmsg_type = SCM_RIGHTS;
+	*((int *) CMSG_DATA(cmptr)) = sendfd;
+
+	msg.msg_name = NULL;
+	msg.msg_namelen = 0;
+
+	iov[0].iov_base = ptr;
+	iov[0].iov_len = nbytes;
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+
+	return(sendmsg(fd, &msg, 0));
+}
+
+ssize_t read_fd(int fd, void *ptr, size_t nbytes, int *recvfd) {
+	struct msghdr msg;
+	struct iovec iov[1];
+	ssize_t n;
+
+	union {
+		struct cmsghdr	cm;
+		char control[CMSG_SPACE(sizeof(int))];
+	} control_un;
+	struct cmsghdr	*cmptr;
+
+	msg.msg_control = control_un.control;
+	msg.msg_controllen = sizeof(control_un.control);
+
+	msg.msg_name = NULL;
+	msg.msg_namelen = 0;
+
+	iov[0].iov_base = ptr;
+	iov[0].iov_len = nbytes;
+	msg.msg_iov = iov;
+	msg.msg_iovlen = 1;
+
+	if ( (n = recvmsg(fd, &msg, 0)) <= 0)
+		return(n);
+
+	if ( (cmptr = CMSG_FIRSTHDR(&msg)) != NULL &&
+		cmptr->cmsg_len == CMSG_LEN(sizeof(int))) {
+		if (cmptr->cmsg_level != SOL_SOCKET)
+			TRACE(TRACE_ERR,"control level != SOL_SOCKET");
+		if (cmptr->cmsg_type != SCM_RIGHTS)
+			TRACE(TRACE_ERR,"control type != SCM_RIGHTS");
+		*recvfd = *((int *) CMSG_DATA(cmptr));
+	} else
+		*recvfd = -1;		/* descriptor was not passed */
+
+	return(n);
+}
+
+int smf_daemon_listen(char *host, int port, socklen_t *addrlenp, int backlog) {
+	int listenfd, n;
+	const int on = 1;
+	struct addrinfo	hints, *res, *ressave;
+	char *serv;
+
+	serv = g_strdup_printf("%d",port);
+
+	bzero(&hints, sizeof(struct addrinfo));
+	hints.ai_flags = AI_PASSIVE;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+
+	if ( (n = getaddrinfo(host, serv, &hints, &res)) != 0)
+		TRACE(TRACE_ERR,"tcp listen error for %s, %s: %s",
+			host, serv, gai_strerror(n));
+	ressave = res;
+
+	do {
+		listenfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+		if (listenfd < 0)
+			continue;		/* error, try next one */
+
+		if (setsockopt(listenfd, SOL_SOCKET, SOL_SOCKET, &on, sizeof(on)) < 0)
+			TRACE(TRACE_ERR,"setsockopt error");
+		if (bind(listenfd, res->ai_addr, res->ai_addrlen) == 0)
+			break;			/* success */
+
+		close(listenfd);	/* bind error, close and try next one */
+	} while ( (res = res->ai_next) != NULL);
+
+	if (res == NULL)	/* errno from final socket() or bind() */
+		TRACE(TRACE_ERR, "tcp listen error for %s, %s", host, serv);
+
+	if (listen(listenfd, backlog) < 0)
+		TRACE(TRACE_ERR, "listen error");
+
+	if (addrlenp)
+		*addrlenp = res->ai_addrlen;	/* return size of protocol address */
+
+	freeaddrinfo(ressave);
+
+	return(listenfd);
+}
+
+void smf_daemon_child(int i, int listenfd, int addrlen) {
+	char c;
+	int connfd;
+	ssize_t n;
+	SMFSettings_T *settings = smf_settings_get();
+	
+	TRACE(TRACE_DEBUG, "child %ld starting\n", (long) getpid());
+	for (;;) {
+		if ((n = read_fd(STDERR_FILENO, &c, 1, &connfd)) == 0)
+			TRACE(TRACE_ERR,"read_fd returned 0");
+		if (connfd < 0)
+			TRACE(TRACE_ERR,"no descriptor from read_fd");
+
+		smf_modules_engine_load(settings, connfd);
+		close(connfd);
+		write(STDERR_FILENO, "", 1);
+	}
+}
+
+pid_t smf_daemon_make_child(int i, int listenfd, int addrlen) {
+	int	sockfd[2];
+	pid_t pid;
+	void child_main(int, int, int);
+
+	socketpair(AF_LOCAL, SOCK_STREAM, 0, sockfd);
+
+	if ( (pid = fork()) > 0) {
+		close(sockfd[1]);
+		cptr[i].child_pid = pid;
+		cptr[i].child_pipefd = sockfd[0];
+		cptr[i].child_status = 0;
+		return(pid); /* parent */
+	}
+
+	dup2(sockfd[1], STDERR_FILENO); /* child's stream pipe to parent */
+	close(sockfd[0]);
+	close(sockfd[1]);
+	close(listenfd); /* child does not need this open */
+	smf_daemon_child(i, listenfd, addrlen); /* never returns */
+
+	return 0;
+}
+
+void sig_int(int signo) {
+	int i;
+
+	/* terminate all children */
+	for (i = 0; i < nchildren; i++)
+		kill(cptr[i].child_pid, SIGTERM);
+	while (wait(NULL) > 0)		/* wait for all children */
+		;
+	if (errno != ECHILD)
+		TRACE(TRACE_ERR,"wait error");
+
+	for (i = 0; i < nchildren; i++)
+		TRACE(TRACE_DEBUG,"child %d, %ld connections\n", i, cptr[i].child_count);
+
+	exit(0);
+}
+
 int smf_daemon_mainloop(SMFSettings_T *settings) {
 	SMFDaemonConfig_T config;
-	int i;
-	fd_set rfds;
+	int listenfd, i, navail, nsel, connfd, rc;
 	int maxfd = -1;
+	void sig_int(int);
+	pid_t child_make(int, int, int);
+	ssize_t n;
+	fd_set rset, masterset;
+	socklen_t addrlen, clilen;
+	struct sockaddr	*cliaddr;
 
 	memset(&config, 0, sizeof(SMFDaemonConfig_T));
 	if (smf_daemon_load_config(&config) != 0) {
@@ -233,77 +357,75 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 			return -1;
 		}
 	}
-/*
-	while (smf_daemon_run(&config)) {
-		sleep(2);
-	}
-*/
 
 	config.listen_sockets = g_new0(int, config.ipcount);
 	config.num_sockets = 0;
-	for (i = 0; i < config.ipcount; i++) {
-		config.listen_sockets[i] = smf_daemon_create_inet_socket(
-			config.iplist[i], config.port, config.backlog);
-		if (config.listen_sockets[i] > maxfd)
-			maxfd = config.listen_sockets[i];
-		config.num_sockets++;
+
+	FD_ZERO(&masterset);
+
+	listenfd = smf_daemon_listen(SERVER_IP,config.port, &addrlen, config.backlog);
+	FD_ZERO(&masterset);
+	FD_SET(listenfd, &masterset);
+	maxfd = listenfd;
+
+	cliaddr = malloc(addrlen);
+	nchildren = config.min_spare_children;
+
+	navail = nchildren;
+	cptr = calloc(nchildren, sizeof(SMFDaemonChild_T));
+
+	/* prefork all the children */
+	for (i = 0; i < nchildren; i++) {
+		smf_daemon_make_child(i, listenfd, addrlen); /* parent returns */
+		FD_SET(cptr[i].child_pipefd, &masterset);
+		maxfd = max(maxfd, cptr[i].child_pipefd);
 	}
 
+	signal(SIGINT, sig_int);
 
-	/*  Loop infinitely to accept and service connections  */
-	while ( 1 ) {
-		FD_ZERO(&rfds);
-		for (i = 0; i < config.num_sockets; i++) 
-			FD_SET(config.listen_sockets[i], &rfds);
+	for (;;) {
+		rset = masterset;
+
+		/* turn off if no available children */
+		if (navail <= 0) 
+				FD_CLR(listenfd, &rset);
 		
+		nsel = select(maxfd, &rset, NULL, NULL, NULL);
 
-		int returned = select(maxfd + 1, &rfds, NULL, NULL, NULL);
-		if (returned) {
-			for (i = 0; i < config.num_sockets; i++) {
-				if (FD_ISSET(config.listen_sockets[i], &rfds)) {
-					int conn;
-					pid_t pid;
-					/*  Wait for connection  */
-					int listener = config.listen_sockets[i];
-					if ( (conn = accept(listener, NULL, NULL)) < 0 ) {
-						TRACE(TRACE_ERR,"Error calling accept()");
-						return -1;
-					}
+		/* check for new connections */
+		if (FD_ISSET(listenfd, &rset)) {
+			clilen = addrlen;
+			connfd = accept(listenfd, cliaddr, &clilen);
 
-					/*  Fork child process to service connection  */
-					if ( (pid = fork()) == 0 ) {
-						/* This is now the forked child process, so
-						 * close listening socket and service request   */
-						if ( close(listener)  < 0 ) {
-							TRACE(TRACE_ERR,"Error closing listening socket in child.");
-							return -1;
-						}
+			for (i = 0; i < nchildren; i++)
+				if (cptr[i].child_status == 0)
+					break;				/* available */
 
-						smf_modules_engine_load(settings, conn);
+			if (i == nchildren)
+				TRACE(TRACE_ERR,"no available children");
 
-						/*  Close connected socket and exit  */
-						if ( close(conn) < 0 ) {
-							TRACE(TRACE_ERR,"Error closing connection socket.");
-							return -1;
-						}
-						exit(EXIT_SUCCESS);
-					}
+			cptr[i].child_status = 1;	/* mark child as busy */
+			cptr[i].child_count++;
+			navail--;
 
-					/* If we get here, we are still in the parent process,
-					 * so close the connected socket, clean up child processes,
-					 * and go back to accept a new connection.                   */
+			n = write_fd(cptr[i].child_pipefd, "", 1, connfd);
+			close(connfd);
+			if (--nsel == 0)
+				continue;	/* all done with select() results */
+		}
 
-					if ( close(conn) < 0 ) {
-						TRACE(TRACE_ERR,"Error closing connection socket in parent.");
-						return -1;
-					}
-					waitpid(-1, NULL, WNOHANG);
-		
-				}
+		/* find any newly-available children */
+		for (i = 0; i < nchildren; i++) {
+			if (FD_ISSET(cptr[i].child_pipefd, &rset)) {
+				if ( (n = read(cptr[i].child_pipefd, &rc, 1)) == 0)
+					TRACE(TRACE_ERR,"child %d terminated unexpectedly", i);
+				cptr[i].child_status = 0;
+				navail++;
+				if (--nsel == 0)
+					break;	/* all done with select() results */
 			}
 		}
 	}
-
-
+	
 	return 0;
 }
