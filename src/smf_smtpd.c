@@ -96,7 +96,6 @@ void smtpd_string_reply(int sock, const char *format, ...) {
 	gchar *msg;
 	va_start(ap, format);
 
-	TRACE(TRACE_DEBUG,"USING SOCK: %d",sock);
 	out = g_io_channel_unix_new(sock);
 	g_io_channel_set_encoding(out, NULL, NULL);
 	g_io_channel_set_close_on_unref(out,FALSE);
@@ -236,7 +235,7 @@ static int handle_nexthop_error(void *args) {
 	return(0);
 }
 
-int load_modules(SMFSession_T *session) {
+int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
 	int ret;
 	ProcessQueue_T *q;
 
@@ -252,7 +251,7 @@ int load_modules(SMFSession_T *session) {
 	}
 
 	/* now tun the process queue */
-	ret = smf_modules_process(q,session);
+	ret = smf_modules_process(q,session,settings);
 	free(q);
 
 	if(ret == -1) {
@@ -272,7 +271,7 @@ int load_modules(SMFSession_T *session) {
 	return(0);
 }
 
-void process_data(SMFSession_T *session) {
+void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	GIOChannel *in;
 	GMimeStream *out;
 	gchar *line;
@@ -362,7 +361,7 @@ void process_data(SMFSession_T *session) {
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
 
-	load_modules(session);
+	load_modules(session,settings);
 	
 	if (g_remove(session->queue_file) != 0)
  		TRACE(TRACE_ERR,"failed to remove queue file");
@@ -548,6 +547,7 @@ int load(SMFSettings_T *settings,int sock) {
 					}
 				}
 
+				session->envelope_from->user_data = NULL;
 				if (session->envelope_from->addr != NULL){
 					TRACE(TRACE_DEBUG,"session->envelope_from: %s",session->envelope_from->addr);
 					if (g_ascii_strcasecmp(session->envelope_from->addr,"") == 0) {
@@ -587,6 +587,7 @@ int load(SMFSettings_T *settings,int sock) {
 				/* allocate resources for the individual recipient */
 				session->envelope_to[session->envelope_to_num] = g_slice_new(SMFEmailAddress_T);
 				session->envelope_to[session->envelope_to_num]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+				session->envelope_to[session->envelope_to_num]->user_data = NULL;
 				if (session->envelope_to[session->envelope_to_num] != NULL) {
 					if (strcmp(session->envelope_to[session->envelope_to_num]->addr,"") == 0) {
 						/* empty rcpt to? */
@@ -620,7 +621,7 @@ int load(SMFSettings_T *settings,int sock) {
 			} else {
 				state = ST_DATA;
 				TRACE(TRACE_DEBUG,"SMTP: 'data' received");
-				process_data(session);
+				process_data(session,settings);
 			}
 		} else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
