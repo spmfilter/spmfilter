@@ -207,7 +207,8 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	return 0;
 }
 
-int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
+int smf_modules_process(
+		ProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
 	int i;
 	int retval;
 	ModuleLoadFunction runner;
@@ -218,7 +219,6 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	GHashTable *modlist;
 	char *stf_filename = NULL;
 	FILE *stfh = NULL;
-	SMFSettings_T *settings = smf_settings_get();
 	gchar *header = NULL;
 
 	/* initialize message file  and load processed modules */
@@ -263,6 +263,9 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 				continue;
 		}
 
+		if (settings->daemon == 1)
+			g_module_make_resident(mod);
+		
 		if (!g_module_symbol(mod, "load", (gpointer *)&sym)) {
 			TRACE(TRACE_ERR,"symbol load could not be foudn : %s", g_module_error());
 			g_free(path);
@@ -403,7 +406,11 @@ int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
 		TRACE(TRACE_ERR,"%s\n", g_module_error());
 		return -1;
 	}
-
+	
+	/* make engine resident, if daemon mode */
+	if (settings->daemon == 1)
+		g_module_make_resident(module);
+	
 	/* check if the module provides the function load() */
 	if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
 		TRACE(TRACE_ERR,"%s", g_module_error());

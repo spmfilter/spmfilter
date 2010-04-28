@@ -39,7 +39,7 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 	int (*nhoperr)(void *args));
 
 /** load all modules and run them */
-int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session);
+int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings);
 
 /** deliver a message to the nexthop */
 int smf_modules_deliver_nexthop(ProcessQueue_T *q, SMFSession_T *session);

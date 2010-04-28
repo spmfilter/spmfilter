@@ -111,7 +111,7 @@ void smf_message_extract_addresses(SMFSession_T *session, GMimeObject *message) 
 	/* get the from field */
 	session->message_from = g_slice_new(SMFEmailAddress_T);
 	session->message_from->addr = smf_core_get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(GMIME_MESSAGE(message)),1);
-
+	session->message_from->user_data = NULL;
 	if (session->message_from->addr != NULL) {
 		TRACE(TRACE_DEBUG,"session->message_from: %s",session->message_from->addr);
 	
@@ -141,7 +141,7 @@ void smf_message_extract_addresses(SMFSession_T *session, GMimeObject *message) 
 			session->message_to[session->message_to_num] = g_slice_new(SMFEmailAddress_T);
 			session->message_to[session->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-			
+			session->message_to[session->message_to_num]->user_data = NULL;
 			if (session->message_to[session->message_to_num]->addr != NULL) {
 				TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
 						session->message_to_num,
@@ -195,6 +195,7 @@ void smf_message_extract_addresses(SMFSession_T *session, GMimeObject *message) 
 				);
 			session->message_to[session->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
+			session->message_to[session->message_to_num]->user_data = NULL;
 			if (session->message_to[session->message_to_num]->addr != NULL) {
 				TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
 						session->message_to_num,
