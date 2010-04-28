@@ -53,16 +53,20 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 		return -1;
 	}
 
-	config->process_limit = g_key_file_get_integer(keyfile, "daemon", "process_limit",NULL);
-	if (!config->process_limit) {
-		config->process_limit = 15;
-	}
-	TRACE(TRACE_DEBUG, "daemon->process_limit",config->process_limit);
+	config->spare_threads = g_key_file_get_integer(keyfile, "daemon", "spare_threads", NULL);
+	if (!config->spare_threads)
+		config->spare_threads = 2;
+	TRACE(TRACE_DEBUG, "daemon->spare_threads: %d", config->spare_threads);
+
+	config->max_threads = g_key_file_get_integer(keyfile, "daemon", "max_threads",NULL);
+	if (!config->max_threads) 
+		config->max_threads = 15;
+	TRACE(TRACE_DEBUG, "daemon->max_threads: %d",config->max_threads);
 
 
 	config->timeout = g_key_file_get_integer(keyfile, "daemon", "timeout",NULL);
 	if (!config->timeout) {
-		config->timeout = 60;
+		config->timeout = 60000;
 	}
 	TRACE(TRACE_DEBUG, "daemon->timeout: %d",config->timeout);
 
@@ -91,7 +95,7 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	config->backlog = g_key_file_get_integer(keyfile, "daemon", "backlog", NULL);
 	if (!config->backlog) {
 		TRACE(TRACE_DEBUG, "no value for backlog in config file, using default");
-		config->backlog = BACKLOG;
+		config->backlog = 16;
 	}
 	TRACE(TRACE_DEBUG,"daemon->backlog: %d", config->backlog);
 
@@ -311,8 +315,10 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 	}
 
 	g_thread_init(NULL);
-	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.process_limit,TRUE,NULL);
-
+	
+	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.max_threads,FALSE,NULL);
+	g_thread_pool_set_max_idle_time(60);
+	g_thread_pool_set_max_unused_threads(config.spare_threads);
 	g_main_loop_run(event_loop);
 
 	g_main_loop_unref(event_loop);

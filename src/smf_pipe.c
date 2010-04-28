@@ -98,7 +98,7 @@ static int handle_nexthop_error(void *args) {
 	return(0);
 }
 
-int load_modules(SMFSession_T *session) {
+int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
 	int ret;
 	ProcessQueue_T *q;
 
@@ -114,7 +114,7 @@ int load_modules(SMFSession_T *session) {
 	}
 
 	/* now tun the process queue */
-	ret = smf_modules_process(q,session);
+	ret = smf_modules_process(q,session,settings);
 	free(q);
 
 	if(ret != 0) {
@@ -126,7 +126,7 @@ int load_modules(SMFSession_T *session) {
 	return(0);
 }
 
-int load(void) {
+int load(SMFSettings_T *settings,int sock) {
 	GIOChannel *in;
 	GMimeStream *out;
 	GMimeObject *message;
@@ -211,7 +211,7 @@ int load(void) {
 	stop_process = clock();
 	TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 
-	if (load_modules(session) != 0) {
+	if (load_modules(session, settings) != 0) {
 		remove(session->queue_file);
 		smf_session_free(session);
 		TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
