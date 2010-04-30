@@ -95,7 +95,7 @@ void smtpd_string_reply(int sock, const char *format, ...) {
 	GIOChannel *out = NULL;
 	gchar *msg;
 	va_start(ap, format);
-
+	
 	out = g_io_channel_unix_new(sock);
 	g_io_channel_set_encoding(out, NULL, NULL);
 	g_io_channel_set_close_on_unref(out,FALSE);
@@ -372,7 +372,7 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 int load(SMFSettings_T *settings,int sock) {
 	char hostname[256];
 	GIOChannel *in;
-	char *line;
+	gchar *line;
 	int state=ST_INIT;
 	SMFSession_T *session = smf_session_new();
 	const char *requested_size = NULL;
