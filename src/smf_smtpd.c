@@ -378,6 +378,7 @@ int load(SMFSettings_T *settings,int sock) {
 	const char *requested_size = NULL;
 	const char *mail_from_addr = NULL;
 	clock_t start_process, stop_process;
+	int sock_in, sock_out;
 #if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
 	GMatchInfo *match_info = NULL;
@@ -396,10 +397,14 @@ int load(SMFSettings_T *settings,int sock) {
 	
 	if (sock == 0) {
 		session->sock_in = sock;
+		sock_in = sock;
 		session->sock_out = 1;
+		sock_out = 1;
 	} else {
 		session->sock_in = sock;
+		sock_in = sock;
 		session->sock_out = sock;
+		sock_out = sock;
 	}
 	
 	smtpd_string_reply(session->sock_out,"220 %s spmfilter\r\n",hostname);
@@ -426,6 +431,8 @@ int load(SMFSettings_T *settings,int sock) {
 				smf_session_free(session);
 				/* reinit session */
 				session = smf_session_new();
+				session->sock_in = sock_in;
+				session->sock_out = sock_out;
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
 			session->helo = smf_core_get_substring("^HELO\\s(.*)$",line, 1);
@@ -449,6 +456,8 @@ int load(SMFSettings_T *settings,int sock) {
 				smf_session_free(session);
 				/* reinit session */
 				session = smf_session_new();
+				session->sock_in = sock_in;
+				session->sock_out = sock_out;
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
 			session->helo = smf_core_get_substring("^EHLO\\s(.*)$",line,1);
@@ -628,6 +637,8 @@ int load(SMFSettings_T *settings,int sock) {
 			smf_session_free(session);
 			/* reinit session */
 			session = smf_session_new();
+			session->sock_in = sock_in;
+			session->sock_out = sock_out;
 			smtpd_code_reply(session->sock_out,250);
 			state = ST_INIT;
 		} else if (g_ascii_strncasecmp(line, "noop", 4)==0) {

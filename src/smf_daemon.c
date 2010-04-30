@@ -254,11 +254,6 @@ static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer d
 	if (conn < 0)
 		return FALSE;
 
-	// the conn *must* be blocking
-	flags = fcntl(conn, F_GETFL);
-	if (conn > 0)
-		fcntl(conn, F_SETFL, flags & ~ O_NONBLOCK);
-
 	client->fd = conn;
 
 	num_threads = g_thread_pool_get_num_threads(pool);
