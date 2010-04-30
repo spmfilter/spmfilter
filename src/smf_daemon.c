@@ -206,10 +206,21 @@ static gboolean child_exit(GIOChannel *io, GIOCondition cond, void *user_data) {
 }
 
 static void smf_daemon_handle(gpointer data, gpointer user_data) {
+	SMFDaemonClient_T *client = data;
+	smf_modules_engine_load((SMFSettings_T *)user_data, client->fd);
+	close(client->fd);
+}
+
+static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer data) {
+	SMFDaemonClient_T *client;
 	int i, conn, result, flags;
 	int active = 0, maxfd = 0;
+	int num_threads;
+	int max_threads;
 	fd_set rfds;
-	SMFDaemonClient_T *client = data;
+
+	client = g_slice_new(SMFDaemonClient_T);
+	client->config = data;
 
 	FD_ZERO(&rfds);
 	for (i = 0; i < client->config->num_sockets; i++) {
@@ -223,13 +234,13 @@ static void smf_daemon_handle(gpointer data, gpointer user_data) {
 
 	result = select(maxfd + 1, &rfds, NULL, NULL, NULL);
 	if (result < 1)
-		return;
+		return FALSE;
 
 	if (FD_ISSET(child_pipe[0], &rfds)) {
 		char buf[1];
 		while (read(child_pipe[0], buf, 1) > 0)
 			;
-		return;
+		return FALSE;
 	}
 
 	for (i = 0; i < client->config->num_sockets; i++) {
@@ -241,23 +252,22 @@ static void smf_daemon_handle(gpointer data, gpointer user_data) {
 
 	conn = accept(client->config->listen_sockets[active], NULL, NULL);
 	if (conn < 0)
-		return;
+		return FALSE;
 
 	// the conn *must* be blocking
 	flags = fcntl(conn, F_GETFL);
 	if (conn > 0)
 		fcntl(conn, F_SETFL, flags & ~ O_NONBLOCK);
 
-	smf_modules_engine_load((SMFSettings_T *)user_data, conn);
-	close(conn);
-}
+	client->fd = conn;
 
-static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer data) {
-	SMFDaemonClient_T *client;
+	num_threads = g_thread_pool_get_num_threads(pool);
+	max_threads = g_thread_pool_get_max_threads(pool);
 
-	client = g_slice_new(SMFDaemonClient_T);
-	client->fd = g_io_channel_unix_get_fd(chan);
-	client->config = data;
+	if ((num_threads == max_threads) && (max_threads < client->config->max_threads)) {
+		TRACE(TRACE_DEBUG,"fire up on more thread");
+		g_thread_pool_set_max_threads(pool,num_threads + 1,NULL);
+	}
 
 	g_thread_pool_push(pool, client, NULL);
 
@@ -316,9 +326,7 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 
 	g_thread_init(NULL);
 	
-	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.max_threads,FALSE,NULL);
-	g_thread_pool_set_max_idle_time(60);
-	g_thread_pool_set_max_unused_threads(config.spare_threads);
+	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.spare_threads,FALSE,NULL);
 	g_main_loop_run(event_loop);
 
 	g_main_loop_unref(event_loop);
