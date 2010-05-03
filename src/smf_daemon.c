@@ -27,6 +27,9 @@
 #include <sys/wait.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <signal.h>
+#include <pwd.h>
+#include <grp.h>
 #include <glib.h>
 
 #include "smf_settings.h"
@@ -39,6 +42,40 @@
 static GMainLoop *event_loop;
 GThreadPool *pool;
 static int child_pipe[2];
+
+void catch_alarm(int i) {
+	TRACE(TRACE_DEBUG,"ARLAM %d",i);
+}
+
+int smf_daemon_drop_privileges(char *newuser, char *newgroup) {
+	struct passwd *pwd = NULL;
+	struct group *grp = NULL;
+
+	grp = getgrnam(newgroup);
+
+	if (grp == NULL) {
+		TRACE(TRACE_ERR, "could not find group %s", newgroup);
+		return -1;
+	}
+
+	pwd = getpwnam(newuser);
+	if (pwd == NULL) {
+		TRACE(TRACE_ERR, "could not find user %s", newuser);
+		return -1;
+	}
+
+	if (setgid(grp->gr_gid) != 0) {
+		TRACE(TRACE_ERR, "could not set gid to %s", newgroup);
+		return -1;
+	}
+
+	if (setuid(pwd->pw_uid) != 0) {
+		TRACE(TRACE_ERR, "could not set uid to %s", newuser);
+		return -1;
+	}
+
+	return 0;
+}
 
 int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	GError *error = NULL;
@@ -66,7 +103,7 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 
 	config->timeout = g_key_file_get_integer(keyfile, "daemon", "timeout",NULL);
 	if (!config->timeout) {
-		config->timeout = 60000;
+		config->timeout = 60;
 	}
 	TRACE(TRACE_DEBUG, "daemon->timeout: %d",config->timeout);
 
@@ -100,14 +137,18 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	TRACE(TRACE_DEBUG,"daemon->backlog: %d", config->backlog);
 
 	config->effective_user = g_key_file_get_string(keyfile, "daemon", "effective_user", NULL);
-	if (config->effective_user == NULL)
+	if (config->effective_user == NULL) {
 		TRACE(TRACE_ERR, "no value for EFFECTIVE_USER in config file");
+		exit(-1);
+	}
 
 	TRACE(TRACE_DEBUG,"daemon->effective_user: %s", config->effective_user);
 
 	config->effective_group = g_key_file_get_string(keyfile, "daemon", "effective_group", NULL);
-	if (config->effective_group == NULL)
+	if (config->effective_group == NULL) {
 		TRACE(TRACE_ERR, "no value for EFFECTIVE_GROUP in config file");
+		exit(-1);
+	}
 
 	TRACE(TRACE_DEBUG,"daemon->effective_group: %s", config->effective_group);
 
@@ -207,13 +248,15 @@ static gboolean child_exit(GIOChannel *io, GIOCondition cond, void *user_data) {
 
 static void smf_daemon_handle(gpointer data, gpointer user_data) {
 	SMFDaemonClient_T *client = data;
+	alarm(client->config->timeout);
 	smf_modules_engine_load((SMFSettings_T *)user_data, client->fd);
 	close(client->fd);
+	alarm(0);
 }
 
 static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer data) {
 	SMFDaemonClient_T *client;
-	int i, conn, result, flags;
+	int i, conn, result;
 	int active = 0, maxfd = 0;
 	int num_threads;
 	int max_threads;
@@ -274,10 +317,27 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 	SMFDaemonConfig_T config;
 	GIOChannel *child_io;
 	int i;
-
+	struct sigaction handler;
+	
 	memset(&config, 0, sizeof(SMFDaemonConfig_T));
 	if (smf_daemon_load_config(&config) != 0) {
 		TRACE(TRACE_ERR,"failed to load daemon config");
+		return -1;
+	}
+
+	handler.sa_handler = catch_alarm;
+	if (sigfillset(&handler.sa_mask) < 0) { // Block everythin in handler
+		TRACE(TRACE_ERR,"sigfillset failed");
+		return -1;
+	}
+	handler.sa_flags = 0;
+	if (sigaction(SIGALRM, &handler, 0) < 0) {
+		TRACE(TRACE_ERR,"sigaction failed");
+		return -1;
+	}
+
+	if (smf_daemon_drop_privileges(config.effective_user, config.effective_group) < 0) {
+		TRACE(TRACE_ERR,"unable to drop privileges");
 		return -1;
 	}
 
