@@ -80,9 +80,8 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
 			TRACE(TRACE_ERR, "pcre_match : failed to match pattern %s : code was %d", pattern, rc);
 		}
 	}
-	if (strptr != NULL)
-		free((char *) strptr);
-
+	pcre_free_substring(strptr);
+	pcre_free(re);
 #endif	
 	return value;
 }
