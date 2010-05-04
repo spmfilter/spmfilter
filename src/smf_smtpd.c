@@ -126,7 +126,9 @@ void smtpd_code_reply(int sock, int code) {
 	if (code_msg!=NULL) {
 		gchar *msg;
 		msg = g_strdup_printf("%d %s\r\n",code,code_msg);
+		free(code_msg);
 		g_io_channel_write_chars(out,msg,strlen(msg),NULL,NULL);
+		g_free(msg);
 	} else {
 		switch(code) {
 			case 221:
@@ -335,15 +337,16 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	session->headers = (void *)g_mime_header_new();
 	g_mime_header_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->headers);
 #endif
-	
 	smf_message_extract_addresses(session,GMIME_OBJECT(message));
 	g_object_unref(parser);
 	g_object_unref(message);
 	g_object_unref(out);
 
-	if (session->message_from->addr == NULL) {
-		smf_session_header_append(session,"From",g_strdup(session->envelope_from->addr));
-		TRACE(TRACE_DEBUG,"adding [from] header to message");
+	if (session->message_from != NULL) {
+		if (session->message_from->addr == NULL) {
+			smf_session_header_append(session,"From",g_strdup(session->envelope_from->addr));
+			TRACE(TRACE_DEBUG,"adding [from] header to message");
+		}
 	}
 
 	if (session->message_to_num == 0) {
@@ -392,7 +395,6 @@ int load(SMFSettings_T *settings,int sock) {
 	/* start clock, to see how long
 	 * the processing time takes */
 	start_process = clock();
-
 	gethostname(hostname,256);
 	
 	if (sock == 0) {
@@ -406,7 +408,7 @@ int load(SMFSettings_T *settings,int sock) {
 		session->sock_out = sock;
 		sock_out = sock;
 	}
-	
+
 	smtpd_string_reply(session->sock_out,"220 %s spmfilter\r\n",hostname);
 	session->envelope_to_num = 0;
 	in = g_io_channel_unix_new(session->sock_in);
@@ -420,6 +422,7 @@ int load(SMFSettings_T *settings,int sock) {
 			TRACE(TRACE_DEBUG,"SMTP: 'quit' received"); 
 			smtpd_code_reply(session->sock_out,221);
 			state = ST_QUIT;
+			g_free(line);
 			break;
 		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
 			/* An EHLO command MAY be issued by a client later in the session.
@@ -527,7 +530,7 @@ int load(SMFSettings_T *settings,int sock) {
 						pcre_get_substring(line,ovector,rc,1,&mail_from_addr);
 						if (mail_from_addr != NULL) {
 							session->envelope_from->addr = g_strdup(mail_from_addr);
-							free((char *)mail_from_addr);
+							pcre_free_substring(mail_from_addr);
 						}
 						if (settings->max_size != 0 )
 							pcre_get_substring(line,ovector,rc,2,&requested_size);
@@ -536,6 +539,7 @@ int load(SMFSettings_T *settings,int sock) {
 						g_slice_free(SMFEmailAddress_T,session->envelope_from);
 						session->envelope_from = NULL;
 					}
+					pcre_free(re);
 				} else {
 					smtpd_string_reply(session->sock_out,CODE_552);
 					g_slice_free(SMFEmailAddress_T,session->envelope_from);
@@ -553,6 +557,11 @@ int load(SMFSettings_T *settings,int sock) {
 							session->envelope_from = NULL;
 							continue;
 						}
+#if (GLIB2_VERSION >= 21400)
+						free(requested_size);
+#else
+						pcre_free_substring(requested_size);
+#endif
 					}
 				}
 
@@ -653,7 +662,6 @@ int load(SMFSettings_T *settings,int sock) {
 		}
 		g_free(line);
 	} 
-	
 	g_io_channel_unref(in);
 
 	smf_session_free(session);

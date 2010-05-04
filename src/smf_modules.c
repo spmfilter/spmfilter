@@ -343,7 +343,6 @@ int smf_modules_process(
 		TRACE(TRACE_DEBUG, "will now deliver to nexthop %s", settings->nexthop);
 		return(smf_modules_deliver_nexthop(q, session));
 	}
-
 	return(0);
 }
 

@@ -43,8 +43,32 @@ static GMainLoop *event_loop;
 GThreadPool *pool;
 static int child_pipe[2];
 
-void catch_alarm(int i) {
-	TRACE(TRACE_DEBUG,"ARLAM %d",i);
+void smf_daemon_term(void) {
+	g_main_loop_quit(event_loop);
+	g_main_loop_unref(event_loop);
+
+	exit(0);	
+}
+
+void smf_daemon_sig_handler(int sig, siginfo_t *siginf, void *ptr) {
+	switch(sig) {
+		case SIGHUP:
+			TRACE(TRACE_DEBUG,"GOT SIGUP");
+			break;
+		case SIGTERM:
+			TRACE(TRACE_DEBUG,"GOT TERM");
+			break;
+		case SIGQUIT:
+			TRACE(TRACE_DEBUG,"Received SIGNQUIT");
+			smf_daemon_term();
+			break;
+		case SIGINT:
+			TRACE(TRACE_DEBUG,"Received SIGINT");
+			smf_daemon_term();
+			break;
+	}
+	
+
 }
 
 int smf_daemon_drop_privileges(char *newuser, char *newgroup) {
@@ -89,11 +113,6 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 		g_error_free(error);
 		return -1;
 	}
-
-	config->spare_threads = g_key_file_get_integer(keyfile, "daemon", "spare_threads", NULL);
-	if (!config->spare_threads)
-		config->spare_threads = 2;
-	TRACE(TRACE_DEBUG, "daemon->spare_threads: %d", config->spare_threads);
 
 	config->max_threads = g_key_file_get_integer(keyfile, "daemon", "max_threads",NULL);
 	if (!config->max_threads) 
@@ -247,33 +266,25 @@ static gboolean child_exit(GIOChannel *io, GIOCondition cond, void *user_data) {
 }
 
 static void smf_daemon_handle(gpointer data, gpointer user_data) {
-	SMFDaemonClient_T *client = data;
-	alarm(client->config->timeout);
-	smf_modules_engine_load((SMFSettings_T *)user_data, client->fd);
-	close(client->fd);
-	alarm(0);
+	int fd = GPOINTER_TO_INT(data);
+	smf_modules_engine_load((SMFSettings_T *)user_data, fd);
+	close(fd);
 }
 
 static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer data) {
-	SMFDaemonClient_T *client;
 	int i, conn, result;
 	int active = 0, maxfd = 0;
-	int num_threads;
-	int max_threads;
 	fd_set rfds;
-
-	client = g_slice_new(SMFDaemonClient_T);
-	client->config = data;
+	SMFDaemonConfig_T *config = (SMFDaemonConfig_T *)data;
 
 	FD_ZERO(&rfds);
-	for (i = 0; i < client->config->num_sockets; i++) {
-		FD_SET(client->config->listen_sockets[i], &rfds);
-		maxfd = MAX(maxfd, client->config->listen_sockets[i]);
+	for (i = 0; i < config->num_sockets; i++) {
+		FD_SET(config->listen_sockets[i], &rfds);
+		maxfd = MAX(maxfd, config->listen_sockets[i]);
 	}
 
 	FD_SET(child_pipe[0], &rfds);
 	maxfd = MAX(maxfd, child_pipe[0]);
-
 
 	result = select(maxfd + 1, &rfds, NULL, NULL, NULL);
 	if (result < 1)
@@ -286,32 +297,21 @@ static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer d
 		return FALSE;
 	}
 
-	for (i = 0; i < client->config->num_sockets; i++) {
-		if (FD_ISSET(client->config->listen_sockets[i], &rfds)) {
+	for (i = 0; i < config->num_sockets; i++) {
+		if (FD_ISSET(config->listen_sockets[i], &rfds)) {
 			active = i;
 			break;
 		}
 	}
 
-	conn = accept(client->config->listen_sockets[active], NULL, NULL);
+	conn = accept(config->listen_sockets[active], NULL, NULL);
 	if (conn < 0)
 		return FALSE;
 
-	client->fd = conn;
-
-	num_threads = g_thread_pool_get_num_threads(pool);
-	max_threads = g_thread_pool_get_max_threads(pool);
-
-	if ((num_threads == max_threads) && (max_threads < client->config->max_threads)) {
-		TRACE(TRACE_DEBUG,"fire up on more thread");
-		g_thread_pool_set_max_threads(pool,num_threads + 1,NULL);
-	}
-
-	g_thread_pool_push(pool, client, NULL);
+	g_thread_pool_push(pool, GINT_TO_POINTER(conn), NULL);
 
 	return TRUE;
 }
-
 
 int smf_daemon_mainloop(SMFSettings_T *settings) {
 	SMFDaemonConfig_T config;
@@ -325,16 +325,16 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 		return -1;
 	}
 
-	handler.sa_handler = catch_alarm;
-	if (sigfillset(&handler.sa_mask) < 0) { // Block everythin in handler
-		TRACE(TRACE_ERR,"sigfillset failed");
-		return -1;
-	}
+	memset(&handler, 0, sizeof(handler));
+
+	handler.sa_sigaction = smf_daemon_sig_handler;
+	sigemptyset(&handler.sa_mask);
 	handler.sa_flags = 0;
-	if (sigaction(SIGALRM, &handler, 0) < 0) {
-		TRACE(TRACE_ERR,"sigaction failed");
-		return -1;
-	}
+
+	sigaction(SIGINT, &handler, 0);
+	sigaction(SIGQUIT, &handler, 0);
+	sigaction(SIGTERM, &handler, 0);
+	sigaction(SIGHUP, &handler, 0);
 
 	if (smf_daemon_drop_privileges(config.effective_user, config.effective_group) < 0) {
 		TRACE(TRACE_ERR,"unable to drop privileges");
@@ -381,7 +381,7 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 
 	g_thread_init(NULL);
 	
-	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.spare_threads,FALSE,NULL);
+	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.max_threads,FALSE,NULL);
 	g_main_loop_run(event_loop);
 
 	g_main_loop_unref(event_loop);

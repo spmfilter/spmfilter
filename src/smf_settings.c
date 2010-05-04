@@ -35,10 +35,6 @@ SMFSettings_T *smf_settings_get(void) {
 	return settings;
 }
 
-void smf_settings_set(SMFSettings_T **s) {
-	settings = *s;
-}
-
 void smf_settings_free(SMFSettings_T *settings) {
 	smf_smtp_codes_free();
 	g_strfreev(settings->modules);
@@ -308,6 +304,6 @@ int smf_settings_parse_config(void) {
 	}
 	g_strfreev(code_keys);
 	g_key_file_free(keyfile);
-	smf_settings_set(&settings);
+	
 	return 0;
 }
