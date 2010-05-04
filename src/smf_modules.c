@@ -157,7 +157,11 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 			default:
 				break;
 		}
-		session->dirty_headers = ((GSList *)session->dirty_headers)->next;
+		
+		g_free(mod->name);
+		g_free(mod->value);
+		session->dirty_headers = g_slist_remove((GSList *)session->dirty_headers,((GSList *)session->dirty_headers)->data);
+		g_slice_free(SMFHeaderModification_T,mod);
 	}
 
 	g_mime_stream_flush(stream);
@@ -189,7 +193,8 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	g_object_unref(msg);
 	g_object_unref(stream2);
 	g_object_unref(stream);
-
+	g_object_unref(stream_filter);
+	g_object_unref(crlf);
 	if (g_remove(session->queue_file) != 0) {
 		TRACE(TRACE_ERR,"failed to remove queue file");
 		return -1;
