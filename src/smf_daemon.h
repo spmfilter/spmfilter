@@ -21,7 +21,6 @@
 typedef struct {
 	char *pid_file;
 	char *pid_dir;
-	int spare_threads;
 	int max_threads;
 	int timeout;
 	char **iplist;
@@ -35,11 +34,6 @@ typedef struct {
 	char *effective_group;
 	int foreground;
 } SMFDaemonConfig_T;
-
-typedef struct {
-	int fd;
-	SMFDaemonConfig_T *config;
-} SMFDaemonClient_T;
 
 int smf_daemon_mainloop(SMFSettings_T *settings);
 

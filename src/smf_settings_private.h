@@ -18,9 +18,6 @@
 #ifndef _SMF_SETTINGS_PRIVATE_H
 #define	_SMF_SETTINGS_PRIVATE_H
 
-/** Override settings */
-void smf_settings_set(SMFSettings_T **s);
-
 /** free settings struct */
 void smf_settings_free(SMFSettings_T *settings);
 
