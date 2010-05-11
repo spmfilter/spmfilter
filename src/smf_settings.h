@@ -108,6 +108,11 @@ typedef struct {
 	char *ldap_user_query;
 } SMFSettings_T;
 
+typedef struct {
+	char *name;
+	void *data;
+} SMFSettingsGroup_T;
+
 /** Get all core settings
  *
  * \return settings struct
@@ -118,66 +123,73 @@ SMFSettings_T *smf_settings_get(void);
  *
  * \param group_name wanted group
  *
- * \returns 0 on success or -1 in case of error
+ * \returns SMFSettingsGroup_T object
  */
-int smf_settings_group_load(char *group_name);
+SMFSettingsGroup_T *smf_settings_group_load(char *group_name);
 
 /** Returns the raw value associated with key under the selected group.
  *  Use smf_settings_group_get_string() to retrieve an unescaped UTF-8 string.
  *
+ * \param group a SMFSettingsGroup_T object
  * \param key a key
  *
  * \returns a newly allocated string or NULL if the specified key cannot be found.
  */
-char *smf_settings_group_get_value(char *key);
+char *smf_settings_group_get_value(SMFSettingsGroup_T *group, char *key);
 
 /** Returns the string value associated with key under the selected group.
  *  Unlike group_settings_get_value(), this function handles escape
  *  sequences like \s.
  *
+ * \param group a SMFSettingsGroup_T object
  * \param key a key
  *
  * \returns a newly allocated string or NULL if the specified key cannot be found.
  */
-char *smf_settings_group_get_string(char *key);
+char *smf_settings_group_get_string(SMFSettingsGroup_T *group, char *key);
 
 /** Returns the boolean values associated with key under the selected group as integer.
  *
+ * \param group a SMFSettingsGroup_T object
  * \param key a key
  *
  * \returns the value associated with the key as a integer, or 0 if the key was
  * not found or could not be parsed.
  */
-int smf_settings_group_get_boolean(char *key);
+int smf_settings_group_get_boolean(SMFSettingsGroup_T *group, char *key);
 
 /** Returns the value associated with key under the selected group as an integer.
  *
+ * \param group a SMFSettingsGroup_T object
  * \param key a key
  *
  * \returns he value associated with the key as an integer, or 0 if the key was not found or could not be parsed.
  */
-int smf_settings_group_get_integer(char *key);
+int smf_settings_group_get_integer(SMFSettingsGroup_T *group,char *key);
 
 /** Returns the value associated with key under the selected group as a double.
  *
+ * \param group a SMFSettingsGroup_T object
  * \param key a key
  *
  * \returns the value associated with the key as a double, or 0.0 if the key was not found or could not be parsed.
  */
-double smf_settings_group_get_double(char *key);
+double smf_settings_group_get_double(SMFSettingsGroup_T *group, char *key);
 
 /** Returns the values associated with key under the selected group.
  *
+ * \param group a SMFSettingsGroup_T object
  * \param key a key
+ * \param length return location for the number of returned strings, or NULL
  *
  * \returns a NULL-terminated string array or NULL if the specified key cannot be found.
  */
-char **smf_settings_group_get_string_list(char *key, int length);
+char **smf_settings_group_get_string_list(SMFSettingsGroup_T *group, char *key, int length);
 
 /** Free allocated space
  *
  * \param s GroupSettings_T
  */
-void smf_settings_group_free(void);
+void smf_settings_group_free(SMFSettingsGroup_T *group);
 
 #endif	/* _SMF_SETTINGS_H */
