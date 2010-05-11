@@ -5,7 +5,6 @@ set(SPMFILTER_SRC
 
 set(LIB_SMF_SRC
 	smf_core.c
-	smf_group_settings.c
 	smf_lookup.c
 	smf_lookup_result.c
 	smf_md5.c
@@ -15,6 +14,7 @@ set(LIB_SMF_SRC
 	smf_platform.c
 	smf_session.c
 	smf_settings.c
+	smf_settings_group.c
 	smf_smtp.c
 	smf_smtp_codes.c
 	smf_trace.c
