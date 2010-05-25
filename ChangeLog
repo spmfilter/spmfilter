@@ -1,5 +1,9 @@
 2010-04-25	Axel Steiner <ast@treibsand.com>
 	* smf_settings.c (smf_settings_parse_config) fixed config parse error
+	* smf_lookup_ldap.c (smf_lookup_ldap_query) added check for empty query string,
+	  to catch exceptions.
+	* smf_lookup_sql.c (smf_lookup_sql_query) added check for empty query string,
+	  to catch exceptions.
 
 2010-04-23	Axel Steiner <ast@treibsand.com>
 	* smf_message.c (smf_message_extract_addresses) fixed initialization bug

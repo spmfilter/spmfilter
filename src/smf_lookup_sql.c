@@ -281,7 +281,10 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
 	query = g_strdup_vprintf(q, cp);
 	va_end(cp);
 	g_strstrip(query);
-		
+
+	if (strlen(query) == 0)
+		return NULL;
+	
 	c = sql_con_get();
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 	TRY
