@@ -125,7 +125,7 @@ void smf_lookup_check_user(SMFEmailAddress_T *user) {
  */
 SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_list ap, cp;
-	char *query;
+	char *query = NULL;
 	gboolean is_sql = FALSE;
 	int i;
 	SMFLookupResult_T *result = NULL;
@@ -144,7 +144,7 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	query = g_strdup_vprintf(q, cp);
 	va_end(cp);
 	g_strstrip(query);
-
+	
 #if (GLIB2_VERSION >= 21400)
 	re = g_regex_new("/(^SELECT|^UPDATE|^DELETE|^INSERT|^DROP|^CREATE|^ALTER)/", G_REGEX_CASELESS, 0, NULL);
 	g_regex_match(re, query, 0, &match_info);
