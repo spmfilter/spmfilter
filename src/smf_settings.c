@@ -189,7 +189,13 @@ int smf_settings_parse_config(void) {
 		settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
 		settings->sql_user = g_key_file_get_string(keyfile, "sql", "user", NULL);
 		settings->sql_pass = g_key_file_get_string(keyfile, "sql", "pass", NULL);
-		settings->sql_user_query = g_key_file_get_string(keyfile, "sql", "user_query", NULL);
+		settings->sql_user_query = g_key_file_get_string(keyfile, "sql", "user_query", &error);
+		if (settings->sql_user_query == NULL) {
+			TRACE(TRACE_ERR, "config error: %s", error->message);
+			g_error_free(error);
+			return -1;
+		}
+
 		settings->sql_encoding = g_key_file_get_string(keyfile, "sql", "encoding", NULL);
 		settings->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
 		if (!settings->sql_max_connections)
@@ -270,7 +276,12 @@ int smf_settings_parse_config(void) {
 			settings->ldap_scope = g_strdup("subtree");
 		}
 
-		settings->ldap_user_query = g_key_file_get_string(keyfile, "ldap", "user_query", NULL);
+		settings->ldap_user_query = g_key_file_get_string(keyfile, "ldap", "user_query", &error);
+		if (settings->ldap_user_query == NULL) {
+			TRACE(TRACE_ERR, "config error: %s", error->message);
+			g_error_free(error);
+			return -1;
+		}
 
 		TRACE(TRACE_DEBUG, "settings->ldap_uri: %s", settings->ldap_uri);
 		if (settings->ldap_host != NULL) {

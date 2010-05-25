@@ -216,7 +216,10 @@ SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...) {
 	query = g_strdup_vprintf(q, cp);
 	va_end(cp);
 	g_strstrip(query);
-	
+
+	if (strlen(query) == 0)
+		return NULL;
+
 	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 	
 	if (ldap_search_ext_s(c,settings->ldap_base,get_scope(),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
