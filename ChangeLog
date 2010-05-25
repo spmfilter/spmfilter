@@ -4,6 +4,7 @@
 	  to catch exceptions.
 	* smf_lookup_sql.c (smf_lookup_sql_query) added check for empty query string,
 	  to catch exceptions.
+	* smf_smtpd.c (load) changed smtp code 502 response message
 
 2010-04-23	Axel Steiner <ast@treibsand.com>
 	* smf_message.c (smf_message_extract_addresses) fixed initialization bug
