@@ -1,3 +1,6 @@
+2010-04-25	Axel Steiner <ast@treibsand.com>
+	* smf_settings.c (smf_settings_parse_config) fixed config parse error
+
 2010-04-23	Axel Steiner <ast@treibsand.com>
 	* smf_message.c (smf_message_extract_addresses) fixed initialization bug
 
