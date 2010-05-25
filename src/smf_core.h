@@ -73,10 +73,17 @@ void smf_core_object_unref(void *object);
 
 /** generate md5 hexdigest for string
  * 
- * \params data String to generate md5sum for
+ * \param data String to generate md5sum for
  * 
  * \returns Pointer to hexdigest string on success, NULL on error
  */
 char *smf_md5sum(const char *data);
 
+/** Check if given string is a valid email address
+ *
+ * \param addr string to check
+ *
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_core_valid_address(const char *addr);
 #endif	/* _SMF_CORE_H */

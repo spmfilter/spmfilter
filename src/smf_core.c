@@ -36,6 +36,9 @@
 #define THIS_MODULE "utils"
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
+#define RE_MAIL "[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
+
+
 /** extract a substring from given string
  *
  * \param pattern regular expression pattern
@@ -202,4 +205,35 @@ char *smf_md5sum(const char *data) {
 	}
 
 	return(hex);
+}
+
+int smf_core_valid_address(const char *addr) {
+	int match = -1;
+#if (GLIB2_VERSION >= 21400)
+	GRegex *re = NULL;
+	GMatchInfo *match_info = NULL;
+
+	re = g_regex_new(RE_MAIL, G_REGEX_CASELESS, 0, NULL);
+	g_regex_match(re, addr, 0, &match_info);
+	if(g_match_info_matches(match_info)) {
+		match = 0;
+	}
+
+	g_match_info_free(match_info);
+	g_regex_unref(re);
+#else
+	pcre *re;
+	const char *error;
+	int rc, erroffset;
+	int ovector[30];
+
+	re = pcre_compile(RE_MAIL, PCRE_CASELESS, &error, &erroffset, NULL);
+	if(re != NULL) {
+		rc = pcre_exec(re, NULL, addr, strlen(addr), 0, 0, ovector, 30);
+		if(rc > 0) 
+			match = 0;
+	}
+#endif
+
+	return match;
 }
