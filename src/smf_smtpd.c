@@ -49,7 +49,7 @@
 #define CODE_250 "250 OK\r\n"
 #define CODE_250_ACCEPTED "250 OK message accepted\r\n"
 #define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_502 "502 Error: Command not recognized\r\n"
+#define CODE_502 "502 Error: command not recognized\r\n"
 #define CODE_552 "552 Requested action aborted: local error in processing\r\n"
 
 /* SMTP States */
@@ -458,48 +458,52 @@ int load(void) {
 				smtpd_string_reply("503 Error: nested MAIL command\r\n");
 			} else {
 				session->envelope_from = g_slice_new(SMFEmailAddress_T);
-#if (GLIB2_VERSION >= 21400)
-				re = g_regex_new(RE_MAIL_FROM, G_REGEX_CASELESS, 0, NULL);
-				g_regex_match(re, line, 0, &match_info);
-				if(g_match_info_matches(match_info)) {
-					mail_from_addr = g_match_info_fetch(match_info, 1);
-					if (mail_from_addr != NULL) {
-						session->envelope_from->addr = g_strdup(mail_from_addr);
-						free((char *)mail_from_addr);
-					}
-					if (settings->max_size != 0 )
-						requested_size = g_match_info_fetch(match_info, 2);
+				if (g_strrstr(line,"<>")) {
+					session->envelope_from->addr = g_strdup("<>");
 				} else {
-					smtpd_string_reply(CODE_552);
-					g_slice_free(SMFEmailAddress_T,session->envelope_from);
-					session->envelope_from = NULL;
-				}
-				g_match_info_free(match_info);
-				g_regex_unref(re);
-#else
-				re = pcre_compile(RE_MAIL_FROM,
-						PCRE_CASELESS, &error, &erroffset, NULL);
-				if(re != NULL) {
-					rc = pcre_exec(re, NULL, line, strlen(line), 0, 0, ovector, 30);
-					if (rc > 0) {
-						pcre_get_substring(line,ovector,rc,1,&mail_from_addr);
+#if (GLIB2_VERSION >= 21400)
+					re = g_regex_new(RE_MAIL_FROM, G_REGEX_CASELESS, 0, NULL);
+					g_regex_match(re, line, 0, &match_info);
+					if(g_match_info_matches(match_info)) {
+						mail_from_addr = g_match_info_fetch(match_info, 1);
 						if (mail_from_addr != NULL) {
 							session->envelope_from->addr = g_strdup(mail_from_addr);
 							free((char *)mail_from_addr);
 						}
 						if (settings->max_size != 0 )
-							pcre_get_substring(line,ovector,rc,2,&requested_size);
-					} else{
+							requested_size = g_match_info_fetch(match_info, 2);
+					} else {
 						smtpd_string_reply(CODE_552);
 						g_slice_free(SMFEmailAddress_T,session->envelope_from);
 						session->envelope_from = NULL;
 					}
-				} else {
-					smtpd_string_reply(CODE_552);
-					g_slice_free(SMFEmailAddress_T,session->envelope_from);
-					session->envelope_from = NULL;
-				}
+					g_match_info_free(match_info);
+					g_regex_unref(re);
+#else
+					re = pcre_compile(RE_MAIL_FROM,
+							PCRE_CASELESS, &error, &erroffset, NULL);
+					if(re != NULL) {
+						rc = pcre_exec(re, NULL, line, strlen(line), 0, 0, ovector, 30);
+						if (rc > 0) {
+							pcre_get_substring(line,ovector,rc,1,&mail_from_addr);
+							if (mail_from_addr != NULL) {
+								session->envelope_from->addr = g_strdup(mail_from_addr);
+								free((char *)mail_from_addr);
+							}
+							if (settings->max_size != 0 )
+								pcre_get_substring(line,ovector,rc,2,&requested_size);
+						} else{
+							smtpd_string_reply(CODE_552);
+							g_slice_free(SMFEmailAddress_T,session->envelope_from);
+							session->envelope_from = NULL;
+						}
+					} else {
+						smtpd_string_reply(CODE_552);
+						g_slice_free(SMFEmailAddress_T,session->envelope_from);
+						session->envelope_from = NULL;
+					}
 #endif
+				}
 
 				if (settings->max_size != 0) {
 					if (requested_size != NULL) {
@@ -516,9 +520,15 @@ int load(void) {
 
 				if (session->envelope_from->addr != NULL){
 					TRACE(TRACE_DEBUG,"session->envelope_from: %s",session->envelope_from->addr);
-					if (strcmp(session->envelope_from->addr,"") == 0) {
+					if (g_ascii_strcasecmp(session->envelope_from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtpd_string_reply("501 Syntax: MAIL FROM:<address>\r\n");
+						g_slice_free(SMFEmailAddress_T,session->envelope_from);
+						session->envelope_from = NULL;
+					} else if ((g_ascii_strcasecmp(session->envelope_from->addr,"<>") != 0) &&
+							(smf_core_valid_address(session->envelope_from->addr) == -1)) {
+						smtpd_string_reply("501 Bad sender address syntax\r\n");
+						free(session->envelope_from->addr);
 						g_slice_free(SMFEmailAddress_T,session->envelope_from);
 						session->envelope_from = NULL;
 					} else {
@@ -557,6 +567,10 @@ int load(void) {
 					if (strcmp(session->envelope_to[session->envelope_to_num]->addr,"") == 0) {
 						/* empty rcpt to? */
 						smtpd_string_reply("501 Syntax: RCPT TO:<address>\r\n");
+						g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
+					} else if (smf_core_valid_address(session->envelope_to[session->envelope_to_num]->addr) == -1) {
+						smtpd_string_reply("501 Bad recipient address syntax\r\n");
+						free(session->envelope_to[session->envelope_to_num]->addr);
 						g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
 					} else {
 						TRACE(TRACE_DEBUG,"session->envelope_to[%d]: %s",session->envelope_to_num, session->envelope_to[session->envelope_to_num]->addr);
