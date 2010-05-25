@@ -49,7 +49,7 @@
 #define CODE_250 "250 OK\r\n"
 #define CODE_250_ACCEPTED "250 OK message accepted\r\n"
 #define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_502 "502 Eh? WTF was that?\r\n"
+#define CODE_502 "502 Error: Command not recognized\r\n"
 #define CODE_552 "552 Requested action aborted: local error in processing\r\n"
 
 /* SMTP States */
@@ -599,7 +599,7 @@ int load(void) {
 			TRACE(TRACE_DEBUG,"SMTP: 'noop' received");
 			smtpd_code_reply(250);
 		} else if (g_ascii_strcasecmp(line,"")!=0){
-			TRACE(TRACE_DEBUG,"SMTP: wtf?!");
+			TRACE(TRACE_DEBUG,"SMTP: command not recognized");
 			smtpd_code_reply(502);
 		} else {
 			TRACE(TRACE_DEBUG,"SMTP: got empty line");
