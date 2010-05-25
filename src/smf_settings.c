@@ -149,7 +149,7 @@ int smf_settings_parse_config(void) {
 				settings->add_header = 1;
 			}
 			g_error_free(error);
-			error = NULL;
+//			error = NULL;
 		} 
 	}
 	TRACE(TRACE_DEBUG, "settings->add_header: %d", settings->add_header);
@@ -169,111 +169,133 @@ int smf_settings_parse_config(void) {
 	TRACE(TRACE_DEBUG, "settings->tls_pass: %s", settings->tls_pass);
 
 
-	settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
-	settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
-	if(settings->backend != NULL) {
-		for (i=0; settings->backend[i] != NULL; i++) {
-			if (g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {
-				if (settings->sql_name == NULL) {
+	if (g_key_file_has_group(keyfile,"sql")) {
+		settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
+		settings->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
+		if(settings->backend != NULL) {
+			for (i=0; settings->backend[i] != NULL; i++) {
+				if (g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {
+					if (settings->sql_name == NULL) {
+						TRACE(TRACE_ERR, "config error: %s", error->message);
+						g_error_free(error);
+						return -1;
+					}
+					break;
+				}
+			}
+		}
+		settings->sql_host = g_key_file_get_string_list(keyfile, "sql", "host", &sql_num_hosts,NULL);
+		settings->sql_num_hosts = sql_num_hosts;
+		settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
+		settings->sql_user = g_key_file_get_string(keyfile, "sql", "user", NULL);
+		settings->sql_pass = g_key_file_get_string(keyfile, "sql", "pass", NULL);
+		settings->sql_user_query = g_key_file_get_string(keyfile, "sql", "user_query", NULL);
+		settings->sql_encoding = g_key_file_get_string(keyfile, "sql", "encoding", NULL);
+		settings->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
+		if (!settings->sql_max_connections)
+			settings->sql_max_connections = 3;
+
+		TRACE(TRACE_DEBUG, "settings->sql_driver: %s", settings->sql_driver);
+		TRACE(TRACE_DEBUG, "settings->sql_name: %s", settings->sql_name);
+		if (settings->sql_host != NULL) {
+			for(i = 0; settings->sql_host[i] != NULL; i++) {
+				TRACE(TRACE_DEBUG, "settings->sql_host: %s", settings->sql_host[i]);
+			}
+		}
+		TRACE(TRACE_DEBUG, "settings->sql_port: %d", settings->sql_port);
+		TRACE(TRACE_DEBUG, "settings->sql_user: %s", settings->sql_user);
+		TRACE(TRACE_DEBUG, "settings->sql_pass: %s", settings->sql_pass);
+		TRACE(TRACE_DEBUG, "settings->sql_user_query: %s", settings->sql_user_query);
+		TRACE(TRACE_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
+		TRACE(TRACE_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
+	} else {
+		if(settings->backend != NULL) {
+			for (i=0; settings->backend[i] != NULL; i++) {
+				if (g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {
+					TRACE(TRACE_ERR,"Can't find settings group sql");
+					return -1;
+				}
+			}
+		}
+	}
+
+	if (g_key_file_has_group(keyfile,"ldap")) {
+		settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
+		settings->ldap_host = g_key_file_get_string_list(keyfile, "ldap", "host", &ldap_num_hosts,NULL);
+		settings->ldap_num_hosts = ldap_num_hosts;
+
+		if(settings->backend != NULL) {
+			for (i=0; settings->backend[i] != NULL; i++) {
+				if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+					if (settings->ldap_uri == NULL && settings->ldap_host == NULL) {
+						TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
+						return -1;
+					}
+					break;
+				}
+			}
+		}
+		settings->ldap_port = g_key_file_get_integer(keyfile,"ldap","port",NULL);
+		if (!settings->ldap_port)
+			settings->ldap_port = 389;
+		settings->ldap_binddn = g_key_file_get_string(keyfile,"ldap","binddn",NULL);
+		settings->ldap_bindpw = g_key_file_get_string(keyfile,"ldap","bindpw",NULL);
+
+		settings->ldap_base = g_key_file_get_string(keyfile,"ldap","base",&error);
+		if(settings->backend != NULL) {
+			for (i=0; settings->backend[i] != NULL; i++) {
+				if ((g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) && (settings->ldap_base == NULL)) {
 					TRACE(TRACE_ERR, "config error: %s", error->message);
 					g_error_free(error);
 					return -1;
 				}
-				break;
 			}
 		}
-	}
-	settings->sql_host = g_key_file_get_string_list(keyfile, "sql", "host", &sql_num_hosts,NULL);
-	settings->sql_num_hosts = sql_num_hosts;
-	settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
-	settings->sql_user = g_key_file_get_string(keyfile, "sql", "user", NULL);
-	settings->sql_pass = g_key_file_get_string(keyfile, "sql", "pass", NULL);
-	settings->sql_user_query = g_key_file_get_string(keyfile, "sql", "user_query", NULL);
-	settings->sql_encoding = g_key_file_get_string(keyfile, "sql", "encoding", NULL);
-	settings->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
-	if (!settings->sql_max_connections)
-		settings->sql_max_connections = 3;
 
-	TRACE(TRACE_DEBUG, "settings->sql_driver: %s", settings->sql_driver);
-	TRACE(TRACE_DEBUG, "settings->sql_name: %s", settings->sql_name);
-	if (settings->sql_host != NULL) {
-		for(i = 0; settings->sql_host[i] != NULL; i++) {
-			TRACE(TRACE_DEBUG, "settings->sql_host: %s", settings->sql_host[i]);
-		}
-	}
-	TRACE(TRACE_DEBUG, "settings->sql_port: %d", settings->sql_port);
-	TRACE(TRACE_DEBUG, "settings->sql_user: %s", settings->sql_user);
-	TRACE(TRACE_DEBUG, "settings->sql_pass: %s", settings->sql_pass);
-	TRACE(TRACE_DEBUG, "settings->sql_user_query: %s", settings->sql_user_query);
-	TRACE(TRACE_DEBUG, "settings->sql_encoding: %s", settings->sql_encoding);
-	TRACE(TRACE_DEBUG, "settings->sql_max_connections: %d", settings->sql_max_connections);
+		settings->ldap_referrals = g_key_file_get_boolean(keyfile, "ldap","referrals",NULL);
 
-	settings->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
-	settings->ldap_host = g_key_file_get_string_list(keyfile, "ldap", "host", &ldap_num_hosts,NULL);
-	settings->ldap_num_hosts = ldap_num_hosts;
-
-	if(settings->backend != NULL) {
-		for (i=0; settings->backend[i] != NULL; i++) {
-			if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
-				if (settings->ldap_uri == NULL && settings->ldap_host == NULL) {
-					TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
-					return -1;
-				}
-				break;
-			}
-		}
-	}
-	settings->ldap_port = g_key_file_get_integer(keyfile,"ldap","port",NULL);
-	if (!settings->ldap_port)
-		settings->ldap_port = 389;
-	settings->ldap_binddn = g_key_file_get_string(keyfile,"ldap","binddn",NULL);
-	settings->ldap_bindpw = g_key_file_get_string(keyfile,"ldap","bindpw",NULL);
-
-	settings->ldap_base = g_key_file_get_string(keyfile,"ldap","base",&error);
-	if(settings->backend != NULL) {
-		for (i=0; settings->backend[i] != NULL; i++) {
-			if ((g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) && (settings->ldap_base == NULL)) {
-				TRACE(TRACE_ERR, "config error: %s", error->message);
-				g_error_free(error);
-				return -1;
-			}
-		}
-	}
-
-	settings->ldap_referrals = g_key_file_get_boolean(keyfile, "ldap","referrals",NULL);
-
-	settings->ldap_scope = g_key_file_get_string(keyfile, "ldap", "scope", NULL);
-	if (settings->ldap_scope != NULL && settings->backend != NULL) {
-		for (i=0; settings->backend[i] != NULL; i++) {
-			if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
-				if ((g_ascii_strcasecmp(settings->ldap_scope,"subtree") != 0) &&
-						(g_ascii_strcasecmp(settings->ldap_scope,"onelevel") != 0) &&
-						(g_ascii_strcasecmp(settings->ldap_scope,"base") != 0)) {
-					TRACE(TRACE_ERR, "invalid ldap scope");
-					return -1;
+		settings->ldap_scope = g_key_file_get_string(keyfile, "ldap", "scope", NULL);
+		if (settings->ldap_scope != NULL && settings->backend != NULL) {
+			for (i=0; settings->backend[i] != NULL; i++) {
+				if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+					if ((g_ascii_strcasecmp(settings->ldap_scope,"subtree") != 0) &&
+							(g_ascii_strcasecmp(settings->ldap_scope,"onelevel") != 0) &&
+							(g_ascii_strcasecmp(settings->ldap_scope,"base") != 0)) {
+						TRACE(TRACE_ERR, "invalid ldap scope");
+						return -1;
+					}
 				}
 			}
+		} else {
+			settings->ldap_scope = g_strdup("subtree");
 		}
+
+		settings->ldap_user_query = g_key_file_get_string(keyfile, "ldap", "user_query", NULL);
+
+		TRACE(TRACE_DEBUG, "settings->ldap_uri: %s", settings->ldap_uri);
+		if (settings->ldap_host != NULL) {
+			for(i = 0; settings->ldap_host[i] != NULL; i++) {
+				TRACE(TRACE_DEBUG, "settings->ldap_host: %s", settings->ldap_host[i]);
+			}
+		}
+		TRACE(TRACE_DEBUG, "settings->ldap_port: %d", settings->ldap_port);
+		TRACE(TRACE_DEBUG, "settings->ldap_binddn: %s", settings->ldap_binddn);
+		TRACE(TRACE_DEBUG, "settings->ldap_bindpw: %s", settings->ldap_bindpw);
+		TRACE(TRACE_DEBUG, "settings->ldap_base: %s", settings->ldap_base);
+		TRACE(TRACE_DEBUG, "settings->ldap_referrals: %d", settings->ldap_referrals);
+		TRACE(TRACE_DEBUG, "settings->ldap_scope: %s", settings->ldap_scope);
+		TRACE(TRACE_DEBUG, "settings->ldap_user_query: %s", settings->ldap_user_query);
 	} else {
-		settings->ldap_scope = g_strdup("subtree");
+		if(settings->backend != NULL) {
+			for (i=0; settings->backend[i] != NULL; i++) {
+				if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+					TRACE(TRACE_ERR,"Can't find settings group ldap");
+					return -1;
+				}
+			}
+		}
 	}
 	
-	settings->ldap_user_query = g_key_file_get_string(keyfile, "ldap", "user_query", NULL);
-
-	TRACE(TRACE_DEBUG, "settings->ldap_uri: %s", settings->ldap_uri);
-	if (settings->ldap_host != NULL) {
-		for(i = 0; settings->ldap_host[i] != NULL; i++) {
-			TRACE(TRACE_DEBUG, "settings->ldap_host: %s", settings->ldap_host[i]);
-		}
-	}
-	TRACE(TRACE_DEBUG, "settings->ldap_port: %d", settings->ldap_port);
-	TRACE(TRACE_DEBUG, "settings->ldap_binddn: %s", settings->ldap_binddn);
-	TRACE(TRACE_DEBUG, "settings->ldap_bindpw: %s", settings->ldap_bindpw);
-	TRACE(TRACE_DEBUG, "settings->ldap_base: %s", settings->ldap_base);
-	TRACE(TRACE_DEBUG, "settings->ldap_referrals: %d", settings->ldap_referrals);
-	TRACE(TRACE_DEBUG, "settings->ldap_scope: %s", settings->ldap_scope);
-	TRACE(TRACE_DEBUG, "settings->ldap_user_query: %s", settings->ldap_user_query);
-
 	/* smtpd group */
 	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
 	if (!settings->nexthop_fail_code) {
