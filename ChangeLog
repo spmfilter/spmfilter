@@ -1,3 +1,12 @@
+2010-08-04  Axel Steiner <ast@treibsand.com>
+  * main.c (main) replaced clock() with gtimer
+  * smf_lookup_ldap.c (smf_lookup_ldap_disconnect) replaced ldap_unbind_ext_s() 
+    with ldap_unbind_s(), since we do not need LDAPControl
+  * smf_message.c (smf_message_extract_addresses) fixed segfault with gmime 2.2
+  * smf_session.c fixed several gmime 2.2 related bugs
+  * smf_smtpd.c (process_data) replaced smf_session_header_append() calls
+    with smf_session_header_set(), related to gmime 2.2
+
 2010-04-25	Axel Steiner <ast@treibsand.com>
 	* smf_settings.c (smf_settings_parse_config) fixed config parse error
 	* smf_lookup_ldap.c (smf_lookup_ldap_query) added check for empty query string,

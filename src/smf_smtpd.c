@@ -323,21 +323,20 @@ void process_data(void) {
 	g_object_unref(out);
 
 	if (session->message_from->addr == NULL) {
-		smf_session_header_append("From",g_strdup(session->envelope_from->addr));
+		smf_session_header_set("From",g_strdup(session->envelope_from->addr));
 		TRACE(TRACE_DEBUG,"adding [from] header to message");
 	}
 
 	if (session->message_to_num == 0) {
-		smf_session_header_append("To",g_strdup("undisclosed-recipients:;"));
+		smf_session_header_set("To",g_strdup("undisclosed-recipients:;"));
 		TRACE(TRACE_DEBUG,"adding [to] header to message");
 	}
 
 	message_id = (char *)smf_session_header_get("message-id");
-
 	if (message_id == NULL) {
 		message_id = smf_message_generate_message_id();
 		TRACE(TRACE_DEBUG,"no message id found, adding [%s]",message_id);
-		smf_session_header_append("Message-ID",message_id);
+		smf_session_header_set("Message-ID",message_id);
 	}
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
