@@ -20,7 +20,6 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gmodule.h>
-#include <time.h>
 #include <syslog.h>
 #include <gmime/gmime.h>
 
@@ -40,7 +39,7 @@ typedef int (*LoadEngine) (void);
 int main(int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *context;
-	clock_t start_process, stop_process;
+	GTimer *timer = g_timer_new();
 	GModule *module;
 	LoadEngine load_engine;
 	char *engine_path;
@@ -95,10 +94,6 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	/* start clock, to see how long
-	 * the processing time takes */
-	start_process = clock();
-
 	/* check if engine module starts with lib */
 	engine_path = smf_build_module_path(LIB_DIR, settings->engine);
 
@@ -124,13 +119,6 @@ int main(int argc, char *argv[]) {
 	/* shutdown gmime */
 	g_mime_shutdown();
 	
-	/* processing is done, we can
-	 * stop our clock */
-	stop_process = clock();
-	if (settings->debug) {
-		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
-	}
-
 	if(settings->backend != NULL) {
 		if (smf_lookup_disconnect() != 0)
 			TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
@@ -141,6 +129,11 @@ int main(int argc, char *argv[]) {
 		TRACE(TRACE_WARNING,"%s", g_module_error());
 	free(engine_path);
 	smf_settings_free(settings);
+
+	if (settings->debug) {
+		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", g_timer_elapsed(timer,NULL));
+	}
+	g_timer_destroy(timer);
 
 	if (ret != 0) {
 		return -1;
