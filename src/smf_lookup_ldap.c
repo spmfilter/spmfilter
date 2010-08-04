@@ -193,7 +193,7 @@ LDAP *ldap_con_get(void) {
 void smf_lookup_ldap_disconnect(void) {
 	LDAP *c = ldap_con_get();
 	if (c != NULL) {
-		ldap_unbind_s(c,NULL,NULL);
+		ldap_unbind_s(c);
 		TRACE(TRACE_LOOKUP, "unbind ldap server");
 	}
 }
