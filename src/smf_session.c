@@ -53,6 +53,7 @@ SMFSession_T *smf_session_get(void) {
 		session->message_from = NULL;
 		session->message_to = NULL;
 		session->response_msg = NULL;
+		session->headers = g_slist_alloc();
 	}
 	
 	return session;
