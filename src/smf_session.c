@@ -53,7 +53,6 @@ SMFSession_T *smf_session_get(void) {
 		session->message_from = NULL;
 		session->message_to = NULL;
 		session->response_msg = NULL;
-		session->headers = g_slist_alloc();
 	}
 	
 	return session;
@@ -117,8 +116,6 @@ void smf_session_free(void) {
 		g_free(session->message_to);
 	}
 
-	if (session->dirty_headers != NULL)
-		g_slist_free((GSList *)session->headers);
 	g_slice_free(SMFSession_T,session);
 	session = NULL;
 }
@@ -221,6 +218,8 @@ void smf_session_header_remove(char *header_name) {
 #else
 	g_mime_header_remove((GMimeHeader *)session->headers,header_name);
 #endif
+
+	g_slice_free(SMFHeaderModification_T,header);
 	return;
 }
 
@@ -244,6 +243,8 @@ void smf_session_header_prepend(char *header_name, char *header_value) {
 #else
 	g_mime_header_prepend((GMimeHeader *)session->headers,header_name,header_value);
 #endif
+	
+	g_slice_free(SMFHeaderModification_T,header);
 	return;
  }
 
@@ -260,13 +261,15 @@ void smf_session_header_append(char *header_name, char *header_value) {
 	header->status = HEADER_APPEND;
 	header->name = g_strdup(header_name);
 	header->value = g_strdup(header_value);
-	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
 
 #ifdef HAVE_GMIME24
+	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
 	g_mime_header_list_append((GMimeHeaderList *)session->headers,header_name,header_value);
 #else
 	TRACE(TRACE_WARNING,"function not implemented in GMime < 2.4");
 #endif
+
+	g_slice_free(SMFHeaderModification_T,header);
 	return;
 }
 
@@ -288,13 +291,15 @@ void smf_session_header_set(char *header_name, char *header_value) {
 	header->status = HEADER_SET;
 	header->name = g_strdup(header_name);
 	header->value = g_strdup(header_value);
-	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
 
 #ifdef HAVE_GMIME24
+	session->dirty_headers = (void *) g_slist_append((GSList *)session->dirty_headers,header);
 	g_mime_header_list_set((GMimeHeaderList *)session->headers,header_name,header_value);
 #else
 	g_mime_header_set((GMimeHeader *)session->headers,header_name,header_value);
 #endif
+	
+	g_slice_free(SMFHeaderModification_T,header);
 	return;
 }
 

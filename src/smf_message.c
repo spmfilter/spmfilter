@@ -192,10 +192,12 @@ void smf_message_extract_addresses(GMimeObject *message) {
 
 		while(ia) {
 			addr = internet_address_list_get_address(ia);
+
 			session->message_to = g_realloc(
 					session->message_to,
 					sizeof(SMFEmailAddress_T) * (session->message_to_num + 1)
 				);
+			session->message_to[session->message_to_num] = g_slice_new(SMFEmailAddress_T);
 			session->message_to[session->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
 			session->message_to[session->message_to_num]->user_data = NULL;

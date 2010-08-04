@@ -50,6 +50,7 @@
 char *smf_core_get_substring(const char *pattern, const char *haystack, int pos) {
 	if (haystack == NULL)
 		return NULL;
+	
 #if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
 	GMatchInfo *match_info = NULL;
@@ -70,7 +71,7 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
 	int ovector[30];
 	const char *strptr;
 	char *value;
-
+	
 	re = pcre_compile(pattern, PCRE_CASELESS, &error, &erroffset, NULL);
 	if(re == NULL) {
 		TRACE(TRACE_NOTICE, "pcre_match : failed to compile pattern %s", pattern);
@@ -86,7 +87,8 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
 	if (strptr != NULL)
 		free((char *) strptr);
 
-#endif	
+#endif
+
 	return value;
 }
 
