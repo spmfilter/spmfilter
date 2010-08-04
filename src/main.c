@@ -128,12 +128,14 @@ int main(int argc, char *argv[]) {
 	if (!g_module_close(module))
 		TRACE(TRACE_WARNING,"%s", g_module_error());
 	free(engine_path);
-	smf_settings_free(settings);
 
 	if (settings->debug) {
 		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", g_timer_elapsed(timer,NULL));
 	}
 	g_timer_destroy(timer);
+	
+	smf_settings_free(settings);
+
 
 	if (ret != 0) {
 		return -1;
