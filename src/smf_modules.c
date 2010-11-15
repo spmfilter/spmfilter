@@ -40,8 +40,8 @@
 
 /* initialize the processing queue */
 ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
-	int (*processerr)(int retval, void *args),
-	int (*nhoperr)(void *args))
+		int (*processerr)(int retval, void *args),
+		int (*nhoperr)(void *args))
 {
 	ProcessQueue_T *q;
 
@@ -54,18 +54,17 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 	q->load_error = loaderr;
 	q->processing_error = processerr;
 	q->nexthop_error = nhoperr;
-
 	return q;
 }
 
 /* build full filename to modules states dir */
-static char *smf_modules_stf_path(void) {
+static char *smf_modules_stf_path(SMFSession_T *session) {
 	char *hex;
 	char buf[1024];
 	SMFSettings_T *st = smf_settings_get();
 
 	/* build path to file*/
-	hex = smf_md5sum(smf_session_header_get("message-id"));
+	hex = smf_md5sum(smf_session_header_get(session,"message-id"));
 	snprintf(buf, sizeof(buf), "%s/%s.modules", st->queue_dir, hex);
 	free(hex);
 
@@ -158,7 +157,11 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 			default:
 				break;
 		}
-		session->dirty_headers = ((GSList *)session->dirty_headers)->next;
+		
+		g_free(mod->name);
+		g_free(mod->value);
+		session->dirty_headers = g_slist_remove((GSList *)session->dirty_headers,((GSList *)session->dirty_headers)->data);
+		g_slice_free(SMFHeaderModification_T,mod);
 	}
 
 	g_mime_stream_flush(stream);
@@ -190,7 +193,8 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	g_object_unref(msg);
 	g_object_unref(stream2);
 	g_object_unref(stream);
-
+	g_object_unref(stream_filter);
+	g_object_unref(crlf);
 	if (g_remove(session->queue_file) != 0) {
 		TRACE(TRACE_ERR,"failed to remove queue file");
 		return -1;
@@ -208,7 +212,8 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	return 0;
 }
 
-int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
+int smf_modules_process(
+		ProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
 	int i;
 	int retval;
 	ModuleLoadFunction runner;
@@ -219,11 +224,10 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 	GHashTable *modlist;
 	char *stf_filename = NULL;
 	FILE *stfh = NULL;
-	SMFSettings_T *settings = smf_settings_get();
 	gchar *header = NULL;
 
 	/* initialize message file  and load processed modules */
-	stf_filename = smf_modules_stf_path();
+	stf_filename = smf_modules_stf_path(session);
 	stfh = fopen(stf_filename, "a+");
 	if(stfh == NULL) {
 		TRACE(TRACE_ERR, "failed to open message state file => %s", stf_filename);
@@ -264,6 +268,9 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 				continue;
 		}
 
+		if (settings->daemon == 1)
+			g_module_make_resident(mod);
+		
 		if (!g_module_symbol(mod, "load", (gpointer *)&sym)) {
 			TRACE(TRACE_ERR,"symbol load could not be foudn : %s", g_module_error());
 			g_free(path);
@@ -284,7 +291,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 		g_module_close(mod);
 		
 		if(retval != 0) {
-			retval = q->processing_error(retval, NULL);
+			retval = q->processing_error(retval, session);
 			
 			if(retval == 0) {
 				TRACE(TRACE_ERR, "module %s failed, stopping processing!", curmod);
@@ -327,7 +334,7 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 
 	if (settings->add_header == 1) {
 		header = g_strdup_printf("processed %s",g_strjoinv(",",settings->modules));
-		smf_session_header_append("X-Spmfilter",header);
+		smf_session_header_append(session,"X-Spmfilter",header);
 	}
 
 	g_free(header);
@@ -341,7 +348,6 @@ int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session) {
 		TRACE(TRACE_DEBUG, "will now deliver to nexthop %s", settings->nexthop);
 		return(smf_modules_deliver_nexthop(q, session));
 	}
-
 	return(0);
 }
 
@@ -381,10 +387,46 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 	/* now deliver, if delivery fails, call error hook */
 	if (smf_message_deliver(envelope) != 0) {
 		TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
-		q->nexthop_error(NULL);
+		q->nexthop_error(session);
 		return(-1);
 	}
 
 	smf_message_envelope_unref(envelope);
 	return(0);
+}
+
+int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
+	GModule *module;
+	LoadEngine load_engine;
+	gchar *engine_path;
+	int ret;
+
+	/* check if engine module starts with lib */
+	engine_path = smf_build_module_path(LIB_DIR, settings->engine);
+
+	/* try to open engine module */
+	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
+	if (!module) {
+		TRACE(TRACE_ERR,"%s\n", g_module_error());
+		return -1;
+	}
+	
+	/* make engine resident, if daemon mode */
+	if (settings->daemon == 1)
+		g_module_make_resident(module);
+	
+	/* check if the module provides the function load() */
+	if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
+		TRACE(TRACE_ERR,"%s", g_module_error());
+		return -1;
+	}
+
+	/* start processing engine */
+	ret = load_engine(settings,fd);
+
+	if (!g_module_close(module))
+		TRACE(TRACE_WARNING,"%s", g_module_error());
+	g_free(engine_path);
+
+	return ret;
 }

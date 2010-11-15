@@ -58,16 +58,23 @@ typedef struct {
 
 	/* custom response message */
 	char *response_msg;
+
+	int sock_in;
+	int sock_out;
 } SMFSession_T;
 
+#if 0
 /** Retrieve SMFSession_T structure
  *
  * \returns pointer to SMFSession_T type
  */
 SMFSession_T *smf_session_get(void);
+#endif
+
+SMFSession_T *smf_session_new(void);
 
 /** Free SMFSession_T structure */
-void smf_session_free(void);
+void smf_session_free(SMFSession_T *session);
 
 /** Copy the current message to disk
  *
@@ -75,7 +82,7 @@ void smf_session_free(void);
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_session_to_file(char *path);
+int smf_session_to_file(SMFSession_T *session, char *path);
 
 /** Gets the value of the first header with the name requested.
  *
@@ -83,7 +90,7 @@ int smf_session_to_file(char *path);
  *
  * \returns value of header or NULL in case of error
  */
-const char *smf_session_header_get(const char *header_name);
+const char *smf_session_header_get(SMFSession_T *session, const char *header_name);
 
 /** Prepends a header. If value is NULL, a space will be set aside for it
  * (useful for setting the order of headers before values can be obtained
@@ -92,7 +99,7 @@ const char *smf_session_header_get(const char *header_name);
  * \param header_name name of the header
  * \param header_value new value for the header
  */
-void smf_session_header_prepend(char *header_name, char *header_value);
+void smf_session_header_prepend(SMFSession_T *session, char *header_name, char *header_value);
 
 /** Appends a header. If value is NULL, a space will be set aside for it
  * (useful for setting the order of headers before values can be obtained
@@ -101,7 +108,7 @@ void smf_session_header_prepend(char *header_name, char *header_value);
  * \param header_name name of the header
  * \param header_value new value for the header
  */
-void smf_session_header_append(char *header_name, char *header_value);
+void smf_session_header_append(SMFSession_T *session, char *header_name, char *header_value);
 
 /** Set the value of the specified header. If value is NULL and the header,
  * name, had not been previously set, a space will be set aside for it
@@ -115,19 +122,19 @@ void smf_session_header_append(char *header_name, char *header_value);
  * \param header_name name of the header
  * \param header_value new value for the header
  */
-void smf_session_header_set(char *header_name, char *header_value);
+void smf_session_header_set(SMFSession_T *session, char *header_name, char *header_value);
 
 /** Removed the specified header if it exists
  *
  * \param header_name name of the header
  */
-void smf_session_header_remove(char *header_name);
+void smf_session_header_remove(SMFSession_T *session, char *header_name);
 
 /** Allocates a string buffer containing the raw rfc822 headers.
  *
  * \returns a string containing the header block.
  */
-char *smf_session_header_to_string(void);
+char *smf_session_header_to_string(SMFSession_T *session);
 
 /** Function signature for the callback to smf_session_header_foreach()
  *
@@ -142,7 +149,7 @@ typedef void (*SMFHeaderForeachFunc) (const char *name, const char *value, void 
  * \param func function to be called for each header.
  * \param user_data user data to be passed to the func.
  */
-void smf_session_header_foreach(SMFHeaderForeachFunc func, void *user_data);
+void smf_session_header_foreach(SMFSession_T *session, SMFHeaderForeachFunc func, void *user_data);
 
 /** Prepend text to subject
  *
@@ -150,7 +157,7 @@ void smf_session_header_foreach(SMFHeaderForeachFunc func, void *user_data);
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_session_subject_prepend(char *text);
+int smf_session_subject_prepend(SMFSession_T *session, char *text);
 
 /** Append text to subject
  *
@@ -158,13 +165,12 @@ int smf_session_subject_prepend(char *text);
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_session_subject_append(char *text);
+int smf_session_subject_append(SMFSession_T *session, char *text);
 
 /** Retrieve a SMFMessage_T object from the
  *  current session.
  *
  * \returns SMFMessage_T object
  */
-SMFMessage_T *smf_session_get_message(void);
+SMFMessage_T *smf_session_get_message(SMFSession_T *session);
 #endif	/* _SMF_SESSION_H */
-
