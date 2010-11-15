@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <glib.h>
 #include <glib/gprintf.h>
 #include <gmodule.h>
@@ -66,8 +67,8 @@ static int handle_q_error(void *args) {
  */
 static int handle_q_processing_error(int retval, void *args) {
 	SMFSettings_T *settings = smf_settings_get();
-	SMFSession_T *session = smf_session_get();
-	
+	SMFSession_T *session = (SMFSession_T *)args;
+
 	if (retval == -1) {
 		switch (settings->module_fail) {
 			case 1: 
@@ -97,10 +98,9 @@ static int handle_nexthop_error(void *args) {
 	return(0);
 }
 
-int load_modules(void) {
+int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
 	int ret;
 	ProcessQueue_T *q;
-	SMFSession_T *session = smf_session_get();
 
 	/* initialize the modules queue handler */
 	q = smf_modules_pqueue_init(
@@ -114,7 +114,7 @@ int load_modules(void) {
 	}
 
 	/* now tun the process queue */
-	ret = smf_modules_process(q,session);
+	ret = smf_modules_process(q,session,settings);
 	free(q);
 
 	if(ret != 0) {
@@ -126,7 +126,7 @@ int load_modules(void) {
 	return(0);
 }
 
-int load(void) {
+int load(SMFSettings_T *settings,int sock) {
 	GIOChannel *in;
 	GMimeStream *out;
 	GMimeObject *message;
@@ -135,13 +135,18 @@ int load(void) {
 	gsize length;
 	FILE *fd;
 	GError *error = NULL;
+	clock_t start_process, stop_process;
 #ifdef HAVE_GMIME24
 	GMimeHeaderList *headers;
 #else
 	GMimeHeader *headers;
 #endif
-	SMFSession_T *session = smf_session_get();
-	
+	SMFSession_T *session = smf_session_new();
+
+	/* start clock, to see how long
+	 * the processing time takes */
+	start_process = clock();
+
 	smf_core_gen_queue_file(&session->queue_file);
 
 	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->queue_file);
@@ -184,7 +189,7 @@ int load(void) {
 	parser = g_mime_parser_new_with_stream(out);
 	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
 
-	smf_message_extract_addresses(message);
+	smf_message_extract_addresses(session,message);
 
 #ifdef HAVE_GMIME24
 	headers = (void *)g_mime_object_get_header_list(message);
@@ -201,14 +206,19 @@ int load(void) {
 	g_object_unref(out);
 	g_io_channel_unref(in);
 
-	if (load_modules() != 0) {
+	/* processing is done, we can
+	 * stop our clock */
+	stop_process = clock();
+	TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
+
+	if (load_modules(session, settings) != 0) {
 		remove(session->queue_file);
-		smf_session_free();
+		smf_session_free(session);
 		TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
 		return -1;
 	} else {
 		remove(session->queue_file);
-		smf_session_free();
+		smf_session_free(session);
 		TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
 		return 0;
 	}

@@ -15,18 +15,26 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_SETTINGS_PRIVATE_H
-#define	_SMF_SETTINGS_PRIVATE_H
+#ifndef _SMF_DAEMON_H
+#define	_SMF_DAEMON_H
 
-/** free settings struct */
-void smf_settings_free(SMFSettings_T *settings);
+typedef struct {
+	char *pid_file;
+	char *pid_dir;
+	int max_threads;
+	int timeout;
+	char **iplist;
+	unsigned int ipcount;
+	int *listen_sockets;
+	int num_sockets;
+	int port;
+	int backlog;
+	int socket;
+	char *effective_user;
+	char *effective_group;
+	int foreground;
+} SMFDaemonConfig_T;
 
-/** load and parse config file
- *
- * \returns 0 on success or -1 in case of error
- */
+int smf_daemon_mainloop(SMFSettings_T *settings);
 
-int smf_settings_parse_config(void);
-
-#endif	/* _SMF_SETTINGS_PRIVATE_H */
-
+#endif	/* _SMF_DAEMON_H */

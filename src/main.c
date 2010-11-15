@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <gmodule.h>
@@ -31,18 +32,14 @@
 #include "smf_lookup_private.h"
 #include "smf_core.h"
 #include "smf_platform.h"
+#include "smf_daemon.h"
+#include "smf_modules.h"
 
 #define THIS_MODULE "spmfilter"
-
-typedef int (*LoadEngine) (void);
 
 int main(int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *context;
-	GTimer *timer = g_timer_new();
-	GModule *module;
-	LoadEngine load_engine;
-	char *engine_path;
 	int ret;
 	SMFSettings_T *settings = smf_settings_get();
 
@@ -94,48 +91,24 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	/* check if engine module starts with lib */
-	engine_path = smf_build_module_path(LIB_DIR, settings->engine);
-
 	/* init gmime */
 	g_mime_init(0);
 
-	/* try to open engine module */
-	module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
-	if (!module) {
-		TRACE(TRACE_ERR,"%s\n", g_module_error());
-		return -1;
-	}
-
-	/* check if the module provides the function load() */
-	if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
-		TRACE(TRACE_ERR,"%s", g_module_error());
-		return -1;
-	}
-
-	/* start processing engine */
-	ret = load_engine();
+	if (settings->daemon == 1)
+		ret = smf_daemon_mainloop(settings);
+	else
+		ret = smf_modules_engine_load(settings, dup(0));
 
 	/* shutdown gmime */
 	g_mime_shutdown();
-	
+
 	if(settings->backend != NULL) {
 		if (smf_lookup_disconnect() != 0)
 			TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
 	}
 
 	/* free all stuff */
-	if (!g_module_close(module))
-		TRACE(TRACE_WARNING,"%s", g_module_error());
-	free(engine_path);
-
-	if (settings->debug) {
-		TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", g_timer_elapsed(timer,NULL));
-	}
-	g_timer_destroy(timer);
-	
 	smf_settings_free(settings);
-
 
 	if (ret != 0) {
 		return -1;

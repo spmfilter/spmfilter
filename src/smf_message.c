@@ -103,8 +103,7 @@ SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelo
 	return envelope;
 }
 
-void smf_message_extract_addresses(GMimeObject *message) {
-	SMFSession_T *session = smf_session_get();
+void smf_message_extract_addresses(SMFSession_T *session, GMimeObject *message) {
 	SMFSettings_T *settings = smf_settings_get();
 	InternetAddressList *ia;
 	InternetAddress *addr;
@@ -144,7 +143,6 @@ void smf_message_extract_addresses(GMimeObject *message) {
 			session->message_to[session->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
 			session->message_to[session->message_to_num]->user_data = NULL;
-			
 			if (session->message_to[session->message_to_num]->addr != NULL) {
 				TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
 						session->message_to_num,

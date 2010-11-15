@@ -35,10 +35,6 @@ SMFSettings_T *smf_settings_get(void) {
 	return settings;
 }
 
-void smf_settings_set(SMFSettings_T **s) {
-	settings = *s;
-}
-
 void smf_settings_free(SMFSettings_T *settings) {
 	smf_smtp_codes_free();
 	g_strfreev(settings->modules);
@@ -48,7 +44,6 @@ void smf_settings_free(SMFSettings_T *settings) {
 	g_free(settings->nexthop);
 	g_free(settings->nexthop_fail_msg);
 	g_strfreev(settings->backend);
-
 	g_slice_free(SMFSettings_T,settings);
 }
 
@@ -168,6 +163,12 @@ int smf_settings_parse_config(void) {
 	settings->tls_pass = g_key_file_get_string(keyfile,"global","tls_pass",NULL);
 	TRACE(TRACE_DEBUG, "settings->tls_pass: %s", settings->tls_pass);
 
+	settings->daemon = g_key_file_get_boolean(keyfile,"global","daemon",NULL);
+	if (g_ascii_strcasecmp(settings->engine,"pipe") == 0) {
+		TRACE(TRACE_ERR,"pipe engine can not be used in daemon mode");
+		return -1;
+	}
+	TRACE(TRACE_DEBUG, "settings->daemon: %d", settings->daemon);
 
 	if (g_key_file_has_group(keyfile,"sql")) {
 		settings->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
@@ -336,6 +337,6 @@ int smf_settings_parse_config(void) {
 	}
 	g_strfreev(code_keys);
 	g_key_file_free(keyfile);
-	smf_settings_set(&settings);
+	
 	return 0;
 }
