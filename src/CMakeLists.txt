@@ -1,10 +1,10 @@
 set(SPMFILTER_SRC
 	main.c
+	smf_daemon.c
 )
 
 set(LIB_SMF_SRC
 	smf_core.c
-	smf_group_settings.c
 	smf_lookup.c
 	smf_lookup_result.c
 	smf_md5.c
@@ -14,6 +14,7 @@ set(LIB_SMF_SRC
 	smf_platform.c
 	smf_session.c
 	smf_settings.c
+	smf_settings_group.c
 	smf_smtp.c
 	smf_smtp_codes.c
 	smf_trace.c
@@ -77,7 +78,7 @@ set_property(TARGET pipe PROPERTY LINK_FLAGS ${_link_flags})
 target_link_libraries(pipe ${COMMON_LIBS} smf)
 
 add_executable(spmfilter ${SPMFILTER_SRC})
-target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} smf)
+target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GTHREAD_LIBRARIES} smf)
 
 install(TARGETS smf smtpd pipe spmfilter
 	RUNTIME DESTINATION sbin
