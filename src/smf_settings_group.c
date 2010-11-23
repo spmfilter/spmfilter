@@ -16,6 +16,7 @@
  */
 
 #include <glib.h>
+#include <stdlib.h>
 
 #include "smf_settings.h"
 #include "smf_trace.h"
@@ -44,12 +45,12 @@ SMFSettingsGroup_T *smf_settings_group_load(char *group_name) {
 	if (!g_key_file_load_from_file ((GKeyFile *)group->data, settings->config_file, G_KEY_FILE_NONE, &error)) {
 		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
 		g_error_free(error);
-		return -1;
+		return NULL;
 	}
 
 	if (!g_key_file_has_group((GKeyFile *)group->data,group->name)) {
 		TRACE(TRACE_ERR,"config file has no group named %s", group->name);
-		return -1;
+		return NULL;
 	}
 
 
