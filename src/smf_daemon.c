@@ -137,7 +137,7 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 	g_free(config->listen_sockets);
 
 	config->ipcount = 0;
-	config->iplist = g_key_file_get_string_list(keyfile,"daemon","bindip",&config->ipcount,NULL);
+	config->iplist = g_key_file_get_string_list(keyfile,"daemon","bindip",(gsize *)&config->ipcount,NULL);
 	if (config->ipcount < 1) {
 		TRACE(TRACE_ERR, "no value for bindip in config file");
 	}

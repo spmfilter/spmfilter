@@ -160,7 +160,7 @@ void smf_mime_set_content(SMFMimePart_T *part, SMFDataWrapper_T *content) {
  * \returns the data-wrapper for the mime part's contents.
  */
 SMFDataWrapper_T *smf_mime_get_content(SMFMimePart_T *part) {
-	SMFDataWrapper_T *content;
+	SMFDataWrapper_T *content = NULL;
 	content->data = g_mime_part_get_content_object((GMimePart *)part->data);
 
 	return content;

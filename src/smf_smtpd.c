@@ -378,7 +378,7 @@ int load(SMFSettings_T *settings,int sock) {
 	gchar *line;
 	int state=ST_INIT;
 	SMFSession_T *session = smf_session_new();
-	const char *requested_size = NULL;
+	char *requested_size = NULL;
 	const char *mail_from_addr = NULL;
 	clock_t start_process, stop_process;
 	int sock_in, sock_out;
