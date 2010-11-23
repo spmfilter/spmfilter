@@ -106,7 +106,7 @@ char *sql_get_dsn(char *host) {
 			/* expand ~ in db name to HOME env variable */
 			if ((strlen(settings->sql_name) > 0 ) && (settings->sql_name[0] == '~')) {
 				char *homedir;
-				char *db;
+				char *db = NULL;
 				if ((homedir = getenv ("HOME")) == NULL)
 					TRACE(TRACE_ERR,"can't expand ~ in db name");
 				g_snprintf(db, FIELDSIZE, "%s%s", homedir, &(settings->sql_name[1]));
