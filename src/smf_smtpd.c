@@ -365,6 +365,12 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 		message_id = smf_message_generate_message_id();
 		TRACE(TRACE_DEBUG,"no message id found, adding [%s]",message_id);
 		smf_session_header_append(session,"Message-ID",message_id);
+		// FIXME: if mid is added, the id is not flushed to message, check smf_modules_flush_dirty()
+		if (smf_modules_flush_dirty(session) != 0) {
+			TRACE(TRACE_ERR,"message flush failed");
+			smtpd_code_reply(session->sock_out,552);
+			return;
+		}
 	}
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);

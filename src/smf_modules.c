@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <glib.h>
 #include <gmodule.h>
@@ -116,13 +117,17 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 
 	TRACE(TRACE_DEBUG,"flushing header information to filesystem");
 
-	fd = fopen(session->queue_file,"r");
-	if(NULL == fd) {
-		TRACE(TRACE_ERR,"unable to open queue file");
+	if ((fd = fopen(session->queue_file,"r")) == NULL) {
+		TRACE(TRACE_ERR,"unable to open queue file %s: [%d - %s]\n",
+				session->queue_file,errno, strerror(errno));
 		return -1;
 	}
 
-	stream = g_mime_stream_file_new(fd);
+	if ((stream = g_mime_stream_file_new(fd)) == NULL) {
+		TRACE(TRACE_ERR,"failed to create stream: [%d - %s]\n",
+				errno, strerror(errno));
+		return -1;
+	}
 	parser = g_mime_parser_new_with_stream(stream);
 	msg = g_mime_parser_construct_message(parser);
 	g_object_unref(parser);
@@ -176,12 +181,24 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 		return -1;
 	}
 
-	stream2 = g_mime_stream_file_new(fd2);
+	if ((stream2 = g_mime_stream_file_new(fd2)) == NULL) {
+		TRACE(TRACE_ERR,"failed to create stream: [%d - %s]\n",
+				errno, strerror(errno));
+		return -1;
+	}
 #ifdef HAVE_GMIME24
-	stream_filter = g_mime_stream_filter_new(stream2);
+	if ((stream_filter = g_mime_stream_filter_new(stream2)) == NULL) {
+		TRACE(TRACE_ERR,"failed to create stream: [%d - %s]\n",
+				errno, strerror(errno));
+		return -1;
+	}
 	crlf = g_mime_filter_crlf_new(TRUE,FALSE);
 #else
-	stream_filter = g_mime_stream_filter_new_with_stream(stream2);
+	if ((stream_filter = g_mime_stream_filter_new_with_stream(stream2)) == NULL) {
+		TRACE(TRACE_ERR,"failed to create stream: [%d - %s]\n",
+				errno, strerror(errno));
+		return -1;
+	}
 	crlf = g_mime_filter_crlf_new(GMIME_FILTER_CRLF_ENCODE,GMIME_FILTER_CRLF_MODE_CRLF_ONLY);
 #endif
 	
