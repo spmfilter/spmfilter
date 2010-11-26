@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <errno.h>
 #include <glib.h>
 #include <time.h>
 #include <gmodule.h>
@@ -285,7 +286,7 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 
 	smf_core_gen_queue_file(&session->queue_file);
 	if (session->queue_file == NULL) {
-		TRACE(TRACE_ERR,"failed to create spool file!");
+		TRACE(TRACE_ERR,"got no spool file path");
 		smtpd_code_reply(session->sock_out, 552);
 		return;
 	}
@@ -300,6 +301,10 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	g_io_channel_set_close_on_unref(in,FALSE);
 
 	if ((fd = fopen(session->queue_file,"wb+")) == NULL) {
+		TRACE(TRACE_ERR,"failed to create spool file %s: [%d - %s]\n",
+				session->queue_file,errno, strerror(errno));
+		smtpd_code_reply(session->sock_out,552);
+
 		return;
 	}
 	
