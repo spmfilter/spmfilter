@@ -328,7 +328,6 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	}
 
 	g_io_channel_unref(in);
-
 	/* extract message headers */
 	g_mime_stream_flush(out);
 	g_mime_stream_seek(out,0,0);

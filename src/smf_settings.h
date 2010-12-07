@@ -116,16 +116,17 @@ typedef struct {
 /** Get all core settings
  *
  * \return settings struct
- */
+*/
 SMFSettings_T *smf_settings_get(void);
 
 /** Load all settings from specified group
  *
+ * \param SMFSettings_T object
  * \param group_name wanted group
  *
  * \returns SMFSettingsGroup_T object
  */
-SMFSettingsGroup_T *smf_settings_group_load(char *group_name);
+SMFSettingsGroup_T *smf_settings_group_load(SMFSettings_T* settings, char *group_name);
 
 /** Returns the raw value associated with key under the selected group.
  *  Use smf_settings_group_get_string() to retrieve an unescaped UTF-8 string.
