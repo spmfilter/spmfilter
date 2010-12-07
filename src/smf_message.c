@@ -104,9 +104,9 @@ SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelo
 }
 
 void smf_message_extract_addresses(SMFSession_T *session, GMimeObject *message) {
-	SMFSettings_T *settings = smf_settings_get();
 	InternetAddressList *ia;
 	InternetAddress *addr;
+	SMFSettings_T *settings = smf_settings_get();
 
 	/* get the from field */
 	session->message_from = g_slice_new(SMFEmailAddress_T);

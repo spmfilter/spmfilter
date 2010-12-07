@@ -18,6 +18,8 @@
 #ifndef _SMF_CORE_H
 #define	_SMF_CORE_H
 
+#include "smf_settings.h"
+
 /* GLIB2 VERSION INFORMATION */
 #define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
 	+ GLIB_MINOR_VERSION * 100 \
@@ -31,7 +33,7 @@
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_core_gen_queue_file(char **tempanme);
+int smf_core_gen_queue_file(char **tempname);
 
 /** Extract a substring from given string
  *

@@ -78,11 +78,12 @@ void smf_session_free(SMFSession_T *session);
 
 /** Copy the current message to disk
  *
+ * \param SMFSettings_T object
  * \param path for the new message file
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_session_to_file(SMFSession_T *session, char *path);
+int smf_session_to_file(SMFSettings_T *settings, SMFSession_T *session, char *path);
 
 /** Gets the value of the first header with the name requested.
  *

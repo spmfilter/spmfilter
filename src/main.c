@@ -41,7 +41,8 @@ int main(int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *context;
 	int ret;
-	SMFSettings_T *settings = smf_settings_get();
+	SMFSettings_T *settings = NULL;
+	smf_settings_init();
 
 	/* all cmd args */
 	GOptionEntry entries[] = {
@@ -67,6 +68,8 @@ int main(int argc, char *argv[]) {
 	/* parse config file and fill settings struct */
 	if (smf_settings_parse_config() != 0)
 		return -1;
+	else
+		settings = smf_settings_get();
 
 	/* connect to database/ldap server, if necessary */
 	if(settings->backend != NULL) {
@@ -108,7 +111,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* free all stuff */
-	smf_settings_free(settings);
+	smf_settings_free();
 
 	if (ret != 0) {
 		return -1;

@@ -59,14 +59,13 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 }
 
 /* build full filename to modules states dir */
-static char *smf_modules_stf_path(SMFSession_T *session) {
+static char *smf_modules_stf_path(SMFSettings_T *settings, SMFSession_T *session) {
 	char *hex;
 	char buf[1024];
-	SMFSettings_T *st = smf_settings_get();
 
 	/* build path to file*/
 	hex = smf_md5sum(smf_session_header_get(session,"message-id"));
-	snprintf(buf, sizeof(buf), "%s/%s.modules", st->queue_dir, hex);
+	snprintf(buf, sizeof(buf), "%s/%s.modules", settings->queue_dir, hex);
 	free(hex);
 
 	return(strdup(buf));
@@ -133,6 +132,7 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	g_object_unref(parser);
 
 	while (session->dirty_headers) {
+		TRACE(TRACE_DEBUG,"DIRTY HEADER");
 		SMFHeaderModification_T *mod = (SMFHeaderModification_T *)((GSList *)session->dirty_headers)->data;
 		switch(mod->status) {
 			case HEADER_REMOVE:
@@ -186,6 +186,7 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 				errno, strerror(errno));
 		return -1;
 	}
+
 #ifdef HAVE_GMIME24
 	if ((stream_filter = g_mime_stream_filter_new(stream2)) == NULL) {
 		TRACE(TRACE_ERR,"failed to create stream: [%d - %s]\n",
@@ -203,8 +204,7 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 #endif
 	
 	g_mime_stream_filter_add(GMIME_STREAM_FILTER(stream_filter), crlf);
-
-	g_mime_object_write_to_stream(GMIME_OBJECT(msg),stream_filter);
+	g_mime_object_write_to_stream(GMIME_OBJECT(msg),stream2);
 	g_mime_stream_flush(stream2);
 
 	g_object_unref(msg);
@@ -244,7 +244,7 @@ int smf_modules_process(
 	gchar *header = NULL;
 
 	/* initialize message file  and load processed modules */
-	stf_filename = smf_modules_stf_path(session);
+	stf_filename = smf_modules_stf_path(settings,session);
 	stfh = fopen(stf_filename, "a+");
 	if(stfh == NULL) {
 		TRACE(TRACE_ERR, "failed to open message state file => %s", stf_filename);

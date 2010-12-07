@@ -23,16 +23,9 @@
 
 #define THIS_MODULE "group_settings"
 
-/** Load all settings from specified group
- *
- * \param group_name wanted group
- *
- * \returns SMFSettingsGroup_T object
- */
-SMFSettingsGroup_T *smf_settings_group_load(char *group_name) {
+SMFSettingsGroup_T *smf_settings_group_load(SMFSettings_T *settings, char *group_name) {
 	GError *error = NULL;
 	SMFSettingsGroup_T *group = g_slice_new(SMFSettingsGroup_T);
-	SMFSettings_T *settings = smf_settings_get();
 
 	group->data = NULL;
 	group->name = g_strdup(group_name);
