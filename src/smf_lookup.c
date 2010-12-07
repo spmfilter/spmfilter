@@ -33,10 +33,6 @@
 
 #define THIS_MODULE "lookup"
 
-/** Establish database/ldap connection
- *
- * \returns 0 on success or -1 in case of error
- */
 int smf_lookup_connect(void) {
 	int i;
 	SMFSettings_T *settings = smf_settings_get();
@@ -60,10 +56,7 @@ int smf_lookup_connect(void) {
 	return 0;
 }
 
-/** Destroy database/ldap connection
- *
- * \returns 0 on success or -1 in case of error
- */
+/** Destroy database/ldap connection */
 int smf_lookup_disconnect(void) {
 	int i;
 	SMFSettings_T *settings = smf_settings_get();
@@ -83,10 +76,7 @@ int smf_lookup_disconnect(void) {
 	return 0;
 }
 
-/** Check if given user is local
- *
- * \param a SMFEmailAddress_T object
- */
+/** Check if given user is local */
 void smf_lookup_check_user(SMFEmailAddress_T *user) {
 	int i;
 	SMFSettings_T *settings = smf_settings_get();
@@ -116,13 +106,7 @@ void smf_lookup_check_user(SMFEmailAddress_T *user) {
 		user->is_local = 0;
 }
 
-/** Query lookup backend.
- *
- * \param q a standard printf() format string
- * \param args the list of parameters to insert into the format string
- *
- * \return new allocated SMFLookupResult_T
- */
+/** Query lookup backend. */
 SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_list ap, cp;
 	char *query = NULL;
@@ -130,6 +114,7 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	int i;
 	SMFLookupResult_T *result = NULL;
 	SMFSettings_T *settings = smf_settings_get();
+
 #if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
 	GMatchInfo *match_info = NULL;

@@ -25,17 +25,24 @@
 
 #define THIS_MODULE "settings"
 
-SMFSettings_T *settings = NULL;
+static GMutex *settings_mutex = NULL;
+static SMFSettings_T *settings = NULL;
+
+void smf_settings_init(void) {
+	g_assert(settings_mutex == NULL);
+	settings_mutex = g_mutex_new();
+	
+	g_assert(settings == NULL);
+	settings = g_slice_new(SMFSettings_T);
+	settings->debug = 0;
+}
 
 SMFSettings_T *smf_settings_get(void) {
-	if (settings == NULL) {
-		settings = g_slice_new(SMFSettings_T);
-		settings->debug = 0;
-	}
 	return settings;
 }
 
-void smf_settings_free(SMFSettings_T *settings) {
+void smf_settings_free(void) {
+	g_mutex_lock(settings_mutex);
 	smf_smtp_codes_free();
 	g_strfreev(settings->modules);
 	g_free(settings->config_file);
@@ -45,9 +52,11 @@ void smf_settings_free(SMFSettings_T *settings) {
 	g_free(settings->nexthop_fail_msg);
 	g_strfreev(settings->backend);
 	g_slice_free(SMFSettings_T,settings);
+	g_mutex_unlock(settings_mutex);
+	g_mutex_free(settings_mutex);
 }
 
-int smf_settings_parse_config(void) {
+int smf_settings_parse_config() {
 	GError *error = NULL;
 	GKeyFile *keyfile;
 	gchar **code_keys;
@@ -58,8 +67,8 @@ int smf_settings_parse_config(void) {
 	gsize ldap_num_hosts = 0;
 	char *code_msg;
 	int i, code;
-	SMFSettings_T *settings = smf_settings_get();
 
+	g_mutex_lock(settings_mutex);
 	/* fallback to default config path,
 	 * if config file is not defined as
 	 * command argument */
@@ -337,6 +346,8 @@ int smf_settings_parse_config(void) {
 	}
 	g_strfreev(code_keys);
 	g_key_file_free(keyfile);
+	
+	g_mutex_unlock (settings_mutex);
 	
 	return 0;
 }

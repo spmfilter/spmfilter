@@ -149,7 +149,7 @@ void smf_session_free(SMFSession_T *session) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_session_to_file(SMFSession_T *session, char *path) {
+int smf_session_to_file(SMFSettings_T *settings, SMFSession_T *session, char *path) {
 	GIOChannel *in;
 	GMimeStream *out;
 	FILE *fd;

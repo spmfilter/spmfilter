@@ -18,7 +18,6 @@
 #ifndef _SMF_LOOKUP_H
 #define	_SMF_LOOKUP_H
 
-
 typedef struct {
 	void *data;
 } SMFLookupElement_T;
@@ -103,7 +102,7 @@ int smf_lookup_sql_connect(void);
 /** Disconnect from sql server */
 void smf_lookup_sql_disconnect(void);
 
-/** Query SQK server with given query string
+/** Query SQL server with given query string
  *
  * \param q format string for sql query
  * \param ... format string arguments

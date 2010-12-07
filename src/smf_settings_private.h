@@ -18,8 +18,11 @@
 #ifndef _SMF_SETTINGS_PRIVATE_H
 #define	_SMF_SETTINGS_PRIVATE_H
 
+/** initialize settings */
+void smf_settings_init(void);
+
 /** free settings struct */
-void smf_settings_free(SMFSettings_T *settings);
+void smf_settings_free(void);
 
 /** load and parse config file
  *
