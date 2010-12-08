@@ -378,8 +378,6 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 		g_io_add_watch(ctl_io, G_IO_IN, smf_daemon_event, &config);
 		g_io_channel_unref(ctl_io);
 	}
-
-	g_thread_init(NULL);
 	
 	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.max_threads,FALSE,NULL);
 	g_main_loop_run(event_loop);
