@@ -42,7 +42,6 @@ int main(int argc, char *argv[]) {
 	GOptionContext *context;
 	int ret;
 	SMFSettings_T *settings = NULL;
-	smf_settings_init();
 
 	/* all cmd args */
 	GOptionEntry entries[] = {
@@ -64,7 +63,16 @@ int main(int argc, char *argv[]) {
 	g_option_context_free(context);
 
 	openlog("spmfilter", LOG_PID, LOG_MAIL);
-
+	
+	g_thread_init(NULL);
+	
+	if (!g_thread_supported()) {
+		g_print("glib2 does not support threads!");
+		return -1;
+	} else {
+		smf_settings_init();		
+	} 
+	
 	/* parse config file and fill settings struct */
 	if (smf_settings_parse_config() != 0)
 		return -1;
