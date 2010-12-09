@@ -132,7 +132,6 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	g_object_unref(parser);
 
 	while (session->dirty_headers) {
-		TRACE(TRACE_DEBUG,"DIRTY HEADER");
 		SMFHeaderModification_T *mod = (SMFHeaderModification_T *)((GSList *)session->dirty_headers)->data;
 		switch(mod->status) {
 			case HEADER_REMOVE:

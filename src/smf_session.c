@@ -66,18 +66,11 @@ SMFSession_T *smf_session_new(void) {
 	TRACE(TRACE_DEBUG,"initialize session data");
 	session = g_slice_new(SMFSession_T);
 	session->helo = NULL;
-	session->envelope_from = NULL;
-	session->queue_file = NULL;
-	session->envelope_to = NULL;
-	session->xforward_addr = NULL;
-	session->dirty_headers = NULL;
-	session->msgbodysize = 0;
-	session->headers = NULL;
-	session->dirty_headers = NULL;
-	session->message_from = NULL;
-	session->message_to = NULL;
-	session->response_msg = NULL;
 
+	session->xforward_addr = NULL;
+	session->msgbodysize = 0;
+	session->response_msg = NULL;
+	session->envelope = smf_message_envelope_new();
 	return session;
 }
 
@@ -88,11 +81,12 @@ SMFSession_T *smf_session_new(void) {
 void smf_session_free(SMFSession_T *session) {
 	int i;
 	TRACE(TRACE_DEBUG,"destroy session data");
-	g_free(session->queue_file);
 	g_free(session->helo);
 	g_free(session->xforward_addr);
 	g_free(session->response_msg);
-
+	smf_message_envelope_unref(session->envelope);
+	
+#if 0
 	if (session->headers != NULL) {
 #ifdef HAVE_GMIME24
 		g_mime_header_list_destroy((GMimeHeaderList *)session->headers);
@@ -138,7 +132,7 @@ void smf_session_free(SMFSession_T *session) {
 		}
 		g_free(session->message_to);
 	}
-
+#endif
 	g_slice_free(SMFSession_T,session);
 	session = NULL;
 }

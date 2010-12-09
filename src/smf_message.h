@@ -20,6 +20,7 @@
 
 #include <time.h>
 #include "smf_core.h"
+#include "smf_lookup.h"
 #include "spmfilter_config.h"
 
 typedef struct _SMFObject_T SMFObject_T;
@@ -28,18 +29,29 @@ typedef struct _SMFObject_T SMFMimePart_T;
 typedef struct _SMFObject_T SMFMultiPart_T;
 typedef struct _SMFObject_T SMFDataWrapper_T;
 
+typedef struct {
+	char *addr;
+	int is_local;
+	SMFLookupResult_T *user_data;
+} SMFEmailAddress_T;
+
 /* struct for messages send
  * via smtp_delivery */
 typedef struct {
+	/* envelope recipients */
+	SMFEmailAddress_T **envelope_to;
+	int envelope_to_num;
+
+	/* envelope sender */
+	SMFEmailAddress_T *envelope_from;
+
+	/* message recipients */
+	SMFEmailAddress_T **message_to;
+	int message_to_num;
+ 
 	/* message sender */
-	char *from;
-
-	/* pointer to message recipients */
-	char **rcpts;
-
-	/* number of recipients */
-	int num_rcpts;
-
+	SMFEmailAddress_T *message_from;
+	
 	/* path to message */
 	char *message_file;
 
@@ -51,6 +63,10 @@ typedef struct {
 
 	/* destination smtp server */
 	char *nexthop;
+
+	/* message header */
+	void *headers;
+	void *dirty_headers;
 
 	SMFMessage_T *message;
 } SMFMessageEnvelope_T;

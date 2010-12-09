@@ -42,6 +42,7 @@
 static GMainLoop *event_loop;
 GThreadPool *pool;
 static int child_pipe[2];
+static GMutex *daemon_config_mutex = NULL;
 
 void smf_daemon_term(void) {
 	g_main_loop_quit(event_loop);
@@ -101,12 +102,13 @@ int smf_daemon_drop_privileges(char *newuser, char *newgroup) {
 	return 0;
 }
 
-int smf_daemon_load_config(SMFDaemonConfig_T *config) {
+int smf_daemon_load_config(SMFDaemonConfig_T **config) {
 	GError *error = NULL;
 	GKeyFile *keyfile;
 	int ip;
 	SMFSettings_T *settings = smf_settings_get();
 
+	g_mutex_lock(daemon_config_mutex);
 	keyfile = g_key_file_new ();
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
 		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
@@ -114,68 +116,67 @@ int smf_daemon_load_config(SMFDaemonConfig_T *config) {
 		return -1;
 	}
 
-	config->max_threads = g_key_file_get_integer(keyfile, "daemon", "max_threads",NULL);
-	if (!config->max_threads) 
-		config->max_threads = 15;
-	TRACE(TRACE_DEBUG, "daemon->max_threads: %d",config->max_threads);
+	(*config)->max_threads = g_key_file_get_integer(keyfile, "daemon", "max_threads",NULL);
+	if (!(*config)->max_threads) 
+		(*config)->max_threads = 15;
+	TRACE(TRACE_DEBUG, "daemon->max_threads: %d",(*config)->max_threads);
 
-
-	config->timeout = g_key_file_get_integer(keyfile, "daemon", "timeout",NULL);
-	if (!config->timeout) {
-		config->timeout = 60;
+	(*config)->timeout = g_key_file_get_integer(keyfile, "daemon", "timeout",NULL);
+	if (!(*config)->timeout) {
+		(*config)->timeout = 60;
 	}
-	TRACE(TRACE_DEBUG, "daemon->timeout: %d",config->timeout);
+	TRACE(TRACE_DEBUG, "daemon->timeout: %d",(*config)->timeout);
 
-	config->port = g_key_file_get_integer(keyfile, "daemon", "bindport", NULL);
-	if (!config->port) {
-		config->port = 10025;
+	(*config)->port = g_key_file_get_integer(keyfile, "daemon", "bindport", NULL);
+	if (!(*config)->port) {
+		(*config)->port = 10025;
 	}
-	TRACE(TRACE_DEBUG, "daemon->port: %d",config->port);
+	TRACE(TRACE_DEBUG, "daemon->port: %d",(*config)->port);
 
 	// If there was a SIGHUP, then we're resetting an active config.
-	g_strfreev(config->iplist);
-	g_free(config->listen_sockets);
+	g_strfreev((*config)->iplist);
+	g_free((*config)->listen_sockets);
 
-	config->ipcount = 0;
-	config->iplist = g_key_file_get_string_list(keyfile,"daemon","bindip",(gsize *)&config->ipcount,NULL);
-	if (config->ipcount < 1) {
+	(*config)->ipcount = 0;
+	(*config)->iplist = g_key_file_get_string_list(keyfile,"daemon","bindip",(gsize *)&(*config)->ipcount,NULL);
+	if ((*config)->ipcount < 1) {
 		TRACE(TRACE_ERR, "no value for bindip in config file");
 	}
 
-	for (ip = 0; ip < config->ipcount; ip++) {
+	for (ip = 0; ip < (*config)->ipcount; ip++) {
 		// Remove whitespace from each list entry, then log it.
-		g_strstrip(config->iplist[ip]);
-		TRACE(TRACE_DEBUG, "daemon->bindip: %s", config->iplist[ip]);
+		g_strstrip((*config)->iplist[ip]);
+		TRACE(TRACE_DEBUG, "daemon->bindip: %s", (*config)->iplist[ip]);
 	}
 
-	config->backlog = g_key_file_get_integer(keyfile, "daemon", "backlog", NULL);
-	if (!config->backlog) {
+	(*config)->backlog = g_key_file_get_integer(keyfile, "daemon", "backlog", NULL);
+	if (!(*config)->backlog) {
 		TRACE(TRACE_DEBUG, "no value for backlog in config file, using default");
-		config->backlog = 16;
+		(*config)->backlog = 16;
 	}
-	TRACE(TRACE_DEBUG,"daemon->backlog: %d", config->backlog);
+	TRACE(TRACE_DEBUG,"daemon->backlog: %d", (*config)->backlog);
 
-	config->effective_user = g_key_file_get_string(keyfile, "daemon", "effective_user", NULL);
-	if (config->effective_user == NULL) {
+	(*config)->effective_user = g_key_file_get_string(keyfile, "daemon", "effective_user", NULL);
+	if ((*config)->effective_user == NULL) {
 		TRACE(TRACE_ERR, "no value for EFFECTIVE_USER in config file");
 		exit(-1);
 	}
 
-	TRACE(TRACE_DEBUG,"daemon->effective_user: %s", config->effective_user);
+	TRACE(TRACE_DEBUG,"daemon->effective_user: %s", (*config)->effective_user);
 
-	config->effective_group = g_key_file_get_string(keyfile, "daemon", "effective_group", NULL);
-	if (config->effective_group == NULL) {
+	(*config)->effective_group = g_key_file_get_string(keyfile, "daemon", "effective_group", NULL);
+	if ((*config)->effective_group == NULL) {
 		TRACE(TRACE_ERR, "no value for EFFECTIVE_GROUP in config file");
 		exit(-1);
 	}
 
-	TRACE(TRACE_DEBUG,"daemon->effective_group: %s", config->effective_group);
+	TRACE(TRACE_DEBUG,"daemon->effective_group: %s", (*config)->effective_group);
 
-	config->foreground = g_key_file_get_boolean(keyfile, "daemon", "foreground", NULL);
-	TRACE(TRACE_DEBUG,"daemon->foreground: %d", config->foreground);
+	(*config)->foreground = g_key_file_get_boolean(keyfile, "daemon", "foreground", NULL);
+	TRACE(TRACE_DEBUG,"daemon->foreground: %d", (*config)->foreground);
 
 	g_key_file_free(keyfile);
-
+	g_mutex_unlock(daemon_config_mutex);
 	return 0;
 }
 
@@ -314,12 +315,13 @@ static gboolean smf_daemon_event(GIOChannel *chan, GIOCondition cond, gpointer d
 }
 
 int smf_daemon_mainloop(SMFSettings_T *settings) {
-	SMFDaemonConfig_T config;
+	SMFDaemonConfig_T *config;
 	GIOChannel *child_io;
 	int i;
 	struct sigaction handler;
 	
-	memset(&config, 0, sizeof(SMFDaemonConfig_T));
+	daemon_config_mutex = g_mutex_new();
+	config = g_slice_new(SMFDaemonConfig_T);
 	if (smf_daemon_load_config(&config) != 0) {
 		TRACE(TRACE_ERR,"failed to load daemon config");
 		return -1;
@@ -336,24 +338,24 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 	sigaction(SIGTERM, &handler, 0);
 	sigaction(SIGHUP, &handler, 0);
 
-	if (smf_daemon_drop_privileges(config.effective_user, config.effective_group) < 0) {
+	if (smf_daemon_drop_privileges(config->effective_user, config->effective_group) < 0) {
 		TRACE(TRACE_ERR,"unable to drop privileges");
 		return -1;
 	}
 
-	if (config.foreground != 1) {
+	if (config->foreground != 1) {
 		if (smf_daemon_daemonize() == -1) {
 			TRACE(TRACE_DEBUG,"daemonize failed");
 			return -1;
 		}
 	}
 
-	config.listen_sockets = g_new0(int, config.ipcount);
-	config.num_sockets = 0;
+	config->listen_sockets = g_new0(int, config->ipcount);
+	config->num_sockets = 0;
 
-	for (i = 0; i < config.ipcount; i++) {
-		config.listen_sockets[i] = smf_daemon_create_socket(config.iplist[i], config.port, config.backlog);
-		config.num_sockets++;
+	for (i = 0; i < config->ipcount; i++) {
+		config->listen_sockets[i] = smf_daemon_create_socket(config->iplist[i], config->port, config->backlog);
+		config->num_sockets++;
 	}
 
 	if (pipe(child_pipe) < 0) {
@@ -370,16 +372,16 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 
 	event_loop = g_main_loop_new(NULL, FALSE);
 
-	for (i = 0; i < config.num_sockets; i++) {
+	for (i = 0; i < config->num_sockets; i++) {
 		GIOChannel *ctl_io;
-		ctl_io = g_io_channel_unix_new(config.listen_sockets[i]);
+		ctl_io = g_io_channel_unix_new(config->listen_sockets[i]);
 		g_io_channel_set_close_on_unref(ctl_io, TRUE);
 		g_io_channel_set_encoding(ctl_io, NULL, NULL);
 		g_io_add_watch(ctl_io, G_IO_IN, smf_daemon_event, &config);
 		g_io_channel_unref(ctl_io);
 	}
 	
-	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config.max_threads,FALSE,NULL);
+	pool = g_thread_pool_new((GFunc) smf_daemon_handle,settings,config->max_threads,FALSE,NULL);
 	g_main_loop_run(event_loop);
 
 	g_main_loop_unref(event_loop);

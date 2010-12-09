@@ -18,7 +18,7 @@
 #ifndef _SMF_MESSAGE_PRIVATE_H
 #define	_SMF_MESSAGE_PRIVATE_H
 
-void smf_message_extract_addresses(SMFSession_T *session, GMimeObject *message);
+void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope);
 
 typedef enum {
 	HEADER_REMOVE = 0,
