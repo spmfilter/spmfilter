@@ -19,43 +19,18 @@
 #define	_SMF_SESSION_H
 
 #include "smf_message.h"
-#include "smf_lookup.h"
 
 typedef struct {
-	char *addr;
-	int is_local;
-	SMFLookupResult_T *user_data;
-} SMFEmailAddress_T;
-
-typedef struct {
-	/* hello we received */
-	char *helo;
-
-	/* envelope recipients */
-	SMFEmailAddress_T **envelope_to;
-	int envelope_to_num;
-
-	/* envelope sender */
-	SMFEmailAddress_T *envelope_from;
-
-	SMFEmailAddress_T **message_to;
-	int message_to_num;
-
-	SMFEmailAddress_T *message_from;
+	/* message envelope */
+	SMFMessageEnvelope_T *envelope;
 
 	/* size of message body */
 	size_t msgbodysize;
 
-	/* this is our spooling file */
-	char *queue_file;
-
-	/* xfoward */
+	/* session data used by smtpd engine */
+	char *helo;
 	char *xforward_addr;
-
-	/* message header */
-	void *headers;
-	void *dirty_headers;
-
+	
 	/* custom response message */
 	char *response_msg;
 
