@@ -65,6 +65,8 @@
 
 #define RE_MAIL_FROM "^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?(?:\\W*SIZE=(\\d+))?"
 
+GPrivate* current_session_key = NULL; 
+
 /* copy headers from message object to own GMimeHeaderList */
 static void copy_header_func(const char *name, const char *value, gpointer data) {
 #ifdef HAVE_GMIME24

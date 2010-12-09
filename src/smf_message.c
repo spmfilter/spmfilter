@@ -38,96 +38,132 @@
 
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
-/** Creates a new SMFMessageEnvelope_T object
- *
- * \returns an empty SMFMessageEnvelope_T object
- */
+/** Creates a new SMFMessageEnvelope_T object */
 SMFMessageEnvelope_T *smf_message_envelope_new(void) {
 	SMFMessageEnvelope_T *envelope = NULL;
 
 	envelope = g_slice_new(SMFMessageEnvelope_T);
-	envelope->rcpts = NULL;
-	envelope->num_rcpts = 0;
+	envelope->envelope_to_num = 0;
+	envelope->envelope_to = NULL;
+	envelope->envelope_from = NULL;
+	envelope->message_to_num = 0;
+	envelope->message_to = NULL;
+	envelope->message_from = NULL;
 	envelope->message_file = NULL;
 	envelope->message = NULL;
 	envelope->auth_pass = NULL;
 	envelope->auth_user = NULL;
-	envelope->from = NULL;
 	envelope->nexthop = NULL;
+	envelope->headers = (void *)g_mime_header_list_new();
+	envelope->dirty_headers = NULL; 
 
 	return envelope;
 }
 
-/** Free SMFMessageEnvelope_T object
- *
- * \param message SMFMessageEnvelope_T object
- */
+/** Free SMFMessageEnvelope_T object */
 void smf_message_envelope_unref(SMFMessageEnvelope_T *envelope) {
 	int i;
-	/* free all allocated recipient resources */
-	for (i = 0; i < envelope->num_rcpts; i++) {
-		g_free(envelope->rcpts[i]);
+
+	if (envelope->headers != NULL) {
+#ifdef HAVE_GMIME24
+		g_mime_header_list_destroy((GMimeHeaderList *)envelope->headers);
+#else
+		g_mime_header_destroy((GMimeHeader *)envelope->headers);
+#endif
 	}
 
-	/* free all other message stuff */
-	if (envelope->from != NULL) 
-		g_free(envelope->from);
-	if (envelope->message_file != NULL)
-		g_free(envelope->message_file);
+	if (envelope->envelope_from != NULL) {
+		if (envelope->envelope_from->addr != NULL) {
+			free(envelope->envelope_from->addr);
+			smf_lookup_result_free(envelope->envelope_from->user_data);
+		}
+		g_slice_free(SMFEmailAddress_T,envelope->envelope_from);
+	}
+
+	if (envelope->envelope_to != NULL) {
+		for (i = 0; i < envelope->envelope_to_num; i++) {
+			if (envelope->envelope_to[i] != NULL) {
+				free(envelope->envelope_to[i]->addr);
+				smf_lookup_result_free(envelope->envelope_to[i]->user_data);
+				g_slice_free(SMFEmailAddress_T,envelope->envelope_to[i]);
+			}
+		}
+		g_free(envelope->envelope_to);
+	}
+
+	if (envelope->message_from != NULL) {
+		if (envelope->message_from->addr != NULL) {
+			free(envelope->message_from->addr);
+			smf_lookup_result_free(envelope->message_from->user_data);
+		}
+		g_slice_free(SMFEmailAddress_T,envelope->message_from);
+	}
+
+	if (envelope->message_to != NULL) {
+		for (i = 0; i < envelope->message_to_num; i++) {
+			if (envelope->message_to[i] != NULL) {
+				free(envelope->message_to[i]->addr);
+				smf_lookup_result_free(envelope->message_to[i]->user_data);
+				g_slice_free(SMFEmailAddress_T,envelope->message_to[i]);
+			}
+		}
+		g_free(envelope->message_to);
+	}
+
 	if (envelope->nexthop != NULL)
-		g_free(envelope->nexthop);
+		free(envelope->nexthop);
+
 	if (envelope->message != NULL)
 		smf_message_unref(envelope->message);
+		
+	if (envelope->message_file != NULL)
+		free(envelope->message_file);
 	g_slice_free(SMFMessageEnvelope_T,envelope);
 }
 
-/** Add new recipient to envelope
- *
- * \param envelope SMFMessageEnvelope_T object
- * \param rcpt rcpt address
- *
- * \returns SMFMessageEnvelope_T object
- */
+/** Add new recipient to envelope */
 SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, const char *rcpt) {
-	if (envelope->rcpts == NULL) {
-		envelope->rcpts = g_malloc(sizeof(envelope->rcpts[1]));
-	} else {
-		envelope->rcpts = g_realloc(
-			envelope->rcpts,
-			sizeof(SMFMessage_T) * (envelope->num_rcpts + 1)
-		);
-	}
-	envelope->rcpts[envelope->num_rcpts] = g_strdup(rcpt);
-	envelope->num_rcpts += 1;
-	
+
+	envelope->envelope_to = g_realloc(
+		envelope->envelope_to,
+		sizeof(SMFEmailAddress_T) * (envelope->envelope_to_num + 1)
+	);
+
+	envelope->envelope_to[envelope->envelope_to_num] = g_slice_new(SMFEmailAddress_T);
+	envelope->envelope_to[envelope->envelope_to_num]->addr = g_strdup(rcpt);
+	envelope->envelope_to_num++;
+
 	return envelope;
 }
 
-void smf_message_extract_addresses(SMFSession_T *session, GMimeObject *message) {
+void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 	InternetAddressList *ia;
 	InternetAddress *addr;
 	SMFSettings_T *settings = smf_settings_get();
-
-	/* get the from field */
-	session->message_from = g_slice_new(SMFEmailAddress_T);
-	session->message_from->addr = smf_core_get_substring(EMAIL_EXTRACT,g_mime_message_get_sender(GMIME_MESSAGE(message)),1);
-	session->message_from->user_data = NULL;
-
-	if (session->message_from->addr != NULL) {
-		TRACE(TRACE_DEBUG,"session->message_from: %s",session->message_from->addr);
+	SMFMessageEnvelope_T *e = (*envelope);
+	if (session == NULL) 
+		return;
 	
-		if(settings->backend != NULL) {
-			smf_lookup_check_user(session->message_from);
-		} else
-			session->message_from->user_data = NULL;
+	/* get the from field */
+	e->message_from = g_slice_new(SMFEmailAddress_T);
+	e->message_from->addr = mf_core_get_substring(
+		EMAIL_EXTRACT,g_mime_message_get_sender(GMIME_MESSAGE(e->message)),1);
+	e->message_from->user_data = NULL;
+	
+	if (e->message_from->addr != NULL) {
+		TRACE(TRACE_DEBUG,"envelope->message_from: %s",e->message_from->addr);
+		if (settings->backend != NULL) {
+			smf_lookup_check_user(e->message_from);
+		} else {
+			e->message_from->user_data = NULL;
+		}
 		TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-			session->message_from->addr,
-			session->message_from->is_local);
+			e->message_from->addr,
+			e->message_from->is_local);
 	}
 
 	/* now check the to field */
 	session->message_to_num = 0;
-
 #ifdef HAVE_GMIME24
 	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
 	ia = g_mime_message_get_all_recipients(GMIME_MESSAGE(message));
