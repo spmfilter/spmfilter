@@ -141,12 +141,13 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 	InternetAddress *addr;
 	SMFSettings_T *settings = smf_settings_get();
 	SMFMessageEnvelope_T *e = (*envelope);
-	if (session == NULL) 
+	
+	if (e == NULL) 
 		return;
 	
 	/* get the from field */
 	e->message_from = g_slice_new(SMFEmailAddress_T);
-	e->message_from->addr = mf_core_get_substring(
+	e->message_from->addr = smf_core_get_substring(
 		EMAIL_EXTRACT,g_mime_message_get_sender(GMIME_MESSAGE(e->message)),1);
 	e->message_from->user_data = NULL;
 	
@@ -163,45 +164,47 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 	}
 
 	/* now check the to field */
-	session->message_to_num = 0;
+	e->message_to_num = 0;
+	
 #ifdef HAVE_GMIME24
 	/* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
-	ia = g_mime_message_get_all_recipients(GMIME_MESSAGE(message));
+	ia = g_mime_message_get_all_recipients(GMIME_MESSAGE(e->message));
 	if (ia != NULL) {
 		int i;
 		for (i=0; i < internet_address_list_length(ia); i++) {
 			addr = internet_address_list_get_address(ia,i);
-			session->message_to = g_realloc(
-					session->message_to,
-					sizeof(SMFEmailAddress_T) * (session->message_to_num + 1)
+			e->message_to = g_realloc(
+					e->message_to,
+					sizeof(SMFEmailAddress_T) * (e->message_to_num + 1)
 				);
-			session->message_to[session->message_to_num] = g_slice_new(SMFEmailAddress_T);
-			session->message_to[session->message_to_num]->addr =
+			e->message_to[e->message_to_num] = g_slice_new(SMFEmailAddress_T);
+			e->message_to[e->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-			session->message_to[session->message_to_num]->user_data = NULL;
-			if (session->message_to[session->message_to_num]->addr != NULL) {
-				TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
-						session->message_to_num,
-						session->message_to[session->message_to_num]->addr);
+			e->message_to[e->message_to_num]->user_data = NULL;
+			if (e->message_to[e->message_to_num]->addr != NULL) {
+				TRACE(TRACE_DEBUG,"envelope->message_to[%d]: %s",
+						e->message_to_num,
+						e->message_to[e->message_to_num]->addr);
 
 				if (settings->backend != NULL) {
-					session->message_to[session->message_to_num]->user_data = NULL;
-					if (session->message_to[session->message_to_num]->addr != NULL) {
-						smf_lookup_check_user(session->message_to[session->message_to_num]);
+					e->message_to[e->message_to_num]->user_data = NULL;
+					if (e->message_to[e->message_to_num]->addr != NULL) {
+						smf_lookup_check_user(e->message_to[e->message_to_num]);
 						TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-							session->message_to[session->message_to_num]->addr,
-							session->message_to[session->message_to_num]->is_local);
+							e->message_to[e->message_to_num]->addr,
+							e->message_to[e->message_to_num]->is_local);
 					}
-				} else
-					session->message_to[session->message_to_num]->user_data = NULL;
-				session->message_to_num++;
+				} else {
+					e->message_to[e->message_to_num]->user_data = NULL;
+				}
+				e->message_to_num++;
 			}
 		}
 	}
 #else
 	/* all recipients from to */
 	ia = (InternetAddressList *)g_mime_message_get_recipients(
-		(GMimeMessage *)message,
+		(GMimeMessage *)e->message,
 		GMIME_RECIPIENT_TYPE_TO
 	);
 	if (ia != NULL) {
@@ -210,7 +213,7 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 		internet_address_list_concat(
 			ia,
 			(InternetAddressList *)g_mime_message_get_recipients(
-				(GMimeMessage *)message,
+				(GMimeMessage *)e->message,
 				GMIME_RECIPIENT_TYPE_CC
 			)
 		);
@@ -219,7 +222,7 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 		internet_address_list_concat(
 			ia,
 			(InternetAddressList *)g_mime_message_get_recipients(
-				(GMimeMessage *)message,
+				(GMimeMessage *)e->message,
 				GMIME_RECIPIENT_TYPE_BCC
 			)
 		);
@@ -227,28 +230,29 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 		while(ia) {
 			addr = internet_address_list_get_address(ia);
 
-			session->message_to = g_realloc(
-					session->message_to,
-					sizeof(SMFEmailAddress_T) * (session->message_to_num + 1)
+			e->message_to = g_realloc(
+					e->message_to,
+					sizeof(SMFEmailAddress_T) * (e->message_to_num + 1)
 				);
-			session->message_to[session->message_to_num] = g_slice_new(SMFEmailAddress_T);
-			session->message_to[session->message_to_num]->addr =
+			e->message_to[e->message_to_num] = g_slice_new(SMFEmailAddress_T);
+			e->message_to[e->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-			session->message_to[session->message_to_num]->user_data = NULL;
-			if (session->message_to[session->message_to_num]->addr != NULL) {
-				TRACE(TRACE_DEBUG,"session->message_to[%d]: %s",
-						session->message_to_num,
-						session->message_to[session->message_to_num]->addr);
+			e->message_to[e->message_to_num]->user_data = NULL;
+			if (e->message_to[e->message_to_num]->addr != NULL) {
+				TRACE(TRACE_DEBUG,"envelope->message_to[%d]: %s",
+						e->message_to_num,
+						e->message_to[e->message_to_num]->addr);
 
 				if (settings->backend != NULL) {
-					session->message_to[session->message_to_num]->user_data = NULL;
-					smf_lookup_check_user(session->message_to[session->message_to_num]);
+					e->message_to[e->message_to_num]->user_data = NULL;
+					smf_lookup_check_user(e->message_to[e->message_to_num]);
 					TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-							session->message_to[session->message_to_num]->addr,
-							session->message_to[session->message_to_num]->is_local);
-				} else
-					session->message_to[session->message_to_num]->user_data = NULL;
-				session->message_to_num++;
+							e->message_to[e->message_to_num]->addr,
+							e->message_to[e->message_to_num]->is_local);
+				} else {
+					e->message_to[e->message_to_num]->user_data = NULL;
+				}
+				e->message_to_num++;
 			}
 			ia = internet_address_list_next(ia);
 		}
@@ -257,30 +261,17 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 
 }
 
-/** Decodes an rfc2047 encoded 'text' header.
- *
- * \param text header text to decode
- *
- * \returns a newly allocated UTF-8 string representing the the decoded header.
- */
+/** Decodes an rfc2047 encoded 'text' header. */
 char *smf_message_decode_text(const char *text) {
 	return g_mime_utils_header_decode_text(text);
 }
 
-/** Encodes a 'text' header according to the rules in rfc2047.
- *
- * \param text text to encode
- *
- * \returns the encoded header. Useful for encoding headers like "Subject".
- */
+/** Encodes a 'text' header according to the rules in rfc2047. */
 char *smf_message_encode_text(const char *text) {
 	return g_mime_utils_header_encode_text(text);
 }
 
-/** Generates a unique Message-Id.
- *
- * \returns a unique string in an addr-spec format suitable for use as a Message-Id.
- */
+/** Generates a unique Message-Id. */
 char *smf_message_generate_message_id(void) {
 	char *mid = NULL;
 	char hostname[256];
@@ -291,23 +282,12 @@ char *smf_message_generate_message_id(void) {
 	return mid;
 }
 
-/** Determines the best content encoding for the first len bytes of text.
- *
- * \param text text to encode
- * \param len text length
- *
- * \returns a SMFContentEncoding that is determined to be the best encoding
- *          type for the specified block of text. ("best" in this particular
- *          case means smallest output size)
- */
+/** Determines the best content encoding for the first len bytes of text. */
 SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len) {
 	return (SMFContentEncoding_T) g_mime_utils_best_encoding(text,len);
 }
 
-/** Creates a new SMFMessage_T object
- *
- * \returns an empty message object
- */
+/** Creates a new SMFMessage_T object */
 SMFMessage_T *smf_message_new(void) {
 	SMFMessage_T *message = NULL;
 	char *message_id;
@@ -318,41 +298,23 @@ SMFMessage_T *smf_message_new(void) {
 	return message;
 }
 
-/** Free SMFMessage_T object
- *
- * \param message SMFMessage_T object
- */
+/** Free SMFMessage_T object */
 void smf_message_unref(SMFMessage_T *message) {
 	g_object_unref(message->data);
 	g_slice_free(SMFMessage_T,message);
 }
 
-/** Set the sender's name and address on the message object.
- *
- * \param message SMFMessate_T object
- * \param sender The name and address of the sender
- */
+/** Set the sender's name and address on the message object.*/
 void smf_message_set_sender(SMFMessage_T *message, const char *sender) {
 	g_mime_message_set_sender((GMimeMessage *)message->data,sender);
 }
 
-/** Gets the email address of the sender from message.
- *
- * \param message SMFmessage_T object
- *
- * \returns the sender's name and address of the message.
- */
+/** Gets the email address of the sender from message. */
 const char *smf_message_get_sender(SMFMessage_T *message) {
 	return g_mime_message_get_sender((GMimeMessage *)message->data);
 }
 
-/** Add a recipient of a chosen type to the message object.
- *
- * \param message SMFMessate_T object
- * \param type A SMFRecipientType_T
- * \param name The recipient's name (or NULL)
- * \param addr The recipient's address
- */
+/** Add a recipient of a chosen type to the message object. */
 void smf_message_add_recipient(SMFMessage_T *message,
 		SMFRecipientType_T type,
 		const char *name,
