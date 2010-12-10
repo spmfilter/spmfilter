@@ -104,6 +104,8 @@ static GHashTable *smf_modules_stf_processed_modules(FILE *fh) {
 
 /** Flush modified message headers to queue file */
 int smf_modules_flush_dirty(SMFSession_T *session) {
+// TODO: reimplement smf_modules_flush_dirty
+#if 0
 	GMimeStream *stream, *stream2, *stream_filter;
 	GMimeParser *parser;
 	GMimeMessage *msg;
@@ -224,7 +226,7 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 	g_free(new_queue_file);
 	g_slist_free((GSList *)session->dirty_headers);
 	session->dirty_headers = NULL;
-
+#endif
 	return 0;
 }
 
@@ -368,10 +370,10 @@ int smf_modules_process(
 }
 
 int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
-	int i;
-	SMFMessageEnvelope_T *envelope;
+//	int i;
+//	SMFMessageEnvelope_T *envelope;
 	SMFSettings_T *settings = smf_settings_get();
-
+#if 0
 	envelope = smf_message_envelope_new();
 	if (session->envelope_from != NULL)
 		envelope->from = g_strdup(session->envelope_from->addr);
@@ -399,15 +401,16 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 
 	envelope->message_file = g_strdup(session->queue_file);
 	envelope->nexthop = g_strdup(settings->nexthop);
-
+#endif
 	/* now deliver, if delivery fails, call error hook */
-	if (smf_message_deliver(envelope) != 0) {
+	// TODO: check if corret nexthop is used!
+	if (smf_message_deliver(session->envelope) != 0) {
 		TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
 		q->nexthop_error(session);
 		return(-1);
 	}
 
-	smf_message_envelope_unref(envelope);
+//	smf_message_envelope_unref(envelope);
 	return(0);
 }
 

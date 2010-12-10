@@ -34,10 +34,7 @@
 #if 0
 SMFSession_T *session = NULL;
 
-/** Initialize SMFSession_T structure
- *
- * \returns pointer to SMFSession_T type
- */
+/** Initialize SMFSession_T structure */
 SMFSession_T *smf_session_get(void) {
 	if (session == NULL) {
 		TRACE(TRACE_DEBUG,"initialize session data");
@@ -74,12 +71,9 @@ SMFSession_T *smf_session_new(void) {
 	return session;
 }
 
-/** Free SMFSession_T structure
- *
- * \param session SMFSession_T type
- */
+/** Free SMFSession_T structure */
 void smf_session_free(SMFSession_T *session) {
-	int i;
+//	int i;
 	TRACE(TRACE_DEBUG,"destroy session data");
 	g_free(session->helo);
 	g_free(session->xforward_addr);
@@ -137,70 +131,13 @@ void smf_session_free(SMFSession_T *session) {
 	session = NULL;
 }
 
-/** Copy the current message to disk
- *
- * \param path for the new message file
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_session_to_file(SMFSettings_T *settings, SMFSession_T *session, char *path) {
-	GIOChannel *in;
-	GMimeStream *out;
-	FILE *fd;
-	gchar *line;
-	GError *error = NULL;
 
-	if (path == NULL)
-		return -1;
-
-	if ((fd = fopen(path,"wb")) == NULL) {
-		TRACE(TRACE_ERR,"failed opening destination file");
-		return -1;
-	}
-
-	out = g_mime_stream_file_new(fd);
-
-	if (smf_modules_flush_dirty(session) != 0)
-		TRACE(TRACE_ERR,"message flush failed");
-
-	if ((in = g_io_channel_new_file(session->queue_file,"r", &error)) == NULL) {
-		TRACE(TRACE_ERR,"%s",error->message);
-		g_error_free(error);
-		g_object_unref(out);
-		return -1;
-	}
-	g_io_channel_set_encoding(in, NULL, NULL);
-
-	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		if (g_mime_stream_write(out,line,strlen(line)) == -1) {
-			TRACE(TRACE_ERR,"failed writing file");
-			g_io_channel_shutdown(in,TRUE,NULL);
-			g_io_channel_unref(in);
-			g_object_unref(out);
-			g_free(line);
-			g_remove(path);
-			return -1;
-		}
-		g_free(line);
-	}
-
-	g_mime_stream_flush(out);
-	g_object_unref(out);
-	g_io_channel_shutdown(in,TRUE,NULL);
-	g_io_channel_unref(in);
-
-	return 0;
-}
-
-/** Gets the value of the first header with the name requested.
- *
- * \param header_name name of the wanted header
- *
- * \returns requested header
- */
+/** Gets the value of the first header with the name requested. */
 const char *smf_session_header_get(SMFSession_T *session, const char *header_name) {
 	const char *header_value = NULL;
 
+	// TODO: rewrite smf_session_header_get for new datatypes 
+#if 0
 	while (session->dirty_headers) {
 		SMFHeaderModification_T *mod = (SMFHeaderModification_T *)((GSList *)session->dirty_headers)->data;
 		if (g_ascii_strcasecmp(mod->name,header_name) == 0)
@@ -212,16 +149,14 @@ const char *smf_session_header_get(SMFSession_T *session, const char *header_nam
 #else
 	header_value = g_mime_header_get((GMimeHeader *)session->headers,header_name);
 #endif
+#endif
 	return header_value;
 }
 
-/** Removed the specified header if it exists
- *
- * \param header_name name of the header
- *
- * \returns 0 on success or -1 in case of error
- */
+/** Removed the specified header if it exists */
 void smf_session_header_remove(SMFSession_T *session, char *header_name) {
+	// TODO: rewrite smf_session_header_remove for new datatypes
+#if 0
 	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
 	header->status = HEADER_REMOVE;
 	header->name = g_strdup(header_name);
@@ -234,17 +169,14 @@ void smf_session_header_remove(SMFSession_T *session, char *header_name) {
 #endif
 
 	g_slice_free(SMFHeaderModification_T,header);
+#endif
 	return;
 }
 
-/** Prepends a header. If value is NULL, a space will be set aside for it
- * (useful for setting the order of headers before values can be obtained
- * for them) otherwise the header will be unset.
- *
- * \param header_name name of the header
- * \param header_value new value for the header
- */
+/** Prepends a header. If value is NULL, a space will be set aside for it */
 void smf_session_header_prepend(SMFSession_T *session, char *header_name, char *header_value) {
+	// TODO: rewrite smf_session_header_prepend
+#if 0
 	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
 	header->status = HEADER_PREPEND;
 	header->name = g_strdup(header_name);
@@ -258,17 +190,13 @@ void smf_session_header_prepend(SMFSession_T *session, char *header_name, char *
 #endif
 	
 	g_slice_free(SMFHeaderModification_T,header);
+#endif
 	return;
  }
 
-/** Appends a header. If value is NULL, a space will be set aside for it
- * (useful for setting the order of headers before values can be obtained
- * for them) otherwise the header will be unset.
- *
- * \param header_name name of the header
- * \param header_value new value for the header
- */
 void smf_session_header_append(SMFSession_T *session, char *header_name, char *header_value) {
+	// TODO: rewrite smf_session_header_append
+#if 0
 	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
 	header->status = HEADER_APPEND;
 	header->name = g_strdup(header_name);
@@ -282,6 +210,7 @@ void smf_session_header_append(SMFSession_T *session, char *header_name, char *h
 #endif
 
 	g_slice_free(SMFHeaderModification_T,header);
+#endif
 	return;
 }
 
@@ -298,6 +227,8 @@ void smf_session_header_append(SMFSession_T *session, char *header_name, char *h
  * \param header_value new value for the header
  */
 void smf_session_header_set(SMFSession_T *session, char *header_name, char *header_value) {
+	// TODO: rewrite smf_session_header_set
+#if 0 
 	SMFHeaderModification_T *header = g_slice_new(SMFHeaderModification_T);
 	header->status = HEADER_SET;
 	header->name = g_strdup(header_name);
@@ -311,6 +242,7 @@ void smf_session_header_set(SMFSession_T *session, char *header_name, char *head
 #endif
 	
 	g_slice_free(SMFHeaderModification_T,header);
+#endif
 	return;
 }
 
@@ -320,11 +252,13 @@ void smf_session_header_set(SMFSession_T *session, char *header_name, char *head
  */
 char *smf_session_header_to_string(SMFSession_T *session) {
 	char *header = NULL;
-
+	// TODO: rewrite smf_session_header_to_string
+#if 0
 #ifdef HAVE_GMIME24
 	header = g_mime_header_list_to_string((GMimeHeaderList *)session->headers);
 #else
 	header = g_mime_header_to_string((GMimeHeader *)session->headers);
+#endif
 #endif
 	return header;
 }
@@ -335,11 +269,13 @@ char *smf_session_header_to_string(SMFSession_T *session) {
  * \param user_data user data to be passed to the func.
  */
 void smf_session_header_foreach(SMFSession_T *session, SMFHeaderForeachFunc func, void *user_data) {
-
+	// TODO: rewrite smf_session_header_foreach
+#if 0
 #ifdef HAVE_GMIME24
 	g_mime_header_list_foreach((GMimeHeaderList *)session->headers,func,user_data);
 #else
 	g_mime_header_foreach((GMimeHeader *)session->headers,func,user_data);
+#endif
 #endif
 }
 
@@ -350,11 +286,14 @@ void smf_session_header_foreach(SMFSession_T *session, SMFHeaderForeachFunc func
  * \returns 0 on success or -1 in case of error
  */
 int smf_session_subject_prepend(SMFSession_T *session, char *text) {
+	// TODO: rewrite smf_session_subject_prepend
+#if 0
 	char *subject = (char *)smf_session_header_get(session, "subject");
 	if (subject == NULL)
 		return -1;
 
 	smf_session_header_set(session, "subject",g_strdup_printf("%s %s",text,subject));
+#endif
 	return 0;
 }
 
@@ -365,9 +304,12 @@ int smf_session_subject_prepend(SMFSession_T *session, char *text) {
  * \return 0 on success or -1 in case of error
  */
 int smf_session_subject_append(SMFSession_T *session, char *test) {
+	// TODO: rewrite smf_session_subject_append
+#if 0
 	char *subject = (char *)smf_session_header_get(session,"subject");
 
 	smf_session_header_set(session,"subject",g_strdup_printf("%s %s",subject, test));
+#endif
 	return 0;
 }
 
@@ -377,14 +319,16 @@ int smf_session_subject_append(SMFSession_T *session, char *test) {
  * \returns SMFMessage_T object
  */
 SMFMessage_T *smf_session_get_message(SMFSession_T *session) {
-	SMFMessage_T *message;
 	GMimeStream *stream, *mem_stream;
 	GMimeParser *parser;
 	FILE *fd;
 
-	message = smf_message_new();
+	if (session->envelope->message == NULL) 
+		session->envelope->message = smf_message_new();
+	else
+		return session->envelope->message;
 
-	if ((fd = fopen(session->queue_file,"r")) == NULL) {
+	if ((fd = fopen(session->envelope->message_file,"r")) == NULL) {
 		return NULL;
 	}
 
@@ -396,11 +340,11 @@ SMFMessage_T *smf_session_get_message(SMFSession_T *session) {
 	g_mime_stream_seek(mem_stream,0,0);
 
 	parser = g_mime_parser_new_with_stream(mem_stream);
-	message->data = g_mime_parser_construct_message(parser);
+	session->envelope->message->data = g_mime_parser_construct_message(parser);
 
 	g_object_unref(parser);
 	g_object_unref(stream);
 	g_object_unref(mem_stream);
 
-	return message;
+	return session->envelope->message;
 }
