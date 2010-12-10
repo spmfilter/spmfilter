@@ -286,14 +286,14 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	GMimeMessage *message;
 	char *message_id;
 
-	smf_core_gen_queue_file(&session->queue_file);
-	if (session->queue_file == NULL) {
+	smf_core_gen_queue_file(&session->envelope->message_file);
+	if (session->envelope->message_file == NULL) {
 		TRACE(TRACE_ERR,"got no spool file path");
 		smtpd_code_reply(session->sock_out, 552);
 		return;
 	}
 		
-	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->queue_file);
+	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->envelope->message_file);
 		
 	smtpd_string_reply(session->sock_out,"354 End data with <CR><LF>.<CR><LF>\r\n");
 	
@@ -302,9 +302,9 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_close_on_unref(in,FALSE);
 
-	if ((fd = fopen(session->queue_file,"wb+")) == NULL) {
+	if ((fd = fopen(session->envelope->message_file,"wb+")) == NULL) {
 		TRACE(TRACE_ERR,"failed to create spool file %s: [%d - %s]\n",
-				session->queue_file,errno, strerror(errno));
+				session->envelope->message_file,errno, strerror(errno));
 		smtpd_code_reply(session->sock_out,552);
 
 		return;
@@ -321,7 +321,7 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 			g_object_unref(out);
 			g_io_channel_unref(in);
 			g_free(line);
-			if (g_remove(session->queue_file) != 0)
+			if (g_remove(session->envelope->message_file) != 0)
 				TRACE(TRACE_ERR,"failed to remove queue file");
 			return;
 		}
@@ -337,29 +337,30 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	parser = g_mime_parser_new_with_stream(out);
 	message = g_mime_parser_construct_message(parser);
 #ifdef HAVE_GMIME24
-	session->headers = (void *)g_mime_header_list_new();
-	g_mime_header_list_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->headers);
+	session->envelope->headers = (void *)g_mime_header_list_new();
+	g_mime_header_list_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->envelope->headers);
 #else
-	session->headers = (void *)g_mime_header_new();
-	g_mime_header_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->headers);
+	session->envelope=>headers = (void *)g_mime_header_new();
+	g_mime_header_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->envelope->headers);
 #endif
-	smf_message_extract_addresses(session,GMIME_OBJECT(message));
+	smf_message_extract_addresses(&session->envelope);
 	g_object_unref(parser);
 	g_object_unref(message);
 	g_object_unref(out);
 
-	if (session->message_from != NULL) {
-		if (session->message_from->addr == NULL) {
-			smf_session_header_append(session,"From",g_strdup(session->envelope_from->addr));
+	if (session->envelope->message_from != NULL) {
+		if (session->envelope->message_from->addr == NULL) {
+			smf_session_header_append(session,"From",g_strdup(session->envelope->envelope_from->addr));
 			TRACE(TRACE_DEBUG,"adding [from] header to message");
 		}
 	}
 
-	if (session->message_to_num == 0) {
+	if (session->envelope->message_to_num == 0) {
 		smf_session_header_append(session,"To",g_strdup("undisclosed-recipients:;"));
 		TRACE(TRACE_DEBUG,"adding [to] header to message");
 	}
 
+#if 0
 	message_id = (char *)smf_session_header_get(session,"message-id");
 
 	if (message_id == NULL) {
@@ -373,14 +374,15 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 			return;
 		}
 	}
+#endif
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
 
 	load_modules(session,settings);
 	
-	if (g_remove(session->queue_file) != 0)
+	if (g_remove(session->envelope->message_file) != 0)
  		TRACE(TRACE_ERR,"failed to remove queue file");
-	TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
+	TRACE(TRACE_DEBUG,"removing spool file %s",session->envelope->message_file);
 	return;
 }
 
@@ -422,7 +424,7 @@ int load(SMFSettings_T *settings,int sock) {
 	}
 
 	smtpd_string_reply(session->sock_out,"220 %s spmfilter\r\n",hostname);
-	session->envelope_to_num = 0;
+	session->envelope->envelope_to_num = 0;
 	in = g_io_channel_unix_new(session->sock_in);
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_close_on_unref(in,FALSE);
@@ -514,22 +516,22 @@ int load(SMFSettings_T *settings,int sock) {
 				/* we already got the mail command */
 				smtpd_string_reply(session->sock_out,"503 Error: nested MAIL command\r\n");
 			} else {
-				session->envelope_from = g_slice_new(SMFEmailAddress_T);
+				session->envelope->envelope_from = g_slice_new(SMFEmailAddress_T);
 #if (GLIB2_VERSION >= 21400)
 				re = g_regex_new(RE_MAIL_FROM, G_REGEX_CASELESS, 0, NULL);
 				g_regex_match(re, line, 0, &match_info);
 				if(g_match_info_matches(match_info)) {
 					mail_from_addr = g_match_info_fetch(match_info, 1);
 					if (mail_from_addr != NULL) {
-						session->envelope_from->addr = g_strdup(mail_from_addr);
+						session->envelope->envelope_from->addr = g_strdup(mail_from_addr);
 						free((char *)mail_from_addr);
 					}
 					if (settings->max_size != 0 )
 						requested_size = g_match_info_fetch(match_info, 2);
 				} else {
 					smtpd_string_reply(session->sock_out,CODE_552);
-					g_slice_free(SMFEmailAddress_T,session->envelope_from);
-					session->envelope_from = NULL;
+					g_slice_free(SMFEmailAddress_T,session->envelope->envelope_from);
+					session->envelope->envelope_from = NULL;
 				}
 				g_match_info_free(match_info);
 				g_regex_unref(re);
@@ -541,21 +543,21 @@ int load(SMFSettings_T *settings,int sock) {
 					if (rc > 0) {
 						pcre_get_substring(line,ovector,rc,1,&mail_from_addr);
 						if (mail_from_addr != NULL) {
-							session->envelope_from->addr = g_strdup(mail_from_addr);
+							session->envelope->envelope_from->addr = g_strdup(mail_from_addr);
 							pcre_free_substring(mail_from_addr);
 						}
 						if (settings->max_size != 0 )
 							pcre_get_substring(line,ovector,rc,2,&requested_size);
 					} else{
 						smtpd_string_reply(session->sock_out,CODE_552);
-						g_slice_free(SMFEmailAddress_T,session->envelope_from);
-						session->envelope_from = NULL;
+						g_slice_free(SMFEmailAddress_T,session->envelope->envelope_from);
+						session->envelope->envelope_from = NULL;
 					}
 					pcre_free(re);
 				} else {
 					smtpd_string_reply(session->sock_out,CODE_552);
-					g_slice_free(SMFEmailAddress_T,session->envelope_from);
-					session->envelope_from = NULL;
+					g_slice_free(SMFEmailAddress_T,session->envelope->envelope_from);
+					session->envelope->envelope_from = NULL;
 				}
 #endif
 
@@ -565,8 +567,8 @@ int load(SMFSettings_T *settings,int sock) {
 						l = (unsigned long) strtol(requested_size,NULL,10);
 						if (l > settings->max_size) {
 							smtpd_string_reply(session->sock_out,"552 Message size limit exceeded\r\n");
-							g_slice_free(SMFEmailAddress_T,session->envelope_from);
-							session->envelope_from = NULL;
+							g_slice_free(SMFEmailAddress_T,session->envelope->envelope_from);
+							session->envelope->envelope_from = NULL;
 							continue;
 						}
 #if (GLIB2_VERSION >= 21400)
@@ -577,28 +579,28 @@ int load(SMFSettings_T *settings,int sock) {
 					}
 				}
 
-				session->envelope_from->user_data = NULL;
-				if (session->envelope_from->addr != NULL){
-					TRACE(TRACE_DEBUG,"session->envelope_from: %s",session->envelope_from->addr);
-					if (g_ascii_strcasecmp(session->envelope_from->addr,"") == 0) {
+				session->envelope->envelope_from->user_data = NULL;
+				if (session->envelope->envelope_from->addr != NULL){
+					TRACE(TRACE_DEBUG,"session->envelope_from: %s",session->envelope->envelope_from->addr);
+					if (g_ascii_strcasecmp(session->envelope->envelope_from->addr,"") == 0) {
 						/* check for emtpy string */
 						smtpd_string_reply(session->sock_out,"501 Syntax: MAIL FROM:<address>\r\n");
-						g_slice_free(SMFEmailAddress_T,session->envelope_from);
-						session->envelope_from = NULL;
+						g_slice_free(SMFEmailAddress_T,session->envelope->envelope_from);
+						session->envelope->envelope_from = NULL;
 					} else {
 						if (settings->backend != NULL) {
-								smf_lookup_check_user(session->envelope_from);
-								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->envelope_from->addr,session->envelope_from->is_local);
+								smf_lookup_check_user(session->envelope->envelope_from);
+								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->envelope->envelope_from->addr,session->envelope->envelope_from->is_local);
 						} else 
-							session->envelope_from->user_data = NULL;
+							session->envelope->envelope_from->user_data = NULL;
 
 						smtpd_code_reply(session->sock_out,250);
 						state = ST_MAIL;
 					}
 				} else {
 					smtpd_string_reply(session->sock_out,"501 Syntax: MAIL FROM:<address>\r\n");
-					g_slice_free(SMFEmailAddress_T,session->envelope_from);
-					session->envelope_from = NULL;
+					g_slice_free(SMFEmailAddress_T,session->envelope->envelope_from);
+					session->envelope->envelope_from = NULL;
 				}
 			}
 		} else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
@@ -609,36 +611,36 @@ int load(SMFSettings_T *settings,int sock) {
 				TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
 
 				/* reallocate memory to make room for additional recipients */
-				session->envelope_to = g_realloc(
-					session->envelope_to,
-					sizeof(SMFEmailAddress_T) * (session->envelope_to_num + 1)
+				session->envelope->envelope_to = g_realloc(
+					session->envelope->envelope_to,
+					sizeof(SMFEmailAddress_T) * (session->envelope->envelope_to_num + 1)
 				);
 
 				/* allocate resources for the individual recipient */
-				session->envelope_to[session->envelope_to_num] = g_slice_new(SMFEmailAddress_T);
-				session->envelope_to[session->envelope_to_num]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
-				session->envelope_to[session->envelope_to_num]->user_data = NULL;
-				if (session->envelope_to[session->envelope_to_num] != NULL) {
-					if (strcmp(session->envelope_to[session->envelope_to_num]->addr,"") == 0) {
+				session->envelope->envelope_to[session->envelope->envelope_to_num] = g_slice_new(SMFEmailAddress_T);
+				session->envelope->envelope_to[session->envelope->envelope_to_num]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
+				session->envelope->envelope_to[session->envelope->envelope_to_num]->user_data = NULL;
+				if (session->envelope->envelope_to[session->envelope->envelope_to_num] != NULL) {
+					if (strcmp(session->envelope->envelope_to[session->envelope->envelope_to_num]->addr,"") == 0) {
 						/* empty rcpt to? */
 						smtpd_string_reply(session->sock_out,"501 Syntax: RCPT TO:<address>\r\n");
-						g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
+						g_slice_free(SMFEmailAddress_T,session->envelope->envelope_to[session->envelope->envelope_to_num]);
 					} else {
-						TRACE(TRACE_DEBUG,"session->envelope_to[%d]: %s",session->envelope_to_num, session->envelope_to[session->envelope_to_num]->addr);
+						TRACE(TRACE_DEBUG,"session->envelope_to[%d]: %s",session->envelope->envelope_to_num, session->envelope->envelope_to[session->envelope->envelope_to_num]->addr);
 						if (settings->backend != NULL) {
-							smf_lookup_check_user(session->envelope_to[session->envelope_to_num]);
+							smf_lookup_check_user(session->envelope->envelope_to[session->envelope->envelope_to_num]);
 							TRACE(TRACE_DEBUG,"[%s] is local [%d]", 
-									session->envelope_to[session->envelope_to_num]->addr,
-									session->envelope_to[session->envelope_to_num]->is_local);
+									session->envelope->envelope_to[session->envelope->envelope_to_num]->addr,
+									session->envelope->envelope_to[session->envelope->envelope_to_num]->is_local);
 						} else
-							session->envelope_to[session->envelope_to_num]->user_data = NULL;
+							session->envelope->envelope_to[session->envelope->envelope_to_num]->user_data = NULL;
 						smtpd_code_reply(session->sock_out,250);
-						session->envelope_to_num++;
+						session->envelope->envelope_to_num++;
 						state = ST_RCPT;
 					}
 				} else {
 					smtpd_string_reply(session->sock_out,"501 Syntax: RCPT TO:<address>\r\n");
-					g_slice_free(SMFEmailAddress_T,session->envelope_to[session->envelope_to_num]);
+					g_slice_free(SMFEmailAddress_T,session->envelope->envelope_to[session->envelope->envelope_to_num]);
 				}
 			}
 		} else if (g_ascii_strncasecmp(line,"data", 4)==0) {

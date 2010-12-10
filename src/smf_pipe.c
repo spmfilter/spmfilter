@@ -147,15 +147,15 @@ int load(SMFSettings_T *settings,int sock) {
 	 * the processing time takes */
 	start_process = clock();
 
-	smf_core_gen_queue_file(&session->queue_file);
+	smf_core_gen_queue_file(&session->envelope->message_file);
 
-	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->queue_file);
+	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->envelope->message_file);
 		
 	/* start receiving data */
 	in = g_io_channel_unix_new(STDIN_FILENO);
 	g_io_channel_set_encoding(in, NULL, NULL);
 
-	if ((fd = fopen(session->queue_file,"wb+")) == NULL) {
+	if ((fd = fopen(session->envelope->message_file,"wb+")) == NULL) {
 		TRACE(TRACE_ERR,"failed writing queue file");
 		return -1;
 	}
@@ -169,7 +169,7 @@ int load(SMFSettings_T *settings,int sock) {
 			g_io_channel_unref(in);
 			g_object_unref(out);
 			g_free(line);
-			remove(session->queue_file);
+			remove(session->envelope->message_file);
 			g_error_free(error);
 			return -1;
 		}
@@ -180,7 +180,7 @@ int load(SMFSettings_T *settings,int sock) {
 	g_io_channel_unref(in);
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
-	session->envelope_to_num = 0;
+	session->envelope->envelope_to_num = 0;
 	
 	/* parse email data and fill session struct*/
 	/* extract message headers */
@@ -189,16 +189,16 @@ int load(SMFSettings_T *settings,int sock) {
 	parser = g_mime_parser_new_with_stream(out);
 	message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
 
-	smf_message_extract_addresses(session,message);
+	smf_message_extract_addresses(&session->envelope);
 
 #ifdef HAVE_GMIME24
 	headers = (void *)g_mime_object_get_header_list(message);
-	session->headers = (void *)g_mime_header_list_new();
-	g_mime_header_list_foreach(headers, copy_header_func, session->headers);
+	session->envelope->headers = (void *)g_mime_header_list_new();
+	g_mime_header_list_foreach(headers, copy_header_func, session->envelope->headers);
 #else
 	headers = (void *)g_mime_object_get_headers(message);
-	session->headers = (void *)g_mime_header_new();
-	g_mime_header_foreach(headers, copy_header_func, session->headers);
+	session->envelope->headers = (void *)g_mime_header_new();
+	g_mime_header_foreach(headers, copy_header_func, session->envelope->headers);
 #endif
 
 	g_object_unref(parser);
@@ -212,14 +212,14 @@ int load(SMFSettings_T *settings,int sock) {
 	TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 
 	if (load_modules(session, settings) != 0) {
-		remove(session->queue_file);
+		remove(session->envelope->message_file);
 		smf_session_free(session);
-		TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
+		TRACE(TRACE_DEBUG,"removing spool file %s",session->envelope->message_file);
 		return -1;
 	} else {
-		remove(session->queue_file);
+		remove(session->envelope->message_file);
 		smf_session_free(session);
-		TRACE(TRACE_DEBUG,"removing spool file %s",session->queue_file);
+		TRACE(TRACE_DEBUG,"removing spool file %s",session->envelope->message_file);
 		return 0;
 	}
 }
