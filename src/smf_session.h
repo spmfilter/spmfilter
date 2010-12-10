@@ -51,15 +51,6 @@ SMFSession_T *smf_session_new(void);
 /** Free SMFSession_T structure */
 void smf_session_free(SMFSession_T *session);
 
-/** Copy the current message to disk
- *
- * \param SMFSettings_T object
- * \param path for the new message file
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_session_to_file(SMFSettings_T *settings, SMFSession_T *session, char *path);
-
 /** Gets the value of the first header with the name requested.
  *
  * \param header_name name of the wanted header
