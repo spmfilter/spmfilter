@@ -99,8 +99,8 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 		smtp_auth_set_context (session, authctx);
 	}
 	
-	if(msg_data->from != NULL) {
-		smtp_set_reverse_path(message,msg_data->from);
+	if(msg_data->envelope_from != NULL) {
+		smtp_set_reverse_path(message,msg_data->envelope_from->addr);
 	} else {
 		/* bounce sender */
 		smtp_set_reverse_path(message, "<>");
@@ -130,9 +130,10 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	}
 	smtp_set_message_fp(message, fp);
 	
-	if (msg_data->rcpts != NULL) {
-		for (i = 0; i < msg_data->num_rcpts; i++) {
-			recipient = smtp_add_recipient(message,msg_data->rcpts[i]);
+	if (msg_data->envelope_to != NULL) {
+		for (i = 0; i < msg_data->envelope_to_num; i++) {
+			if (msg_data->envelope_to[i]->addr != NULL)
+				recipient = smtp_add_recipient(message,msg_data->envelope_to[i]->addr);
 		}
 	} else {
 		TRACE(TRACE_ERR,"no recipients provided");
