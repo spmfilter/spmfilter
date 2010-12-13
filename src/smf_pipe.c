@@ -180,7 +180,7 @@ int load(SMFSettings_T *settings,int sock) {
 	g_io_channel_unref(in);
 
 	TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
-	session->envelope->envelope_to_num = 0;
+	session->envelope->num_rcpts = 0;
 	
 	/* parse email data and fill session struct*/
 	/* extract message headers */
