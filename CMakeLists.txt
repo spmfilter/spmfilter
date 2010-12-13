@@ -131,9 +131,12 @@ IF(APPLE)
 	set(_link_flags "${_link_flags} -flat_namespace")
 ENDIF(APPLE)
 
+ENABLE_TESTING()
+
 # build stuff in src directory
 add_subdirectory(src)
 add_subdirectory(man)
+add_subdirectory(test)
 
 # * * * custom targets * * *
 set(SMF_ARCHIVE_NAME "${CMAKE_PROJECT_NAME}-${SMF_VERSION}")

@@ -337,25 +337,25 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	parser = g_mime_parser_new_with_stream(out);
 	message = g_mime_parser_construct_message(parser);
 #ifdef HAVE_GMIME24
-	session->envelope->headers = (void *)g_mime_header_list_new();
-	g_mime_header_list_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->envelope->headers);
+	session->envelope->message->headers = (void *)g_mime_header_list_new();
+	g_mime_header_list_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->envelope->message->headers);
 #else
 	session->envelope=>headers = (void *)g_mime_header_new();
-	g_mime_header_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->envelope->headers);
+	g_mime_header_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->envelope->message->headers);
 #endif
 	smf_message_extract_addresses(&session->envelope);
 	g_object_unref(parser);
 	g_object_unref(message);
 	g_object_unref(out);
 
-	if (session->envelope->message_from != NULL) {
-		if (session->envelope->message_from->addr == NULL) {
+	if (session->envelope->message->message_from != NULL) {
+		if (session->envelope->message->message_from->addr == NULL) {
 			smf_session_header_append(session,"From",g_strdup(session->envelope->envelope_from->addr));
 			TRACE(TRACE_DEBUG,"adding [from] header to message");
 		}
 	}
 
-	if (session->envelope->message_to_num == 0) {
+	if (session->envelope->message->message_to_num == 0) {
 		smf_session_header_append(session,"To",g_strdup("undisclosed-recipients:;"));
 		TRACE(TRACE_DEBUG,"adding [to] header to message");
 	}
