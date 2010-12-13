@@ -78,7 +78,7 @@ void smf_session_free(SMFSession_T *session) {
 	g_free(session->helo);
 	g_free(session->xforward_addr);
 	g_free(session->response_msg);
-	smf_message_envelope_unref(session->envelope);
+	smf_message_envelope_free(session->envelope);
 	
 #if 0
 	if (session->headers != NULL) {

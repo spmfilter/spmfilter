@@ -21,22 +21,29 @@
 #include <time.h>
 #include "smf_core.h"
 #include "smf_lookup.h"
+#include "smf_email_address.h"
 #include "spmfilter_config.h"
 
 typedef struct _SMFObject_T SMFObject_T;
-typedef struct _SMFObject_T SMFMessage_T;
 typedef struct _SMFObject_T SMFMimePart_T;
 typedef struct _SMFObject_T SMFMultiPart_T;
 typedef struct _SMFObject_T SMFDataWrapper_T;
 
 typedef struct {
-	char *addr;
-	int is_local;
-	SMFLookupResult_T *user_data;
-} SMFEmailAddress_T;
+	/* message recipients */
+	SMFEmailAddress_T **message_to;
+	int message_to_num;
+ 
+	/* message sender */
+	SMFEmailAddress_T *message_from;
+	
+	/* message header */
+	void *headers;
+	void *dirty_headers;
+	
+	void *data;
+} SMFMessage_T;
 
-/* struct for messages send
- * via smtp_delivery */
 typedef struct {
 	/* envelope recipients */
 	SMFEmailAddress_T **envelope_to;
@@ -44,13 +51,6 @@ typedef struct {
 
 	/* envelope sender */
 	SMFEmailAddress_T *envelope_from;
-
-	/* message recipients */
-	SMFEmailAddress_T **message_to;
-	int message_to_num;
- 
-	/* message sender */
-	SMFEmailAddress_T *message_from;
 	
 	/* path to message */
 	char *message_file;
@@ -63,10 +63,6 @@ typedef struct {
 
 	/* destination smtp server */
 	char *nexthop;
-
-	/* message header */
-	void *headers;
-	void *dirty_headers;
 
 	SMFMessage_T *message;
 } SMFMessageEnvelope_T;
@@ -114,7 +110,7 @@ SMFMessageEnvelope_T *smf_message_envelope_new(void);
  *
  * \param message SMFMessageEnvelope_T object
  */
-void smf_message_envelope_unref(SMFMessageEnvelope_T *envelope);
+void smf_message_envelope_free(SMFMessageEnvelope_T *envelope);
 
 /** Add new recipient to envelope
  *
@@ -124,6 +120,23 @@ void smf_message_envelope_unref(SMFMessageEnvelope_T *envelope);
  * \returns SMFMessageEnvelope_T object
  */
 SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, const char *rcpt);
+
+/** Set sender to envelope
+ *
+ * \param envelope SMFMessageEnvelope_T object
+ * \param sender envelope sender address
+ *
+ * \returns SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_set_sender(SMFMessageEnvelope_T *envelope, const char *sender);
+
+/** Get envelope sender 
+ *
+ * \param envelope SMFMessageEnvelope_T object
+ *
+ * \returns SMFEmailAddress_T object
+ */
+SMFEmailAddress_T *smf_message_envelope_get_sender(SMFMessageEnvelope_T *envelope);
 
 /** Deliver message
  *
