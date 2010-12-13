@@ -44,9 +44,9 @@ SMFMessageEnvelope_T *smf_message_envelope_new(void) {
 	SMFMessageEnvelope_T *envelope = NULL;
 
 	envelope = g_slice_new(SMFMessageEnvelope_T);
-	envelope->envelope_to_num = 0;
-	envelope->envelope_to = NULL;
-	envelope->envelope_from = NULL;
+	envelope->num_rcpts = 0;
+	envelope->rcpt = NULL;
+	envelope->sender = NULL;
 
 #if 0
 	envelope->message_to_num = 0;
@@ -79,17 +79,17 @@ void smf_message_envelope_free(SMFMessageEnvelope_T *envelope) {
 	}
 #endif
 
-	if (envelope->envelope_from != NULL) {
-		smf_email_address_free(envelope->envelope_from);
+	if (envelope->sender != NULL) {
+		smf_email_address_free(envelope->sender);
 	}
 
-	if (envelope->envelope_to != NULL) {
-		for (i = 0; i < envelope->envelope_to_num; i++) {
-			if (envelope->envelope_to[i] != NULL) {
-				smf_email_address_free(envelope->envelope_to[i]);
+	if (envelope->rcpt != NULL) {
+		for (i = 0; i < envelope->num_rcpts; i++) {
+			if (envelope->rcpt[i] != NULL) {
+				smf_email_address_free(envelope->rcpt[i]);
 			}
 		}
-		g_free(envelope->envelope_to);
+		g_free(envelope->rcpt);
 	}
 
 #if 0
@@ -120,33 +120,44 @@ void smf_message_envelope_free(SMFMessageEnvelope_T *envelope) {
 /** Add new recipient to envelope */
 SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, const char *rcpt) {
 
-	envelope->envelope_to = g_realloc(
-		envelope->envelope_to,
-		sizeof(SMFEmailAddress_T) * (envelope->envelope_to_num + 1)
+	envelope->rcpt = g_realloc(
+		envelope->rcpt,
+		sizeof(SMFEmailAddress_T) * (envelope->num_rcpts + 1)
 	);
 
-	envelope->envelope_to[envelope->envelope_to_num] = smf_email_address_new();
-	envelope->envelope_to[envelope->envelope_to_num]->addr = g_strdup(rcpt);
-	envelope->envelope_to_num++;
+	envelope->rcpt[envelope->num_rcpts] = smf_email_address_new();
+	envelope->rcpt[envelope->num_rcpts]->addr = g_strdup(rcpt);
+	envelope->num_rcpts++;
 
 	return envelope;
+}
+
+void smf_message_envelope_foreach_rcpt(SMFMessageEnvelope_T *envelope, 
+		SMFRcptForeachFunc callback, void  *user_data) {
+	int i;
+	
+	if (envelope->rcpt != NULL) {
+		for (i = 0; i < envelope->num_rcpts; i++) {
+			(*callback)(envelope->rcpt[i],user_data);
+		}
+	}		
 }
 
 /** Set envelope sender */
 SMFMessageEnvelope_T *smf_message_envelope_set_sender(SMFMessageEnvelope_T *envelope, const char *sender) {
 	// free sender, if already set...
-	if (envelope->envelope_from != NULL)
-		smf_email_address_free(envelope->envelope_from);
+	if (envelope->sender != NULL)
+		smf_email_address_free(envelope->sender);
 	
-	envelope->envelope_from = smf_email_address_new();
-	envelope->envelope_from->addr = g_strdup(sender);
+	envelope->sender = smf_email_address_new();
+	envelope->sender->addr = g_strdup(sender);
 	
 	return envelope;
 }
 
 /** Get envelope sender */
 SMFEmailAddress_T *smf_message_envelope_get_sender(SMFMessageEnvelope_T *envelope) {
-	return envelope->envelope_from;
+	return envelope->sender;
 }
 
 void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {

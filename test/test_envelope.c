@@ -25,26 +25,39 @@
 #include "../src/smf_message.h"
 
 #define TEST_SENDER "webmaster@spmfilter.org"
-#define TEST_RCPT "ast@spmfilter.org"
+#define TEST_RCPT1 "ast@spmfilter.org"
+#define TEST_RCPT2 "postmaster@spmfilter.org"
+
+static void print_rcpt_func(SMFEmailAddress_T *ea, void *data) {
+	g_printf("- [%s]\n",ea->addr);
+}
 
 int main (int argc, char const *argv[]) {
 	SMFMessageEnvelope_T * env = NULL;
 	char *sender = NULL;
-	char *rcpt = NULL;
+	char *rcpt1 = NULL;
+	char *rcpt2 = NULL;
 	
 	sender = g_strdup(TEST_SENDER);
-	rcpt = g_strdup(TEST_RCPT);
+	rcpt1 = g_strdup(TEST_RCPT1);
+	rcpt2 = g_strdup(TEST_RCPT2);
 	
 	env = smf_message_envelope_new();
 	
 	env = smf_message_envelope_set_sender(env,sender);
 	g_printf("Setting envelope sender to [%s]\n",smf_message_envelope_get_sender(env)->addr);
 	
-	g_printf("Adding rcpt [%s] to envelope\n",rcpt);
-	env = smf_message_envelope_add_rcpt(env,rcpt);
+	g_printf("Adding rcpt [%s] to envelope\n",rcpt1);
+	env = smf_message_envelope_add_rcpt(env,rcpt1);
 	
+	g_printf("Adding rcpt [%s] to envelope\n",rcpt2);
+	env = smf_message_envelope_add_rcpt(env,rcpt2);
+	
+	g_printf("Iterating recipients:\n");
+	smf_message_envelope_foreach_rcpt(env, print_rcpt_func, NULL);
 	g_free(sender);
-	g_free(rcpt);
+	g_free(rcpt1);
+	g_free(rcpt2);
 	smf_message_envelope_free(env);
 	return 0;
 }
