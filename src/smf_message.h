@@ -46,11 +46,11 @@ typedef struct {
 
 typedef struct {
 	/* envelope recipients */
-	SMFEmailAddress_T **envelope_to;
-	int envelope_to_num;
+	SMFEmailAddress_T **rcpt;
+	int num_rcpts;
 
 	/* envelope sender */
-	SMFEmailAddress_T *envelope_from;
+	SMFEmailAddress_T *sender;
 	
 	/* path to message */
 	char *message_file;
@@ -120,6 +120,21 @@ void smf_message_envelope_free(SMFMessageEnvelope_T *envelope);
  * \returns SMFMessageEnvelope_T object
  */
 SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, const char *rcpt);
+
+/** The function signature for a callback to smf_message_envelope_foreach_rcpt()
+ *
+ * \param ea a SMFEmailAddress_T object
+ * \param user_data User-supplied callback data.
+ */
+typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data);
+
+/** Recursively calls callback on each envelope recipient.
+ *
+ * \param message SMFMessageEnvelope_T object
+ * \param callback function to call on each of the mime parts contained by the mime message
+ * \param user-supplied callback data
+ */
+void smf_message_envelope_foreach_rcpt(SMFMessageEnvelope_T *envelope, SMFRcptForeachFunc callback, void  *user_data);
 
 /** Set sender to envelope
  *
