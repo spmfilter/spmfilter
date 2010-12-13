@@ -18,6 +18,7 @@ set(LIB_SMF_SRC
 	smf_smtp.c
 	smf_smtp_codes.c
 	smf_trace.c
+	smf_email_address.c
 )
 
 set(COMMON_LIBS m esmtp ${GMODULE_LIBRARIES} ${GMIME_LIBRARIES})

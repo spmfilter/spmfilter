@@ -193,12 +193,12 @@ int load(SMFSettings_T *settings,int sock) {
 
 #ifdef HAVE_GMIME24
 	headers = (void *)g_mime_object_get_header_list(message);
-	session->envelope->headers = (void *)g_mime_header_list_new();
-	g_mime_header_list_foreach(headers, copy_header_func, session->envelope->headers);
+	session->envelope->message->headers = (void *)g_mime_header_list_new();
+	g_mime_header_list_foreach(headers, copy_header_func, session->envelope->message->headers);
 #else
 	headers = (void *)g_mime_object_get_headers(message);
-	session->envelope->headers = (void *)g_mime_header_new();
-	g_mime_header_foreach(headers, copy_header_func, session->envelope->headers);
+	session->envelope->message->headers = (void *)g_mime_header_new();
+	g_mime_header_foreach(headers, copy_header_func, session->envelope->message->headers);
 #endif
 
 	g_object_unref(parser);
