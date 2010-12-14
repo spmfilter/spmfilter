@@ -15,21 +15,21 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_SETTINGS_PRIVATE_H
-#define	_SMF_SETTINGS_PRIVATE_H
+#include <stdio.h>
 
-/** initialize settings */
-void smf_settings_new(void);
+#include <glib.h>
+#include <glib/gprintf.h>
 
-/** free settings struct */
-void smf_settings_free(void);
+#include "../src/smf_session.h"
 
-/** load and parse config file
- *
- * \returns 0 on success or -1 in case of error
- */
-
-int smf_settings_parse_config(void);
-
-#endif	/* _SMF_SETTINGS_PRIVATE_H */
-
+int main (int argc, char const *argv[]) {
+	SMFSession_T *session = NULL;
+	
+	g_printf("Start SMFSession_T tests...\n");
+	g_printf("* testing smf_session_new()\n");
+	session = smf_session_new();
+	
+	g_printf("* testing smf_session_free()\n");
+	smf_session_free(session);
+	return 0;
+}
