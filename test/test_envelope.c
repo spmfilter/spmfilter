@@ -16,8 +16,6 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include <glib.h>
 #include <glib/gprintf.h>
@@ -27,37 +25,67 @@
 #define TEST_SENDER "webmaster@spmfilter.org"
 #define TEST_RCPT1 "ast@spmfilter.org"
 #define TEST_RCPT2 "postmaster@spmfilter.org"
+#define TEST_PATH "/tmp/test.eml"
+#define TEST_AUTH_USER "testusername"
+#define TEST_AUTH_PASS "testpassword"
+#define TEST_NEXTHOP "localhost:2525"
 
 static void print_rcpt_func(SMFEmailAddress_T *ea, void *data) {
-	g_printf("- [%s]\n",ea->addr);
+	g_printf("\t- [%s]\n",ea->addr);
+}
+
+int compare_string(char *s1, char *s2) {
+	if (g_strcmp0(s1,s2) != 0) {
+		g_printf("\texpecting [%s], but got [%s]",s1,s2);
+		return -1;
+	}
+	
+	return 0;
 }
 
 int main (int argc, char const *argv[]) {
 	SMFMessageEnvelope_T * env = NULL;
-	char *sender = NULL;
-	char *rcpt1 = NULL;
-	char *rcpt2 = NULL;
 	
-	sender = g_strdup(TEST_SENDER);
-	rcpt1 = g_strdup(TEST_RCPT1);
-	rcpt2 = g_strdup(TEST_RCPT2);
-	
+	g_printf("Start SMFEnvelope_T tests...\n");
+	g_printf("* testing smf_message_envelope_new()\n");
 	env = smf_message_envelope_new();
 	
-	env = smf_message_envelope_set_sender(env,sender);
-	g_printf("Setting envelope sender to [%s]\n",smf_message_envelope_get_sender(env)->addr);
+	g_printf("* testing smf_message_envelope_set_sender() [%s]\n",TEST_SENDER);
+	env = smf_message_envelope_set_sender(env,TEST_SENDER);
+	if (compare_string(TEST_SENDER,smf_message_envelope_get_sender(env)->addr) != 0)
+		return -1;
 	
-	g_printf("Adding rcpt [%s] to envelope\n",rcpt1);
-	env = smf_message_envelope_add_rcpt(env,rcpt1);
+	g_printf("* testing smf_message_envelope_add_rcpt() [%s]\n",TEST_RCPT1);
+	env = smf_message_envelope_add_rcpt(env,TEST_RCPT1);
 	
-	g_printf("Adding rcpt [%s] to envelope\n",rcpt2);
-	env = smf_message_envelope_add_rcpt(env,rcpt2);
+	g_printf("* testing smf_message_envelope_add_rcpt() [%s]\n",TEST_RCPT2);
+	env = smf_message_envelope_add_rcpt(env,TEST_RCPT2);
 	
-	g_printf("Iterating recipients:\n");
+	g_printf("* testing smf_message_envelope_foreach_rcpt()\n");
 	smf_message_envelope_foreach_rcpt(env, print_rcpt_func, NULL);
-	g_free(sender);
-	g_free(rcpt1);
-	g_free(rcpt2);
+
+	
+	g_printf("* testing smf_message_envelope_set_message_file() [%s]\n",TEST_PATH);
+	env = smf_message_envelope_set_message_file(env,TEST_PATH);
+	if (compare_string(TEST_PATH,smf_message_envelope_get_message_file(env)) != 0)
+		return -1;
+
+	g_printf("* testing smf_message_envelope_set_auth_user() [%s]\n",TEST_AUTH_USER);
+	env = smf_message_envelope_set_auth_user(env,TEST_AUTH_USER);
+	if (compare_string(TEST_AUTH_USER,smf_message_envelope_get_auth_user(env)) != 0)
+		return -1;
+	
+	g_printf("* testing smf_message_envelope_set_auth_pass() [%s]\n",TEST_AUTH_PASS);
+	env = smf_message_envelope_set_auth_pass(env,TEST_AUTH_PASS);
+	if (compare_string(TEST_AUTH_PASS,smf_message_envelope_get_auth_pass(env)) != 0)
+		return -1;
+	
+	g_printf("* testing smf_message_envelope_set_nexthop() [%s]\n",TEST_NEXTHOP);
+	env = smf_message_envelope_set_nexthop(env,TEST_NEXTHOP);
+	if (compare_string(TEST_NEXTHOP,smf_message_envelope_get_nexthop(env)) != 0)
+		return -1;
+	
+	g_printf("* testing smf_message_envelope_free()\n");
 	smf_message_envelope_free(env);
 	return 0;
 }

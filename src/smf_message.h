@@ -119,7 +119,7 @@ void smf_message_envelope_free(SMFMessageEnvelope_T *envelope);
  *
  * \returns SMFMessageEnvelope_T object
  */
-SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, const char *rcpt);
+SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, char *rcpt);
 
 /** The function signature for a callback to smf_message_envelope_foreach_rcpt()
  *
@@ -143,7 +143,7 @@ void smf_message_envelope_foreach_rcpt(SMFMessageEnvelope_T *envelope, SMFRcptFo
  *
  * \returns SMFMessageEnvelope_T object
  */
-SMFMessageEnvelope_T *smf_message_envelope_set_sender(SMFMessageEnvelope_T *envelope, const char *sender);
+SMFMessageEnvelope_T *smf_message_envelope_set_sender(SMFMessageEnvelope_T *envelope, char *sender);
 
 /** Get envelope sender 
  *
@@ -152,6 +152,76 @@ SMFMessageEnvelope_T *smf_message_envelope_set_sender(SMFMessageEnvelope_T *enve
  * \returns SMFEmailAddress_T object
  */
 SMFEmailAddress_T *smf_message_envelope_get_sender(SMFMessageEnvelope_T *envelope);
+
+/** Set path for message file
+ * 
+ * \param envelope SMFMessageEnvelope_T object
+ * \param fp message file path
+ *
+ * \returns SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_set_message_file(SMFMessageEnvelope_T *envelope, char *fp);
+
+/** Get message file
+ *
+ * \param envelope SMFMessageEnvelope_T object
+ * 
+ * \returns path to message file
+ */
+char *smf_message_envelope_get_message_file(SMFMessageEnvelope_T *envelope);
+
+/** Set auth user
+ * 
+ * \param envelope SMFMessageEnvelope_T object
+ * \param auth_user Auth username
+ *
+ * \returns SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_set_auth_user(SMFMessageEnvelope_T *envelope,char *auth_user);
+
+
+/** Get auth user
+ *
+ * \param envelope SMFMessageEnvelope_T object
+ * 
+ * \returns auth username
+ */
+char *smf_message_envelope_get_auth_user(SMFMessageEnvelope_T *envelope);
+
+/** Set auth password
+ * 
+ * \param envelope SMFMessageEnvelope_T object
+ * \param auth_pass Auth password
+ *
+ * \returns SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_set_auth_pass(SMFMessageEnvelope_T *envelope, char *auth_pass);
+
+
+/** Get auth pass
+ *
+ * \param envelope SMFMessageEnvelope_T object
+ * 
+ * \returns auth password
+ */
+char *smf_message_envelope_get_auth_pass(SMFMessageEnvelope_T *envelope);
+
+/** Set nexthop
+ * 
+ * \param envelope SMFMessageEnvelope_T object
+ * \param nexthop nexthop
+ *
+ * \returns SMFMessageEnvelope_T object
+ */
+SMFMessageEnvelope_T *smf_message_envelope_set_nexthop(SMFMessageEnvelope_T *envelope, char *nexthop);
+
+/** Get nexthop
+ *
+ * \param envelope SMFMessageEnvelope_T object
+ * 
+ * \returns nexthop
+ */
+char *smf_message_envelope_get_nexthop(SMFMessageEnvelope_T *nexthop);
 
 /** Deliver message
  *
