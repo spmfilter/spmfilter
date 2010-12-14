@@ -28,13 +28,37 @@
 static GMutex *settings_mutex = NULL;
 static SMFSettings_T *settings = NULL;
 
-void smf_settings_init(void) {
+void smf_settings_new(void) {
 	g_assert(settings_mutex == NULL);
 	settings_mutex = g_mutex_new();
 	
 	g_assert(settings == NULL);
 	settings = g_slice_new(SMFSettings_T);
 	settings->debug = 0;
+	
+	settings->config_file = NULL;
+	settings->queue_dir = NULL;
+	settings->engine = NULL;
+	settings->modules = NULL;
+	settings->nexthop = NULL;
+	settings->nexthop_fail_msg = NULL;
+	settings->backend = NULL;
+	settings->backend_connection = NULL;
+	settings->tls_pass = NULL;
+	settings->sql_driver = NULL;
+	settings->sql_name = NULL;
+	settings->sql_host = NULL;
+	settings->sql_user = NULL;
+	settings->sql_pass = NULL;
+	settings->sql_user_query = NULL;
+	settings->sql_encoding = NULL;
+	settings->ldap_uri = NULL;
+	settings->ldap_host = NULL;
+	settings->ldap_binddn = NULL;
+	settings->ldap_bindpw = NULL;
+	settings->ldap_base = NULL;
+	settings->ldap_scope = NULL;
+	settings->ldap_user_query = NULL;
 }
 
 SMFSettings_T *smf_settings_get(void) {
@@ -42,15 +66,33 @@ SMFSettings_T *smf_settings_get(void) {
 }
 
 void smf_settings_free(void) {
+	int i;
 	g_mutex_lock(settings_mutex);
 	smf_smtp_codes_free();
 	g_strfreev(settings->modules);
+	g_strfreev(settings->backend);
 	g_free(settings->config_file);
 	g_free(settings->queue_dir);
 	g_free(settings->engine);
 	g_free(settings->nexthop);
 	g_free(settings->nexthop_fail_msg);
-	g_strfreev(settings->backend);
+	g_free(settings->backend_connection);
+	g_free(settings->tls_pass);
+	g_free(settings->sql_driver);
+	g_free(settings->sql_name);
+	g_free(settings->sql_host);
+	g_free(settings->sql_user);
+	g_free(settings->sql_pass);
+	g_free(settings->sql_user_query);
+	g_free(settings->sql_encoding);
+	g_free(settings->ldap_uri);
+	g_free(settings->ldap_host);
+	g_free(settings->ldap_binddn);
+	g_free(settings->ldap_bindpw);
+	g_free(settings->ldap_base);
+	g_free(settings->ldap_scope);
+	g_free(settings->ldap_user_query);
+	
 	g_slice_free(SMFSettings_T,settings);
 	g_mutex_unlock(settings_mutex);
 	g_mutex_free(settings_mutex);

@@ -15,21 +15,34 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_SETTINGS_PRIVATE_H
-#define	_SMF_SETTINGS_PRIVATE_H
+#include <stdio.h>
 
-/** initialize settings */
-void smf_settings_new(void);
+#include <glib.h>
+#include <glib/gprintf.h>
 
-/** free settings struct */
-void smf_settings_free(void);
+#include "../src/smf_settings.h"
+#include "../src/smf_settings_private.h"
 
-/** load and parse config file
- *
- * \returns 0 on success or -1 in case of error
- */
-
-int smf_settings_parse_config(void);
-
-#endif	/* _SMF_SETTINGS_PRIVATE_H */
-
+int main (int argc, char const *argv[]) {
+	SMFSettings_T *settings = NULL;
+		
+	g_thread_init(NULL);
+	
+	if (!g_thread_supported()) {
+		g_printf("glib2 does not support threads!\n");
+		return -1;
+	} else {
+		g_printf("Start SMFSettings_T tests...\n");
+		g_printf("* testing smf_settings_new()\n");
+		smf_settings_new();		
+	}
+		
+	if (smf_settings_parse_config() != 0)
+		return -1;
+		
+	g_printf("* testing smf_settings_free()\n");
+	smf_settings_free();
+	
+	g_thread_exit(NULL);
+	return 0;
+}
