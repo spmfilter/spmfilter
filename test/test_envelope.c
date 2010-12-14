@@ -44,7 +44,7 @@ int compare_string(char *s1, char *s2) {
 }
 
 int main (int argc, char const *argv[]) {
-	SMFMessageEnvelope_T * env = NULL;
+	SMFMessageEnvelope_T *env = NULL;
 	
 	g_printf("Start SMFEnvelope_T tests...\n");
 	g_printf("* testing smf_message_envelope_new()\n");
