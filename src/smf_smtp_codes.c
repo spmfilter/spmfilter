@@ -45,10 +45,12 @@ void smf_smtp_codes_insert(int code, char *msg) {
  */
 char *smf_smtp_codes_get(int code) {
 	char *strcode = g_strdup_printf("%d",code);
+	char *p = NULL;
 	if (smtp_codes != NULL) {
-		return g_hash_table_lookup(smtp_codes,strcode);
-	} else
-		return NULL;
+		p = g_hash_table_lookup(smtp_codes,strcode);
+		g_free(strcode);
+	}
+	return p;
 }
 
 /** Free smtp codes */

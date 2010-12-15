@@ -16,7 +16,6 @@
  */
 
 #include <glib.h>
-#include <math.h>
 
 #include "spmfilter_config.h"
 #include "smf_smtp_codes.h"
@@ -26,47 +25,52 @@
 #define THIS_MODULE "settings"
 
 static GMutex *settings_mutex = NULL;
-static SMFSettings_T *settings = NULL;
-
-void smf_settings_new(void) {
-	g_assert(settings_mutex == NULL);
-	settings_mutex = g_mutex_new();
-	
-	g_assert(settings == NULL);
-	settings = g_slice_new(SMFSettings_T);
-	settings->debug = 0;
-	
-	settings->config_file = NULL;
-	settings->queue_dir = NULL;
-	settings->engine = NULL;
-	settings->modules = NULL;
-	settings->nexthop = NULL;
-	settings->nexthop_fail_msg = NULL;
-	settings->backend = NULL;
-	settings->backend_connection = NULL;
-	settings->tls_pass = NULL;
-	settings->sql_driver = NULL;
-	settings->sql_name = NULL;
-	settings->sql_host = NULL;
-	settings->sql_user = NULL;
-	settings->sql_pass = NULL;
-	settings->sql_user_query = NULL;
-	settings->sql_encoding = NULL;
-	settings->ldap_uri = NULL;
-	settings->ldap_host = NULL;
-	settings->ldap_binddn = NULL;
-	settings->ldap_bindpw = NULL;
-	settings->ldap_base = NULL;
-	settings->ldap_scope = NULL;
-	settings->ldap_user_query = NULL;
-}
 
 SMFSettings_T *smf_settings_get(void) {
+	static SMFSettings_T *settings = NULL;
+	
+	if (settings == NULL) {
+		settings_mutex = g_mutex_new();
+		g_mutex_lock(settings_mutex);
+		settings = g_slice_new(SMFSettings_T);
+		settings->debug = 0;
+		settings->config_file = NULL;
+		settings->queue_dir = NULL;
+		settings->engine = NULL;
+		settings->modules = NULL;
+		settings->nexthop = NULL;
+		settings->nexthop_fail_msg = NULL;
+		settings->backend = NULL;
+		settings->backend_connection = NULL;
+		settings->tls_pass = NULL;
+		settings->sql_driver = NULL;
+		settings->sql_name = NULL;
+		settings->sql_host = NULL;
+		settings->sql_user = NULL;
+		settings->sql_pass = NULL;
+		settings->sql_user_query = NULL;
+		settings->sql_encoding = NULL;
+		settings->ldap_uri = NULL;
+		settings->ldap_host = NULL;
+		settings->ldap_binddn = NULL;
+		settings->ldap_bindpw = NULL;
+		settings->ldap_base = NULL;
+		settings->ldap_scope = NULL;
+		settings->ldap_user_query = NULL;
+		settings->module_fail = 3;
+		settings->nexthop_fail_code = 451;
+		settings->add_header = 1;
+		settings->max_size = 0;
+		settings->tls = 0;
+		settings->daemon = 0;
+		settings->sql_max_connections = 3;
+		settings->sql_port = 0;
+		g_mutex_unlock(settings_mutex);
+	}
 	return settings;
 }
 
-void smf_settings_free(void) {
-	int i;
+void smf_settings_free(SMFSettings_T *settings) {
 	g_mutex_lock(settings_mutex);
 	smf_smtp_codes_free();
 	g_strfreev(settings->modules);
@@ -80,25 +84,25 @@ void smf_settings_free(void) {
 	g_free(settings->tls_pass);
 	g_free(settings->sql_driver);
 	g_free(settings->sql_name);
-	g_free(settings->sql_host);
+	g_strfreev(settings->sql_host);
 	g_free(settings->sql_user);
 	g_free(settings->sql_pass);
 	g_free(settings->sql_user_query);
 	g_free(settings->sql_encoding);
 	g_free(settings->ldap_uri);
-	g_free(settings->ldap_host);
+	g_strfreev(settings->ldap_host);
 	g_free(settings->ldap_binddn);
 	g_free(settings->ldap_bindpw);
 	g_free(settings->ldap_base);
 	g_free(settings->ldap_scope);
 	g_free(settings->ldap_user_query);
-	
+
 	g_slice_free(SMFSettings_T,settings);
 	g_mutex_unlock(settings_mutex);
 	g_mutex_free(settings_mutex);
 }
 
-int smf_settings_parse_config() {
+int smf_settings_parse_config(SMFSettings_T *settings, char *alternate_file) {
 	GError *error = NULL;
 	GKeyFile *keyfile;
 	gchar **code_keys;
@@ -107,19 +111,21 @@ int smf_settings_parse_config() {
 	gsize codes_length = 0;
 	gsize sql_num_hosts = 0;
 	gsize ldap_num_hosts = 0;
-	char *code_msg;
+	char *code_msg = NULL;
 	int i, code;
 
 	g_mutex_lock(settings_mutex);
 	/* fallback to default config path,
 	 * if config file is not defined as
 	 * command argument */
-	if (settings->config_file == NULL) {
+	if (alternate_file != NULL) {
+		settings->config_file = g_strdup(alternate_file);
+	} else {
 		settings->config_file = g_strdup("/etc/spmfilter.conf");
 	}
 
 	/* open config file and start parsing */
-	keyfile = g_key_file_new ();
+	keyfile = g_key_file_new();
 	if (!g_key_file_load_from_file (keyfile, settings->config_file, G_KEY_FILE_NONE, &error)) {
 		TRACE(TRACE_ERR,"Error loading config: %s",error->message);
 		g_error_free(error);
@@ -134,35 +140,32 @@ int smf_settings_parse_config() {
 		settings->queue_dir = g_strdup("/var/spool/spmfilter");
 
 	settings->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
-	if (settings->engine == NULL) {
+	if (error != NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
 		g_error_free(error);
 		return -1;
 	} else 
 		settings->engine = g_strstrip(settings->engine);
+		
+	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
 	
 	settings->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
-	if (settings->modules == NULL) {
+	if (error != NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
 		g_error_free(error);
 		return -1;
 	}
 
 	settings->module_fail = g_key_file_get_integer(keyfile, "global", "module_fail",NULL);
-	if (!settings->module_fail) {
-		settings->module_fail = 3;
-	}
 
 	settings->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
-	if (settings->nexthop == NULL) {
+	if (error != NULL) {
 		TRACE(TRACE_ERR, "config error: %s", error->message);
 		g_error_free(error);
 		return -1;
 	}
 
 	settings->backend = g_key_file_get_string_list(keyfile, "global", "backend", &backend_length,NULL);
-	if (backend_length == 0)
-		settings->backend = NULL;
 	settings->backend_connection = g_key_file_get_string(keyfile,"global","backend_connection",NULL);
 	if (settings->backend_connection == NULL)
 		settings->backend_connection = g_strdup("failover");
@@ -175,7 +178,6 @@ int smf_settings_parse_config() {
 		}
 	}
 
-	TRACE(TRACE_DEBUG, "settings->engine: %s", settings->engine);
 	for(i = 0; settings->modules[i] != NULL; i++) {
 		TRACE(TRACE_DEBUG, "settings->modules: %s", settings->modules[i]);
 	}
@@ -187,28 +189,25 @@ int smf_settings_parse_config() {
 		}
 	}
 	TRACE(TRACE_DEBUG, "settings->backend_connection: %s", settings->backend_connection);
-
-	settings->add_header = g_key_file_get_boolean(keyfile, "global", "add_header",&error);
-	if (settings->add_header == 0) {
+	
+	if (g_key_file_get_boolean(keyfile, "global", "add_header",&error)) {
+		settings->add_header = 1;
+	} else {
 		if (error != NULL) {
 			if (error->code == G_KEY_FILE_ERROR_KEY_NOT_FOUND) {
 				settings->add_header = 1;
 			}
 			g_error_free(error);
-//			error = NULL;
-		} 
+		} else {
+			settings->add_header = 0;
+		}
 	}
 	TRACE(TRACE_DEBUG, "settings->add_header: %d", settings->add_header);
 
-	settings->max_size = (unsigned long) floor(g_key_file_get_double(keyfile, "global", "max_size",NULL) + 0.5);
-	if (!settings->max_size) {
-		settings->max_size = 0;
-	}
+	settings->max_size = g_key_file_get_uint64(keyfile, "global", "max_size",NULL);
 	TRACE(TRACE_DEBUG, "settings->max_size: %d", settings->max_size);
 
 	settings->tls = g_key_file_get_integer(keyfile,"global","tls_enable",NULL);
-	if (!settings->tls)
-		settings->tls = 0;
 	TRACE(TRACE_DEBUG, "settings->tls: %d", settings->tls);
 
 	settings->tls_pass = g_key_file_get_string(keyfile,"global","tls_pass",NULL);
@@ -218,7 +217,7 @@ int smf_settings_parse_config() {
 	if (g_ascii_strcasecmp(settings->engine,"pipe") == 0) {
 		TRACE(TRACE_ERR,"pipe engine can not be used in daemon mode");
 		return -1;
-	}
+	} 
 	TRACE(TRACE_DEBUG, "settings->daemon: %d", settings->daemon);
 
 	if (g_key_file_has_group(keyfile,"sql")) {
@@ -238,6 +237,7 @@ int smf_settings_parse_config() {
 		}
 		settings->sql_host = g_key_file_get_string_list(keyfile, "sql", "host", &sql_num_hosts,NULL);
 		settings->sql_num_hosts = sql_num_hosts;
+		// TODO: check default port
 		settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
 		settings->sql_user = g_key_file_get_string(keyfile, "sql", "user", NULL);
 		settings->sql_pass = g_key_file_get_string(keyfile, "sql", "pass", NULL);
@@ -250,8 +250,6 @@ int smf_settings_parse_config() {
 
 		settings->sql_encoding = g_key_file_get_string(keyfile, "sql", "encoding", NULL);
 		settings->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
-		if (!settings->sql_max_connections)
-			settings->sql_max_connections = 3;
 
 		TRACE(TRACE_DEBUG, "settings->sql_driver: %s", settings->sql_driver);
 		TRACE(TRACE_DEBUG, "settings->sql_name: %s", settings->sql_name);
@@ -361,10 +359,6 @@ int smf_settings_parse_config() {
 	
 	/* smtpd group */
 	settings->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
-	if (!settings->nexthop_fail_code) {
-		/* nexthop_fail_code not configured, now we use default vaules */
-		settings->nexthop_fail_code = 451;
-	}
 
 	settings->nexthop_fail_msg = g_key_file_get_string(keyfile, "smtpd", "nexthop_fail_msg", NULL);
 	if (settings->nexthop_fail_msg == NULL) {
@@ -388,7 +382,6 @@ int smf_settings_parse_config() {
 	}
 	g_strfreev(code_keys);
 	g_key_file_free(keyfile);
-	
 	g_mutex_unlock (settings_mutex);
 	
 	return 0;
