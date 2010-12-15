@@ -34,14 +34,14 @@ int main (int argc, char const *argv[]) {
 	} else {
 		g_printf("Start SMFSettings_T tests...\n");
 		g_printf("* testing smf_settings_new()\n");
-		smf_settings_new();		
+		settings = smf_settings_get();		
 	}
 		
-	if (smf_settings_parse_config() != 0)
+	if (smf_settings_parse_config(settings,NULL) != 0)
 		return -1;
 		
 	g_printf("* testing smf_settings_free()\n");
-	smf_settings_free();
+	smf_settings_free(settings);
 	
 	g_thread_exit(NULL);
 	return 0;

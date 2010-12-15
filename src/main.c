@@ -41,12 +41,14 @@ int main(int argc, char *argv[]) {
 	GError *error = NULL;
 	GOptionContext *context;
 	int ret;
+	int debug = 0;
+	char *config_file = NULL;
 	SMFSettings_T *settings = NULL;
 
 	/* all cmd args */
 	GOptionEntry entries[] = {
-		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &settings->debug, "verbose logging", NULL},
-		{ "file", 'f', 0, G_OPTION_ARG_STRING, &settings->config_file, "alternate config file", NULL},
+		{ "debug", 'd', 0, G_OPTION_ARG_NONE, &debug, "verbose logging", NULL},
+		{ "file", 'f', 0, G_OPTION_ARG_STRING, &config_file, "alternate config file", NULL},
 		{ NULL }
 	};
 
@@ -70,14 +72,18 @@ int main(int argc, char *argv[]) {
 		g_print("glib2 does not support threads!");
 		return -1;
 	} else {
-		smf_settings_new();		
+	//	smf_settings_new();		
+		settings = smf_settings_get();
 	} 
 	
 	/* parse config file and fill settings struct */
-	if (smf_settings_parse_config() != 0)
+	if (smf_settings_parse_config(settings,config_file) != 0)
 		return -1;
-	else
-		settings = smf_settings_get();
+	
+	if (config_file != NULL)
+		free(config_file);
+	
+	settings->debug = debug;
 
 	/* connect to database/ldap server, if necessary */
 	if(settings->backend != NULL) {
@@ -119,7 +125,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* free all stuff */
-	smf_settings_free();
+	smf_settings_free(settings);
 
 	if (ret != 0) {
 		return -1;
