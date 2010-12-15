@@ -80,8 +80,8 @@ typedef struct {
 	/* password for ssl cert */
 	char *tls_pass;
 
-        /* daemonize? */
-        int daemon;
+	/* daemonize? */
+	int daemon;
 
 	/* zdb settings */
 	char *sql_driver;

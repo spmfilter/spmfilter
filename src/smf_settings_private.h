@@ -19,17 +19,20 @@
 #define	_SMF_SETTINGS_PRIVATE_H
 
 /** initialize settings */
-void smf_settings_new(void);
+//void smf_settings_new(void);
 
 /** free settings struct */
-void smf_settings_free(void);
+void smf_settings_free(SMFSettings_T *settings);
 
 /** load and parse config file
+ *
+ * \param settings SMFSettings_T object
+ * \param alternate_file path to alternate config file
  *
  * \returns 0 on success or -1 in case of error
  */
 
-int smf_settings_parse_config(void);
+int smf_settings_parse_config(SMFSettings_T *settings, char *alternate_file);
 
 #endif	/* _SMF_SETTINGS_PRIVATE_H */
 
