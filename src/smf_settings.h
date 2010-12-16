@@ -185,7 +185,7 @@ double smf_settings_group_get_double(SMFSettingsGroup_T *group, char *key);
  *
  * \returns a NULL-terminated string array or NULL if the specified key cannot be found.
  */
-char **smf_settings_group_get_string_list(SMFSettingsGroup_T *group, char *key, int length);
+char **smf_settings_group_get_string_list(SMFSettingsGroup_T *group, char *key, int *length);
 
 /** Free allocated space
  *
