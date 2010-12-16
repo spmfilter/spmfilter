@@ -51,80 +51,39 @@ SMFSettingsGroup_T *smf_settings_group_load(SMFSettings_T *settings, char *group
 }
 
 /** Returns the raw value associated with key under the selected group.
- *  Use smf_settings_group_get_string() to retrieve an unescaped UTF-8 string.
- *
- * \param group a SMFSettingsGroup_T object
- * \param key a key
- *
- * \returns a newly allocated string or NULL if the specified key cannot be found.
- */
+ *  Use smf_settings_group_get_string() to retrieve an unescaped UTF-8 string.*/
 char *smf_settings_group_get_value(SMFSettingsGroup_T *group, char *key) {
 	return g_key_file_get_value((GKeyFile *)group->data,group->name,key,NULL);
 }
 
 /** Returns the string value associated with key under the selected group.
  *  Unlike group_settings_get_value(), this function handles escape
- *  sequences like \s.
- *
- * \param group a SMFSettingsGroup_T object
- * \param key a key
- *
- * \returns a newly allocated string or NULL if the specified key cannot be found.
- */
+ *  sequences like \s.*/
 char *smf_settings_group_get_string(SMFSettingsGroup_T *group, char *key) {
 	return g_key_file_get_string((GKeyFile *)group->data, group->name, key,NULL);
 }
 
-/** Returns the boolean values associated with key under the selected group as integer.
- *
- * \param group a SMFSettingsGroup_T object
- * \param key a key
- *
- * \returns the value associated with the key as a integer, or 0 if the key was
- * not found or could not be parsed.
- */
+/** Returns the boolean values associated with key under the selected group as integer. */
 int smf_settings_group_get_boolean(SMFSettingsGroup_T *group, char *key) {
 	return g_key_file_get_boolean((GKeyFile *)group->data, group->name, key,NULL);
 }
 
-/** Returns the value associated with key under the selected group as an integer.
- *
- * \param group a SMFSettingsGroup_T object
- * \param key a key
- *
- * \returns he value associated with the key as an integer, or 0 if the key was not found or could not be parsed.
- */
+/** Returns the value associated with key under the selected group as an integer. */
 int smf_settings_group_get_integer(SMFSettingsGroup_T *group,char *key) {
 	return g_key_file_get_integer((GKeyFile *)group->data, group->name, key,NULL);
 }
 
-/** Returns the value associated with key under the selected group as a double.
- *
- * \param group a SMFSettingsGroup_T object
- * \param key a key
- *
- * \returns the value associated with the key as a double, or 0.0 if the key was not found or could not be parsed.
- */
+/** Returns the value associated with key under the selected group as a double. */
 double smf_settings_group_get_double(SMFSettingsGroup_T *group, char *key) {
 	return g_key_file_get_double((GKeyFile *)group->data, group->name, key, NULL);
 }
 
-/** Returns the values associated with key under the selected group.
- *
- * \param group a SMFSettingsGroup_T object
- * \param key a key
- * \param length return location for the number of returned strings, or NULL
- *
- * \returns a NULL-terminated string array or NULL if the specified key cannot be found.
- */
-char **smf_settings_group_get_string_list(SMFSettingsGroup_T *group, char *key, int length) {
+/** Returns the values associated with key under the selected group. */
+char **smf_settings_group_get_string_list(SMFSettingsGroup_T *group, char *key, int *length) {
 	return g_key_file_get_string_list((GKeyFile *)group->data, group->name, key, (gsize*)&length, NULL);
 }
 
-/** Free allocated space
- *
- * \param s GroupSettings_T
- */
+/** Free allocated space */
 void smf_settings_group_free(SMFSettingsGroup_T *group) {
 	g_key_file_free((GKeyFile *)group->data);
 	free(group->name);

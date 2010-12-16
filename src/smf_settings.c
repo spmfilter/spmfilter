@@ -15,6 +15,7 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <string.h>
 #include <glib.h>
 
 #include "spmfilter_config.h"
@@ -170,11 +171,13 @@ int smf_settings_parse_config(SMFSettings_T *settings, char *alternate_file) {
 	if (settings->backend_connection == NULL)
 		settings->backend_connection = g_strdup("failover");
 	else {
-		settings->backend_connection = g_strstrip(settings->backend_connection);
-		if ((g_ascii_strcasecmp(settings->backend_connection,"balance") != 0) &&
-			(g_ascii_strcasecmp(settings->backend_connection,"failover") != 0)) {
-			TRACE(TRACE_ERR,"invalid backend_connection option");
-			return -1;
+		if (strlen(settings->backend_connection) > 0) {
+			settings->backend_connection = g_strstrip(settings->backend_connection);
+			if ((g_ascii_strcasecmp(settings->backend_connection,"balance") != 0) &&
+					(g_ascii_strcasecmp(settings->backend_connection,"failover") != 0)) {
+				TRACE(TRACE_ERR,"invalid backend_connection option");
+				return -1;
+			}
 		}
 	}
 
@@ -237,7 +240,6 @@ int smf_settings_parse_config(SMFSettings_T *settings, char *alternate_file) {
 		}
 		settings->sql_host = g_key_file_get_string_list(keyfile, "sql", "host", &sql_num_hosts,NULL);
 		settings->sql_num_hosts = sql_num_hosts;
-		// TODO: check default port
 		settings->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
 		settings->sql_user = g_key_file_get_string(keyfile, "sql", "user", NULL);
 		settings->sql_pass = g_key_file_get_string(keyfile, "sql", "pass", NULL);
