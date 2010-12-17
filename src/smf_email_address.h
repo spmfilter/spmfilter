@@ -24,7 +24,7 @@
 typedef struct {
 	char *addr;
 	int is_local;
-	SMFLookupResult_T *user_data;
+	SMFLookupResult_T *lr;
 } SMFEmailAddress_T;
 
 /** Creates a new SMFEmailAddress_T object
@@ -38,5 +38,39 @@ SMFEmailAddress_T *smf_email_address_new(void);
  * \param ea a SMFEmailAddress_T object
  */
 void smf_email_address_free(SMFEmailAddress_T *ea);
+
+/** Set the address of a SMFEmailAddress_T object
+ *
+ * \param ea SMFEmailAddress_T object
+ * \param addr E-Mail address
+ *
+ * \returns SMFEmailAddress_T object
+ */
+SMFEmailAddress_T *smf_email_address_set_addr(SMFEmailAddress_T *ea, char *addr);
+
+/** Get E-Mail address of SMFEmailAddress_T object
+ *
+ * \param ea SMFEmailAddress_T object
+ * 
+ * \returns E-Mail Address
+ */
+char *smf_email_address_get_addr(SMFEmailAddress_T *ea);
+
+/** Set the lookup result for a SMFEmailAddress_T obejct
+ *
+ * \param ea SMFEmailAddress_T object
+ * \param lr SMFLookupResult_T object
+ *
+ * \returns SMFEmailAddress_T object
+ */
+SMFEmailAddress_T *smf_email_address_set_lr(SMFEmailAddress_T *ea, SMFLookupResult_T *lr);
+
+/** Get a SMFLookupResult_T object of a SMFEmailAddress_T object
+ *
+ * \param ea SMFEMailAddress_T obejct
+ *
+ * \returns SMFLookupResult_T object
+ */
+SMFLookupResult_T *smf_email_address_get_lr(SMFEmailAddress_T *ea);
 
 #endif	/* _SMF_EMAIL_ADDRESS_H */
