@@ -60,11 +60,12 @@ ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(void *args),
 
 /* build full filename to modules states dir */
 static char *smf_modules_stf_path(SMFSettings_T *settings, SMFSession_T *session) {
-	char *hex;
+	char *hex = NULL;
 	char buf[1024];
 
 	/* build path to file*/
-	hex = smf_md5sum(smf_session_header_get(session,"message-id"));
+	// TODO: refactoring for new datatypes
+	//hex = smf_md5sum(smf_session_header_get(session,"message-id"));
 	snprintf(buf, sizeof(buf), "%s/%s.modules", settings->queue_dir, hex);
 	free(hex);
 
@@ -352,7 +353,8 @@ int smf_modules_process(
 
 	if (settings->add_header == 1) {
 		header = g_strdup_printf("processed %s",g_strjoinv(",",settings->modules));
-		smf_session_header_append(session,"X-Spmfilter",header);
+		// TODO: refactoring
+//		smf_session_header_append(session,"X-Spmfilter",header);
 	}
 
 	g_free(header);
