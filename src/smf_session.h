@@ -51,6 +51,67 @@ SMFSession_T *smf_session_new(void);
 /** Free SMFSession_T structure */
 void smf_session_free(SMFSession_T *session);
 
+/** Set helo
+ * 
+ * \param session SMFSession_T object
+ * \param helo helo message
+ *
+ * \returns SMFSession_T object
+ */
+SMFSession_T *smf_session_set_helo(SMFSession_T *session, char *helo);
+
+/** Get helo
+ *
+ * \param session SMFSession_T object
+ * 
+ * \returns helo
+ */
+char *smf_session_get_helo(SMFSession_T *session);
+
+/** Set xforward addr
+ * 
+ * \param session SMFSession_T object
+ * \param xfwd xforward address
+ *
+ * \returns SMFSession_T object
+ */
+SMFSession_T *smf_session_set_xforward_addr(SMFSession_T *session, char *xfwd);
+
+/** Get xforward address
+ *
+ * \param session SMFSession_T object
+ * 
+ * \returns xforward address
+ */
+char *smf_session_get_xforward_addr(SMFSession_T *session);
+
+/** Set response message
+ * 
+ * \param session SMFSession_T object
+ * \param rmsg response message
+ *
+ * \returns SMFSession_T object
+ */
+SMFSession_T *smf_session_set_response_msg(SMFSession_T *session, char *rmsg);
+
+/** Get response message
+ *
+ * \param session SMFSession_T object
+ * 
+ * \returns response_message
+ */
+char *smf_session_get_response_msg(SMFSession_T *session);
+
+/** Retrieve a SMFMessage_T object from the
+ *  current session.
+ *
+ * \returns SMFMessage_T object
+ */
+SMFMessage_T *smf_session_get_message(SMFSession_T *session);
+
+
+
+#if 0
 /** Gets the value of the first header with the name requested.
  *
  * \param header_name name of the wanted header
@@ -134,10 +195,6 @@ int smf_session_subject_prepend(SMFSession_T *session, char *text);
  */
 int smf_session_subject_append(SMFSession_T *session, char *text);
 
-/** Retrieve a SMFMessage_T object from the
- *  current session.
- *
- * \returns SMFMessage_T object
- */
-SMFMessage_T *smf_session_get_message(SMFSession_T *session);
+#endif
+
 #endif	/* _SMF_SESSION_H */

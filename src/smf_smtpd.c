@@ -350,13 +350,15 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 
 	if (session->envelope->message->message_from != NULL) {
 		if (session->envelope->message->message_from->addr == NULL) {
-			smf_session_header_append(session,"From",g_strdup(session->envelope->sender->addr));
+			// TODO: refactoring for new datatypes
+//			smf_session_header_append(session,"From",g_strdup(session->envelope->sender->addr));
 			TRACE(TRACE_DEBUG,"adding [from] header to message");
 		}
 	}
 
 	if (session->envelope->message->message_to_num == 0) {
-		smf_session_header_append(session,"To",g_strdup("undisclosed-recipients:;"));
+		// TODO: refactoring for new datatypes
+//		smf_session_header_append(session,"To",g_strdup("undisclosed-recipients:;"));
 		TRACE(TRACE_DEBUG,"adding [to] header to message");
 	}
 
