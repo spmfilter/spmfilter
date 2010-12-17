@@ -72,18 +72,18 @@ int main(int argc, char *argv[]) {
 		g_print("glib2 does not support threads!");
 		return -1;
 	} else {
-	//	smf_settings_new();		
 		settings = smf_settings_get();
 	} 
 	
 	/* parse config file and fill settings struct */
 	if (smf_settings_parse_config(settings,config_file) != 0)
 		return -1;
-	
+
 	if (config_file != NULL)
 		free(config_file);
-	
-	settings->debug = debug;
+
+	if (debug == 1)
+		smf_settings_set_debug(debug);
 
 	/* connect to database/ldap server, if necessary */
 	if(settings->backend != NULL) {
@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 
 	/* init gmime */
 	g_mime_init(0);
-
+	
 	if (settings->daemon == 1)
 		ret = smf_daemon_mainloop(settings);
 	else
