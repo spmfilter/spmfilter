@@ -388,3 +388,58 @@ int smf_settings_parse_config(SMFSettings_T *settings, char *alternate_file) {
 	
 	return 0;
 }
+
+void smf_settings_set_debug(int debug) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->debug = debug;
+	g_mutex_unlock(settings_mutex);
+}
+
+int smf_settings_get_debug(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->debug;
+}
+
+void smf_settings_set_config_file(char *cf) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->config_file != NULL)
+		g_free(settings->config_file);
+	settings->config_file = g_strdup(cf);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_config_file(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->config_file;
+}
+
+void smf_settings_set_queue_dir(char *qd) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->queue_dir != NULL)
+		g_free(settings->queue_dir);
+	
+	settings->queue_dir = g_strdup(qd);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_queue_dir(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->queue_dir;
+}
+
+void smf_settings_set_engine(char *engine) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->engine != NULL)
+		g_free(settings->engine);
+	settings->engine = g_strdup(engine);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_engine(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->engine;
+}
