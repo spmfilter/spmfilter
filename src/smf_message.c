@@ -209,14 +209,14 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 	e->message->message_from = g_slice_new(SMFEmailAddress_T);
 	e->message->message_from->addr = smf_core_get_substring(
 		EMAIL_EXTRACT,g_mime_message_get_sender(GMIME_MESSAGE(e->message)),1);
-	e->message->message_from->user_data = NULL;
+	e->message->message_from->lr = NULL;
 	
 	if (e->message->message_from->addr != NULL) {
 		TRACE(TRACE_DEBUG,"envelope->message_from: %s",e->message->message_from->addr);
 		if (settings->backend != NULL) {
 			smf_lookup_check_user(e->message->message_from);
 		} else {
-			e->message->message_from->user_data = NULL;
+			e->message->message_from->lr = NULL;
 		}
 		TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 			e->message->message_from->addr,
@@ -240,14 +240,14 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 			e->message->message_to[e->message->message_to_num] = g_slice_new(SMFEmailAddress_T);
 			e->message->message_to[e->message->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-			e->message->message_to[e->message->message_to_num]->user_data = NULL;
+			e->message->message_to[e->message->message_to_num]->lr = NULL;
 			if (e->message->message_to[e->message->message_to_num]->addr != NULL) {
 				TRACE(TRACE_DEBUG,"envelope->message_to[%d]: %s",
 						e->message->message_to_num,
 						e->message->message_to[e->message->message_to_num]->addr);
 
 				if (settings->backend != NULL) {
-					e->message->message_to[e->message->message_to_num]->user_data = NULL;
+					e->message->message_to[e->message->message_to_num]->lr = NULL;
 					if (e->message->message_to[e->message->message_to_num]->addr != NULL) {
 						smf_lookup_check_user(e->message->message_to[e->message->message_to_num]);
 						TRACE(TRACE_DEBUG,"[%s] is local [%d]",
@@ -255,7 +255,7 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 							e->message->message_to[e->message->message_to_num]->is_local);
 					}
 				} else {
-					e->message->message_to[e->message->message_to_num]->user_data = NULL;
+					e->message->message_to[e->message->message_to_num]->lr = NULL;
 				}
 				e->message->message_to_num++;
 			}
@@ -297,20 +297,20 @@ void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
 			e->message_to[e->message_to_num] = g_slice_new(SMFEmailAddress_T);
 			e->message_to[e->message_to_num]->addr =
 					smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-			e->message_to[e->message_to_num]->user_data = NULL;
+			e->message_to[e->message_to_num]->lr = NULL;
 			if (e->message_to[e->message_to_num]->addr != NULL) {
 				TRACE(TRACE_DEBUG,"envelope->message_to[%d]: %s",
 						e->message_to_num,
 						e->message_to[e->message_to_num]->addr);
 
 				if (settings->backend != NULL) {
-					e->message_to[e->message_to_num]->user_data = NULL;
+					e->message_to[e->message_to_num]->lr = NULL;
 					smf_lookup_check_user(e->message_to[e->message_to_num]);
 					TRACE(TRACE_DEBUG,"[%s] is local [%d]",
 							e->message_to[e->message_to_num]->addr,
 							e->message_to[e->message_to_num]->is_local);
 				} else {
-					e->message_to[e->message_to_num]->user_data = NULL;
+					e->message_to[e->message_to_num]->lr = NULL;
 				}
 				e->message_to_num++;
 			}

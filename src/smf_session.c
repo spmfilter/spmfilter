@@ -25,38 +25,12 @@
 
 #include "spmfilter_config.h"
 #include "smf_session.h"
+#include "smf_session_private.h"
 #include "smf_message_private.h"
 #include "smf_trace.h"
 #include "smf_modules.h"
 
 #define THIS_MODULE "session"
-
-#if 0
-SMFSession_T *session = NULL;
-
-/** Initialize SMFSession_T structure */
-SMFSession_T *smf_session_get(void) {
-	if (session == NULL) {
-		TRACE(TRACE_DEBUG,"initialize session data");
-		session = g_slice_new(SMFSession_T);
-		session->helo = NULL;
-		session->envelope_from = NULL;
-		session->queue_file = NULL;
-		session->envelope_to = NULL;
-		session->xforward_addr = NULL;
-		session->dirty_headers = NULL;
-		session->msgbodysize = 0;
-		session->headers = NULL;
-		session->dirty_headers = NULL;
-		session->message_from = NULL;
-		session->message_to = NULL;
-		session->response_msg = NULL;
-	}
-	
-	return session;
-}
-
-#endif
 
 SMFSession_T *smf_session_new(void) {
 	SMFSession_T *session;

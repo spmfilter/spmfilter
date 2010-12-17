@@ -15,3 +15,8 @@ ADD_TEST(SMFSession_T ${EXECUTABLE_OUTPUT_PATH}/test_session)
 add_executable(test_envelope test_envelope.c)
 target_link_libraries(test_envelope smf ${COMMON_LIBS})
 ADD_TEST(SMFEnvelope_T ${EXECUTABLE_OUTPUT_PATH}/test_envelope)
+
+add_executable(test_ea test_ea.c)
+target_link_libraries(test_ea smf ${COMMON_LIBS})
+ADD_TEST(SMFEmailAddress_T ${EXECUTABLE_OUTPUT_PATH}/test_ea)
+

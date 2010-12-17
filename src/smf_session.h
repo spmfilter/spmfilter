@@ -38,19 +38,6 @@ typedef struct {
 	int sock_out;
 } SMFSession_T;
 
-#if 0
-/** Retrieve SMFSession_T structure
- *
- * \returns pointer to SMFSession_T type
- */
-SMFSession_T *smf_session_get(void);
-#endif
-
-SMFSession_T *smf_session_new(void);
-
-/** Free SMFSession_T structure */
-void smf_session_free(SMFSession_T *session);
-
 /** Set helo
  * 
  * \param session SMFSession_T object

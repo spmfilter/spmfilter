@@ -18,6 +18,8 @@
 #include <glib.h>
 
 #include "smf_email_address.h"
+#include "smf_lookup.h"
+#include "smf_lookup_private.h"
 
 #define THIS_MODULE "email_address"
 
@@ -26,7 +28,8 @@ SMFEmailAddress_T *smf_email_address_new(void) {
 	SMFEmailAddress_T *ea = NULL;
 	
 	ea = g_slice_new(SMFEmailAddress_T);
-	ea->user_data = NULL;
+	ea->addr = NULL;
+	ea->lr = NULL;
 	
 	return ea;
 }
@@ -36,9 +39,37 @@ void smf_email_address_free(SMFEmailAddress_T *ea) {
 	if (ea != NULL) {
 		if (ea->addr != NULL) {
 			g_free(ea->addr);
-			if (ea->user_data != NULL)
-				smf_lookup_result_free(ea->user_data);
+			if (ea->lr != NULL)
+				smf_lookup_result_free(ea->lr);
 		}
 		g_slice_free(SMFEmailAddress_T,ea);
 	}
 }
+
+/** Set E-Mail Address */
+SMFEmailAddress_T *smf_email_address_set_addr(SMFEmailAddress_T *ea, char *addr) {
+	if (ea->addr != NULL) {
+		g_free(ea->addr);
+	}
+	
+	ea->addr = g_strdup(addr);
+	return ea;
+}
+
+char *smf_email_address_get_addr(SMFEmailAddress_T *ea) {
+	return (char *)ea->addr;
+}
+
+SMFEmailAddress_T *smf_email_address_set_lr(SMFEmailAddress_T *ea,SMFLookupResult_T *lr) {
+	if (ea->lr != NULL) {
+		smf_lookup_result_free(ea->lr);
+	}
+	
+	ea->lr = smf_lookup_result_new();
+	return ea;
+}
+
+SMFLookupResult_T *smf_email_address_get_lr(SMFEmailAddress_T *ea) {
+	return ea->lr;
+}
+
