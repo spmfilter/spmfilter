@@ -119,6 +119,15 @@ typedef struct {
 */
 SMFSettings_T *smf_settings_get(void);
 
+void smf_settings_set_debug(int debug);
+int smf_settings_get_debug(void);
+void smf_settings_set_config_file(char *cf);
+char *smf_settings_get_config_file(void);
+void smf_settings_set_queue_dir(char *qd);
+char *smf_settings_get_queue_dir(void);
+void smf_settings_set_engine(char *engine);
+char *smf_settings_get_engine(void);
+
 /** Load all settings from specified group
  *
  * \param SMFSettings_T object

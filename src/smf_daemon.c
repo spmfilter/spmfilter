@@ -319,7 +319,7 @@ int smf_daemon_mainloop(SMFSettings_T *settings) {
 	GIOChannel *child_io;
 	int i;
 	struct sigaction handler;
-	
+
 	daemon_config_mutex = g_mutex_new();
 	config = g_slice_new(SMFDaemonConfig_T);
 	if (smf_daemon_load_config(&config) != 0) {
