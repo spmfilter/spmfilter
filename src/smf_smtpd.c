@@ -34,6 +34,7 @@
 #include "smf_settings.h"
 #include "smf_modules.h"
 #include "smf_session.h"
+#include "smf_session_private.h"
 #include "smf_smtp_codes.h"
 #include "smf_core.h"
 #include "smf_lookup.h"
@@ -454,13 +455,13 @@ int load(SMFSettings_T *settings,int sock) {
 				session->sock_out = sock_out;
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
-			session->helo = smf_core_get_substring("^HELO\\s(.*)$",line, 1);
+			session = smf_session_set_helo(session,smf_core_get_substring("^HELO\\s(.*)$",line, 1));
 			TRACE(TRACE_DEBUG,"HELO: %s",session->helo);
 			if (session->helo != NULL) {
 				if (strcmp(session->helo,"") == 0)  {
 					smtpd_string_reply(session->sock_out,"501 Syntax: HELO hostname\r\n");
 				} else {
-					TRACE(TRACE_DEBUG,"session->helo: %s",session->helo);
+					TRACE(TRACE_DEBUG,"session->helo: %s",smf_session_get_helo(session));
 					smtpd_string_reply(session->sock_out,"250 %s\r\n",hostname);
 					state = ST_HELO;
 				}
@@ -479,12 +480,12 @@ int load(SMFSettings_T *settings,int sock) {
 				session->sock_out = sock_out;
 			}
 			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
-			session->helo = smf_core_get_substring("^EHLO\\s(.*)$",line,1);
+			session = smf_session_set_helo(session,smf_core_get_substring("^EHLO\\s(.*)$",line,1));
 			if (session->helo != NULL) {
 				if (strcmp(session->helo,"") == 0) {
 					smtpd_string_reply(session->sock_out,"501 Syntax: EHLO hostname\r\n");
 				} else {
-					TRACE(TRACE_DEBUG,"session->helo: %s",session->helo);
+					TRACE(TRACE_DEBUG,"session->helo: %s",smf_session_get_helo(session));
 					smtpd_string_reply(session->sock_out,
 							"250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 SIZE\r\n",hostname);
 					state = ST_HELO;
@@ -494,8 +495,9 @@ int load(SMFSettings_T *settings,int sock) {
 			}
 		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'xforward name' received");
-			session->xforward_addr = smf_core_get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1);
-			TRACE(TRACE_DEBUG,"session->xforward_addr: %s",session->xforward_addr);
+			session = smf_session_set_xforward_addr(session,
+				smf_core_get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1));
+			TRACE(TRACE_DEBUG,"session->xforward_addr: %s",smf_session_get_xforward_addr(session));
 			smtpd_code_reply(session->sock_out,250);
 			state = ST_XFWD;
 		} else if (g_ascii_strncasecmp(line, "xforward proto", 13)==0) {
@@ -581,7 +583,7 @@ int load(SMFSettings_T *settings,int sock) {
 					}
 				}
 
-				session->envelope->sender->user_data = NULL;
+				session->envelope->sender->lr = NULL;
 				if (session->envelope->sender->addr != NULL){
 					TRACE(TRACE_DEBUG,"session->sender: %s",session->envelope->sender->addr);
 					if (g_ascii_strcasecmp(session->envelope->sender->addr,"") == 0) {
@@ -594,7 +596,7 @@ int load(SMFSettings_T *settings,int sock) {
 								smf_lookup_check_user(session->envelope->sender);
 								TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->envelope->sender->addr,session->envelope->sender->is_local);
 						} else 
-							session->envelope->sender->user_data = NULL;
+							session->envelope->sender->lr = NULL;
 
 						smtpd_code_reply(session->sock_out,250);
 						state = ST_MAIL;
@@ -621,7 +623,7 @@ int load(SMFSettings_T *settings,int sock) {
 				/* allocate resources for the individual recipient */
 				session->envelope->rcpt[session->envelope->num_rcpts] = g_slice_new(SMFEmailAddress_T);
 				session->envelope->rcpt[session->envelope->num_rcpts]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
-				session->envelope->rcpt[session->envelope->num_rcpts]->user_data = NULL;
+				session->envelope->rcpt[session->envelope->num_rcpts]->lr = NULL;
 				if (session->envelope->rcpt[session->envelope->num_rcpts] != NULL) {
 					if (strcmp(session->envelope->rcpt[session->envelope->num_rcpts]->addr,"") == 0) {
 						/* empty rcpt to? */
@@ -635,7 +637,7 @@ int load(SMFSettings_T *settings,int sock) {
 									session->envelope->rcpt[session->envelope->num_rcpts]->addr,
 									session->envelope->rcpt[session->envelope->num_rcpts]->is_local);
 						} else
-							session->envelope->rcpt[session->envelope->num_rcpts]->user_data = NULL;
+							session->envelope->rcpt[session->envelope->num_rcpts]->lr = NULL;
 						smtpd_code_reply(session->sock_out,250);
 						session->envelope->num_rcpts++;
 						state = ST_RCPT;
