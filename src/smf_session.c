@@ -131,7 +131,84 @@ void smf_session_free(SMFSession_T *session) {
 	session = NULL;
 }
 
+/** Set helo */
+SMFSession_T *smf_session_set_helo(SMFSession_T *session, char *helo) {
+	if (session->helo != NULL) {
+		g_free(session->helo);
+	}
+	
+	session->helo = g_strdup(helo);
+	return session;
+}
 
+char *smf_session_get_helo(SMFSession_T *session) {
+	return (char *)session->helo;
+}
+
+
+/** Set xforward address */
+SMFSession_T *smf_session_set_xforward_addr(SMFSession_T *session, char *xfwd) {
+	if (session->xforward_addr != NULL) {
+		g_free(session->xforward_addr);
+	}
+	
+	session->xforward_addr = g_strdup(xfwd);
+	return session;
+}
+
+char *smf_session_get_xforward_addr(SMFSession_T *session) {
+	return (char *)session->xforward_addr;
+}
+
+/** Set response message */
+SMFSession_T *smf_session_set_response_msg(SMFSession_T *session, char *rmsg) {
+	if (session->response_msg != NULL) {
+		g_free(session->response_msg);
+	}
+	
+	session->response_msg = g_strdup(rmsg);
+	return session;
+}
+
+char *smf_session_get_response_msg(SMFSession_T *session) {
+	return (char *)session->response_msg;
+}
+
+/** Retrieve a SMFMessage_T object from the
+ *  current session. */
+SMFMessage_T *smf_session_get_message(SMFSession_T *session) {
+	GMimeStream *stream, *mem_stream;
+	GMimeParser *parser;
+	FILE *fd;
+
+	if (session->envelope->message == NULL) 
+		session->envelope->message = smf_message_new();
+	else
+		return session->envelope->message;
+
+	if ((fd = fopen(session->envelope->message_file,"r")) == NULL) {
+		return NULL;
+	}
+
+	stream = g_mime_stream_file_new(fd);
+	
+	mem_stream = g_mime_stream_mem_new();
+	g_mime_stream_write_to_stream(stream,mem_stream);
+
+	g_mime_stream_seek(mem_stream,0,0);
+
+	parser = g_mime_parser_new_with_stream(mem_stream);
+	session->envelope->message->data = g_mime_parser_construct_message(parser);
+
+	g_object_unref(parser);
+	g_object_unref(stream);
+	g_object_unref(mem_stream);
+
+	return session->envelope->message;
+}
+
+
+#if 0
 /** Gets the value of the first header with the name requested. */
 const char *smf_session_header_get(SMFSession_T *session, const char *header_name) {
 	const char *header_value = NULL;
@@ -312,39 +389,4 @@ int smf_session_subject_append(SMFSession_T *session, char *test) {
 #endif
 	return 0;
 }
-
-/** Retrieve a SMFMessage_T object from the
- *  current session.
- *
- * \returns SMFMessage_T object
- */
-SMFMessage_T *smf_session_get_message(SMFSession_T *session) {
-	GMimeStream *stream, *mem_stream;
-	GMimeParser *parser;
-	FILE *fd;
-
-	if (session->envelope->message == NULL) 
-		session->envelope->message = smf_message_new();
-	else
-		return session->envelope->message;
-
-	if ((fd = fopen(session->envelope->message_file,"r")) == NULL) {
-		return NULL;
-	}
-
-	stream = g_mime_stream_file_new(fd);
-	
-	mem_stream = g_mime_stream_mem_new();
-	g_mime_stream_write_to_stream(stream,mem_stream);
-
-	g_mime_stream_seek(mem_stream,0,0);
-
-	parser = g_mime_parser_new_with_stream(mem_stream);
-	session->envelope->message->data = g_mime_parser_construct_message(parser);
-
-	g_object_unref(parser);
-	g_object_unref(stream);
-	g_object_unref(mem_stream);
-
-	return session->envelope->message;
-}
+#endif
