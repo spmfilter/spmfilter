@@ -443,3 +443,464 @@ char *smf_settings_get_engine(void) {
 	SMFSettings_T *settings = smf_settings_get();
 	return (char *)settings->engine;
 }
+
+void smf_settings_set_modules(char **modules) {
+	int i;
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->modules != NULL)
+		g_strfreev(settings->modules);
+	
+	if (modules != NULL) {
+		for(i=0;modules[i]!=NULL;i++) {
+			settings->modules = g_realloc(
+				settings->modules,sizeof(char *) * (i + 1));
+			settings->modules[i] = g_strdup(modules[i]);
+		}
+	}
+	g_mutex_unlock(settings_mutex);
+}
+
+char **smf_settings_get_modules(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char **)settings->modules;
+}
+
+void smf_settings_set_nexthop(char *nexthop) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->nexthop != NULL) 
+		g_free(settings->nexthop);
+	
+	settings->nexthop = g_strdup(nexthop);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_nexthop(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->nexthop;
+}
+
+void smf_settings_set_module_fail(int i) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->module_fail = i;
+	g_mutex_unlock(settings_mutex);
+}
+
+int smf_settings_get_module_fail(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->module_fail;
+}
+
+void smf_settings_set_nexthop_fail_code(int i) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->nexthop_fail_code = i;
+	g_mutex_unlock(settings_mutex);
+}
+
+int smf_settings_get_nexthop_fail_code(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->nexthop_fail_code;
+}
+
+void smf_settings_set_nexthop_fail_msg(char *msg) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->nexthop_fail_msg != NULL)
+		g_free(settings->nexthop_fail_msg);
+		
+	settings->nexthop_fail_msg = g_strdup(msg);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_nexthop_fail_msg(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->nexthop_fail_msg;
+}
+
+void smf_settings_set_backend(char **backend) {
+	int i;
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->backend != NULL)
+		g_strfreev(settings->backend);
+	
+	if (backend != NULL) {
+		for(i=0;backend[i]!=NULL;i++) {
+			settings->backend = g_realloc(
+				settings->backend,sizeof(char *) * (i + 1));
+			settings->backend[i] = g_strdup(backend[i]);
+		}
+	}
+	g_mutex_unlock(settings_mutex);
+}
+
+char **smf_settings_get_backend(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char **)settings->backend;
+}
+
+void smf_settings_set_backend_connection(char *conn) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->backend_connection != NULL)
+		g_free(settings->backend_connection);
+		
+	settings->backend_connection = g_strdup(conn);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_backend_connection(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->backend_connection;
+}
+
+void smf_settings_set_add_header(int i) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->add_header = i;
+	g_mutex_unlock(settings_mutex);
+}
+
+int smf_settings_get_add_header(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->add_header;
+}
+
+void smf_settings_set_max_size(unsigned long size) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->max_size = size;
+	g_mutex_unlock(settings_mutex);
+}
+
+unsigned long smf_settings_get_max_size(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->max_size;
+}
+
+void smf_settings_set_tls(SMFTlsOption_T t) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->tls = t;
+	g_mutex_unlock(settings_mutex);
+}
+
+SMFTlsOption_T smf_settings_get_tls(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->tls;
+}
+
+void smf_settings_set_tls_pass(char *pass) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->tls_pass != NULL)
+		g_free(settings->tls_pass);
+		
+	settings->tls_pass = g_strdup(pass);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_tls_pass(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->tls_pass;
+}
+
+void smf_settings_set_daemon(int i) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->daemon = i;
+	g_mutex_unlock(settings_mutex);	
+}
+
+int smf_settings_get_daemon(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->daemon;
+}
+
+void smf_settings_set_sql_driver(char *driver) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->sql_driver != NULL)
+		g_free(settings->sql_driver);
+	
+	settings->sql_driver = g_strdup(driver);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_sql_driver(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->sql_driver;
+}
+
+void smf_settings_set_sql_name(char *name) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->sql_name != NULL)
+		g_free(settings->sql_name);
+		
+	settings->sql_name = g_strdup(name);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_sql_name(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->sql_name;
+}
+
+void smf_settings_set_sql_host(char **host) {
+	int i;
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->sql_host != NULL)
+		g_strfreev(settings->sql_host);
+	
+	if (host != NULL) {
+		for(i=0;host[i]!=NULL;i++) {
+			settings->sql_host = g_realloc(
+				settings->sql_host,sizeof(char *) * (i + 1));
+			settings->sql_host[i] = g_strdup(host[i]);
+		}
+	}
+	settings->sql_num_hosts = i + 1;
+	g_mutex_unlock(settings_mutex);
+}
+
+char **smf_settings_get_sql_host(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char **)settings->sql_host;
+}
+
+int smf_settings_get_sql_num_hosts(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->sql_num_hosts;
+}
+
+void smf_settings_set_sql_port(int port) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->sql_port = port;
+	g_mutex_unlock(settings_mutex);
+}
+
+int smf_settings_get_sql_port(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->sql_port;
+}
+
+void smf_settings_set_sql_user(char *user) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->sql_user != NULL) 
+		g_free(settings->sql_user);
+		
+	settings->sql_user = g_strdup(user);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_sql_user(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->sql_user;
+}
+
+void smf_settings_set_sql_pass(char *pass) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->sql_pass != NULL)
+		g_free(settings->sql_pass);
+	
+	settings->sql_pass = g_strdup(pass);
+	g_mutex_unlock(settings_mutex);
+} 
+
+char *smf_settings_get_sql_pass(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->sql_pass;
+}
+
+void smf_settings_set_sql_user_query(char *query) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->sql_user_query != NULL) 
+		g_free(settings->sql_user_query);
+	
+	settings->sql_user_query = g_strdup(query);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_sql_user_query(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->sql_user_query;
+}
+
+void smf_settings_set_sql_encoding(char *encoding) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->sql_encoding != NULL)
+		g_free(settings->sql_encoding);
+		
+	settings->sql_encoding = g_strdup(encoding);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_sql_encoding(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->sql_encoding;
+}
+
+void smf_settings_set_sql_max_connections(int i) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->sql_max_connections = i;
+	g_mutex_unlock(settings_mutex);
+}
+
+int smf_settings_get_sql_max_connections(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->sql_max_connections;
+}
+
+void smf_settings_set_ldap_uri(char *uri) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->ldap_uri != NULL)	
+		g_free(settings->ldap_uri);
+		
+	settings->ldap_uri = g_strdup(uri);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_ldap_uri(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->ldap_uri;
+}
+
+void smf_settings_set_ldap_host(char **host) {
+	int i;
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->ldap_host != NULL)
+		g_strfreev(settings->ldap_host);
+	
+	if (host != NULL) {
+		for(i=0;host[i]!=NULL;i++) {
+			settings->ldap_host = g_realloc(
+				settings->ldap_host,sizeof(char *) * (i + 1));
+			settings->ldap_host[i] = g_strdup(host[i]);
+		}
+	}
+	settings->ldap_num_hosts = i + 1;
+	g_mutex_unlock(settings_mutex);
+}
+
+char **smf_settings_get_ldap_host(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char **)settings->ldap_host;
+}
+
+int smf_settings_get_ldap_num_hosts(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->ldap_num_hosts;
+}
+
+void smf_settings_set_ldap_port(int port) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->ldap_port = port;
+	g_mutex_unlock(settings_mutex);
+}
+
+int smf_settings_get_ldap_port(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->ldap_port;
+}
+
+void smf_settings_set_ldap_binddn(char *binddn) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->ldap_binddn != NULL)
+		g_free(settings->ldap_binddn);
+		
+	settings->ldap_binddn = g_strdup(binddn);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_ldap_binddn(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->ldap_binddn;
+}
+
+void smf_settings_set_ldap_bindpw(char *bindpw) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->ldap_bindpw != NULL)
+		g_free(settings->ldap_bindpw);
+		
+	settings->ldap_bindpw = g_strdup(bindpw);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_ldap_bindpw(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->ldap_bindpw;
+}
+
+void smf_settings_set_ldap_base(char *base) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->ldap_base != NULL)
+		g_free(settings->ldap_base);
+		
+	settings->ldap_base = g_strdup(base);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_ldap_base(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->ldap_base;
+}
+
+void smf_settings_set_ldap_referrals(int i) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	settings->ldap_referrals = i;
+	g_mutex_unlock(settings_mutex);
+}
+
+int smf_settings_get_ldap_referrals(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return settings->ldap_referrals;
+}
+
+void smf_settings_set_ldap_scope(char *scope) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->ldap_scope != NULL)
+		g_free(settings->ldap_scope);
+		
+	settings->ldap_scope = g_strdup(scope);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_get_ldap_scope(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->ldap_scope;
+}
+
+void smf_settings_set_ldap_user_query(char *query) {
+	SMFSettings_T *settings = smf_settings_get();
+	g_mutex_lock(settings_mutex);
+	if (settings->ldap_user_query != NULL)
+		g_free(settings->ldap_user_query);
+		
+	settings->ldap_user_query = g_strdup(query);
+	g_mutex_unlock(settings_mutex);
+}
+
+char *smf_settings_ldap_user_query(void) {
+	SMFSettings_T *settings = smf_settings_get();
+	return (char *)settings->ldap_user_query;
+}
+ 
