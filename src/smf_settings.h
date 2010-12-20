@@ -121,12 +121,109 @@ SMFSettings_T *smf_settings_get(void);
 
 void smf_settings_set_debug(int debug);
 int smf_settings_get_debug(void);
+
 void smf_settings_set_config_file(char *cf);
 char *smf_settings_get_config_file(void);
+
 void smf_settings_set_queue_dir(char *qd);
 char *smf_settings_get_queue_dir(void);
+
 void smf_settings_set_engine(char *engine);
 char *smf_settings_get_engine(void);
+
+void smf_settings_set_modules(char **modules);
+char **smf_settings_get_modules(void);
+
+void smf_settings_set_module_fail(int i);
+int smf_settings_get_module_fail(void);
+
+void smf_settings_set_nexthop(char *nexthop);
+char *smf_settings_get_nexthop(void);
+
+void smf_settings_set_nexthop_fail_code(int i);
+int smf_settings_get_nexthop_fail_code(void);
+
+void smf_settings_set_nexthop_fail_msg(char *msg);
+char *smf_settings_get_nexthop_fail_msg(void);
+
+void smf_settings_set_backend(char **backend);
+char **smf_settings_get_backend(void);
+
+void smf_settings_set_backend_connectio(char *conn);
+char *smf_settings_get_backend_connection(void);
+
+void smf_settings_set_add_header(int i);
+int smf_settings_get_add_header(void);
+
+void smf_settings_set_max_size(unsigned long size);
+unsigned long smf_settings_get_max_size(void);
+
+void smf_settings_set_tls(SMFTlsOption_T t);
+SMFTlsOption_T smf_settings_get_tls(void);
+
+void smf_settings_set_tls_pass(char *pass);
+char *smf_settings_get_tls_pass(void);
+
+void smf_settings_set_daemon(int i);
+int smf_settings_get_daemon(void);
+
+void smf_settings_set_sql_driver(char *driver);
+char *smf_settings_get_sql_driver(void);
+
+void smf_settings_set_sql_name(char *name);
+char *smf_settings_get_sql_name(void);
+
+void smf_settings_set_sql_host(char **host);
+char **smf_settings_get_sql_host(void);
+
+int smf_settings_get_sql_num_hosts(void);
+
+void smf_settings_set_sql_port(int port);
+int smf_settings_get_sql_port(void);
+
+void smf_settings_set_sql_user(char *user);
+char *smf_settings_get_sql_user(void);
+
+void smf_settings_set_sql_pass(char *pass);
+char *smf_settings_get_sql_pass(void);
+
+void smf_settings_set_sql_user_query(char *query);
+char *smf_settings_get_sql_user_query(void);
+
+void smf_settings_set_sql_encoding(char *encoding);
+char *smf_settings_get_sql_encoding(void);
+
+void smf_settings_set_sql_max_connections(int i);
+int smf_settings_get_sql_max_connections(void);
+
+void smf_settings_set_ldap_uri(char *uri);
+char *smf_settings_get_ldap_uri(void);
+
+void smf_settings_set_ldap_host(char **host);
+char **smf_settings_get_ldap_host(void);
+
+int smf_settings_get_ldap_num_hosts(void);
+
+void smf_settings_set_ldap_port(int port);
+int smf_settings_get_ldap_port(void);
+
+void smf_settings_set_ldap_binddn(char *binddn);
+char *smf_settings_get_ldap_binddn(void);
+
+void smf_settings_set_ldap_bindpw(char *bindpw);
+char *smf_settings_get_ldap_bindpw(void);
+
+void smf_settings_set_ldap_base(char *base);
+char *smf_settings_get_ldap_base(void);
+
+void smf_settings_set_ldap_referrals(int i);
+int smf_settings_get_ldap_referrals(void);
+
+void smf_settings_set_ldap_scope(char *scope);
+char *smf_settings_get_ldap_scope(void);
+
+void smf_settings_set_ldap_user_query(char *query);
+char *smf_settings_get_ldap_user_query(void);
 
 /** Load all settings from specified group
  *
