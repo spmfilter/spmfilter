@@ -24,6 +24,8 @@
 #include "../src/smf_settings_private.h"
 
 #define TEST_ENGINE "smtpd"
+#define TEST_CONFIG_FILE "test_settings"
+#define TEST_QUEUE_DIR "/tmp"
 
 int main (int argc, char const *argv[]) {
 	SMFSettings_T *settings = NULL;
@@ -55,6 +57,55 @@ int main (int argc, char const *argv[]) {
 		return -1;
 	} else 
 		g_printf("passed\n");
+
+	g_printf("* testing smf_settings_set_debug()...\t\t\t");
+	if (smf_settings_set_debug(0) != smf_settings_get_debug()) {
+		g_printf("failed\n");
+		return -1;
+	} else {
+		if (smf_settings_set_debug(3) != -1) {
+			g_printf("failed\n");
+			return -1;
+		} else {
+			g_printf("passed\n");
+		}
+	}
+	
+	g_printf("* testing smf_settings_set_config_file()...\t\t");
+	if (smf_settings_set_config_file(TEST_CONFIG_FILE) != 0) {
+		g_printf("1failed\n");
+		return -1;
+	} else {
+		if (g_strcmp0(smf_settings_get_config_file(),TEST_CONFIG_FILE) != 0) {
+			g_printf("failed\n");
+			return -1;
+		} else {
+			g_printf("passed\n");
+			smf_settings_set_config_file("../../spmfilter.conf.sample");
+		}
+	}
+	
+	g_printf("* testing smf_settings_set_queue_dir()...\t\t");
+	if (smf_settings_set_queue_dir(TEST_QUEUE_DIR) != 0) {
+		g_printf("failed\n");
+		return -1;
+	} else {
+		if (g_strcmp0(smf_settings_get_queue_dir(),TEST_QUEUE_DIR) != 0) {
+			g_printf("failed\n");
+			return -1;
+		} else {
+			g_printf("passed\n");
+		}
+	}
+	
+	g_printf("* testing smf_settings_set_engine()...\t\t\t");
+	smf_settings_set_engine(TEST_ENGINE);
+	if (g_strcmp0(smf_settings_get_engine(),TEST_ENGINE) != 0) {
+		g_printf("failed\n");
+		return -1;
+	} else {
+		g_printf("passed\n");
+	}
 	
 	g_printf("* testing smf_settings_group_load()...\t\t\t");
 	test_group = smf_settings_group_load(settings, "global");
@@ -62,7 +113,7 @@ int main (int argc, char const *argv[]) {
 		g_printf("passed\n");
 	} else {
 		g_printf("failed\n");
-		return 0;
+		return -1;
 	}
 		
 	
