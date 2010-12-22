@@ -16,7 +16,10 @@
  */
 
 #include <string.h>
+#include <unistd.h>
+#include <errno.h>
 #include <glib.h>
+#include <glib/gstdio.h>
 
 #include "spmfilter_config.h"
 #include "smf_smtp_codes.h"
@@ -389,11 +392,18 @@ int smf_settings_parse_config(SMFSettings_T *settings, char *alternate_file) {
 	return 0;
 }
 
-void smf_settings_set_debug(int debug) {
+int smf_settings_set_debug(int debug) {
 	SMFSettings_T *settings = smf_settings_get();
+	if ((debug != 0) && (debug != 1)) {
+		TRACE(TRACE_ERR,"debug setting must be either 0 or 1");
+		return -1;
+	}
+	
 	g_mutex_lock(settings_mutex);
 	settings->debug = debug;
 	g_mutex_unlock(settings_mutex);
+	
+	return 0;
 }
 
 int smf_settings_get_debug(void) {
@@ -401,13 +411,20 @@ int smf_settings_get_debug(void) {
 	return settings->debug;
 }
 
-void smf_settings_set_config_file(char *cf) {
+int smf_settings_set_config_file(char *cf) {
 	SMFSettings_T *settings = smf_settings_get();
+	if (!g_file_test(cf, G_FILE_TEST_EXISTS)) {
+		TRACE(TRACE_ERR,"file [%s] does not exist.",cf);
+		return -1;
+	}
+	
 	g_mutex_lock(settings_mutex);
 	if (settings->config_file != NULL)
 		g_free(settings->config_file);
 	settings->config_file = g_strdup(cf);
 	g_mutex_unlock(settings_mutex);
+	
+	return 0;
 }
 
 char *smf_settings_get_config_file(void) {
@@ -415,14 +432,27 @@ char *smf_settings_get_config_file(void) {
 	return (char *)settings->config_file;
 }
 
-void smf_settings_set_queue_dir(char *qd) {
+int smf_settings_set_queue_dir(char *qd) {
 	SMFSettings_T *settings = smf_settings_get();
+	
+	if (!g_file_test(qd, G_FILE_TEST_IS_DIR)) {
+		TRACE(TRACE_ERR,"directory [%s] does not exist",qd);
+		return -1;
+	}
+		
+	if (g_access(qd,W_OK) != 0) {
+		TRACE(TRACE_ERR,"directory [%s] is not writeable: %s (%d)",qd, strerror(errno), errno);
+		return -1; 
+	}
+		
 	g_mutex_lock(settings_mutex);
 	if (settings->queue_dir != NULL)
 		g_free(settings->queue_dir);
 	
 	settings->queue_dir = g_strdup(qd);
 	g_mutex_unlock(settings_mutex);
+	
+	return 0;
 }
 
 char *smf_settings_get_queue_dir(void) {

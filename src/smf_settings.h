@@ -121,9 +121,11 @@ SMFSettings_T *smf_settings_get(void);
 
 /** Set debug setting
  *
- * \param debug debug setting
+ * \param debug debug setting  either 0 (false) or 1 (true)
+ *
+ * \returns 0 on success or -1 in case of error
  */
-void smf_settings_set_debug(int debug);
+int smf_settings_set_debug(int debug);
 
 /** Get debug setting
  * 
@@ -134,8 +136,10 @@ int smf_settings_get_debug(void);
 /** Set config file setting
  *
  * \param cf config file
+ *
+ * \returns 0 on success or -1 in case of error
  */
-void smf_settings_set_config_file(char *cf);
+int smf_settings_set_config_file(char *cf);
 
 /** Get config file settings
  *
@@ -146,8 +150,10 @@ char *smf_settings_get_config_file(void);
 /** Set queue dir setting
  *
  * \param qd queue directory path
+ *
+ * \returns 0 on success or -1 in case of error
  */
-void smf_settings_set_queue_dir(char *qd);
+int smf_settings_set_queue_dir(char *qd);
 
 /** Get queue directory settings
  *

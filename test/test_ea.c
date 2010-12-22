@@ -24,13 +24,6 @@
 
 #define TEST_ADDR "webmaster@spmfilter.org"
 
-int compare_string(char *s1, char *s2) {
-	if (g_strcmp0(s1,s2) != 0)
-		return -1;
-
-	return 0;
-}
-
 int main (int argc, char const *argv[]) {
 	SMFEmailAddress_T *ea = NULL;
 	
@@ -42,7 +35,7 @@ int main (int argc, char const *argv[]) {
 	
 	g_printf("* testing smf_email_address_set_addr()...\t\t\t");
 	ea = smf_email_address_set_addr(ea,TEST_ADDR);
-	if (compare_string(TEST_ADDR,smf_email_address_get_addr(ea)) != 0) {
+	if (g_strcmp0(TEST_ADDR,smf_email_address_get_addr(ea)) != 0) {
 		g_printf("failed\n");
 		return -1;
 	} else
