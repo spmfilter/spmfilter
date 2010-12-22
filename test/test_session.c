@@ -29,13 +29,6 @@
 #define TEST_XFWD "127.0.0.1"
 #define TEST_RESPONSE "250 OK message accepted"
 
-int compare_string(char *s1, char *s2) {
-	if (g_strcmp0(s1,s2) != 0)
-		return -1;
-
-	return 0;
-}
-
 int main (int argc, char const *argv[]) {
 	SMFSession_T *session = NULL;
 	SMFSettings_T *settings = NULL;
@@ -53,7 +46,7 @@ int main (int argc, char const *argv[]) {
 	
 	g_printf("* testing smf_session_set_helo()...\t\t\t");
 	session = smf_session_set_helo(session,TEST_HELO);
-	if (compare_string(TEST_HELO,smf_session_get_helo(session)) != 0) {
+	if (g_strcmp0(TEST_HELO,smf_session_get_helo(session)) != 0) {
 		g_printf("failed\n");
 		return -1;
 	} else
@@ -61,7 +54,7 @@ int main (int argc, char const *argv[]) {
 		
 	g_printf("* testing smf_session_set_xfoward_addr()...\t\t");
 	session = smf_session_set_xforward_addr(session,TEST_XFWD);
-	if (compare_string(TEST_XFWD,smf_session_get_xforward_addr(session)) != 0) {
+	if (g_strcmp0(TEST_XFWD,smf_session_get_xforward_addr(session)) != 0) {
 		g_printf("failed\n");
 		return -1;
 	} else
@@ -69,7 +62,7 @@ int main (int argc, char const *argv[]) {
 	
 	g_printf("* testing smf_session_set_response_msg()...\t\t");
 	session = smf_session_set_response_msg(session,TEST_RESPONSE);
-	if (compare_string(TEST_RESPONSE,smf_session_get_response_msg(session)) != 0) {
+	if (g_strcmp0(TEST_RESPONSE,smf_session_get_response_msg(session)) != 0) {
 		g_printf("failed\n");
 		return -1;
 	} else
