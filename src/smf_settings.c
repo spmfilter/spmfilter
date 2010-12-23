@@ -475,18 +475,13 @@ char *smf_settings_get_engine(void) {
 }
 
 void smf_settings_set_modules(char **modules) {
-	int i;
 	SMFSettings_T *settings = smf_settings_get();
 	g_mutex_lock(settings_mutex);
 	if (settings->modules != NULL)
 		g_strfreev(settings->modules);
 	
 	if (modules != NULL) {
-		for(i=0;modules[i]!=NULL;i++) {
-			settings->modules = g_realloc(
-				settings->modules,sizeof(char *) * (i + 1));
-			settings->modules[i] = g_strdup(modules[i]);
-		}
+		settings->modules = g_strdupv(modules);
 	}
 	g_mutex_unlock(settings_mutex);
 }
@@ -551,18 +546,13 @@ char *smf_settings_get_nexthop_fail_msg(void) {
 }
 
 void smf_settings_set_backend(char **backend) {
-	int i;
 	SMFSettings_T *settings = smf_settings_get();
 	g_mutex_lock(settings_mutex);
 	if (settings->backend != NULL)
 		g_strfreev(settings->backend);
 	
 	if (backend != NULL) {
-		for(i=0;backend[i]!=NULL;i++) {
-			settings->backend = g_realloc(
-				settings->backend,sizeof(char *) * (i + 1));
-			settings->backend[i] = g_strdup(backend[i]);
-		}
+		settings->backend = g_strdupv(backend);
 	}
 	g_mutex_unlock(settings_mutex);
 }
@@ -681,20 +671,15 @@ char *smf_settings_get_sql_name(void) {
 }
 
 void smf_settings_set_sql_host(char **host) {
-	int i;
 	SMFSettings_T *settings = smf_settings_get();
 	g_mutex_lock(settings_mutex);
 	if (settings->sql_host != NULL)
 		g_strfreev(settings->sql_host);
 	
 	if (host != NULL) {
-		for(i=0;host[i]!=NULL;i++) {
-			settings->sql_host = g_realloc(
-				settings->sql_host,sizeof(char *) * (i + 1));
-			settings->sql_host[i] = g_strdup(host[i]);
-		}
+		settings->sql_host = g_strdupv(host);
 	}
-	settings->sql_num_hosts = i + 1;
+	settings->sql_num_hosts = g_strv_length(host);
 	g_mutex_unlock(settings_mutex);
 }
 
@@ -808,20 +793,16 @@ char *smf_settings_get_ldap_uri(void) {
 }
 
 void smf_settings_set_ldap_host(char **host) {
-	int i;
 	SMFSettings_T *settings = smf_settings_get();
 	g_mutex_lock(settings_mutex);
 	if (settings->ldap_host != NULL)
 		g_strfreev(settings->ldap_host);
 	
 	if (host != NULL) {
-		for(i=0;host[i]!=NULL;i++) {
-			settings->ldap_host = g_realloc(
-				settings->ldap_host,sizeof(char *) * (i + 1));
-			settings->ldap_host[i] = g_strdup(host[i]);
-		}
+		settings->ldap_host = g_malloc_n(1,sizeof(char *));
+		settings->ldap_host = g_strdupv(host);
 	}
-	settings->ldap_num_hosts = i + 1;
+	settings->ldap_num_hosts = g_strv_length(host);
 	g_mutex_unlock(settings_mutex);
 }
 
