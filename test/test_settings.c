@@ -26,12 +26,15 @@
 #define TEST_ENGINE "smtpd"
 #define TEST_CONFIG_FILE "test_settings"
 #define TEST_QUEUE_DIR "/tmp"
+#define TEST_MODULE_1 "clamav"
+#define TEST_MODULE_2 "spamassassin"
 
 int main (int argc, char const *argv[]) {
 	SMFSettings_T *settings = NULL;
 	SMFSettingsGroup_T *test_group = NULL;
 	char *s = NULL;
 	char **sl = NULL;
+	char **sl2 = NULL;
 	int sl_length = 0;
 	
 	g_thread_init(NULL);
@@ -106,6 +109,25 @@ int main (int argc, char const *argv[]) {
 	} else {
 		g_printf("passed\n");
 	}
+	
+	g_printf("* testing smf_settings_set_modules()...\t\t\t");
+	//sl = g_malloc_n(2,sizeof(char *));
+	sl = g_malloc(2 * sizeof(*sl));
+	sl[0] = g_strdup(TEST_MODULE_1);
+	sl[1] = g_strdup(TEST_MODULE_2);
+	smf_settings_set_modules(sl);
+	sl2 = smf_settings_get_modules();
+	if (g_strcmp0(sl[0],sl2[0]) != 0) {
+		g_printf("\nSL: [%s] - [%s]\n",sl[0],sl2[0]);
+		g_printf("failed\n");
+		return -1;
+	} else if (g_strcmp0(sl[1],sl2[1]) != 0) {
+		g_printf("2failed\n");
+		return -1;
+	} else {
+		g_printf("passed\n");
+	}
+	g_strfreev(sl);
 	
 	g_printf("* testing smf_settings_group_load()...\t\t\t");
 	test_group = smf_settings_group_load(settings, "global");
