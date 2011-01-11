@@ -133,7 +133,7 @@ int smf_settings_set_debug(int debug);
  */
 int smf_settings_get_debug(void);
 
-/** Set config file setting
+/** Set path to config file
  *
  * \param cf config file
  *
@@ -141,13 +141,13 @@ int smf_settings_get_debug(void);
  */
 int smf_settings_set_config_file(char *cf);
 
-/** Get config file settings
+/** Get config file path
  *
  * \returns config file path
  */
 char *smf_settings_get_config_file(void);
 
-/** Set queue dir setting
+/** Set path to queue directory
  *
  * \param qd queue directory path
  *
@@ -155,37 +155,40 @@ char *smf_settings_get_config_file(void);
  */
 int smf_settings_set_queue_dir(char *qd);
 
-/** Get queue directory settings
+/** Get queue directory path
  *
  * \returns queue directory
  */
 char *smf_settings_get_queue_dir(void);
 
-/** Set engine setting
+/** Set engine which should be used
  *
  * \param engine engine
  */
 void smf_settings_set_engine(char *engine);
 
-/** Get engine setting
+/** Get configured engine
  *
  * \returns engine
  */
 char *smf_settings_get_engine(void);
 
-/** Set modules setting 
+/** Set available modules, which will be loaded at runtime.
  * 
- * \param modules modules list
+ * \param modules list with available modules
  */
 void smf_settings_set_modules(char **modules);
 
-/** Get modules setting
+/** Get available modules
  * 
  * \returns modules list
  */
 char **smf_settings_get_modules(void);
 
 /** Set module_fail setting
+ *  1 = proceed and ignore
+ *  2 = cancel further processing and return permanet error
+ *  3 = cancel further processing and return temporary error (default) 
  *
  * \param i module_fail value
  */
@@ -197,19 +200,24 @@ void smf_settings_set_module_fail(int i);
  */
 int smf_settings_get_module_fail(void);
 
-/** Set nexthop setting
+/** Set nexthop setting.
+ *  This parameter specifies the final destination, 
+ *  after a mail is processed by spmfilter.
  *
  * \params nexthop nexthtop string
  */
 void smf_settings_set_nexthop(char *nexthop);
 
-/** Get nexthop setting
+/** Get configured nexthop setting
  *
  * \returns nexthop
  */
 char *smf_settings_get_nexthop(void);
 
 /** Set nexthop_fail_code setting
+ *  If the delivery to the final destination fails 
+ *  for any reason, this code is used as response to 
+ *  the sending  MTA (default 451).  
  *
  * \param i nexthop_fail_code value
  */
@@ -221,7 +229,10 @@ void smf_settings_set_nexthop_fail_code(int i);
  */
 int smf_settings_get_nexthop_fail_code(void);
 
-/** Set nexthop_fail_msg setting
+/** Set nexthop_fail_msg setting.
+ *  If the delivery to the final destination fails for any 
+ *  reason, this message is used as reponse for the sending
+ *  MTA. (default "Requested action aborted: local error in processing").
  *
  * \param msg nexthop fail message
  */
@@ -233,7 +244,7 @@ void smf_settings_set_nexthop_fail_msg(char *msg);
  */
 char *smf_settings_get_nexthop_fail_msg(void);
 
-/** Set backend setting
+/** Set lookup backend. 
  *
  * \param backend backend setting list
  */
@@ -245,20 +256,31 @@ void smf_settings_set_backend(char **backend);
  */
 char **smf_settings_get_backend(void);
 
-/** Set backend_connection setting
+/** Set backend_connection setting.
+ *  If there are multiple server configured in the specified backend, 
+ *  it's possible to define a failover or load-balancing behaviour. 
+ *  Possible values are:
+ *    balance  = when you configure the backend profile for load
+ *               balancing, spmfilter distributes connections across
+ *               the list of hosts. If the actual host is not reachable,
+ *               spmfilter switches back to failover configuration.
+ *    failover = when you configure the backend profile for
+ *               failover, spmfilter fails over to the next host in
+ *               the list if it cannot connect to the first host.
  *
  * \param conn backend connection
  */
 void smf_settings_set_backend_connection(char *conn);
 
-/** Get backend connection
+/** Get backend connection setting
  *
- * \returns backend connection */
+ * \returns backend connection 
+ */
 char *smf_settings_get_backend_connection(void);
 
-/** Set add_header setting
+/** Define if spmfilter should add it's own header
  *
- * \param i add_header value
+ * \param i add_header value, either 1 (true) or 0 (false)
  */
 void smf_settings_set_add_header(int i);
 
@@ -268,13 +290,13 @@ void smf_settings_set_add_header(int i);
  */
 int smf_settings_get_add_header(void);
 
-/** Set max_size setting
+/** Set max. allowed message size in byte
  *
  * \param size max_size setting
  */
 void smf_settings_set_max_size(unsigned long size);
 
-/** Get max_size setting
+/** Get max_size setting in bytes
  *
  * \returns max_size value
  */
@@ -292,7 +314,7 @@ void smf_settings_set_tls(SMFTlsOption_T t);
  */
 SMFTlsOption_T smf_settings_get_tls(void);
 
-/** Set tls_pass setting
+/** Set passphrase for SSL certificate, if needed.
  *
  * \param pass tls password
  */
@@ -304,7 +326,9 @@ void smf_settings_set_tls_pass(char *pass);
  */
 char *smf_settings_get_tls_pass(void);
 
-/** Set daemon setting
+/** Set daemon setting.
+ *  Define whether spmfilter should run in 
+ *  threaded daemon mode, or not.
  *
  * \param i daemon value
  */
@@ -316,7 +340,11 @@ void smf_settings_set_daemon(int i);
  */
 int smf_settings_get_daemon(void);
 
-/** Set sql_driver setting
+/** Set SQL driver, which should be used.
+ *  Possible values are:
+ *  - mysql
+ *  - postgresql
+ *  - sqlite
  *
  * \param driver sql_driver value
  */
@@ -328,67 +356,67 @@ void smf_settings_set_sql_driver(char *driver);
  */
 char *smf_settings_get_sql_driver(void);
 
-/** Set sql_name setting
+/** Set SQL database name
  *
- * \param name sql_name
+ * \param name database name
  */
 void smf_settings_set_sql_name(char *name);
 
-/** Get sql_name setting
+/** Get SQL database name 
  *
  * \returns sql_name value
  */
 char *smf_settings_get_sql_name(void);
 
-/** Set sql_host setting
+/** Set SQL host(s)
  *
  * \param host sql_host list
  */
 void smf_settings_set_sql_host(char **host);
 
-/** Get sql_host setting
+/** Get SQL host(s)
  *
  * \returns sql_host list
  */
 char **smf_settings_get_sql_host(void);
 
-/** Get sql_num_hosts value
+/** Get number of configured SQL hosts
  *
  * \returns sql_num_hosts value
  */
 int smf_settings_get_sql_num_hosts(void);
 
-/** Set sql_port setting
+/** Set SQL port
  *
  * \param port sql port
  */
 void smf_settings_set_sql_port(int port);
 
-/** Get sql_port setting
+/** Get SQL port
  *
  * \returns sql_port value
  */
 int smf_settings_get_sql_port(void);
 
-/** Set sql_user setting
+/** Set SQL username
  *
  * \param user sql user value
  */
 void smf_settings_set_sql_user(char *user);
 
-/** Get sql_user setting
+/** Get SQL username
  *
  * \returns sql_user value
  */
 char *smf_settings_get_sql_user(void);
 
-/** Set sql_pass setting
+/** Set SQL password
  *
  * \param pass sql_pass value
  */
 void smf_settings_set_sql_pass(char *pass);
 
-/** Get sql_pass setting
+/** Get SQL password
  *
  * \returns sql_pass value
  */
@@ -406,103 +434,103 @@ void smf_settings_set_sql_user_query(char *query);
  */
 char *smf_settings_get_sql_user_query(void);
 
-/** Set sql_encoding setting
+/** Set SQL encoding
  *
  * \param encoding sql encoding
  */
 void smf_settings_set_sql_encoding(char *encoding);
 
-/** Get sql_encoding setting
+/** Get SQL encoding
  *
  * \returns sql encoding
  */
 char *smf_settings_get_sql_encoding(void);
 
-/** Set sql_max_connections setting
+/** Set max. number of SQL connections
  *
  * \param i number of max allowed connections
  */
 void smf_settings_set_sql_max_connections(int i);
 
-/** Get sql_max_connection setting
+/** Get max. number of SQL connections
  *
  * \returns number of max. connections
  */
 int smf_settings_get_sql_max_connections(void);
 
-/** Set ldap_uri setting
+/** Set LDAP uri
  *
  * \param uri ldap uri value
  */
 void smf_settings_set_ldap_uri(char *uri);
 
-/** Get ldap_uri setting
+/** Get LDAP uri
  *
  * \returns ldap uri value
  */
 char *smf_settings_get_ldap_uri(void);
 
-/** Set ldap_host setting
+/** Set LDAP host(s)
  *
  * \param host ldap host list
  */
 void smf_settings_set_ldap_host(char **host);
 
-/** Get ldap_host setting
+/** Get LDAP host(s)
  *
  * \returns ldap host list
  */
 char **smf_settings_get_ldap_host(void);
 
-/** Get ldap_num_hosts value
+/** Get number of configured LDAP hosts
  *
  * \returns ldap_num_hosts value
  */
 int smf_settings_get_ldap_num_hosts(void);
 
-/** Set ldap_port setting
+/** Set LDAP port
  *
  * \param port ldap port value 
  */
 void smf_settings_set_ldap_port(int port);
 
-/** Get ldap_port setting
+/** Get LDAP port
  *
  * \returns ldap_port value
  */
 int smf_settings_get_ldap_port(void);
 
-/** Set ldap_binddn setting
+/** Set LDAP binddn
  * 
  * \param binddn ldap binddn value
  */
 void smf_settings_set_ldap_binddn(char *binddn);
 
-/** Get ldap_binddn setting
+/** Get LDAP binddn
  *
  * \returns ldap binddn value
  */
 char *smf_settings_get_ldap_binddn(void);
 
-/** Set ldap_bindpw setting
+/** Set LDAP bind password
  *
  * \param bindpw ldap bindpw value
  */
 void smf_settings_set_ldap_bindpw(char *bindpw);
 
-/** Get ldap_bindpw setting
+/** Get LDAP bind password
  * 
  * \returns ldap_bindpw value
  */
 char *smf_settings_get_ldap_bindpw(void);
 
-/** Set ldap_base setting
+/** Set LDAP search base
  *
  * \param base ldap base value
  */
 void smf_settings_set_ldap_base(char *base);
 
-/** Get ldap_base setting
+/** Get LDAP search base
  *
  * \returns ldap base value
  */
@@ -520,25 +548,29 @@ void smf_settings_set_ldap_referrals(int i);
  */
 int smf_settings_get_ldap_referrals(void);
 
-/** Set ldap_scope setting
+/** Set LDAP scope 
+ *  Possible values are:
+ *  - subtree
+ *  - onelevel
+ *  - base
  *
  * \param scope ldap scope value
  */
 void smf_settings_set_ldap_scope(char *scope);
 
-/** Get ldap_scope setting
+/** Get LDAP scope 
  *
  * \returns ldap scope
  */
 char *smf_settings_get_ldap_scope(void);
 
-/** Set ldap_user_query setting
+/** Set LDAP user query
  * 
  * \param query ldap user query
  */
 void smf_settings_set_ldap_user_query(char *query);
 
-/** Get ldap_user_query setting
+/** Get LDAP user query
  * 
  * \returns ldap user_query
  */
