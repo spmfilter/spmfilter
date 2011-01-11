@@ -476,9 +476,11 @@ char *smf_settings_get_engine(void) {
 
 void smf_settings_set_modules(char **modules) {
 	SMFSettings_T *settings = smf_settings_get();
+	int i;
 	g_mutex_lock(settings_mutex);
-	if (settings->modules != NULL)
+	if (settings->modules != NULL) {
 		g_strfreev(settings->modules);
+	}
 	
 	if (modules != NULL) {
 		settings->modules = g_strdupv(modules);
@@ -799,7 +801,6 @@ void smf_settings_set_ldap_host(char **host) {
 		g_strfreev(settings->ldap_host);
 	
 	if (host != NULL) {
-		settings->ldap_host = g_malloc_n(1,sizeof(char *));
 		settings->ldap_host = g_strdupv(host);
 	}
 	settings->ldap_num_hosts = g_strv_length(host);
@@ -910,7 +911,7 @@ void smf_settings_set_ldap_user_query(char *query) {
 	g_mutex_unlock(settings_mutex);
 }
 
-char *smf_settings_ldap_user_query(void) {
+char *smf_settings_get_ldap_user_query(void) {
 	SMFSettings_T *settings = smf_settings_get();
 	return (char *)settings->ldap_user_query;
 }
