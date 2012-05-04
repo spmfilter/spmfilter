@@ -18,8 +18,16 @@
 #ifndef _SMF_SETTINGS_PRIVATE_H
 #define	_SMF_SETTINGS_PRIVATE_H
 
+#include "smf_settings.h"
 /** initialize settings */
 //void smf_settings_new(void);
+
+/*!
+ * @fn SMFSettings_T *smf_settings_new(void)
+ * @brief Creates a new SMFSettings_T object
+ * @returns a newly alloacted SMFSettings_T object
+*/
+SMFSettings_T *smf_settings_new(void);
 
 /** free settings struct */
 void smf_settings_free(SMFSettings_T *settings);
