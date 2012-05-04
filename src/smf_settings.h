@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,109 +15,98 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_SETTINGS_H
-#define	_SMF_SETTINGS_H
+/*!
+ * @file smf_settings.h
+ * @brief Defines spmfilter configuration and config file parsing functions
+ */
 
+#ifndef _SMF_SETTINGS_H
+#define _SMF_SETTINGS_H
+
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+
+#include "spmfilter_config.h"
+#include "smf_smtp_codes.h"
+#include "smf_trace.h"
+
+/*!
+ * @enum SMFTlsOption_T
+ * @brief Possible types of TLS configuration 
+ */
 typedef enum {
-	SMF_TLS_DISABLED,
-	SMF_TLS_ENABLED,
-	SMF_TLS_REQUIRED
+    SMF_TLS_DISABLED, /**< TLS is disabled */
+    SMF_TLS_ENABLED, /**< TLS is enabled */
+    SMF_TLS_REQUIRED /**< TLS is enabled and required */
 } SMFTlsOption_T;
 
+/*!
+ * @struct SMFSettings_T smf_settings.h
+ * @brief Holds spmfilter runtime configuration 
+ */
 typedef struct {
-	/* debug flag */
-	int debug;
+    int debug; /**< debug flag */
+    char *config_file; /**< path to config file */
+    char *queue_dir; /**< path to spool directory */
+    char *engine; /**< configured engine */
+    char **modules; /**< all configured modules */
+    int module_fail; /**< module fail behavior */
+    char *nexthop; /**< next smtp hop */
+    int nexthop_fail_code; /**< smtp code, when delivery to nexthop fails */
+    char *nexthop_fail_msg; /**< smtp return message, when delivery to nexthop fails */
+    char **backend; /**< configured lookup backend */
+    char *backend_connection; /**< if multiple backend hosts are defined,
+                               * it's possible to balance connections
+                               * between all, or do failover connections.
+                               * possible keys are:
+                               * - balance
+                               *   load-balance connections among all hosts listed
+                               * - failover
+                               *   failover connections in the order listed
+                               */
+    int add_header; /**< add spmfilter processing header */
+    unsigned long max_size; /**< maximal message size in bytes */
+    SMFTlsOption_T tls; /**< enable/disable TLS */
+    char *tls_pass; /**< password for ssl cert */
+    int daemon; /**< daemonize flag */
 
-	/* path to config file */
-	char *config_file;
+    char *sql_driver; /**< sql driver name */
+    char *sql_name; /**< sql database name */
+    char **sql_host; /**< list with sql database hosts */
+    int sql_num_hosts; /**< number of sql database hosts */
+    int sql_port; /**< sql database port */
+    char *sql_user; /**< sql database username */
+    char *sql_pass; /**< sql database password */
+    char *sql_user_query; /**< sql user query */
+    char *sql_encoding; /**< sql encoding */
+    int sql_max_connections; /**< max. number of sql conncetions */
 
-	/* path to spool directory */
-	char *queue_dir;
-
-	/* configured engine */
-	char *engine;
-
-	/* all configured modules */
-	char **modules;
-
-	/* behavior when module fails */
-	int module_fail;
-
-	/* next smtp hop */
-	char *nexthop;
-
-	/* smtp code, when delivery to
-	 * nexthop fails */
-	int nexthop_fail_code;
-
-	/* smtp return message, when delivery
-	 * to nexthop fails */
-	char *nexthop_fail_msg;
-
-	/* configured lookup backend */
-	char **backend;
-
-	/* if multiple backend hosts are defined,
-	 * it's possible to balance connections
-	 * between all, or do failover connections.
-	 * possible keys are:
-	 * - balance
-	 *   load-balance connections among all hosts listed
-	 * - failover
-	 *   failover connections in the order listed
-	 */
-	char *backend_connection;
-
-	/* add spmfilter processing header */
-	int add_header;
-
-	/* maximal message size in bytes */
-	unsigned long max_size;
-
-	/* enable/disable TLS */
-	SMFTlsOption_T tls;
-
-	/* password for ssl cert */
-	char *tls_pass;
-
-	/* daemonize? */
-	int daemon;
-
-	/* zdb settings */
-	char *sql_driver;
-	char *sql_name;
-	char **sql_host;
-	int sql_num_hosts;
-	int sql_port;
-	char *sql_user;
-	char *sql_pass;
-	char *sql_user_query;
-	char *sql_encoding;
-	int sql_max_connections;
-
-	/* ldap settings */
-	char *ldap_uri;
-	char **ldap_host;
-	int ldap_num_hosts;
-	int ldap_port;
-	char *ldap_binddn;
-	char *ldap_bindpw;
-	char *ldap_base;
-	int ldap_referrals;
-	char *ldap_scope;
-	char *ldap_user_query;
+    char *ldap_uri; /**< ldap uri */
+    char **ldap_host; /**< list with ldap hosts */
+    int ldap_num_hosts; /**< number of ldap hosts */
+    int ldap_port; /**< ldap port */
+    char *ldap_binddn; /**< ldap bind dn */
+    char *ldap_bindpw; /**< ldap bind password */
+    char *ldap_base; /**< ldap search base */
+    int ldap_referrals; /**< ldap referrals flag */
+    char *ldap_scope; /**< ldap search scope */
+    char *ldap_user_query; /**< ldap user query */
 } SMFSettings_T;
 
+/*!
+ * @struct SMFSettingsGroup_T smf_settings.h
+ * @brief Represents a config file settings group
+ */
 typedef struct {
-	char *name;
-	void *data;
+    char *name; /**< name of the setting group */
+    void *data; /**< setting group values */
 } SMFSettingsGroup_T;
 
-/** Get all core settings
- *
- * \returns settings struct
-*/
-SMFSettings_T *smf_settings_get(void);
+/* has to be removed */
+SMFSettings_T *smf_settings_get(void); 
 
 /** Set debug setting
  *
@@ -650,4 +639,4 @@ char **smf_settings_group_get_string_list(SMFSettingsGroup_T *group, char *key, 
  */
 void smf_settings_group_free(SMFSettingsGroup_T *group);
 
-#endif	/* _SMF_SETTINGS_H */
+#endif  /* _SMF_SETTINGS_H */
