@@ -22,7 +22,6 @@
 #include <glib/gstdio.h>
 #include <gmodule.h>
 #include <syslog.h>
-#include <gmime/gmime.h>
 
 #include "spmfilter_config.h"
 #include "smf_settings.h"
@@ -66,14 +65,14 @@ int main(int argc, char *argv[]) {
 
 	openlog("spmfilter", LOG_PID, LOG_MAIL);
 	
-	g_thread_init(NULL);
+//	g_thread_init(NULL);
 	
-	if (!g_thread_supported()) {
-		g_print("glib2 does not support threads!");
-		return -1;
-	} else {
+//	if (!g_thread_supported()) {
+//		g_print("glib2 does not support threads!");
+//		return -1;
+//	} else {
 		settings = smf_settings_get();
-	} 
+//	} 
 	
 	/* parse config file and fill settings struct */
 	if (smf_settings_parse_config(settings,config_file) != 0)
@@ -109,7 +108,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* init gmime */
-	g_mime_init(0);
+//	g_mime_init(0);
 	
 	if (settings->daemon == 1)
 		ret = smf_daemon_mainloop(settings);
@@ -117,7 +116,7 @@ int main(int argc, char *argv[]) {
 		ret = smf_modules_engine_load(settings, dup(0));
 
 	/* shutdown gmime */
-	g_mime_shutdown();
+//	g_mime_shutdown();
 
 	if(settings->backend != NULL) {
 		if (smf_lookup_disconnect() != 0)
