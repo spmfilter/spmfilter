@@ -60,15 +60,15 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
 
-/*  
+  
     g_printf("* testing smf_settings_parse_config()...\t\t");
-    if (smf_settings_parse_config(settings,"../../spmfilter.conf.sample") != 0) {
+    if (smf_settings_parse_config(&settings,"../../spmfilter.conf.sample") != 0) {
         g_printf("failed\n");
         return -1;
     } else 
         g_printf("passed\n");
 
-    g_printf("* testing smf_settings_set_debug()...\t\t\t");
+/*    g_printf("* testing smf_settings_set_debug()...\t\t\t");
     if (smf_settings_set_debug(0) != smf_settings_get_debug()) {
         g_printf("failed\n");
         return -1;

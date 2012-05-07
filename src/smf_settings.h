@@ -23,6 +23,7 @@
 #ifndef _SMF_SETTINGS_H
 #define _SMF_SETTINGS_H
 
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
