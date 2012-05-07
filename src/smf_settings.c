@@ -63,72 +63,32 @@ SMFSettings_T *smf_settings_get(void) {
     return settings;
 }
 
-SMFSettings_T *smf_settings_new(void) {
-    SMFSettings_T *settings = NULL;
-
-    settings = (SMFSettings_T *)calloc((size_t)1,sizeof(SMFSettings_T));
-    settings->debug = 0;
-    settings->config_file = NULL;
-    settings->queue_dir = NULL;
-    settings->engine = NULL;
-    settings->modules = NULL;
-    settings->nexthop = NULL;
-    settings->nexthop_fail_msg = NULL;
-    settings->backend = NULL;
-    settings->backend_connection = NULL;
-    settings->tls_pass = NULL;
-    settings->sql_driver = NULL;
-    settings->sql_name = NULL;
-    settings->sql_host = NULL;
-    settings->sql_user = NULL;
-    settings->sql_pass = NULL;
-    settings->sql_user_query = NULL;
-    settings->sql_encoding = NULL;
-    settings->ldap_uri = NULL;
-    settings->ldap_host = NULL;
-    settings->ldap_binddn = NULL;
-    settings->ldap_bindpw = NULL;
-    settings->ldap_base = NULL;
-    settings->ldap_scope = NULL;
-    settings->ldap_user_query = NULL;
-    settings->module_fail = 3;
-    settings->nexthop_fail_code = 451;
-    settings->add_header = 1;
-    settings->max_size = 0;
-    settings->tls = 0;
-    settings->daemon = 0;
-    settings->sql_max_connections = 3;
-    settings->sql_port = 0;
-    
-    return settings;
-}
-
 void smf_settings_free(SMFSettings_T *settings) {
     smf_smtp_codes_free();
     g_strfreev(settings->modules);
     g_strfreev(settings->backend);
-    free(settings->config_file);
-    free(settings->queue_dir);
-    free(settings->engine);
-    free(settings->nexthop);
-    free(settings->nexthop_fail_msg);
-    free(settings->backend_connection);
-    free(settings->tls_pass);
-    free(settings->sql_driver);
-    free(settings->sql_name);
+    g_free(settings->config_file);
+    g_free(settings->queue_dir);
+    g_free(settings->engine);
+    g_free(settings->nexthop);
+    g_free(settings->nexthop_fail_msg);
+    g_free(settings->backend_connection);
+    g_free(settings->tls_pass);
+    g_free(settings->sql_driver);
+    g_free(settings->sql_name);
     g_strfreev(settings->sql_host);
-    free(settings->sql_user);
-    free(settings->sql_pass);
-    free(settings->sql_user_query);
-    free(settings->sql_encoding);
-    free(settings->ldap_uri);
+    g_free(settings->sql_user);
+    g_free(settings->sql_pass);
+    g_free(settings->sql_user_query);
+    g_free(settings->sql_encoding);
+    g_free(settings->ldap_uri);
     g_strfreev(settings->ldap_host);
-    free(settings->ldap_binddn);
-    free(settings->ldap_bindpw);
-    free(settings->ldap_base);
-    free(settings->ldap_scope);
-    free(settings->ldap_user_query);
-    free(settings);
+    g_free(settings->ldap_binddn);
+    g_free(settings->ldap_bindpw);
+    g_free(settings->ldap_base);
+    g_free(settings->ldap_scope);
+    g_free(settings->ldap_user_query);
+    g_slice_free(SMFSettings_T,settings);
 }
 
 int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
@@ -147,9 +107,9 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
      * if config file is not defined as
      * command argument */
     if (alternate_file != NULL) {
-        (*settings)->config_file = strdup(alternate_file);
+        (*settings)->config_file = g_strdup(alternate_file);
     } else {
-        (*settings)->config_file = strdup("/etc/spmfilter.conf");
+        (*settings)->config_file = g_strdup("/etc/spmfilter.conf");
     }
 
     /* open config file and start parsing */
@@ -165,7 +125,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
 
     (*settings)->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", NULL);
     if ((*settings)->queue_dir == NULL)
-        (*settings)->queue_dir = strdup("/var/spool/spmfilter");
+        (*settings)->queue_dir = g_strdup("/var/spool/spmfilter");
 
     (*settings)->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
     if (error != NULL) {
