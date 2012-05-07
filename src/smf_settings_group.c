@@ -29,6 +29,7 @@ SMFSettingsGroup_T *smf_settings_group_load(SMFSettings_T *settings, char *group
 
 	group->data = NULL;
 	group->name = g_strdup(group_name);
+
 	if (settings->config_file == NULL) {
 		settings->config_file = "/etc/spmfilter.conf";
 	}
