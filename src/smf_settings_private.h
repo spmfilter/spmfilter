@@ -40,6 +40,6 @@ void smf_settings_free(SMFSettings_T *settings);
  * \returns 0 on success or -1 in case of error
  */
 
-int smf_settings_parse_config(SMFSettings_T *settings, char *alternate_file);
+int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file);
 
 #endif	/* _SMF_SETTINGS_PRIVATE_H */
