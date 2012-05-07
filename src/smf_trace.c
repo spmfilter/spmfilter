@@ -25,7 +25,7 @@
 #include "smf_trace.h"
 #include "smf_settings.h"
 
-#define SYSLOGFORMAT "[%p] %s:[%s] %s(+%d): %s"
+#define SYSLOGFORMAT "%s:[%s] %s(+%d): %s"
 
 #define min(x,y) ((x)<=(y)?(x):(y))
 
@@ -104,9 +104,9 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 		message[w] = '\0';
 		
 		if ((level >= 128) && (settings->debug == 1))
-			syslog(syslog_level, SYSLOGFORMAT, g_thread_self(), trace_to_text(level), module, function, line, message);
+			syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
 		else if (level < 128)
-			syslog(syslog_level, SYSLOGFORMAT, g_thread_self(), trace_to_text(level), module, function, line, message);
+			syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
 	}
 	g_free(message);
 }

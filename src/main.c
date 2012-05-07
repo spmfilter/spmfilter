@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 //		g_print("glib2 does not support threads!");
 //		return -1;
 //	} else {
-		settings = smf_settings_new();
+		settings = smf_settings_get();
 //	} 
 	
 	/* parse config file and fill settings struct */
