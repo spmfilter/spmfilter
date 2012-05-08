@@ -64,6 +64,8 @@ SMFSettings_T *smf_settings_get(void) {
 }
 
 void smf_settings_free(SMFSettings_T *settings) {
+    assert(settings);
+
     smf_smtp_codes_free();
     g_strfreev(settings->modules);
     g_strfreev(settings->backend);
@@ -102,6 +104,9 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     gsize ldap_num_hosts = 0;
     char *code_msg = NULL;
     int i, code;
+
+    assert(*settings);
+    assert(alternate_file);
 
     /* fallback to default config path,
      * if config file is not defined as
@@ -393,6 +398,8 @@ int smf_settings_get_debug(void) {
 }
 
 int smf_settings_set_config_file(char *cf) {
+    assert(cf);
+
     SMFSettings_T *settings = smf_settings_get();
     if (!g_file_test(cf, G_FILE_TEST_EXISTS)) {
         TRACE(TRACE_ERR,"file [%s] does not exist.",cf);
@@ -414,6 +421,8 @@ char *smf_settings_get_config_file(void) {
 int smf_settings_set_queue_dir(char *qd) {
     SMFSettings_T *settings = smf_settings_get();
     
+    assert(qd);
+
     if (!g_file_test(qd, G_FILE_TEST_IS_DIR)) {
         TRACE(TRACE_ERR,"directory [%s] does not exist",qd);
         return -1;
@@ -439,6 +448,9 @@ char *smf_settings_get_queue_dir(void) {
 
 void smf_settings_set_engine(char *engine) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(engine);
+
     if (settings->engine != NULL)
         g_free(settings->engine);
     settings->engine = g_strdup(engine);
@@ -451,6 +463,9 @@ char *smf_settings_get_engine(void) {
 
 void smf_settings_set_modules(char **modules) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(*modules);
+
     if (settings->modules != NULL) {
         g_strfreev(settings->modules);
     }
@@ -467,6 +482,9 @@ char **smf_settings_get_modules(void) {
 
 void smf_settings_set_nexthop(char *nexthop) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(nexthop);
+
     if (settings->nexthop != NULL) 
         g_free(settings->nexthop);
     
@@ -500,6 +518,9 @@ int smf_settings_get_nexthop_fail_code(void) {
 
 void smf_settings_set_nexthop_fail_msg(char *msg) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(msg);
+
     if (settings->nexthop_fail_msg != NULL)
         g_free(settings->nexthop_fail_msg);
         
@@ -513,6 +534,9 @@ char *smf_settings_get_nexthop_fail_msg(void) {
 
 void smf_settings_set_backend(char **backend) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(*backend);
+
     if (settings->backend != NULL)
         g_strfreev(settings->backend);
     
@@ -528,6 +552,9 @@ char **smf_settings_get_backend(void) {
 
 void smf_settings_set_backend_connection(char *conn) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(conn);
+
     if (settings->backend_connection != NULL)
         g_free(settings->backend_connection);
         
@@ -571,6 +598,9 @@ SMFTlsOption_T smf_settings_get_tls(void) {
 
 void smf_settings_set_tls_pass(char *pass) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(pass);
+
     if (settings->tls_pass != NULL)
         g_free(settings->tls_pass);
         
@@ -594,6 +624,9 @@ int smf_settings_get_daemon(void) {
 
 void smf_settings_set_sql_driver(char *driver) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(driver);
+
     if (settings->sql_driver != NULL)
         g_free(settings->sql_driver);
     
@@ -607,6 +640,9 @@ char *smf_settings_get_sql_driver(void) {
 
 void smf_settings_set_sql_name(char *name) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(name);
+
     if (settings->sql_name != NULL)
         g_free(settings->sql_name);
         
@@ -620,6 +656,9 @@ char *smf_settings_get_sql_name(void) {
 
 void smf_settings_set_sql_host(char **host) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(*host);
+
     if (settings->sql_host != NULL)
         g_strfreev(settings->sql_host);
     
@@ -651,6 +690,9 @@ int smf_settings_get_sql_port(void) {
 
 void smf_settings_set_sql_user(char *user) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(user);
+
     if (settings->sql_user != NULL) 
         g_free(settings->sql_user);
         
@@ -664,6 +706,9 @@ char *smf_settings_get_sql_user(void) {
 
 void smf_settings_set_sql_pass(char *pass) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(pass);
+
     if (settings->sql_pass != NULL)
         g_free(settings->sql_pass);
     
@@ -677,6 +722,9 @@ char *smf_settings_get_sql_pass(void) {
 
 void smf_settings_set_sql_user_query(char *query) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(query);
+
     if (settings->sql_user_query != NULL) 
         g_free(settings->sql_user_query);
     
@@ -690,6 +738,9 @@ char *smf_settings_get_sql_user_query(void) {
 
 void smf_settings_set_sql_encoding(char *encoding) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(encoding);
+
     if (settings->sql_encoding != NULL)
         g_free(settings->sql_encoding);
         
@@ -713,6 +764,9 @@ int smf_settings_get_sql_max_connections(void) {
 
 void smf_settings_set_ldap_uri(char *uri) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(uri);
+
     if (settings->ldap_uri != NULL) 
         g_free(settings->ldap_uri);
         
@@ -726,6 +780,9 @@ char *smf_settings_get_ldap_uri(void) {
 
 void smf_settings_set_ldap_host(char **host) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(*host);
+
     if (settings->ldap_host != NULL)
         g_strfreev(settings->ldap_host);
     
@@ -757,6 +814,9 @@ int smf_settings_get_ldap_port(void) {
 
 void smf_settings_set_ldap_binddn(char *binddn) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(binddn);
+
     if (settings->ldap_binddn != NULL)
         g_free(settings->ldap_binddn);
         
@@ -770,6 +830,9 @@ char *smf_settings_get_ldap_binddn(void) {
 
 void smf_settings_set_ldap_bindpw(char *bindpw) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(bindpw);
+
     if (settings->ldap_bindpw != NULL)
         g_free(settings->ldap_bindpw);
         
@@ -783,6 +846,9 @@ char *smf_settings_get_ldap_bindpw(void) {
 
 void smf_settings_set_ldap_base(char *base) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(base);
+
     if (settings->ldap_base != NULL)
         g_free(settings->ldap_base);
         
@@ -806,6 +872,9 @@ int smf_settings_get_ldap_referrals(void) {
 
 void smf_settings_set_ldap_scope(char *scope) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(scope);
+
     if (settings->ldap_scope != NULL)
         g_free(settings->ldap_scope);
         
@@ -819,6 +888,9 @@ char *smf_settings_get_ldap_scope(void) {
 
 void smf_settings_set_ldap_user_query(char *query) {
     SMFSettings_T *settings = smf_settings_get();
+    
+    assert(query);
+
     if (settings->ldap_user_query != NULL)
         g_free(settings->ldap_user_query);
         
