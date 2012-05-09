@@ -18,11 +18,12 @@
 #ifndef _SMF_SESSION_H
 #define	_SMF_SESSION_H
 
+#include "smf_envelope.h"
 #include "smf_message.h"
 
 typedef struct {
 	/* message envelope */
-	SMFMessageEnvelope_T *envelope;
+	SMFEnvelope_T *envelope;
 
 	/* size of message body */
 	size_t msgbodysize;

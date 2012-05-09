@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  */
 
 #ifndef _SMF_MESSAGE_H
-#define	_SMF_MESSAGE_H
+#define _SMF_MESSAGE_H
 
 #include <time.h>
 #include "smf_core.h"
@@ -30,53 +30,28 @@ typedef struct _SMFObject_T SMFMultiPart_T;
 typedef struct _SMFObject_T SMFDataWrapper_T;
 
 typedef struct {
-	/* message recipients */
-	SMFEmailAddress_T **message_to;
-	int message_to_num;
+    /* message recipients */
+    SMFEmailAddress_T **message_to;
+    int message_to_num;
  
-	/* message sender */
-	SMFEmailAddress_T *message_from;
-	
-	/* message header */
-	void *headers;
-	void *dirty_headers;
-	
-	void *data;
+    /* message sender */
+    SMFEmailAddress_T *message_from;
+    
+    /* message header */
+    void *headers;
+    void *dirty_headers;
+    
+    void *data;
 } SMFMessage_T;
 
-typedef struct {
-	/* envelope recipients */
-	SMFEmailAddress_T **rcpt;
-	int num_rcpts;
-
-	/* envelope sender */
-	SMFEmailAddress_T *sender;
-	
-	/* path to message */
-	char *message_file;
-
-	/* SMTP auth user, if needed */
-	char *auth_user;
-
-	/* SMTP auth password, if needed */
-	char *auth_pass;
-
-	/* destination smtp server */
-	char *nexthop;
-
-	SMFMessage_T *message;
-} SMFMessageEnvelope_T;
-
-/** A message recipient type.
- *
- * SMF_RECIPIENT_TYPE_TO - Represents the recipients in the To: header.
- * SMF_RECIPIENT_TYPE_CC - Represents the recipients in the Cc: header.
- * SMF_RECIPIENT_TYPE_BCC - Represents the recipients in the Bcc: header.
+ /*!
+ * @enum SMFRecipientType_T
+ * @brief Possible recipient types
  */
 typedef enum {
-	SMF_RECIPIENT_TYPE_TO,
-	SMF_RECIPIENT_TYPE_CC,
-	SMF_RECIPIENT_TYPE_BCC
+    SMF_RECIPIENT_TYPE_TO, /**< Represents the recipients in the To: header */
+    SMF_RECIPIENT_TYPE_CC, /**< Represents the recipients in the Cc: header */
+    SMF_RECIPIENT_TYPE_BCC /**< Represents the recipients in the Bcc: header */
 } SMFRecipientType_T;
 
 /** A Content-Transfer-Encoding enumeration.
@@ -90,138 +65,15 @@ typedef enum {
  * SMF_CONTENT_ENCODING_UUENCODE - Uuencode transfer encoding.
  */
 typedef enum {
-	SMF_CONTENT_ENCODING_DEFAULT,
-	SMF_CONTENT_ENCODING_7BIT,
-	SMF_CONTENT_ENCODING_8BIT,
-	SMF_CONTENT_ENCODING_BINARY,
-	SMF_CONTENT_ENCODING_BASE64,
-	SMF_CONTENT_ENCODING_QUOTEDPRINTABLE,
-	SMF_CONTENT_ENCODING_UUENCODE,
-	SMF_NUM_ENCODINGS
+    SMF_CONTENT_ENCODING_DEFAULT,
+    SMF_CONTENT_ENCODING_7BIT,
+    SMF_CONTENT_ENCODING_8BIT,
+    SMF_CONTENT_ENCODING_BINARY,
+    SMF_CONTENT_ENCODING_BASE64,
+    SMF_CONTENT_ENCODING_QUOTEDPRINTABLE,
+    SMF_CONTENT_ENCODING_UUENCODE,
+    SMF_NUM_ENCODINGS
 } SMFContentEncoding_T;
-
-/** Creates a new SMFMessageEnvelope_T object
- *
- * \returns an empty SMFMessageEnvelope_T object
- */
-SMFMessageEnvelope_T *smf_message_envelope_new(void);
-
-/** Free SMFMessageEnvelope_T object
- *
- * \param message SMFMessageEnvelope_T object
- */
-void smf_message_envelope_free(SMFMessageEnvelope_T *envelope);
-
-/** Add new recipient to envelope
- *
- * \param envelope SMFMessageEnvelope_T object
- * \param rcpt rcpt address
- *
- * \returns SMFMessageEnvelope_T object
- */
-SMFMessageEnvelope_T *smf_message_envelope_add_rcpt(SMFMessageEnvelope_T *envelope, char *rcpt);
-
-/** The function signature for a callback to smf_message_envelope_foreach_rcpt()
- *
- * \param ea a SMFEmailAddress_T object
- * \param user_data User-supplied callback data.
- */
-typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data);
-
-/** Recursively calls callback on each envelope recipient.
- *
- * \param message SMFMessageEnvelope_T object
- * \param callback function to call on each of the mime parts contained by the mime message
- * \param user-supplied callback data
- */
-void smf_message_envelope_foreach_rcpt(SMFMessageEnvelope_T *envelope, SMFRcptForeachFunc callback, void  *user_data);
-
-/** Set sender to envelope
- *
- * \param envelope SMFMessageEnvelope_T object
- * \param sender envelope sender address
- *
- * \returns SMFMessageEnvelope_T object
- */
-SMFMessageEnvelope_T *smf_message_envelope_set_sender(SMFMessageEnvelope_T *envelope, char *sender);
-
-/** Get envelope sender 
- *
- * \param envelope SMFMessageEnvelope_T object
- *
- * \returns SMFEmailAddress_T object
- */
-SMFEmailAddress_T *smf_message_envelope_get_sender(SMFMessageEnvelope_T *envelope);
-
-/** Set path for message file
- * 
- * \param envelope SMFMessageEnvelope_T object
- * \param fp message file path
- *
- * \returns SMFMessageEnvelope_T object
- */
-SMFMessageEnvelope_T *smf_message_envelope_set_message_file(SMFMessageEnvelope_T *envelope, char *fp);
-
-/** Get message file
- *
- * \param envelope SMFMessageEnvelope_T object
- * 
- * \returns path to message file
- */
-char *smf_message_envelope_get_message_file(SMFMessageEnvelope_T *envelope);
-
-/** Set auth user
- * 
- * \param envelope SMFMessageEnvelope_T object
- * \param auth_user Auth username
- *
- * \returns SMFMessageEnvelope_T object
- */
-SMFMessageEnvelope_T *smf_message_envelope_set_auth_user(SMFMessageEnvelope_T *envelope,char *auth_user);
-
-
-/** Get auth user
- *
- * \param envelope SMFMessageEnvelope_T object
- * 
- * \returns auth username
- */
-char *smf_message_envelope_get_auth_user(SMFMessageEnvelope_T *envelope);
-
-/** Set auth password
- * 
- * \param envelope SMFMessageEnvelope_T object
- * \param auth_pass Auth password
- *
- * \returns SMFMessageEnvelope_T object
- */
-SMFMessageEnvelope_T *smf_message_envelope_set_auth_pass(SMFMessageEnvelope_T *envelope, char *auth_pass);
-
-
-/** Get auth pass
- *
- * \param envelope SMFMessageEnvelope_T object
- * 
- * \returns auth password
- */
-char *smf_message_envelope_get_auth_pass(SMFMessageEnvelope_T *envelope);
-
-/** Set nexthop
- * 
- * \param envelope SMFMessageEnvelope_T object
- * \param nexthop nexthop
- *
- * \returns SMFMessageEnvelope_T object
- */
-SMFMessageEnvelope_T *smf_message_envelope_set_nexthop(SMFMessageEnvelope_T *envelope, char *nexthop);
-
-/** Get nexthop
- *
- * \param envelope SMFMessageEnvelope_T object
- * 
- * \returns nexthop
- */
-char *smf_message_envelope_get_nexthop(SMFMessageEnvelope_T *nexthop);
 
 /** Deliver message
  *
@@ -229,7 +81,7 @@ char *smf_message_envelope_get_nexthop(SMFMessageEnvelope_T *nexthop);
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_message_deliver(SMFMessageEnvelope_T *envelope);
+//int smf_message_deliver(SMFMessageEnvelope_T *envelope);
 
 /** Decodes an rfc2047 encoded 'text' header.
  *
@@ -299,9 +151,9 @@ const char *smf_message_get_sender(SMFMessage_T *message);
  * \param addr The recipient's address
  */
 void smf_message_add_recipient(SMFMessage_T *message,
-		SMFRecipientType_T type,
-		const char *name,
-		const char *addr);
+        SMFRecipientType_T type,
+        const char *name,
+        const char *addr);
 
 /** Set the sender's Reply-To address on the message.
  *
@@ -419,7 +271,7 @@ typedef void (*SMFObjectForeachFunc) (SMFObject_T *part, void *user_data);
  * \param callback function to call on each of the mime parts contained by the mime message
  * \param user-supplied callback data
  */
-void smf_message_foreach(SMFMessage_T *message,	SMFObjectForeachFunc callback, void  *user_data);
+void smf_message_foreach(SMFMessage_T *message, SMFObjectForeachFunc callback, void  *user_data);
 
 /** Gets the value of the first header with the name requested.
  *
@@ -480,4 +332,4 @@ void smf_message_header_remove(SMFMessage_T *message, char *header_name);
  */
 char *smf_message_header_to_string(SMFMessage_T *message);
 
-#endif	/* _SMF_MESSAGE_H */
+#endif  /* _SMF_MESSAGE_H */

@@ -21,52 +21,50 @@
 #include "smf_settings_private.h"
 
 /* has to be removed */
-SMFSettings_T *smf_settings_get(void) {
-    static SMFSettings_T *settings = NULL;
+SMFSettings_T *smf_settings_new(void) {
+    SMFSettings_T *settings = NULL;
 
-    if (settings == NULL) {
-        settings = g_slice_new(SMFSettings_T);
-        settings->debug = 0;
-        settings->config_file = NULL;
-        settings->queue_dir = NULL;
-        settings->engine = NULL;
-        settings->modules = NULL;
-        settings->nexthop = NULL;
-        settings->nexthop_fail_msg = NULL;
-        settings->backend = NULL;
-        settings->backend_connection = NULL;
-        settings->tls_pass = NULL;
-        settings->sql_driver = NULL;
-        settings->sql_name = NULL;
-        settings->sql_host = NULL;
-        settings->sql_user = NULL;
-        settings->sql_pass = NULL;
-        settings->sql_user_query = NULL;
-        settings->sql_encoding = NULL;
-        settings->ldap_uri = NULL;
-        settings->ldap_host = NULL;
-        settings->ldap_binddn = NULL;
-        settings->ldap_bindpw = NULL;
-        settings->ldap_base = NULL;
-        settings->ldap_scope = NULL;
-        settings->ldap_user_query = NULL;
-        settings->module_fail = 3;
-        settings->nexthop_fail_code = 451;
-        settings->add_header = 1;
-        settings->max_size = 0;
-        settings->tls = 0;
-        settings->daemon = 0;
-        settings->sql_max_connections = 3;
-        settings->sql_port = 0;
-        
-    }
+    settings = g_slice_new(SMFSettings_T);
+    settings->debug = 0;
+    settings->config_file = NULL;
+    settings->queue_dir = NULL;
+    settings->engine = NULL;
+    settings->modules = NULL;
+    settings->nexthop = NULL;
+    settings->nexthop_fail_msg = NULL;
+    settings->backend = NULL;
+    settings->backend_connection = NULL;
+    settings->tls_pass = NULL;
+    settings->smtp_codes = g_hash_table_new_full(g_str_hash, g_str_equal,free,free);
+    settings->sql_driver = NULL;
+    settings->sql_name = NULL;
+    settings->sql_host = NULL;
+    settings->sql_user = NULL;
+    settings->sql_pass = NULL;
+    settings->sql_user_query = NULL;
+    settings->sql_encoding = NULL;
+    settings->ldap_uri = NULL;
+    settings->ldap_host = NULL;
+    settings->ldap_binddn = NULL;
+    settings->ldap_bindpw = NULL;
+    settings->ldap_base = NULL;
+    settings->ldap_scope = NULL;
+    settings->ldap_user_query = NULL;
+    settings->module_fail = 3;
+    settings->nexthop_fail_code = 451;
+    settings->add_header = 1;
+    settings->max_size = 0;
+    settings->tls = 0;
+    settings->daemon = 0;
+    settings->sql_max_connections = 3;
+    settings->sql_port = 0;
+
     return settings;
 }
 
 void smf_settings_free(SMFSettings_T *settings) {
     assert(settings);
 
-    smf_smtp_codes_free();
     g_strfreev(settings->modules);
     g_strfreev(settings->backend);
     g_free(settings->config_file);
@@ -76,6 +74,7 @@ void smf_settings_free(SMFSettings_T *settings) {
     g_free(settings->nexthop_fail_msg);
     g_free(settings->backend_connection);
     g_free(settings->tls_pass);
+    g_hash_table_destroy(settings->smtp_codes);
     g_free(settings->sql_driver);
     g_free(settings->sql_name);
     g_strfreev(settings->sql_host);
@@ -369,8 +368,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         code = g_ascii_strtod(code_keys[codes_length],NULL);
         if ((code > 400) && (code < 600)) {
             code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
-            smf_smtp_codes_insert(code,code_msg);
-            TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smf_smtp_codes_get(code));
+            smf_settings_set_smtp_code((*settings),code,code_msg);
+            TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smf_settings_get_smtp_code((*settings),code));
             g_free(code_msg);
         }
     }
@@ -380,8 +379,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     return 0;
 }
 
-int smf_settings_set_debug(int debug) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_set_debug(SMFSettings_T *settings, int debug) {
+    assert(settings);
     if ((debug != 0) && (debug != 1)) {
         TRACE(TRACE_ERR,"debug setting must be either 0 or 1");
         return -1;
@@ -392,15 +391,15 @@ int smf_settings_set_debug(int debug) {
     return 0;
 }
 
-int smf_settings_get_debug(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_debug(SMFSettings_T *settings) {
+    assert(settings);
     return settings->debug;
 }
 
-int smf_settings_set_config_file(char *cf) {
+int smf_settings_set_config_file(SMFSettings_T *settings, char *cf) {
+    assert(settings);
     assert(cf);
 
-    SMFSettings_T *settings = smf_settings_get();
     if (!g_file_test(cf, G_FILE_TEST_EXISTS)) {
         TRACE(TRACE_ERR,"file [%s] does not exist.",cf);
         return -1;
@@ -413,14 +412,13 @@ int smf_settings_set_config_file(char *cf) {
     return 0;
 }
 
-char *smf_settings_get_config_file(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->config_file;
+char *smf_settings_get_config_file(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->config_file;
 }
 
-int smf_settings_set_queue_dir(char *qd) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+int smf_settings_set_queue_dir(SMFSettings_T *settings, char *qd) {
+    assert(settings);    
     assert(qd);
 
     if (!g_file_test(qd, G_FILE_TEST_IS_DIR)) {
@@ -441,14 +439,13 @@ int smf_settings_set_queue_dir(char *qd) {
     return 0;
 }
 
-char *smf_settings_get_queue_dir(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->queue_dir;
+char *smf_settings_get_queue_dir(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->queue_dir;
 }
 
-void smf_settings_set_engine(char *engine) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_engine(SMFSettings_T *settings, char *engine) {
+    assert(settings);    
     assert(engine);
 
     if (settings->engine != NULL)
@@ -456,14 +453,13 @@ void smf_settings_set_engine(char *engine) {
     settings->engine = g_strdup(engine);
 }
 
-char *smf_settings_get_engine(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->engine;
+char *smf_settings_get_engine(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->engine;
 }
 
-void smf_settings_set_modules(char **modules) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_modules(SMFSettings_T *settings, char **modules) {
+    assert(settings); 
     assert(*modules);
 
     if (settings->modules != NULL) {
@@ -475,14 +471,13 @@ void smf_settings_set_modules(char **modules) {
     }
 }
 
-char **smf_settings_get_modules(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char **)settings->modules;
+char **smf_settings_get_modules(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->modules;
 }
 
-void smf_settings_set_nexthop(char *nexthop) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_nexthop(SMFSettings_T *settings, char *nexthop) {
+    assert(settings);
     assert(nexthop);
 
     if (settings->nexthop != NULL) 
@@ -491,34 +486,33 @@ void smf_settings_set_nexthop(char *nexthop) {
     settings->nexthop = g_strdup(nexthop);
 }
 
-char *smf_settings_get_nexthop(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->nexthop;
+char *smf_settings_get_nexthop(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->nexthop;
 }
 
-void smf_settings_set_module_fail(int i) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_module_fail(SMFSettings_T *settings, int i) {
+    assert(settings);
     settings->module_fail = i;
 }
 
-int smf_settings_get_module_fail(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_module_fail(SMFSettings_T *settings) {
+    assert(settings);
     return settings->module_fail;
 }
 
-void smf_settings_set_nexthop_fail_code(int i) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_nexthop_fail_code(SMFSettings_T *settings, int i) {
+    assert(settings);
     settings->nexthop_fail_code = i;
 }
 
-int smf_settings_get_nexthop_fail_code(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_nexthop_fail_code(SMFSettings_T *settings) {
+    assert(settings);
     return settings->nexthop_fail_code;
 }
 
-void smf_settings_set_nexthop_fail_msg(char *msg) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_nexthop_fail_msg(SMFSettings_T *settings, char *msg) {
+    assert(settings);
     assert(msg);
 
     if (settings->nexthop_fail_msg != NULL)
@@ -527,14 +521,13 @@ void smf_settings_set_nexthop_fail_msg(char *msg) {
     settings->nexthop_fail_msg = g_strdup(msg);
 }
 
-char *smf_settings_get_nexthop_fail_msg(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->nexthop_fail_msg;
+char *smf_settings_get_nexthop_fail_msg(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->nexthop_fail_msg;
 }
 
-void smf_settings_set_backend(char **backend) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_backend(SMFSettings_T *settings, char **backend) {
+    assert(settings);
     assert(*backend);
 
     if (settings->backend != NULL)
@@ -545,14 +538,13 @@ void smf_settings_set_backend(char **backend) {
     }
 }
 
-char **smf_settings_get_backend(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char **)settings->backend;
+char **smf_settings_get_backend(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->backend;
 }
 
-void smf_settings_set_backend_connection(char *conn) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_backend_connection(SMFSettings_T *settings, char *conn) {
+    assert(settings);
     assert(conn);
 
     if (settings->backend_connection != NULL)
@@ -561,44 +553,43 @@ void smf_settings_set_backend_connection(char *conn) {
     settings->backend_connection = g_strdup(conn);
 }
 
-char *smf_settings_get_backend_connection(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->backend_connection;
+char *smf_settings_get_backend_connection(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->backend_connection;
 }
 
-void smf_settings_set_add_header(int i) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_add_header(SMFSettings_T *settings, int i) {
+    assert(settings);
     settings->add_header = i;
 }
 
-int smf_settings_get_add_header(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_add_header(SMFSettings_T *settings) {
+    assert(settings);
     return settings->add_header;
 }
 
-void smf_settings_set_max_size(unsigned long size) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_max_size(SMFSettings_T *settings, unsigned long size) {
+    assert(settings);
     settings->max_size = size;
 }
 
-unsigned long smf_settings_get_max_size(void) {
-    SMFSettings_T *settings = smf_settings_get();
+unsigned long smf_settings_get_max_size(SMFSettings_T *settings) {
+    assert(settings);
     return settings->max_size;
 }
 
-void smf_settings_set_tls(SMFTlsOption_T t) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_tls(SMFSettings_T *settings, SMFTlsOption_T t) {
+    assert(settings);
     settings->tls = t;
 }
 
-SMFTlsOption_T smf_settings_get_tls(void) {
-    SMFSettings_T *settings = smf_settings_get();
+SMFTlsOption_T smf_settings_get_tls(SMFSettings_T *settings) {
+    assert(settings);
     return settings->tls;
 }
 
-void smf_settings_set_tls_pass(char *pass) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_tls_pass(SMFSettings_T *settings, char *pass) {
+    assert(settings);
     assert(pass);
 
     if (settings->tls_pass != NULL)
@@ -607,24 +598,45 @@ void smf_settings_set_tls_pass(char *pass) {
     settings->tls_pass = g_strdup(pass);
 }
 
-char *smf_settings_get_tls_pass(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->tls_pass;
+char *smf_settings_get_tls_pass(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->tls_pass;
 }
 
-void smf_settings_set_daemon(int i) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_daemon(SMFSettings_T *settings, int i) {
+    assert(settings);
     settings->daemon = i;
 }
 
-int smf_settings_get_daemon(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_daemon(SMFSettings_T *settings) {
+    assert(settings);
     return settings->daemon;
 }
 
-void smf_settings_set_sql_driver(char *driver) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {
+    char *strcode = g_strdup_printf("%d",code);
+
+    assert(settings);
+    assert(msg);
+
+    g_hash_table_insert(settings-> smtp_codes, g_strdup(strcode), g_strdup(msg));
+    free(strcode);
+}
+
+char *smf_settings_get_smtp_code(SMFSettings_T *settings, int code) {
+    char *strcode = g_strdup_printf("%d",code);
+    char *p = NULL;
+
+    assert(settings);
+
+    p = g_hash_table_lookup(settings->smtp_codes,strcode);
+    g_free(strcode);
+
+    return p;
+}
+
+void smf_settings_set_sql_driver(SMFSettings_T *settings, char *driver) {
+    assert(settings);   
     assert(driver);
 
     if (settings->sql_driver != NULL)
@@ -633,14 +645,13 @@ void smf_settings_set_sql_driver(char *driver) {
     settings->sql_driver = g_strdup(driver);
 }
 
-char *smf_settings_get_sql_driver(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->sql_driver;
+char *smf_settings_get_sql_driver(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->sql_driver;
 }
 
-void smf_settings_set_sql_name(char *name) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_sql_name(SMFSettings_T *settings, char *name) {
+    assert(settings);
     assert(name);
 
     if (settings->sql_name != NULL)
@@ -649,14 +660,13 @@ void smf_settings_set_sql_name(char *name) {
     settings->sql_name = g_strdup(name);
 }
 
-char *smf_settings_get_sql_name(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->sql_name;
+char *smf_settings_get_sql_name(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->sql_name;
 }
 
-void smf_settings_set_sql_host(char **host) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_sql_host(SMFSettings_T *settings, char **host) {
+    assert(settings);
     assert(*host);
 
     if (settings->sql_host != NULL)
@@ -668,29 +678,28 @@ void smf_settings_set_sql_host(char **host) {
     settings->sql_num_hosts = g_strv_length(host);
 }
 
-char **smf_settings_get_sql_host(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char **)settings->sql_host;
+char **smf_settings_get_sql_host(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->sql_host;
 }
 
-int smf_settings_get_sql_num_hosts(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_sql_num_hosts(SMFSettings_T *settings) {
+    assert(settings);
     return settings->sql_num_hosts;
 }
 
-void smf_settings_set_sql_port(int port) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_sql_port(SMFSettings_T *settings, int port) {
+    assert(settings);
     settings->sql_port = port;
 }
 
-int smf_settings_get_sql_port(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_sql_port(SMFSettings_T *settings) {
+    assert(settings);
     return settings->sql_port;
 }
 
-void smf_settings_set_sql_user(char *user) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_sql_user(SMFSettings_T *settings, char *user) {
+    assert(settings);
     assert(user);
 
     if (settings->sql_user != NULL) 
@@ -699,13 +708,13 @@ void smf_settings_set_sql_user(char *user) {
     settings->sql_user = g_strdup(user);
 }
 
-char *smf_settings_get_sql_user(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->sql_user;
+char *smf_settings_get_sql_user(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->sql_user;
 }
 
-void smf_settings_set_sql_pass(char *pass) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_sql_pass(SMFSettings_T *settings, char *pass) {
+    assert(settings);
     
     assert(pass);
 
@@ -715,14 +724,13 @@ void smf_settings_set_sql_pass(char *pass) {
     settings->sql_pass = g_strdup(pass);
 } 
 
-char *smf_settings_get_sql_pass(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->sql_pass;
+char *smf_settings_get_sql_pass(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->sql_pass;
 }
 
-void smf_settings_set_sql_user_query(char *query) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_sql_user_query(SMFSettings_T *settings, char *query) {
+    assert(settings);
     assert(query);
 
     if (settings->sql_user_query != NULL) 
@@ -731,14 +739,13 @@ void smf_settings_set_sql_user_query(char *query) {
     settings->sql_user_query = g_strdup(query);
 }
 
-char *smf_settings_get_sql_user_query(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->sql_user_query;
+char *smf_settings_get_sql_user_query(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->sql_user_query;
 }
 
-void smf_settings_set_sql_encoding(char *encoding) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_sql_encoding(SMFSettings_T *settings, char *encoding) {
+    assert(settings);
     assert(encoding);
 
     if (settings->sql_encoding != NULL)
@@ -747,24 +754,23 @@ void smf_settings_set_sql_encoding(char *encoding) {
     settings->sql_encoding = g_strdup(encoding);
 }
 
-char *smf_settings_get_sql_encoding(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->sql_encoding;
+char *smf_settings_get_sql_encoding(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->sql_encoding;
 }
 
-void smf_settings_set_sql_max_connections(int i) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_sql_max_connections(SMFSettings_T *settings, int i) {
+    assert(settings);
     settings->sql_max_connections = i;
 }
 
-int smf_settings_get_sql_max_connections(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_sql_max_connections(SMFSettings_T *settings) {
+    assert(settings);
     return settings->sql_max_connections;
 }
 
-void smf_settings_set_ldap_uri(char *uri) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_ldap_uri(SMFSettings_T *settings, char *uri) {
+    assert(settings);
     assert(uri);
 
     if (settings->ldap_uri != NULL) 
@@ -773,14 +779,13 @@ void smf_settings_set_ldap_uri(char *uri) {
     settings->ldap_uri = g_strdup(uri);
 }
 
-char *smf_settings_get_ldap_uri(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->ldap_uri;
+char *smf_settings_get_ldap_uri(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_uri;
 }
 
-void smf_settings_set_ldap_host(char **host) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_ldap_host(SMFSettings_T *settings, char **host) {
+    assert(settings);
     assert(*host);
 
     if (settings->ldap_host != NULL)
@@ -792,29 +797,28 @@ void smf_settings_set_ldap_host(char **host) {
     settings->ldap_num_hosts = g_strv_length(host);
 }
 
-char **smf_settings_get_ldap_host(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char **)settings->ldap_host;
+char **smf_settings_get_ldap_host(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_host;
 }
 
-int smf_settings_get_ldap_num_hosts(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_ldap_num_hosts(SMFSettings_T *settings) {
+    assert(settings);
     return settings->ldap_num_hosts;
 }
 
-void smf_settings_set_ldap_port(int port) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_ldap_port(SMFSettings_T *settings, int port) {
+    assert(settings);
     settings->ldap_port = port;
 }
 
-int smf_settings_get_ldap_port(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_ldap_port(SMFSettings_T *settings) {
+    assert(settings);
     return settings->ldap_port;
 }
 
-void smf_settings_set_ldap_binddn(char *binddn) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_ldap_binddn(SMFSettings_T *settings, char *binddn) {
+    assert(settings);
     assert(binddn);
 
     if (settings->ldap_binddn != NULL)
@@ -823,14 +827,13 @@ void smf_settings_set_ldap_binddn(char *binddn) {
     settings->ldap_binddn = g_strdup(binddn);
 }
 
-char *smf_settings_get_ldap_binddn(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->ldap_binddn;
+char *smf_settings_get_ldap_binddn(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_binddn;
 }
 
-void smf_settings_set_ldap_bindpw(char *bindpw) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_ldap_bindpw(SMFSettings_T *settings, char *bindpw) {
+    assert(settings);   
     assert(bindpw);
 
     if (settings->ldap_bindpw != NULL)
@@ -839,14 +842,13 @@ void smf_settings_set_ldap_bindpw(char *bindpw) {
     settings->ldap_bindpw = g_strdup(bindpw);
 }
 
-char *smf_settings_get_ldap_bindpw(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->ldap_bindpw;
+char *smf_settings_get_ldap_bindpw(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_bindpw;
 }
 
-void smf_settings_set_ldap_base(char *base) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_ldap_base(SMFSettings_T *settings, char *base) {
+    assert(settings);
     assert(base);
 
     if (settings->ldap_base != NULL)
@@ -855,24 +857,23 @@ void smf_settings_set_ldap_base(char *base) {
     settings->ldap_base = g_strdup(base);
 }
 
-char *smf_settings_get_ldap_base(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->ldap_base;
+char *smf_settings_get_ldap_base(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_base;
 }
 
-void smf_settings_set_ldap_referrals(int i) {
-    SMFSettings_T *settings = smf_settings_get();
+void smf_settings_set_ldap_referrals(SMFSettings_T *settings, int i) {
+    assert(settings);
     settings->ldap_referrals = i;
 }
 
-int smf_settings_get_ldap_referrals(void) {
-    SMFSettings_T *settings = smf_settings_get();
+int smf_settings_get_ldap_referrals(SMFSettings_T *settings) {
+    assert(settings);
     return settings->ldap_referrals;
 }
 
-void smf_settings_set_ldap_scope(char *scope) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_ldap_scope(SMFSettings_T *settings, char *scope) {
+    assert(settings);
     assert(scope);
 
     if (settings->ldap_scope != NULL)
@@ -881,14 +882,13 @@ void smf_settings_set_ldap_scope(char *scope) {
     settings->ldap_scope = g_strdup(scope);
 }
 
-char *smf_settings_get_ldap_scope(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->ldap_scope;
+char *smf_settings_get_ldap_scope(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_scope;
 }
 
-void smf_settings_set_ldap_user_query(char *query) {
-    SMFSettings_T *settings = smf_settings_get();
-    
+void smf_settings_set_ldap_user_query(SMFSettings_T *settings, char *query) {
+    assert(settings);
     assert(query);
 
     if (settings->ldap_user_query != NULL)
@@ -897,8 +897,8 @@ void smf_settings_set_ldap_user_query(char *query) {
     settings->ldap_user_query = g_strdup(query);
 }
 
-char *smf_settings_get_ldap_user_query(void) {
-    SMFSettings_T *settings = smf_settings_get();
-    return (char *)settings->ldap_user_query;
+char *smf_settings_get_ldap_user_query(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_user_query;
 }
  

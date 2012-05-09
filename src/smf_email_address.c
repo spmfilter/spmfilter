@@ -37,8 +37,9 @@ void smf_email_address_free(SMFEmailAddress_T *ea) {
     if (ea != NULL) {
         if (ea->addr != NULL) {
             g_free(ea->addr);
-            if (ea->lr != NULL)
-                smf_lookup_result_free(ea->lr);
+            //if (ea->lr != NULL)
+                // TODO: re-add smf_lookup_result_free
+                //smf_lookup_result_free(ea->lr);
         }
         g_slice_free(SMFEmailAddress_T,ea);
     }
@@ -60,10 +61,11 @@ char *smf_email_address_get_addr(SMFEmailAddress_T *ea) {
 
 SMFEmailAddress_T *smf_email_address_set_lr(SMFEmailAddress_T *ea,SMFLookupResult_T *lr) {
     if (ea->lr != NULL) {
-        smf_lookup_result_free(ea->lr);
+        // TODO: re-add smf_lookup_result_free
+        //smf_lookup_result_free(ea->lr);
     }
-    
-    ea->lr = smf_lookup_result_new();
+    // TODO: re-add smf_lookup_result_new
+    //ea->lr = smf_lookup_result_new();
     return ea;
 }
 

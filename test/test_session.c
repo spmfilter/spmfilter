@@ -30,6 +30,7 @@
 #define TEST_RESPONSE "250 OK message accepted"
 
 int main (int argc, char const *argv[]) {
+#if 0
 	SMFSession_T *session = NULL;
 	SMFSettings_T *settings = NULL;
 	
@@ -77,5 +78,6 @@ int main (int argc, char const *argv[]) {
 	
 	smf_settings_free(settings);
 	g_thread_exit(NULL);
+#endif
 	return 0;
 }

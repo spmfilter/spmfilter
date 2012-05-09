@@ -18,21 +18,25 @@
 #ifndef _SMF_SMTP_CODES_H
 #define	_SMF_SMTP_CODES_H
 
+#include <glib.h>
+#include <stdlib.h>
+
 /** Free smtp codes */
 void smf_smtp_codes_free(void);
 
-/** Add smtp return code to list
- *
- * \param code smtp code
- * \param msg smtp return message
+/*!
+ * @fn void smf_smtp_codes_insert(int code, char *msg)
+ * @biref Add smtp return code to list
+ * @param code smtp code
+ * @param msg smtp return message
  */
 void smf_smtp_codes_insert(int code, char *msg);
 
-/** Get smtp return code message of given code
- *
- * \param code to look for
- *
- * \returns smtp return message for given code
+/*! 
+ * @fn char *smf_smtp_codes_get(int code)
+ * @brief Get smtp return code message of given code
+ * @param code to look for
+ * @returns smtp return message for given code
  */
 char *smf_smtp_codes_get(int code);
 
