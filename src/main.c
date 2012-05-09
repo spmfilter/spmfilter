@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 //      g_print("glib2 does not support threads!");
 //      return -1;
 //  } else {
-        settings = smf_settings_get();
+        settings = smf_settings_new();
 //  } 
     
     /* parse config file and fill settings struct */
@@ -82,15 +82,15 @@ int main(int argc, char *argv[]) {
         free(config_file);
 
     if (debug == 1)
-        smf_settings_set_debug(debug);
+        smf_settings_set_debug(settings,debug);
 
     /* connect to database/ldap server, if necessary */
-    if(settings->backend != NULL) {
-        if (smf_lookup_connect() != 0) {
-            TRACE(TRACE_ERR,"Unable to establish lookup connection!");
-            return -1;
-        }
-    }
+//    if(settings->backend != NULL) {
+//        if (smf_lookup_connect() != 0) {
+//            TRACE(TRACE_ERR,"Unable to establish lookup connection!");
+//            return -1;
+//        }
+//    }
 
     /* check queue dir */
     if (!g_file_test (settings->queue_dir, G_FILE_TEST_EXISTS)) {
@@ -107,15 +107,15 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     
-    if (settings->daemon == 1)
-        ret = smf_daemon_mainloop(settings);
-    else
-        ret = smf_modules_engine_load(settings, dup(0));
+//    if (settings->daemon == 1)
+//        ret = smf_daemon_mainloop(settings);
+//    else
+//        ret = smf_modules_engine_load(settings, dup(0));
 
-    if(settings->backend != NULL) {
-        if (smf_lookup_disconnect() != 0)
-            TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
-    }
+//    if(settings->backend != NULL) {
+//        if (smf_lookup_disconnect() != 0)
+//            TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
+//    }
 
     /* free all stuff */
     smf_settings_free(settings);
