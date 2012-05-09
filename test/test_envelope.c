@@ -51,7 +51,7 @@ int main (int argc, char const *argv[]) {
     g_printf("passed\n");
     
     g_printf("* testing smf_envelope_set_sender()...\t\t");
-    env = smf_envelope_set_sender(env,TEST_SENDER);
+    smf_envelope_set_sender(env,TEST_SENDER);
     if (strcmp(TEST_SENDER,smf_envelope_get_sender(env)->addr) != 0) {
         g_printf("failed\n");
         return -1;
@@ -59,10 +59,15 @@ int main (int argc, char const *argv[]) {
         g_printf("passed\n");
     
     g_printf("* testing smf_envelope_add_rcpt()...\t\t");
-    env = smf_envelope_add_rcpt(env,TEST_RCPT1);
-    env = smf_envelope_add_rcpt(env,TEST_RCPT2);
-    g_printf("passed\n");
-    
+    smf_envelope_add_rcpt(env,TEST_RCPT1);
+    smf_envelope_add_rcpt(env,TEST_RCPT2);
+    if (env->num_rcpts != 2) {
+        g_printf("failed\n");
+        return -1;
+    } else
+        g_printf("passed\n");
+     
+
     g_printf("* testing smf_envelope_foreach_rcpt()...\t");
     smf_envelope_foreach_rcpt(env, print_rcpt_func, NULL);
     if (foreach_rc != 0) {
@@ -73,7 +78,7 @@ int main (int argc, char const *argv[]) {
 
     
     g_printf("* testing smf_envelope_set_message_file()...\t");
-    env = smf_envelope_set_message_file(env,TEST_PATH);
+    smf_envelope_set_message_file(env,TEST_PATH);
     if (strcmp(TEST_PATH,smf_envelope_get_message_file(env)) != 0) {
         g_printf("failed\n");
         return -1;
@@ -82,7 +87,7 @@ int main (int argc, char const *argv[]) {
     
 
     g_printf("* testing smf_envelope_set_auth_user()...\t");
-    env = smf_envelope_set_auth_user(env,TEST_AUTH_USER);
+    smf_envelope_set_auth_user(env,TEST_AUTH_USER);
     if (strcmp(TEST_AUTH_USER,smf_envelope_get_auth_user(env)) != 0) {
         g_printf("failed\n");
         return -1;
@@ -90,7 +95,7 @@ int main (int argc, char const *argv[]) {
         g_printf("passed\n");
 
     g_printf("* testing smf_envelope_set_auth_pass()...\t");
-    env = smf_envelope_set_auth_pass(env,TEST_AUTH_PASS);
+    smf_envelope_set_auth_pass(env,TEST_AUTH_PASS);
     if (strcmp(TEST_AUTH_PASS,smf_envelope_get_auth_pass(env)) != 0) {
         g_printf("failed\n");
         return -1;
@@ -98,7 +103,7 @@ int main (int argc, char const *argv[]) {
         g_printf("passed\n");
 
     g_printf("* testing smf_envelope_set_nexthop()...\t\t");
-    env = smf_envelope_set_nexthop(env,TEST_NEXTHOP);
+    smf_envelope_set_nexthop(env,TEST_NEXTHOP);
     if (strcmp(TEST_NEXTHOP,smf_envelope_get_nexthop(env)) != 0) {
         g_printf("failed\n");
         return -1;

@@ -17,7 +17,6 @@ set(LIB_SMF_SRC
 	smf_settings.c
 	smf_settings_group.c
 #	smf_smtp.c
-#	smf_smtp_codes.c
 	smf_trace.c
 	smf_email_address.c
 )
