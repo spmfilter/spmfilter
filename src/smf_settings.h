@@ -32,7 +32,6 @@
 #include <glib/gstdio.h>
 
 #include "spmfilter_config.h"
-#include "smf_smtp_codes.h"
 #include "smf_trace.h"
 
 /*!

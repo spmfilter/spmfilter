@@ -18,6 +18,9 @@
 #ifndef _SMF_ENVELOPE_H
 #define _SMF_ENVELOPE_H
 
+#include <assert.h>
+#include <glib.h>
+
 #include "smf_email_address.h"
 #include "smf_message.h"
 
@@ -51,13 +54,12 @@ SMFEnvelope_T *smf_envelope_new(void);
 void smf_envelope_free(SMFEnvelope_T *envelope);
 
 /*!
- * @fn SMFEnvelope_T *smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt)
+ * @fn void smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt)
  * @brief Add new recipient to envelope
  * @param envelope SMFEnvelope_T object
  * @param rcpt rcpt address
- * @returns SMFEnvelope_T object
  */
-SMFEnvelope_T *smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt);
+void smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt);
 
 /*!
  * @fn typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data)
@@ -77,13 +79,12 @@ typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data);
 void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope, SMFRcptForeachFunc callback, void  *user_data);
 
 /*!
- * @fn SMFEnvelope_T *smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender)
+ * @fn void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender)
  * @brief Set sender to envelope
  * @param envelope SMFEnvelope_T object
  * @param sender envelope sender address
- * @returns SMFEnvelope_T object
  */
-SMFEnvelope_T *smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender);
+void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender);
 
 /*!
  * @fn SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope)
@@ -94,13 +95,12 @@ SMFEnvelope_T *smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender);
 SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope);
 
 /*!
- * @fn SMFEnvelope_T *smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp)
+ * @fn void smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp)
  * @brief Set path for message file
  * @param envelope SMFEnvelope_T object
  * @param fp message file path
- * @returns SMFEnvelope_T object
  */
-SMFEnvelope_T *smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp);
+void smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp);
 
 /*!
  * @fn char *smf_envelope_get_message_file(SMFEnvelope_T *envelope)
@@ -111,13 +111,12 @@ SMFEnvelope_T *smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp);
 char *smf_envelope_get_message_file(SMFEnvelope_T *envelope);
 
 /*!
- * @fn SMFEnvelope_T *smf_envelope_set_auth_user(SMFEnvelope_T *envelope,char *auth_user)
+ * @fn void smf_envelope_set_auth_user(SMFEnvelope_T *envelope,char *auth_user)
  * @brief Set auth user
  * @param envelope SMFEnvelope_T object
  * @param auth_user Auth username
- * @returns SMFEnvelope_T object
  */
-SMFEnvelope_T *smf_envelope_set_auth_user(SMFEnvelope_T *envelope,char *auth_user);
+void smf_envelope_set_auth_user(SMFEnvelope_T *envelope,char *auth_user);
 
 
 /*!
@@ -129,13 +128,12 @@ SMFEnvelope_T *smf_envelope_set_auth_user(SMFEnvelope_T *envelope,char *auth_use
 char *smf_envelope_get_auth_user(SMFEnvelope_T *envelope);
 
 /*!
- * @fn SMFEnvelope_T *smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pass)
+ * @fn void smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pass)
  * @brief Set auth password
  * @param envelope SMFEnvelope_T object
  * @param auth_pass Auth password
- * @returns SMFEnvelope_T object
  */
-SMFEnvelope_T *smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pass);
+void smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pass);
 
 
 /*!
@@ -147,13 +145,12 @@ SMFEnvelope_T *smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pa
 char *smf_envelope_get_auth_pass(SMFEnvelope_T *envelope);
 
 /*!
- * @fn SMFEnvelope_T *smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop)
+ * @fn void smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop)
  * @brief Set nexthop
  * @param envelope SMFEnvelope_T object
  * @param nexthop nexthop
- * @returns SMFEnvelope_T object
  */
-SMFEnvelope_T *smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop);
+void smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop);
 
 /*!
  * @fn char *smf_envelope_get_nexthop(SMFEnvelope_T *nexthop)

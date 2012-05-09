@@ -35,7 +35,6 @@
 #include "smf_modules.h"
 #include "smf_session.h"
 #include "smf_session_private.h"
-#include "smf_smtp_codes.h"
 #include "smf_core.h"
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
