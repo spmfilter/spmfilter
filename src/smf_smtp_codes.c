@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,26 +15,18 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-#include <stdlib.h>
-
 #include "smf_smtp_codes.h"
 
 #define THIS_MODULE "smtp_codes"
 
 GHashTable *smtp_codes = NULL;
 
-/** Add smtp return code to list
- *
- * \param code smtp code
- * \param msg smtp return message
- */
 void smf_smtp_codes_insert(int code, char *msg) {
-	char *strcode = g_strdup_printf("%d",code);
-	if (smtp_codes == NULL)
-		smtp_codes = g_hash_table_new_full(g_str_hash, g_str_equal,free,free);
-	g_hash_table_insert(smtp_codes, g_strdup(strcode), g_strdup(msg));
-	free(strcode);
+    char *strcode = g_strdup_printf("%d",code);
+    if (smtp_codes == NULL)
+        smtp_codes = g_hash_table_new_full(g_str_hash, g_str_equal,free,free);
+    g_hash_table_insert(smtp_codes, g_strdup(strcode), g_strdup(msg));
+    free(strcode);
 }
 
 /** Get smtp return code message of given code
@@ -44,17 +36,17 @@ void smf_smtp_codes_insert(int code, char *msg) {
  * \returns smtp return message for given code
  */
 char *smf_smtp_codes_get(int code) {
-	char *strcode = g_strdup_printf("%d",code);
-	char *p = NULL;
-	if (smtp_codes != NULL) {
-		p = g_hash_table_lookup(smtp_codes,strcode);
-		g_free(strcode);
-	}
-	return p;
+    char *strcode = g_strdup_printf("%d",code);
+    char *p = NULL;
+    if (smtp_codes != NULL) {
+        p = g_hash_table_lookup(smtp_codes,strcode);
+        g_free(strcode);
+    }
+    return p;
 }
 
 /** Free smtp codes */
 void smf_smtp_codes_free(void) {
-	if (smtp_codes != NULL)
-		g_hash_table_destroy(smtp_codes);
+    if (smtp_codes != NULL)
+        g_hash_table_destroy(smtp_codes);
 }

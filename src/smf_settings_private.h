@@ -19,6 +19,9 @@
 #define	_SMF_SETTINGS_PRIVATE_H
 
 #include "smf_settings.h"
+
+SMFSettings_T *smf_settings_new(void);
+
 /** free settings struct */
 void smf_settings_free(SMFSettings_T *settings);
 
