@@ -13,7 +13,7 @@ set(LIB_SMF_SRC
 #	smf_mime.c
 #	smf_modules.c
 #	smf_platform.c
-#	smf_session.c
+	smf_session.c
 	smf_settings.c
 	smf_settings_group.c
 #	smf_smtp.c
