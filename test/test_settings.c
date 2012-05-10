@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@
 #include <glib.h>
 #include <glib/gprintf.h>
 
+#include "../src/smf_trace.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
 
@@ -44,6 +45,8 @@
 #define TEST_LDAP_SCOPE "subtree"
 #define TEST_LDAP_QUERY "(objectClass=*)"
 
+#define THIS_MODULE "bla"
+
 int main (int argc, char const *argv[]) {
     SMFSettings_T *settings = NULL;
     SMFSettingsGroup_T *test_group = NULL;
@@ -61,7 +64,6 @@ int main (int argc, char const *argv[]) {
         g_printf("failed\n");
         return -1;
     }
-
   
     g_printf("* testing smf_settings_parse_config()...\t\t");
     if (smf_settings_parse_config(&settings,"../../spmfilter.conf.sample") != 0) {
@@ -82,7 +84,7 @@ int main (int argc, char const *argv[]) {
             g_printf("passed\n");
         }
     }
-    
+
     g_printf("* testing smf_settings_set_config_file()...\t\t");
     if (smf_settings_set_config_file(settings,TEST_CONFIG_FILE) != 0) {
         g_printf("1failed\n");
