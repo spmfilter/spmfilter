@@ -29,6 +29,8 @@
 
 #define min(x,y) ((x)<=(y)?(x):(y))
 
+static int debug_flag = 0;
+
 static const char * trace_to_text(SMFTrace_T level) {
 	const char * const trace_text[] = {
 		"EMERGENCY",
@@ -42,6 +44,10 @@ static const char * trace_to_text(SMFTrace_T level) {
 		"Lookup"
 	};
 	return trace_text[ilogb((double) level)];
+}
+
+void configure_debug(int debug) {
+	debug_flag = debug;
 }
 
 void trace(SMFTrace_T level, const char *module, const char *function, int line, const char *formatstring, ...) {
@@ -102,8 +108,10 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 		size_t w = min(l,maxlen);
 		message[w] = '\0';
 		
-		// TODO: filter debug messages if debug is not set to 1
-		syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
+		if ((level >= 128) && (debug_flag == 1)) 
+			syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
+   		else if (level < 128)
+			syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
 	}
 	g_free(message);
 }
