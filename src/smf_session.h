@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,86 +16,85 @@
  */
 
 #ifndef _SMF_SESSION_H
-#define	_SMF_SESSION_H
+#define _SMF_SESSION_H
+
+#include <assert.h>
+#include <glib.h>
 
 #include "smf_envelope.h"
 #include "smf_message.h"
+#include "smf_trace.h"
 
+/*!
+ * @struct SMFSession_T 
+ * @brief Holds spmfilter session data
+ */
 typedef struct {
-	/* message envelope */
-	SMFEnvelope_T *envelope;
-
-	/* size of message body */
-	size_t msgbodysize;
-
-	/* session data used by smtpd engine */
-	char *helo;
-	char *xforward_addr;
-	
-	/* custom response message */
-	char *response_msg;
-
-	int sock_in;
-	int sock_out;
+    SMFEnvelope_T *envelope; /**< message envelope */
+    size_t msgbodysize; /**< size of message body */
+    char *helo; /**< client's helo */
+    char *xforward_addr; /**< xforward data */
+    char *response_msg; /**< custom response message */
+    int sock_in; /**< in socket */
+    int sock_out; /**< out socket */
 } SMFSession_T;
 
-/** Set helo
- * 
- * \param session SMFSession_T object
- * \param helo helo message
- *
- * \returns SMFSession_T object
+/*!
+ * @fn void smf_session_set_helo(SMFSession_T *session, char *helo)
+ * @brief Set helo for session
+ * @param session SMFSession_T object
+ * @param helo helo message
  */
-SMFSession_T *smf_session_set_helo(SMFSession_T *session, char *helo);
+void smf_session_set_helo(SMFSession_T *session, char *helo);
 
-/** Get helo
- *
- * \param session SMFSession_T object
- * 
- * \returns helo
+/*!
+ * @fn char *smf_session_get_helo(SMFSession_T *session)
+ * @brief Get session helo
+ * @param session SMFSession_T object
+ * @returns helo
  */
 char *smf_session_get_helo(SMFSession_T *session);
 
-/** Set xforward addr
- * 
- * \param session SMFSession_T object
- * \param xfwd xforward address
- *
- * \returns SMFSession_T object
+/*!
+ * @fn void smf_session_set_xforward_addr(SMFSession_T *session, char *xfwd)
+ * @brief Set xforward addr
+ * @param session SMFSession_T object
+ * @param xfwd xforward address
  */
-SMFSession_T *smf_session_set_xforward_addr(SMFSession_T *session, char *xfwd);
+void smf_session_set_xforward_addr(SMFSession_T *session, char *xfwd);
 
-/** Get xforward address
- *
- * \param session SMFSession_T object
- * 
- * \returns xforward address
+/*!
+ * @fn char *smf_session_get_xforward_addr(SMFSession_T *session)
+ * @brief Get xforward address
+ * @param session SMFSession_T object
+ * @returns xforward address
  */
 char *smf_session_get_xforward_addr(SMFSession_T *session);
 
-/** Set response message
- * 
- * \param session SMFSession_T object
- * \param rmsg response message
- *
- * \returns SMFSession_T object
+/*!
+ * @fn void smf_session_set_response_msg(SMFSession_T *session, char *rmsg)
+ * @brief Set response message
+ * @param session SMFSession_T object
+ * @param rmsg response message
  */
-SMFSession_T *smf_session_set_response_msg(SMFSession_T *session, char *rmsg);
+void smf_session_set_response_msg(SMFSession_T *session, char *rmsg);
 
-/** Get response message
- *
- * \param session SMFSession_T object
- * 
- * \returns response_message
+/*!
+ * @fn char *smf_session_get_response_msg(SMFSession_T *session)
+ * @brief Get response message
+ * @param session SMFSession_T object
+ * @returns response_message
  */
 char *smf_session_get_response_msg(SMFSession_T *session);
 
-/** Retrieve a SMFMessage_T object from the
+/*!
+ * @fn SMFEnvelope_T *smf_session_get_envelope(SMFSession_T *session)
+ * @brief Retrieve the SMFEnvelope_T object from the
  *  current session.
- *
- * \returns SMFMessage_T object
+ * @param session a SMFSession_T object
+ * @returns SMFEnvelope_T object
  */
-SMFMessage_T *smf_session_get_message(SMFSession_T *session);
+SMFEnvelope_T *smf_session_get_envelope(SMFSession_T *session);
 
 
 
@@ -185,4 +184,4 @@ int smf_session_subject_append(SMFSession_T *session, char *text);
 
 #endif
 
-#endif	/* _SMF_SESSION_H */
+#endif  /* _SMF_SESSION_H */

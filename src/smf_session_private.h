@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,8 +21,6 @@
 #include "smf_session.h"
 
 SMFSession_T *smf_session_new(void);
-
-/** Free SMFSession_T structure */
 void smf_session_free(SMFSession_T *session);
 
 #endif	/* _SMF_SESSION_PRIVATE_H */
