@@ -17,6 +17,7 @@
 
 #define THIS_MODULE "settings"
 
+#include "smf_trace.h"
 #include "smf_settings.h"
 #include "smf_settings_private.h"
 
@@ -385,7 +386,7 @@ int smf_settings_set_debug(SMFSettings_T *settings, int debug) {
         TRACE(TRACE_ERR,"debug setting must be either 0 or 1");
         return -1;
     }
-    
+    configure_debug(debug);
     settings->debug = debug;
     
     return 0;
