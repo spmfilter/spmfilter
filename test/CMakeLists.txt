@@ -20,3 +20,8 @@ add_executable(test_ea test_ea.c)
 target_link_libraries(test_ea smf ${COMMON_LIBS})
 ADD_TEST(SMFEmailAddress_T ${EXECUTABLE_OUTPUT_PATH}/test_ea)
 
+if(HAVE_DB4)
+	add_executable(test_db4 test_db4.c)
+	target_link_libraries(test_db4 smf ${COMMON_LIBS} db)
+	ADD_TEST(DB4 ${EXECUTABLE_OUTPUT_PATH}/test_db4)
+endif(HAVE_DB4)
