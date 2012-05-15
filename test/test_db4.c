@@ -22,7 +22,7 @@
 #include <glib/gprintf.h>
 #include "../src/smf_lookup.h"
 
-#define TESTDB "/tmp/smf_test_db4_11.db"
+#define TESTDB "/tmp/smf_test_db4.db"
 
 
 int remove_db(void) {
@@ -44,7 +44,7 @@ int main (int argc, char const *argv[]) {
 
     char *value_str = "this is a test";
     char *key_char = "2323";
-    char *res_from_db;
+    char *res_from_db = NULL;
 
     /* first create a new berkeley database */
     if ((ret = db_create(&dbp, NULL, 0)) != 0) {
@@ -87,16 +87,20 @@ int main (int argc, char const *argv[]) {
         if(strcmp(res_from_db,value_str) != 0) {
             g_printf("received different value from db");
             remove_db();
+            free(res_from_db);
             return(-1);
         } else {
             remove_db();
+            free(res_from_db);
             return(0);
         }
     } else {
         g_printf("nothing received by smf_lookup_db4_query()");
         remove_db();
+        free(res_from_db);
         return(-1);
     }
+    
     return(0);
 }
 

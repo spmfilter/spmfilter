@@ -24,11 +24,12 @@
 
 #define THIS_MODULE "lookup_db4"
 
+
 char *smf_lookup_db4_query(char *database, char *key) {
     DB *dbp;
     DBT db_key, db_value;
     int ret;
-    char *db_res;
+    char *db_res = NULL;
 
     /* initialize db4 */
     if ((ret = db_create(&dbp, NULL, 0)) != 0) {
@@ -37,6 +38,7 @@ char *smf_lookup_db4_query(char *database, char *key) {
     }
 
     TRACE(TRACE_LOOKUP, "[%p] lookup key [%s]", dbp,key);
+
     if ((ret = dbp->set_pagesize(dbp, 1024)) != 0) {
         TRACE(TRACE_WARNING, "DB: %s",db_strerror(ret));
     }
@@ -65,9 +67,7 @@ char *smf_lookup_db4_query(char *database, char *key) {
     ret = dbp->get(dbp, NULL, &db_key, &db_value, 0);
 
     TRACE(TRACE_LOOKUP, "[%p] found value [%s]", dbp, (char *)db_value.data);
-    return (char *)db_value.data;
-
-    db_res = g_strdup_printf("%s",(char *)db_value.data);
+    asprintf(&db_res, "%s", (char *)db_value.data);
 
     if (dbp != NULL)
         dbp->close(dbp, 0);
