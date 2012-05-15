@@ -15,6 +15,13 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+/*!
+ * @file smf_lookup.h
+ * @brief spmfilter lookup functions
+ */
+
+
 #ifndef _SMF_LOOKUP_H
 #define	_SMF_LOOKUP_H
 
@@ -90,6 +97,13 @@ int smf_lookup_disconnect(void);
  * \param key key to lookup for
  *
  * \returns the values associated with key,  or NULL if the key is not found
+ */
+
+/*!
+ * @fn *smf_lookup_db4_query (char *database, char *key);
+ * @brief function to get value by key from berkeley hash table
+ * @param key key for which the value should be returned
+ * @returns newly allocated char pointer value string for given key, NULL if none found
  */
 char *smf_lookup_db4_query(char *database, char *key);
 
