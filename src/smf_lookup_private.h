@@ -69,5 +69,23 @@ void smf_lookup_ldap_check_user(SMFEmailAddress_T *user);
  */
 void smf_lookup_sql_check_user(SMFEmailAddress_T *user);
 
+/*!
+ * @fn int ldap_get_scope(char *ldap_scope)
+ * @brief function to get ldap_scope 
+ * @param ldap_scope 
+ * @returns ldap_scope
+ */
+int ldap_get_scope(char *ldap_scope);
+
+/*!
+ * @fn char *ldap_get_uri(char *ldap_host, char *ldap_port);
+ * @brief function to get ldap_uri
+ * @param ldap_host LDAP-Host
+ * @param ldap_port LDAP-Port
+ * @returns ldap_uri
+ */
+char *ldap_get_uri(char *ldap_host, char *ldap_port);
+
+
 #endif	/* _SMF_LOOKUP_PRIVATE_H */
 
