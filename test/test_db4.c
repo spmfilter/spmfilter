@@ -24,7 +24,6 @@
 
 #define TESTDB "/tmp/smf_test_db4.db"
 
-
 int remove_db(void) {
     if((remove(TESTDB)) < 0) {
       fprintf(stderr, "Fehler beim Löschen von %s", TESTDB);
@@ -32,7 +31,6 @@ int remove_db(void) {
     }
     return(0);
 }
-
 
 int main (int argc, char const *argv[]) {
     
@@ -100,7 +98,7 @@ int main (int argc, char const *argv[]) {
         free(res_from_db);
         return(-1);
     }
-    
+
     return(0);
 }
 
