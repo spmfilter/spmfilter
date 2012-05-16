@@ -23,8 +23,9 @@
 #include <string.h>
 #include <time.h>
 
+
 #include "smf_trace.h"
-#include "smf_settings.h"
+//#include "smf_settings.h"
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
 #include "smf_core.h"
@@ -38,29 +39,30 @@ LDAP *ld = NULL;
  *
  * \returns ldap scope
  */
-int get_scope(void) {
-	SMFSettings_T *settings = smf_settings_get();
 
-	if (g_ascii_strcasecmp(settings->ldap_scope,"subtree") == 0)
+int get_scope(char *ldap_scope) {
+	if (g_ascii_strcasecmp(ldap_scope,"subtree") == 0)
 		return LDAP_SCOPE_SUBTREE;
-	else if (g_ascii_strcasecmp(settings->ldap_scope,"onelevel") == 0)
+	else if (g_ascii_strcasecmp(ldap_scope,"onelevel") == 0)
 		return LDAP_SCOPE_ONELEVEL;
-	else if (g_ascii_strcasecmp(settings->ldap_scope,"base") == 0)
+	else if (g_ascii_strcasecmp(ldap_scope,"base") == 0)
 		return LDAP_SCOPE_BASE;
 	else
 		return LDAP_SCOPE_SUBTREE;
 }
+
 
 /** Get random ldap host
  *
  * \returns hostname of ldap host
  */
 char *ldap_get_rand_host(void) {
-	SMFSettings_T *settings = smf_settings_get();
+	//SMFSettings_T *settings = smf_settings_get();
 	TRACE(TRACE_DEBUG,"trying to get random ldap server");
 	srand(time(NULL));
 	return settings->ldap_host[rand() % settings->ldap_num_hosts];
 }
+
 
 /** Generate LDAP connectio uri
  *
@@ -70,7 +72,7 @@ char *ldap_get_rand_host(void) {
  */
 char *ldap_get_uri(char *host) {
 	char *uri;
-	SMFSettings_T *settings = smf_settings_get();
+	//SMFSettings_T *settings = smf_settings_get();
 
 	uri = g_strdup_printf("ldap://%s:%d",host,settings->ldap_port);
 
@@ -86,7 +88,8 @@ char *ldap_get_uri(char *host) {
 int smf_ldap_bind(char *uri) {
 	int ret, err;
 	struct berval *cred;
-	SMFSettings_T *settings = smf_settings_get();
+	
+	//SMFSettings_T *settings = smf_settings_get();
 
 	cred = malloc(sizeof(struct berval));
 	cred->bv_len = strlen(settings->ldap_bindpw);
@@ -117,7 +120,8 @@ int smf_ldap_bind(char *uri) {
 int ldap_failover_connect(void) {
 	int i;
 	char *uri;
-	SMFSettings_T *settings = smf_settings_get();
+	
+	//SMFSettings_T *settings = smf_settings_get();
 	
 	for (i=0; i < settings->ldap_num_hosts; i++) {
 		uri = ldap_get_uri(settings->ldap_host[i]);
@@ -140,7 +144,9 @@ int smf_lookup_ldap_connect(void) {
 	int version;
 	char *uri;
 	char *host;
-	SMFSettings_T *settings = smf_settings_get();
+	
+
+	//SMFSettings_T *settings = smf_settings_get();
 
 	if (settings->ldap_uri) {
 		if ((ret = ldap_initialize(&ld, settings->ldap_uri) != LDAP_SUCCESS)) 
@@ -208,8 +214,9 @@ SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...) {
 	BerElement *ptr;
 	int i,value_count;
 	LDAP *c = ldap_con_get();
+
 	SMFLookupResult_T *result = smf_lookup_result_new();
-	SMFSettings_T *settings = smf_settings_get();
+	//SMFSettings_T *settings = smf_settings_get();
 
 	va_start(ap, q);
 	va_copy(cp, ap);
