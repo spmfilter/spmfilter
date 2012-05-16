@@ -35,12 +35,8 @@
 
 LDAP *ld = NULL;
 
-/** Get LDAP scope from config file
- *
- * \returns ldap scope
- */
 
-int get_scope(char *ldap_scope) {
+int ldap_get_scope(char *ldap_scope) {
 	if (g_ascii_strcasecmp(ldap_scope,"subtree") == 0)
 		return LDAP_SCOPE_SUBTREE;
 	else if (g_ascii_strcasecmp(ldap_scope,"onelevel") == 0)
@@ -52,17 +48,6 @@ int get_scope(char *ldap_scope) {
 }
 
 
-/** Get random ldap host
- *
- * \returns hostname of ldap host
- */
-char *ldap_get_rand_host(void) {
-	//SMFSettings_T *settings = smf_settings_get();
-	TRACE(TRACE_DEBUG,"trying to get random ldap server");
-	srand(time(NULL));
-	return settings->ldap_host[rand() % settings->ldap_num_hosts];
-}
-
 
 /** Generate LDAP connectio uri
  *
@@ -70,14 +55,25 @@ char *ldap_get_rand_host(void) {
  *
  * \returns new allocated uri
  */
-char *ldap_get_uri(char *host) {
+char *ldap_get_uri(char *ldap_host, char *ldap_port) {
 	char *uri;
-	//SMFSettings_T *settings = smf_settings_get();
-
-	uri = g_strdup_printf("ldap://%s:%d",host,settings->ldap_port);
-
+	uri = g_strdup_printf("ldap://%s:%d",ldap_host,ldap_port);
 	return uri;
 }
+
+
+
+/** Get random ldap host
+ *
+ * \returns hostname of ldap host
+ */
+char *ldap_get_rand_host(void) {
+	TRACE(TRACE_DEBUG,"trying to get random ldap server");
+	srand(time(NULL));
+	return settings->ldap_host[rand() % settings->ldap_num_hosts];
+}
+
+
 
 /** Bind to LDAP Server
  *
