@@ -25,3 +25,10 @@ if(HAVE_DB4)
 	target_link_libraries(test_db4 smf ${COMMON_LIBS} db)
 	ADD_TEST(DB4 ${EXECUTABLE_OUTPUT_PATH}/test_db4)
 endif(HAVE_DB4)
+
+if(HAVE_LDAP)
+	add_executable(test_lookup_ldap test_lookup_ldap.c)
+        target_link_libraries(test_lookup_ldap smf ${COMMON_LIBS} ldap)
+        ADD_TEST(LDAP ${EXECUTABLE_OUTPUT_PATH}/test_lookup_ldap)
+endif(HAVE_LDAP)
+
