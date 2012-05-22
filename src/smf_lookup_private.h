@@ -84,7 +84,32 @@ int ldap_get_scope(char *ldap_scope);
  * @param ldap_port LDAP-Port
  * @returns ldap_uri
  */
-char *ldap_get_uri(char *ldap_host, char *ldap_port);
+char *ldap_get_uri(char *ldap_host, int ldap_port);
+
+/*!
+ * @fn char *ldap_get_rand_host(SMFSettings_T *settings);
+ * @brief function to get random ldap host
+ * @param SMFSettings_T Pointer
+ * @returns random ldap host
+ */
+char *ldap_get_rand_host(SMFSettings_T *settings);
+
+/*!
+ * @fn int smf_ldap_bind(char *uri, SMFSettings_T *settings);
+ * @brief function to get random ldap host
+ * @param SMFSettings_T Pointer
+ * @returns random ldap host
+ */
+int smf_ldap_bind(char *uri, SMFSettings_T *settings);
+
+/*!
+ * @fn int smf_ldap_bind(char *uri, SMFSettings_T *settings);
+ * @brief Try to get a failover connection to other server
+ * @param SMFSettings_T Pointer
+ * @returns 0 on success or -1 in case of error
+ */
+int ldap_failover_connect(SMFSettings_T *settings);
+
 
 
 #endif	/* _SMF_LOOKUP_PRIVATE_H */
