@@ -21,18 +21,41 @@
 #include <db.h>
 #include <glib/gprintf.h>
 #include "../src/smf_lookup.h"
-#include "../src/smf_lookup_ldap.h"
-
+#include "../src/smf_lookup_private.h"
+#include "../src/smf_settings_private.h"
 
 int main (int argc, char const *argv[]) {
     char *ldap_uri = NULL;
+    int scope_retval;
+    int ldap_connect_retval;
+    char *conn_type = "failover";
+    char *pw = "test123";
+    char *bind_dn = "dc=example,dc=com";
 
-    ldap_uri = ldap_get_uri("bla.host.de");
+   	char **host = malloc(2*sizeof(char));
+ 			host[0] = strdup("10.211.55.61");
+ 			host[1] = strdup("10.211.55.61");
 
-    printf("[%s]", ldap_uri);
+ 			ldap_uri = ldap_get_uri("10.211.55.61", 389);
+ 			scope_retval = ldap_get_scope("subtree");
+
+    SMFSettings_T *settings = smf_settings_new();
+    smf_settings_set_ldap_host(settings, host);
+ 			smf_settings_set_backend_connection(settings, conn_type);
+ 			
+ 			smf_settings_set_ldap_bindpw(settings, pw);
+ 			smf_settings_set_ldap_binddn(settings, bind_dn);
+				smf_lookup_ldap_connect(ldap_uri, settings);
+
+ 			printf("settings->ldap_bindpw: [%s]\n", settings->ldap_bindpw);
+ 			printf("settings->ldap_host: [%s]", settings->ldap_host[0]);
 
     if(ldap_uri != NULL)
         free(ldap_uri);
+
+    if(host != NULL)
+    				free(host);
+
     return(0);
 }
 

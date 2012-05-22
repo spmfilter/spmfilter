@@ -836,7 +836,7 @@ char *smf_settings_get_ldap_binddn(SMFSettings_T *settings) {
 void smf_settings_set_ldap_bindpw(SMFSettings_T *settings, char *bindpw) {
     assert(settings);   
     assert(bindpw);
-
+    
     if (settings->ldap_bindpw != NULL)
         g_free(settings->ldap_bindpw);
         
