@@ -21,6 +21,7 @@
  * @brief spmfilter lookup functions
  */
 
+#include "smf_settings.h"
 
 #ifndef _SMF_LOOKUP_H
 #define	_SMF_LOOKUP_H
@@ -33,6 +34,7 @@ typedef struct {
 	SMFLookupElement_T *elem;
 	unsigned int len;
 } SMFLookupResult_T;
+
 
 /** Since LDAP attributes can have more than
  *  one value, we need to define a new datatype,
@@ -129,7 +131,15 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...);
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_lookup_ldap_connect(void);
+
+/*!
+ * @fn int smf_lookup_ldap_connect(char *ldap_uri);
+ * @brief connect to ldap server
+ * @param ldap_uri LDAP-URI
+ * @param ldap_uri Pointer to SMFSettings_T 
+ * @returns 0 on success or -1 in case of error
+ */
+int smf_lookup_ldap_connect(char *ldap_uri, SMFSettings_T *settings);
 
 /** Disconnect from LDAP server */
 void smf_lookup_ldap_disconnect(void);
