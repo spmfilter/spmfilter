@@ -66,8 +66,8 @@
  * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/user2.ldif -W
  */
 
-#define LDAP_HOST_1 "10.211.66.61"
-#define LDAP_HOST_2 "10.211.66.62"
+#define LDAP_HOST_1 "127.0.0.1"
+#define LDAP_HOST_2 "127.0.0.1"
 #define LDAP_PORT 389
 #define LDAP_BIND_DN "uid=test2,ou=People,dc=example,dc=com"
 #define LDAP_PSW "test"
@@ -91,18 +91,18 @@ int main (int argc, char const *argv[]) {
     int j;
 
     char **host = (char**)g_malloc(2*sizeof(char*));
- 	host[0] = g_strdup(LDAP_HOST_1);
- 	host[1] = g_strdup(LDAP_HOST_1);
- 	ldap_uri = ldap_get_uri("10.211.55.61", LDAP_PORT);
+    host[0] = g_strdup(LDAP_HOST_1);
+    host[1] = g_strdup(LDAP_HOST_1);
+    ldap_uri = ldap_get_uri("127.0.0.1", LDAP_PORT);
     SMFSettings_T *settings = smf_settings_new();
 
     smf_settings_set_ldap_host(settings, host);
     smf_settings_set_ldap_scope(settings, "subtree");
-    smf_settings_set_backend_connection(settings, conn_type);	
- 	smf_settings_set_ldap_bindpw(settings, pw);
- 	smf_settings_set_ldap_binddn(settings, bind_dn);
+    smf_settings_set_backend_connection(settings, conn_type);   
+    smf_settings_set_ldap_bindpw(settings, pw);
+    smf_settings_set_ldap_binddn(settings, bind_dn);
     smf_settings_set_ldap_base(settings, LDAP_BASE);
-	smf_lookup_ldap_connect(ldap_uri, settings);
+    smf_lookup_ldap_connect(ldap_uri, settings);
     ldapresult = smf_lookup_ldap_query(ldap_uri, settings, LDAP_QUERY_STRING);
     smf_lookup_ldap_disconnect(ldap_uri, settings);
 
