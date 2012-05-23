@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2010 Werner Detter and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,48 +14,117 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <glib.h>
 #include <db.h>
 #include <glib/gprintf.h>
+#include <assert.h>
 #include "../src/smf_lookup.h"
 #include "../src/smf_lookup_private.h"
 #include "../src/smf_settings_private.h"
 
+
+/*
+ *
+ * this tests can only be run successfull if there is an ldap server available with the following
+ * scheme: 
+ * 
+
+ // base.ldif
+ dn: dc=example,dc=com
+ dc: example
+ objectClass: top
+ objectClass: domain
+
+ dn: ou=People,dc=example,dc=com
+ ou: People
+ objectClass: top
+ objectClass: organizationalUnit
+
+ dn: ou=Group,dc=example,dc=com
+ ou: Group
+ objectClass: top
+ objectClass: organizationalUnit
+
+ //user2.ldif
+ dn: uid=test2,ou=People,dc=example,dc=com
+ uid: test2
+ cn: Test User
+ objectClass: account
+ objectClass: posixAccount
+ objectClass: top
+ userPassword: {SSHA}DHiQoi+pqOQXFP28g+NIyQmagm1xxjNr
+ loginShell: /bin/bash
+ uidNumber: 500
+ gidNumber: 500
+ homeDirectory: /home/test2
+
+ * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/base.ldif -W
+ * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/user2.ldif -W
+ */
+
+#define LDAP_HOST_1 "10.211.66.61"
+#define LDAP_HOST_2 "10.211.66.62"
+#define LDAP_PORT 389
+#define LDAP_BIND_DN "uid=test2,ou=People,dc=example,dc=com"
+#define LDAP_PSW "test"
+#define LDAP_BASE "uid=test2,ou=People,dc=example,dc=com"
+#define LDAP_SCOPE "subtree"
+#define LDAP_QUERY_STRING "(uid=test2)"
+#define LDAP_QUERY_STRING_RESULT "500"
+#define LDAP_CONN_TYPE "failover"
+
+
 int main (int argc, char const *argv[]) {
+
     char *ldap_uri = NULL;
     int scope_retval;
     int ldap_connect_retval;
-    char *conn_type = "failover";
-    char *pw = "test123";
-    char *bind_dn = "dc=example,dc=com";
+    char *conn_type = LDAP_CONN_TYPE;
+    char *pw = LDAP_PSW;
+    char *bind_dn = LDAP_BIND_DN;
+    SMFLookupResult_T *ldapresult = NULL;
+    SMFLdapValue_T *uidNumber = NULL;
+    int j;
 
-   	char **host = malloc(2*sizeof(char));
- 			host[0] = strdup("10.211.55.61");
- 			host[1] = strdup("10.211.55.61");
-
- 			ldap_uri = ldap_get_uri("10.211.55.61", 389);
- 			scope_retval = ldap_get_scope("subtree");
-
+    char **host = (char**)g_malloc(2*sizeof(char*));
+ 	host[0] = g_strdup(LDAP_HOST_1);
+ 	host[1] = g_strdup(LDAP_HOST_1);
+ 	ldap_uri = ldap_get_uri("10.211.55.61", LDAP_PORT);
     SMFSettings_T *settings = smf_settings_new();
+    
     smf_settings_set_ldap_host(settings, host);
- 			smf_settings_set_backend_connection(settings, conn_type);
- 			
- 			smf_settings_set_ldap_bindpw(settings, pw);
- 			smf_settings_set_ldap_binddn(settings, bind_dn);
-				smf_lookup_ldap_connect(ldap_uri, settings);
+    smf_settings_set_ldap_scope(settings, "subtree");
+    smf_settings_set_backend_connection(settings, conn_type);	
+ 	smf_settings_set_ldap_bindpw(settings, pw);
+ 	smf_settings_set_ldap_binddn(settings, bind_dn);
+    smf_settings_set_ldap_base(settings, LDAP_BASE);
+	smf_lookup_ldap_connect(ldap_uri, settings);
+    ldapresult = smf_lookup_ldap_query(ldap_uri, settings, LDAP_QUERY_STRING);
+    smf_lookup_ldap_disconnect(ldap_uri, settings);
 
- 			printf("settings->ldap_bindpw: [%s]\n", settings->ldap_bindpw);
- 			printf("settings->ldap_host: [%s]", settings->ldap_host[0]);
+    if(ldapresult != NULL) {
+        if(ldapresult->len > 0) {
+            for(j=0; j < ldapresult->len; j++) {
+             SMFLookupElement_T *elem = smf_lookup_result_index(ldapresult,j);
+             uidNumber = (SMFLdapValue_T *) smf_lookup_element_get(elem, "uidNumber");
+             assert(strcmp(uidNumber->data[0],LDAP_QUERY_STRING_RESULT)==0);
+            }
+        }
+    }
+
+    if(ldapresult != NULL)
+        free(ldapresult);
+
+    if(host != NULL)
+        g_free(host);
 
     if(ldap_uri != NULL)
         free(ldap_uri);
 
-    if(host != NULL)
-    				free(host);
-
-    return(0);
+    return 0;
 }
 

@@ -20,8 +20,9 @@
  * @file smf_lookup.h
  * @brief spmfilter lookup functions
  */
-
 #include "smf_settings.h"
+
+
 
 #ifndef _SMF_LOOKUP_H
 #define	_SMF_LOOKUP_H
@@ -93,13 +94,6 @@ int smf_lookup_connect(void);
  */
 int smf_lookup_disconnect(void);
 
-/** Query Berkeley DB for given key
- *
- * \param database path to database file
- * \param key key to lookup for
- *
- * \returns the values associated with key,  or NULL if the key is not found
- */
 
 /*!
  * @fn *smf_lookup_db4_query (char *database, char *key);
@@ -135,22 +129,33 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...);
 /*!
  * @fn int smf_lookup_ldap_connect(char *ldap_uri);
  * @brief connect to ldap server
- * @param ldap_uri LDAP-URI
- * @param ldap_uri Pointer to SMFSettings_T 
+ * @param ldap_uri Pointer to ldap_uri
+ * @param settings Pointer to SMFSettings_T 
  * @returns 0 on success or -1 in case of error
  */
 int smf_lookup_ldap_connect(char *ldap_uri, SMFSettings_T *settings);
 
-/** Disconnect from LDAP server */
-void smf_lookup_ldap_disconnect(void);
 
-/** Query LDAP server with given query string
- *
- * \param q format string for ldap query
- * \param ... format string arguments
- *
- * \returns SMFLookupResult_T
+/*!
+ * @fn void smf_lookup_ldap_disconnect(char *ldap_uri, SMFSettings_T *settings)
+ * @brief disconnect from LDAP Server
+ * @param *ldap_uri Pointer to ldap_uri
+ * @param settings Pointer to SMFSettings_T 
+ * @returns newly allocated char pointer value string for given key, NULL if none found
  */
-SMFLookupResult_T *smf_lookup_ldap_query(const char *q, ...);
+void smf_lookup_ldap_disconnect(char *ldap_uri, SMFSettings_T *settings);
+
+
+/*!
+ * @fn SMFLookupResult_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...)
+ * @brief query LDAP Server with given query string
+ * @param *ldap_uri Pointer to ldap_uri
+ * @param settings Pointer to SMFSettings_T 
+ * @param q format string pointer for ldap query
+ * @param ... format string arguments
+ * @returns newly allocated SMFLookupResult_T
+ */
+SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri,SMFSettings_T *settings, const char *q, ...);
+
 
 #endif	/* _SMF_LOOKUP_H */
