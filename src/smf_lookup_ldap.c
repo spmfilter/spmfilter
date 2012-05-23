@@ -243,19 +243,12 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
     return result;
 }
 
+/* needs to be fixed as user->user_data is not in SMFEmailAddress_T */
 
-/** Check if given user exists in ldap directory
- *
- * \param user a SMFEmailAddress_T object
- */
-
- /*
-void smf_lookup_ldap_check_user(SMFEmailAddress_T *user) {
-    SMFSettings_T *settings = smf_settings_get();
-    char *query;
-
-    smf_core_expand_string(settings->ldap_user_query,user->addr,&query);
-    user->user_data = NULL;
-    user->user_data = smf_lookup_ldap_query(query);
-    free(query);
-}*/
+//void smf_lookup_ldap_check_user(SMFEmailAddress_T *user, SMFSettings_T *settings) {
+//    char *query;
+//    smf_core_expand_string(settings->ldap_user_query,user->addr,&query);
+//    user->user_data = NULL;
+//    user->user_data = smf_lookup_ldap_query(query, settings);
+//    free(query);
+//}

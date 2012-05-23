@@ -57,14 +57,13 @@ void smf_lookup_element_add(SMFLookupElement_T *e, char *key, void *value);
  */
 void smf_lookup_check_user(SMFEmailAddress_T *user);
 
-
 /*!
  * @fn void smf_lookup_ldap_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user)
  * @brief check if given user exists in ldap directory
+ * @param SMFEmailAddress_T Pointer
  * @param SMFSettings_T Pointer
- * @param user SMFEmailAddress_T object
  */
-void smf_lookup_ldap_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user);
+void smf_lookup_ldap_check_user(SMFEmailAddress_T *user,SMFSettings_T *settings);
 
 /** Check if given user exists in database
  *
