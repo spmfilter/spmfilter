@@ -23,6 +23,7 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "smf_trace.h"
 #include "smf_settings.h"
@@ -173,11 +174,8 @@ void smf_lookup_ldap_disconnect(char *ldap_uri, SMFSettings_T *settings) {
     if (c != NULL) {
         ldap_unbind_ext_s(c,NULL,NULL);
         TRACE(TRACE_LOOKUP, "unbind ldap server");
-        printf("unbinded from LDAP");
     }
 }
-
-
 
 
 SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings, const char *q, ...) {
@@ -190,10 +188,9 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
     BerElement *ptr;
     int i,value_count;
     LDAP *c = ldap_con_get(ldap_uri, settings);
+    assert(settings->ldap_base);
 
     SMFLookupResult_T *result = smf_lookup_result_new();
-
-    printf("ldap-query: [%s]", q);
 
     va_start(ap, q);
     va_copy(cp, ap);
@@ -205,10 +202,6 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
         return NULL;
 
     TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-    printf("[%p][%s]\n",c,query);
-
-
-    // ldap base einbauen mit assert pruefen
     
     if (ldap_search_ext_s(c,settings->ldap_base,ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
         TRACE(TRACE_ERR,"[%p] query [%s] failed",ld, query);
