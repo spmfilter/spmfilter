@@ -40,12 +40,14 @@ SMFSettings_T *smf_settings_new(void) {
     settings->sql_driver = NULL;
     settings->sql_name = NULL;
     settings->sql_host = NULL;
+    settings->sql_num_hosts = 0;
     settings->sql_user = NULL;
     settings->sql_pass = NULL;
     settings->sql_user_query = NULL;
     settings->sql_encoding = NULL;
     settings->ldap_uri = NULL;
     settings->ldap_host = NULL;
+    settings->ldap_num_hosts = 0;
     settings->ldap_binddn = NULL;
     settings->ldap_bindpw = NULL;
     settings->ldap_base = NULL;

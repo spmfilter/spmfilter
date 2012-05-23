@@ -93,6 +93,7 @@ void smf_lookup_check_user(SMFEmailAddress_T *user) {
 #ifdef HAVE_LDAP
 		if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
 			if (settings->ldap_user_query != NULL) {
+				// aufruf noch falsch
 				smf_lookup_ldap_check_user(user);
 			}
 		}
