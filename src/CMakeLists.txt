@@ -7,7 +7,7 @@ set(LIB_SMF_SRC
 #	smf_core.c
 	smf_envelope.c
 #	smf_lookup.c
-#	smf_lookup_result.c
+	smf_lookup_result.c
 #	smf_md5.c
 #	smf_message.c
 #	smf_mime.c
