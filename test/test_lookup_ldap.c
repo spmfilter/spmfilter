@@ -95,7 +95,7 @@ int main (int argc, char const *argv[]) {
  	host[1] = g_strdup(LDAP_HOST_1);
  	ldap_uri = ldap_get_uri("10.211.55.61", LDAP_PORT);
     SMFSettings_T *settings = smf_settings_new();
-    
+
     smf_settings_set_ldap_host(settings, host);
     smf_settings_set_ldap_scope(settings, "subtree");
     smf_settings_set_backend_connection(settings, conn_type);	
