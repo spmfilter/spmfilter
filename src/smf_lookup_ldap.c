@@ -34,7 +34,6 @@
 
 #define THIS_MODULE "ldap_lookup"
 
-LDAP *ld = NULL;
 
 
 int ldap_get_scope(SMFSettings_T *settings) {
@@ -50,6 +49,7 @@ int ldap_get_scope(SMFSettings_T *settings) {
 }
 
 
+
 char *ldap_get_uri(char *ldap_host, int ldap_port) {
     char *uri;
     assert(ldap_host);
@@ -59,11 +59,13 @@ char *ldap_get_uri(char *ldap_host, int ldap_port) {
 }
 
 
+
 int smf_lookup_ldap_connect(char *ldap_uri, SMFSettings_T *settings)  {  
     int ret;
     int version;
     char *uri;
     char *host;
+    LDAP *ld = NULL;
 
     assert(ldap_uri);
     assert(settings);
@@ -73,23 +75,23 @@ int smf_lookup_ldap_connect(char *ldap_uri, SMFSettings_T *settings)  {
         return -1;
     }
 
-    if (*ldap_uri) {
-        if ((ret = ldap_initialize(&ld, ldap_uri) != LDAP_SUCCESS)) 
-            TRERR("ldap_initialize() returned [%d]", ret);
-    } else {
+    if ((ret = ldap_initialize(&ld, ldap_uri)) != LDAP_SUCCESS)  {
+        TRERR("ldap_initialize() returned [%d]", ret);
         if (g_ascii_strcasecmp(settings->backend_connection,"balance") == 0) {
             host = ldap_get_rand_host(settings);
-        } else
+        } else {
             host = settings->ldap_host[0];
             uri = ldap_get_uri(host, 389);
-        if ((ret = ldap_initialize(&ld, uri)) != LDAP_SUCCESS) {
-            TRERR("ldap_initialize() returned [%d]", ret);
+            if ((ret = ldap_initialize(&ld, uri)) != LDAP_SUCCESS) {
+                TRERR("ldap_initialize() returned [%d]", ret);
+            }
         }
     }
+
     version = LDAP_VERSION3;
     ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &version);
 
-    if (settings->ldap_referrals) {
+    if (settings->ldap_referrals == 1) {
         ldap_set_option(ld, LDAP_OPT_REFERRALS, (void *)LDAP_OPT_ON);
         TRACE(TRACE_LOOKUP, "set ldap referrals to on");
     } else {
@@ -104,8 +106,10 @@ int smf_lookup_ldap_connect(char *ldap_uri, SMFSettings_T *settings)  {
         }
     }
 
+    settings->ldap_connection = ld;
     return 0;
 }
+
 
 
 
@@ -139,6 +143,7 @@ int smf_ldap_bind(char *uri, SMFSettings_T *settings) {
     cred->bv_len = strlen(settings->ldap_bindpw);
     cred->bv_val = settings->ldap_bindpw;
 
+    LDAP *ld = (LDAP *)settings->ldap_connection;
     if ((ret = ldap_initialize(&ld, uri)) == LDAP_SUCCESS) {
         TRACE(TRACE_DEBUG,"ldap_initialize() to host [%s] successful ", uri);
         TRACE(TRACE_LOOKUP, "binding to ldap server as [%s] / [xxxxxxxx]",  settings->ldap_binddn);
@@ -150,12 +155,12 @@ int smf_ldap_bind(char *uri, SMFSettings_T *settings) {
 
         TRACE(TRACE_LOOKUP, "successfully bound to host [%s]", uri);
         free(cred);
-        g_free(uri);
         return 0;
     } 
 
     free(cred);
     g_free(uri);
+
     return -1;
 }
 
@@ -194,7 +199,7 @@ int ldap_failover_connect(SMFSettings_T *settings) {
 LDAP *ldap_con_get(char *ldap_uri, SMFSettings_T *settings) {
     assert(ldap_uri);
     assert(settings);
-
+    LDAP *ld = (LDAP *)settings->ldap_connection;
     if (!ld) {
         smf_lookup_ldap_connect(ldap_uri, settings);
     }
@@ -215,15 +220,18 @@ void smf_lookup_ldap_disconnect(char *ldap_uri, SMFSettings_T *settings) {
 }
 
 
+
 SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings, const char *q, ...) {
     va_list ap, cp;
-    char *query;
+    int i,value_count;
+
     LDAPMessage *msg = NULL;
     LDAPMessage *entry = NULL;
     char *attr;
+    char *query;
     struct berval **bvals;
     BerElement *ptr;
-    int i,value_count;
+    
 
     assert(ldap_uri);
     assert(q);
@@ -233,6 +241,7 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
         TRERR("settings->ldap_base is NULL, aborted");
         return -1;
     }
+
 
     LDAP *c = ldap_con_get(ldap_uri, settings);
     SMFLookupResult_T *result = smf_lookup_result_new();
@@ -247,16 +256,23 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
         return NULL;
 
     TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-    
+    TRACE(TRACE_DEBUG,"[%p] [%s]",c,query);
+    printf("[%p] [%s]",c,query);
+    printf("Xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
     if (ldap_search_ext_s(c,settings->ldap_base,ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
-        TRACE(TRACE_ERR,"[%p] query [%s] failed",ld, query);
-    
+        TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);
+        printf("[%p] [%s]",c,query);
+
     if(ldap_count_entries(c,msg) <= 0) {
         TRACE(TRACE_LOOKUP,"[%p] nothing found",c);
+         printf("[%p] nothing found",c);
         g_free(query);
         return NULL;
-    } else
+    } else {
         TRACE(TRACE_LOOKUP,"[%p] found [%d] entries", c, ldap_count_entries(c,msg));
+         printf("[%p] found [%d] entries", c, ldap_count_entries(c,msg));
+    }
 
     for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
         SMFLookupElement_T *e = smf_lookup_element_new();
@@ -284,9 +300,11 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
 
     ber_free(ptr,0);
     ldap_msgfree(msg);
+    ldap_msgfree(entry);
     g_free(query);
-    return result;
+    return result;   
 }
+
 
 /*
 void smf_lookup_ldap_check_user(char *ldap_uri, SMFEmailAddress_T *user, SMFSettings_T *settings) {
