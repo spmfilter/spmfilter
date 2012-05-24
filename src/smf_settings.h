@@ -73,6 +73,7 @@ typedef struct {
     SMFTlsOption_T tls; /**< enable/disable TLS */
     char *tls_pass; /**< password for ssl cert */
     int daemon; /**< daemonize flag */
+    char *lib_dir; /**< user defined directory path for shared libraries */
 
     GHashTable *smtp_codes; /**< user defined smtp return codes */
 

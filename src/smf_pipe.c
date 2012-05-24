@@ -38,18 +38,6 @@
 
 #define THIS_MODULE "pipe"
 
-#if 0
-/* copy headers from message object to own GMimeHeaderList */
-static void copy_header_func(const char *name, const char *value, gpointer data) {
-#ifdef HAVE_GMIME24
-    g_mime_header_list_append((GMimeHeaderList *)data,
-            g_strdup(name),g_strdup(value));
-#else
-    g_mime_header_add((GMimeHeader *)data,
-            g_strdup(name),g_strdup(value));
-#endif
-}
-#endif
 
 /* error handler used when building module queue
  * return 1 if processing should continue, else 0
@@ -125,45 +113,27 @@ int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
 
 int load(SMFSettings_T *settings,int sock) {
     GIOChannel *in_channel, *out_channel;
-//    GMimeStream *out;
-//    GMimeObject *message;
-//    GMimeParser *parser;
-    //gchar *line;
-    //gsize length;
     gchar buf[100];
     gsize bytes_read,bytes_written;
-//    FILE *fd;
     GError *error = NULL;
     clock_t start_process, stop_process;
 
-#if 0
-#ifdef HAVE_GMIME24
-    GMimeHeaderList *headers;
-#else
-    GMimeHeader *headers;
-#endif
-#endif
     SMFSession_T *session = smf_session_new();
 
     /* start clock, to see how long
      * the processing time takes */
     start_process = clock();
 
-    smf_core_gen_queue_file(&session->envelope->message_file);
+    smf_core_gen_queue_file(settings->queue_dir, &session->envelope->message_file);
 
     TRACE(TRACE_DEBUG,"using spool file: '%s'", session->envelope->message_file);
         
     /* start receiving data */
     in_channel = g_io_channel_unix_new(STDIN_FILENO);
     g_io_channel_set_encoding(in_channel, NULL, NULL);
-/*
-    if ((fd = fopen(session->envelope->message_file,"wb+")) == NULL) {
-        TRACE(TRACE_ERR,"failed writing queue file");
-        return -1;
-    }
-*/
 
-    out_channel = g_io_channel_new_file(session->envelope->message_file,"wb+",&error);
+    out_channel = g_io_channel_new_file(session->envelope->message_file,"w",&error);
+    g_io_channel_set_encoding(out_channel, NULL, NULL);
     if(!out_channel) {
         TRACE(TRACE_ERR,"failed writing queue file: %s",error->message);
         g_error_free(error);
@@ -185,28 +155,11 @@ int load(SMFSettings_T *settings,int sock) {
             g_error_free(error);
             return -1;
         }
+        session->msgbodysize+=bytes_written;
     }
     while(bytes_read > 0);
 
-/*
-    out = g_mime_stream_file_new(fd);
-
-    while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
-        if (g_mime_stream_write(out,line,length) == -1) {
-            TRACE(TRACE_ERR,"%s",error->message);
-            g_io_channel_unref(in);
-            g_object_unref(out);
-            g_free(line);
-            remove(session->envelope->message_file);
-            g_error_free(error);
-            return -1;
-        }
-        session->msgbodysize+=strlen(line);
-        g_free(line);
-    }
-*/    
     g_io_channel_unref(in_channel);
-
     g_io_channel_shutdown(out_channel,TRUE,&error);
     if(error){
         TRACE(TRACE_ERR,"failed to close queue file: %s",error->message);
@@ -247,7 +200,7 @@ int load(SMFSettings_T *settings,int sock) {
      * stop our clock */
     stop_process = clock();
     TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
-
+/*
     if (load_modules(session, settings) != 0) {
         remove(session->envelope->message_file);
         smf_session_free(session);
@@ -259,4 +212,6 @@ int load(SMFSettings_T *settings,int sock) {
         TRACE(TRACE_DEBUG,"removing spool file %s",session->envelope->message_file);
         return 0;
     }
+  */  
+    return 0;
 }

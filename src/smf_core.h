@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,7 +18,23 @@
 #ifndef _SMF_CORE_H
 #define	_SMF_CORE_H
 
+#include <glib.h>
+#include <gmime/gmime.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/time.h>
+
+#include "spmfilter_config.h"
 #include "smf_settings.h"
+#include "smf_trace.h"
+#include "smf_md5.h"
+
+#ifdef HAVE_PCRE
+#include <pcre.h>
+#endif
+
 
 /* GLIB2 VERSION INFORMATION */
 #define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
@@ -33,7 +49,7 @@
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_core_gen_queue_file(char **tempname);
+int smf_core_gen_queue_file(char *queue_dir, char **tempname);
 
 /** Extract a substring from given string
  *

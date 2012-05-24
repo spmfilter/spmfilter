@@ -405,7 +405,10 @@ int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
     int ret;
 
     /* check if engine module starts with lib */
-    engine_path = smf_build_module_path(LIB_DIR, settings->engine);
+    if (settings->lib_dir != NULL)
+        engine_path = smf_build_module_path(settings->lib_dir, settings->engine);
+    else
+        engine_path = smf_build_module_path(LIB_DIR, settings->engine);
 
     /* try to open engine module */
     module = g_module_open(engine_path, G_MODULE_BIND_LAZY);

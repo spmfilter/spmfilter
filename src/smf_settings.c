@@ -36,6 +36,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->backend = NULL;
     settings->backend_connection = NULL;
     settings->tls_pass = NULL;
+    settings->lib_dir = NULL;
     settings->smtp_codes = g_hash_table_new_full(g_str_hash, g_str_equal,free,free);
     settings->sql_driver = NULL;
     settings->sql_name = NULL;
@@ -75,6 +76,7 @@ void smf_settings_free(SMFSettings_T *settings) {
     g_free(settings->nexthop_fail_msg);
     g_free(settings->backend_connection);
     g_free(settings->tls_pass);
+    g_free(settings->lib_dir);
     g_hash_table_destroy(settings->smtp_codes);
     g_free(settings->sql_driver);
     g_free(settings->sql_name);
@@ -127,7 +129,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
 
     /* parse general settings */
     (*settings)->debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
-
+    configure_debug((*settings)->debug);
+    
     (*settings)->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", NULL);
     if ((*settings)->queue_dir == NULL)
         (*settings)->queue_dir = g_strdup("/var/spool/spmfilter");
@@ -209,11 +212,14 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->tls_pass: %s", (*settings)->tls_pass);
 
     (*settings)->daemon = g_key_file_get_boolean(keyfile,"global","daemon",NULL);
-    if (g_ascii_strcasecmp((*settings)->engine,"pipe") == 0) {
+    if ((g_ascii_strcasecmp((*settings)->engine,"pipe") == 0) && ((*settings)->daemon == 1)) {
         TRACE(TRACE_ERR,"pipe engine can not be used in daemon mode");
         return -1;
     } 
     TRACE(TRACE_DEBUG, "settings->daemon: %d", (*settings)->daemon);
+
+    (*settings)->lib_dir = g_key_file_get_string(keyfile,"global","lib_dir",NULL);
+    TRACE(TRACE_DEBUG, "settings->lib_dir: %s", (*settings)->lib_dir);
 
     if (g_key_file_has_group(keyfile,"sql")) {
         (*settings)->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
