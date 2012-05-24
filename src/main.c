@@ -65,14 +65,7 @@ int main(int argc, char *argv[]) {
 
     openlog("spmfilter", LOG_PID, LOG_MAIL);
     
-//  g_thread_init(NULL);
-    
-//  if (!g_thread_supported()) {
-//      g_print("glib2 does not support threads!");
-//      return -1;
-//  } else {
-        settings = smf_settings_new();
-//  } 
+    settings = smf_settings_new();
     
     /* parse config file and fill settings struct */
     if (smf_settings_parse_config(&settings,config_file) != 0)
@@ -110,7 +103,7 @@ int main(int argc, char *argv[]) {
 //    if (settings->daemon == 1)
 //        ret = smf_daemon_mainloop(settings);
 //    else
-//        ret = smf_modules_engine_load(settings, dup(0));
+        ret = smf_modules_engine_load(settings, dup(0));
 
 //    if(settings->backend != NULL) {
 //        if (smf_lookup_disconnect() != 0)

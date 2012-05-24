@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Sebastian Jaekel and SpaceNet AG
+ * Copyright (C) 2009-2012 Sebastian Jaekel, Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,9 +16,14 @@
  */
 
 #ifndef _SMF_PLATFORM_H
-#define	_SMF_PLATFORM_H
+#define _SMF_PLATFORM_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <glib.h>
+#include <gmodule.h>
 
 char *smf_build_module_path(const char *libdir, const char *modname);
 
-#endif	/* _SMF_PLATFORM_H */
+#endif  /* _SMF_PLATFORM_H */
 
