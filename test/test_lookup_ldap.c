@@ -104,10 +104,11 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_ldap_binddn(settings, bind_dn);
     smf_settings_set_ldap_base(settings, LDAP_BASE);
     smf_settings_set_ldap_referrals(settings, 0);  
-    
     smf_lookup_ldap_connect(ldap_uri, settings);
-    printf("CONNECTION [%p]", settings->ldap_connection);
-    ldapresult = smf_lookup_ldap_query(ldap_uri, settings, LDAP_QUERY_STRING);
+
+    
+    /*
+    //ldapresult = smf_lookup_ldap_query(ldap_uri, settings, LDAP_QUERY_STRING);
 
     
     if(ldapresult != NULL) {
@@ -120,9 +121,9 @@ int main (int argc, char const *argv[]) {
             }
         }
     }
-    
-    smf_lookup_ldap_disconnect(ldap_uri,settings);
+    */
     smf_lookup_result_free(ldapresult);
+    smf_lookup_ldap_disconnect(ldap_uri,settings);
     smf_settings_free(settings);
 
     if(uidNumber != NULL)
