@@ -47,6 +47,7 @@ int smf_lookup_connect(void) {
 
 #ifdef HAVE_LDAP
 		if(g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+			// muss an neuen prototyp angepasst werden!
 			if(smf_lookup_ldap_connect() != 0)
 				return -1;
 		}
