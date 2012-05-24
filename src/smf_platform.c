@@ -18,19 +18,24 @@
 #include "smf_platform.h"
 
 char *smf_build_module_path(const char *libdir, const char *modname) {
+    char *path = NULL;
+    char *t = NULL;
+
     if (g_str_has_prefix(modname,"lib")) {
 #ifdef __APPLE__
-        return (char *)g_module_build_path(libdir,g_strdup_printf("%s.dylib",modname));
+        t = g_strdup_printf("%s.dylib",modname);
 #else
-        return (char *)g_module_build_path(libdir, modname);
+        t = g_strdup(modname);
 #endif
     } else {
 #ifdef __APPLE__
-        return (char *)g_module_build_path(libdir,g_strdup_printf("lib%s.dylib", modname));
+        t = g_strdup_printf("lib%s.dylib", modname);
 #else
-        return (char *)g_module_build_path(libdir,g_strdup_printf("lib%s", modname));
+        t = g_strdup_printf("lib%s", modname);
 #endif
     }
+    path = (char *)g_module_build_path(libdir,t);
+    g_free(t);
 
-    return(NULL); /* should never be reached */
+    return path;
 }
