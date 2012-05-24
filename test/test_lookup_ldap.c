@@ -105,23 +105,19 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_ldap_base(settings, LDAP_BASE);
     smf_settings_set_ldap_referrals(settings, 0);  
     smf_lookup_ldap_connect(ldap_uri, settings);
-
-    
-    /*
-    //ldapresult = smf_lookup_ldap_query(ldap_uri, settings, LDAP_QUERY_STRING);
-
+    ldapresult = smf_lookup_ldap_query(ldap_uri, settings, LDAP_QUERY_STRING);
     
     if(ldapresult != NULL) {
         if(ldapresult->len > 0) {
             for(j=0; j < ldapresult->len; j++) {
              SMFLookupElement_T *elem = smf_lookup_result_index(ldapresult,j);
              uidNumber = (SMFLdapValue_T *) smf_lookup_element_get(elem, "uidNumber");
-             printf("\n---- RESULT: [%s]\n", uidNumber->data[0]);
+             printf("RESULT:[%s]\n", uidNumber->data[0]);
              assert(strcmp(uidNumber->data[0],LDAP_QUERY_STRING_RESULT)==0);
             }
         }
     }
-    */
+    
     smf_lookup_result_free(ldapresult);
     smf_lookup_ldap_disconnect(ldap_uri,settings);
     smf_settings_free(settings);
