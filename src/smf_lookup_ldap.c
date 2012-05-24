@@ -99,14 +99,15 @@ int smf_lookup_ldap_connect(char *ldap_uri, SMFSettings_T *settings)  {
         TRACE(TRACE_LOOKUP, "set ldap referrals to off");
     }
 
-    if (smf_ldap_bind(ldap_uri, settings) != 0) {
+    settings->ldap_connection = ld;
+    /* bytes in 1 blocks are definitely lost in loss record */
+    /* TODO */
+    if (smf_ldap_bind(ldap_uri, settings) != 0) { 
         if (ldap_failover_connect(settings) != 0) {
             TRERR("failover connection failed");
             return -1;
         }
     }
-
-    settings->ldap_connection = ld;
     return 0;
 }
 
@@ -159,8 +160,6 @@ int smf_ldap_bind(char *uri, SMFSettings_T *settings) {
     } 
 
     free(cred);
-    g_free(uri);
-
     return -1;
 }
 
@@ -279,7 +278,8 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
             TRACE(TRACE_LOOKUP,"found attribute [%s] in entry [%p] with [%d] values", attr, entry, value_count);
 
             vals->len = value_count;
-            vals->data = (char **)calloc(value_count, sizeof(char *));
+            vals->data = (char *)calloc(value_count, sizeof(char *));
+
             for (i = 0; i < value_count; i++) {
                 vals->data[i] = (char *)malloc(strlen((char *)((struct berval)*bvals[i]).bv_val) + 1);
                 strcpy(vals->data[i], (char *)((struct berval)*bvals[i]).bv_val);
