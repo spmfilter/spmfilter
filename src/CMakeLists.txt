@@ -11,8 +11,8 @@ set(LIB_SMF_SRC
 #	smf_md5.c
 #	smf_message.c
 #	smf_mime.c
-#	smf_modules.c
-#	smf_platform.c
+	smf_modules.c
+	smf_platform.c
 	smf_session.c
 	smf_settings.c
 	smf_settings_group.c
@@ -73,11 +73,11 @@ set_property(SOURCE spmfilter.pc PROPERTY GENERATED TRUE)
 #set_property(TARGET smtpd PROPERTY LINK_FLAGS ${_link_flags})
 #target_link_libraries(smtpd ${COMMON_LIBS} smf)
 
-#add_library(pipe SHARED smf_pipe.c smf_session.c)
-#set_property(TARGET pipe PROPERTY VERSION ${SMF_VERSION})
-#set_property(TARGET pipe PROPERTY SOVERSION ${SMF_VERSION})
-#set_property(TARGET pipe PROPERTY LINK_FLAGS ${_link_flags})
-#target_link_libraries(pipe ${COMMON_LIBS} smf)
+add_library(pipe SHARED smf_pipe.c smf_session.c)
+set_property(TARGET pipe PROPERTY VERSION ${SMF_VERSION})
+set_property(TARGET pipe PROPERTY SOVERSION ${SMF_VERSION})
+set_property(TARGET pipe PROPERTY LINK_FLAGS ${_link_flags})
+target_link_libraries(pipe ${COMMON_LIBS} smf)
 
 add_executable(spmfilter ${SPMFILTER_SRC})
 target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GTHREAD_LIBRARIES} smf)
