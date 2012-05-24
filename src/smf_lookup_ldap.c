@@ -232,7 +232,6 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
     struct berval **bvals;
     BerElement *ptr;
     
-
     assert(ldap_uri);
     assert(q);
     assert(settings);
@@ -241,7 +240,6 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
         TRERR("settings->ldap_base is NULL, aborted");
         return -1;
     }
-
 
     LDAP *c = ldap_con_get(ldap_uri, settings);
     SMFLookupResult_T *result = smf_lookup_result_new();
@@ -257,21 +255,16 @@ SMFLookupResult_T *smf_lookup_ldap_query(char *ldap_uri, SMFSettings_T *settings
 
     TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
     TRACE(TRACE_DEBUG,"[%p] [%s]",c,query);
-    printf("[%p] [%s]",c,query);
-    printf("Xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
     if (ldap_search_ext_s(c,settings->ldap_base,ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
         TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);
-        printf("[%p] [%s]",c,query);
 
     if(ldap_count_entries(c,msg) <= 0) {
         TRACE(TRACE_LOOKUP,"[%p] nothing found",c);
-         printf("[%p] nothing found",c);
         g_free(query);
         return NULL;
     } else {
         TRACE(TRACE_LOOKUP,"[%p] found [%d] entries", c, ldap_count_entries(c,msg));
-         printf("[%p] found [%d] entries", c, ldap_count_entries(c,msg));
     }
 
     for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
