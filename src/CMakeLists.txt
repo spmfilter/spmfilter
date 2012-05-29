@@ -9,7 +9,7 @@ set(LIB_SMF_SRC
 #	smf_lookup.c
 #	smf_lookup_result.c
 	smf_md5.c
-#	smf_message.c
+	smf_message.c
 #	smf_mime.c
 	smf_modules.c
 	smf_platform.c
@@ -21,7 +21,7 @@ set(LIB_SMF_SRC
 	smf_email_address.c
 )
 
-set(COMMON_LIBS m esmtp ${GMODULE_LIBRARIES} ${GMIME_LIBRARIES})
+set(COMMON_LIBS m esmtp ${GMODULE_LIBRARIES} ${LIBCMIME_LIBRARIES})
 
 if(HAVE_GLIB214)
 	list(APPEND COMMON_LIBS ${GLIB214_LIBRARIES})
