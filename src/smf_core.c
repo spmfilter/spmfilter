@@ -171,9 +171,11 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
     return(rep_made);
 }
 
+/*
 void smf_core_object_unref(void *object) {
     g_object_unref(object);
 }
+*/
 
 char *smf_md5sum(const char *data) {
     md5_state_t state;

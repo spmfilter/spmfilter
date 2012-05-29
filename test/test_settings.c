@@ -236,6 +236,15 @@ int main (int argc, char const *argv[]) {
     } else {
         g_printf("passed\n");
     }
+
+    g_printf("* testing smf_settings_set_lib_dir()...\t\t\t");
+    smf_settings_set_lib_dir(settings, TEST_QUEUE_DIR);
+    if(strcmp(smf_settings_get_lib_dir(settings),TEST_QUEUE_DIR) != 0) {
+        g_printf("failed\n");
+        return -1;
+    } else {
+        g_printf("passed\n");
+    }
     
     g_printf("* testing smf_settings_set_daemon()...\t\t\t");
     smf_settings_set_daemon(settings, 1);

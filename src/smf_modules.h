@@ -27,7 +27,6 @@
 #include <glib.h>
 #include <gmodule.h>
 #include <glib/gstdio.h>
-#include <gmime/gmime.h>
 
 #include "spmfilter_config.h"
 #include "smf_core.h"

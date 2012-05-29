@@ -377,6 +377,22 @@ void smf_settings_set_tls_pass(SMFSettings_T *settings, char *pass);
 char *smf_settings_get_tls_pass(SMFSettings_T *settings);
 
 /*!
+ * @fn void smf_settings_set_lib_dir(SMFSettings_T *settings, char *lib_dir)
+ * @brief Set path to shared libraries, if needed.
+ * @param settings a SMFSettings_T object
+ * @param lib_dir path to shared libraries folder
+ */
+void smf_settings_set_lib_dir(SMFSettings_T *settings, char *lib_dir);
+
+/*!
+ * @fn char *smf_settings_get_lib_dir(SMFSettings_T *settings)
+ * @brief Get shared library folder
+ * @param settings a SMFSettings_T object
+ * @returns shared library folder
+ */
+char *smf_settings_get_lib_dir(SMFSettings_T *settings);
+
+/*!
  * @fn void smf_settings_set_daemon(SMFSettings_T *settings, int i)
  * @brief Set daemon setting.
  *  Define whether spmfilter should run in 

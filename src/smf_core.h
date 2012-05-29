@@ -19,7 +19,6 @@
 #define	_SMF_CORE_H
 
 #include <glib.h>
-#include <gmime/gmime.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -87,7 +86,7 @@ struct _SMFObject_T {
  *
  * \param object pointer to object
  */
-void smf_core_object_unref(void *object);
+//void smf_core_object_unref(void *object);
 
 /** generate md5 hexdigest for string
  * 
