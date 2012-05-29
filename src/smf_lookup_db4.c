@@ -24,60 +24,56 @@
 
 #define THIS_MODULE "lookup_db4"
 
-/** Query Berkeley DB for given key
- *
- * \param database path to database file
- * \param key key to lookup for
- *
- * \returns the values associated with key,  or NULL if the key is not found
- */
+
 char *smf_lookup_db4_query(char *database, char *key) {
-	DB *dbp;
-	DBT db_key, db_value;
-	int ret;
+    DB *dbp;
+    DBT db_key, db_value;
+    int ret;
+    char *db_res = NULL;
 
-	/* initialize db4 */
-	if ((ret = db_create(&dbp, NULL, 0)) != 0) {
-		TRACE(TRACE_ERR, "db_create: %s\n", db_strerror(ret));
-		return NULL;
-	}
+    /* initialize db4 */
+    if ((ret = db_create(&dbp, NULL, 0)) != 0) {
+        TRACE(TRACE_ERR, "db_create: %s\n", db_strerror(ret));
+        return NULL;
+    }
 
-	TRACE(TRACE_LOOKUP, "[%p] lookup key [%s]", dbp,key);
+    TRACE(TRACE_LOOKUP, "[%p] lookup key [%s]", dbp,key);
 
-	if ((ret = dbp->set_pagesize(dbp, 1024)) != 0) {
-		TRACE(TRACE_WARNING, "DB: %s",db_strerror(ret));
-	}
-	if ((ret = dbp->set_cachesize(dbp, 0, 32 * 1024, 0)) != 0) {
-		TRACE(TRACE_WARNING, "DB: %s",db_strerror(ret));
-	}
+    if ((ret = dbp->set_pagesize(dbp, 1024)) != 0) {
+        TRACE(TRACE_WARNING, "DB: %s",db_strerror(ret));
+    }
+    if ((ret = dbp->set_cachesize(dbp, 0, 32 * 1024, 0)) != 0) {
+        TRACE(TRACE_WARNING, "DB: %s",db_strerror(ret));
+    }
 
-	/* open db */
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR < 1
-	if ((ret = dbp->open(dbp, database, NULL, DB_HASH, DB_RDONLY, 0)) != 0) {
-		TRACE(TRACE_ERR, "DB: %s",db_strerror(ret));
-		return NULL;
-	}
-#else
-	if ((ret = dbp->open(dbp, NULL, database, NULL, DB_HASH, DB_RDONLY, 0)) != 0) {
-		TRACE(TRACE_ERR,"DB: %s",db_strerror(ret));
-		return NULL;
-	}
-#endif
+    /* open db */
+    #if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR < 1
+    if ((ret = dbp->open(dbp, database, NULL, DB_HASH, DB_RDONLY, 0)) != 0) {
+        TRACE(TRACE_ERR, "DB: %s",db_strerror(ret));
+        return NULL;
+    }
+    #else
+    if ((ret = dbp->open(dbp, NULL, database, NULL, DB_HASH, DB_RDONLY, 0)) != 0) {
+        TRACE(TRACE_ERR,"DB: %s",db_strerror(ret));
+        return NULL;
+    }
+    #endif
 
-	memset(&db_key, 0, sizeof(DBT));
-	memset(&db_value, 0, sizeof(DBT));
-	db_key.data = (void *)key;
-	db_key.size = strlen(key) + 1;
+    memset(&db_key, 0, sizeof(DBT));
+    memset(&db_value, 0, sizeof(DBT));
+    db_key.data = (void *)key;
+    db_key.size = strlen(key) + 1;
 
-	ret = dbp->get(dbp, NULL, &db_key, &db_value, 0);
+    ret = dbp->get(dbp, NULL, &db_key, &db_value, 0);
 
-	TRACE(TRACE_LOOKUP, "[%p] found value [%s]", dbp, (char *)db_value.data);
+    TRACE(TRACE_LOOKUP, "[%p] found value [%s]", dbp, (char *)db_value.data);
+    asprintf(&db_res, "%s", (char *)db_value.data);
 
-	if (dbp != NULL)
-		dbp->close(dbp, 0);
+    if (dbp != NULL)
+        dbp->close(dbp, 0);
 
-	if(ret < 0)
-		return NULL;
-	else
-		return (char *)db_value.data;
+    if(ret < 0)
+        return NULL;
+    else
+        return db_res;
 }

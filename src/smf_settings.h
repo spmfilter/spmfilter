@@ -98,7 +98,10 @@ typedef struct {
     int ldap_referrals; /**< ldap referrals flag */
     char *ldap_scope; /**< ldap search scope */
     char *ldap_user_query; /**< ldap user query */
+    void *ldap_connection; /** ldap connection handle LDAP *ld = NULL */
 } SMFSettings_T;
+
+
 
 /*!
  * @struct SMFSettingsGroup_T smf_settings.h

@@ -41,16 +41,19 @@ SMFSettings_T *smf_settings_new(void) {
     settings->sql_driver = NULL;
     settings->sql_name = NULL;
     settings->sql_host = NULL;
+    settings->sql_num_hosts = 0;
     settings->sql_user = NULL;
     settings->sql_pass = NULL;
     settings->sql_user_query = NULL;
     settings->sql_encoding = NULL;
     settings->ldap_uri = NULL;
     settings->ldap_host = NULL;
+    settings->ldap_num_hosts = 0;
     settings->ldap_binddn = NULL;
     settings->ldap_bindpw = NULL;
     settings->ldap_base = NULL;
     settings->ldap_scope = NULL;
+    settings->ldap_referrals = 0;
     settings->ldap_user_query = NULL;
     settings->module_fail = 3;
     settings->nexthop_fail_code = 451;
@@ -60,7 +63,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->daemon = 0;
     settings->sql_max_connections = 3;
     settings->sql_port = 0;
-
+    settings->ldap_connection = NULL;
     return settings;
 }
 
@@ -811,12 +814,12 @@ void smf_settings_set_ldap_host(SMFSettings_T *settings, char **host) {
     assert(settings);
     assert(*host);
 
-    if (settings->ldap_host != NULL)
+    if(settings->ldap_host != NULL)
         g_strfreev(settings->ldap_host);
     
-    if (host != NULL) {
+    if(host != NULL)
         settings->ldap_host = g_strdupv(host);
-    }
+    
     settings->ldap_num_hosts = g_strv_length(host);
 }
 
@@ -858,7 +861,7 @@ char *smf_settings_get_ldap_binddn(SMFSettings_T *settings) {
 void smf_settings_set_ldap_bindpw(SMFSettings_T *settings, char *bindpw) {
     assert(settings);   
     assert(bindpw);
-
+    
     if (settings->ldap_bindpw != NULL)
         g_free(settings->ldap_bindpw);
         
