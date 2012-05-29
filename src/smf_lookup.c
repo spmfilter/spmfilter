@@ -47,6 +47,7 @@ int smf_lookup_connect(void) {
 
 #ifdef HAVE_LDAP
 		if(g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
+			// muss an neuen prototyp angepasst werden!
 			if(smf_lookup_ldap_connect() != 0)
 				return -1;
 		}
@@ -93,6 +94,7 @@ void smf_lookup_check_user(SMFEmailAddress_T *user) {
 #ifdef HAVE_LDAP
 		if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
 			if (settings->ldap_user_query != NULL) {
+				// aufruf noch falsch
 				smf_lookup_ldap_check_user(user);
 			}
 		}
@@ -159,6 +161,8 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 
 #ifdef HAVE_LDAP
 		if ((g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) && (is_sql == FALSE)) {
+
+			// TODO - fix 
 			result = smf_lookup_ldap_query(query);
 			break;
 		}
