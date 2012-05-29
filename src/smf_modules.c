@@ -428,7 +428,7 @@ int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
     }
 
     /* start processing engine */
-    ret = load_engine(settings,fd);
+//    ret = load_engine(settings,fd);
 
     if (!g_module_close(module))
         TRACE(TRACE_WARNING,"%s", g_module_error());

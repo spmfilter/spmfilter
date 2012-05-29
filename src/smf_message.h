@@ -18,26 +18,51 @@
 #ifndef _SMF_MESSAGE_H
 #define _SMF_MESSAGE_H
 
-#include <time.h>
-#include "smf_core.h"
-#include "smf_lookup.h"
-#include "smf_email_address.h"
-#include "spmfilter_config.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#include "smf_core.h"
+
+#if 0 
+#include "smf_lookup.h"
+
+#include "smf_settings.h"
+#endif 
+
+
+typedef struct _SMFObject_T SMFMessage_T;
+
+
+/*!
+ * @fn SMFMessage_T *smf_message_new(void)
+ * @brief Creates a new SMFMessage_T object
+ *
+ * @returns an empty message object
+ */
+SMFMessage_T *smf_message_new(void);
+
+
+/*!
+ * @fn char *smf_message_generate_message_id(void)
+ * @brief Generates a unique Message-Id.
+ * 
+ * @returns a unique string in an addr-spec format suitable for use as a Message-Id.
+ */
+char *smf_message_generate_message_id(void);
+
+#if 0
 typedef struct _SMFObject_T SMFObject_T;
 typedef struct _SMFObject_T SMFMimePart_T;
 typedef struct _SMFObject_T SMFMultiPart_T;
 typedef struct _SMFObject_T SMFDataWrapper_T;
 
 typedef struct {
-    /* message recipients */
     SMFEmailAddress_T **message_to;
     int message_to_num;
  
-    /* message sender */
     SMFEmailAddress_T *message_from;
     
-    /* message header */
     void *headers;
     void *dirty_headers;
     
@@ -99,11 +124,7 @@ char *smf_message_decode_text(const char *text);
  */
 char *smf_message_encode_text(const char *text);
 
-/** Generates a unique Message-Id.
- * 
- * \returns a unique string in an addr-spec format suitable for use as a Message-Id.
- */
-char *smf_message_generate_message_id(void);
+
 
 /** Determines the best content encoding for the first len bytes of text.
  *
@@ -115,12 +136,6 @@ char *smf_message_generate_message_id(void);
  *          case means smallest output size)
  */
 SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len);
-
-/** Creates a new SMFMessage_T object
- *
- * \returns an empty message object
- */
-SMFMessage_T *smf_message_new(void);
 
 /** Free SMFMessage_T object
  *
@@ -331,5 +346,11 @@ void smf_message_header_remove(SMFMessage_T *message, char *header_name);
  * \returns a string containing the header block.
  */
 char *smf_message_header_to_string(SMFMessage_T *message);
+
+#endif
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* _SMF_MESSAGE_H */

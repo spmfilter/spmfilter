@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,23 +15,22 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_MESSAGE_PRIVATE_H
-#define	_SMF_MESSAGE_PRIVATE_H
+#include <stdio.h>
+#include <assert.h>
+#include <glib.h>
+#include <glib/gprintf.h>
 
-//void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope);
-#if 0
-typedef enum {
-	HEADER_REMOVE = 0,
-	HEADER_APPEND = 1,
-	HEADER_PREPEND = 2,
-	HEADER_SET = 3,
-} SMFHeaderStatus_T;
+#include "../src/smf_message.h"
 
-typedef struct {
-	SMFHeaderStatus_T status;
-	char *name;
-	char *value;
-} SMFHeaderModification_T;
-#endif
-#endif	/* _SMF_MESSAGE_PRIVATE_H */
+int main (int argc, char const *argv[]) {
+    SMFMessage_T *msg = NULL;
+    
+    g_printf("Start SMFMessage_T tests...\n");
 
+    g_printf("* testing smf_message_new()...\t\t\t\t");
+    msg = smf_message_new();
+    assert(msg);
+    g_printf("passed\n");
+  
+    return 0;
+}

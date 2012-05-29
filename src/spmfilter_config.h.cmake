@@ -27,9 +27,6 @@
 /* path for spmfilter plugins */
 #define LIB_DIR "${SMF_LIB_DIR}"
 
-/* gmime */
-#cmakedefine HAVE_GMIME24
-
 /* ldap */
 #cmakedefine HAVE_LDAP
 

@@ -24,6 +24,7 @@
 #include <gmodule.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <cmime.h>
 
 #include "spmfilter_config.h"
 #include "smf_core.h"
@@ -169,6 +170,8 @@ int load(SMFSettings_T *settings,int sock) {
 
     TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
     session->envelope->num_rcpts = 0;
+    
+    
     
     /* parse email data and fill session struct*/
     /* extract message headers */

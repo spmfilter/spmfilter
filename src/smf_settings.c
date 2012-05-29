@@ -211,15 +211,15 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     (*settings)->tls_pass = g_key_file_get_string(keyfile,"global","tls_pass",NULL);
     TRACE(TRACE_DEBUG, "settings->tls_pass: %s", (*settings)->tls_pass);
 
+    (*settings)->lib_dir = g_key_file_get_string(keyfile,"global","lib_dir",NULL);
+    TRACE(TRACE_DEBUG, "settings->lib_dir: %s", (*settings)->lib_dir);
+
     (*settings)->daemon = g_key_file_get_boolean(keyfile,"global","daemon",NULL);
     if ((g_ascii_strcasecmp((*settings)->engine,"pipe") == 0) && ((*settings)->daemon == 1)) {
         TRACE(TRACE_ERR,"pipe engine can not be used in daemon mode");
         return -1;
     } 
     TRACE(TRACE_DEBUG, "settings->daemon: %d", (*settings)->daemon);
-
-    (*settings)->lib_dir = g_key_file_get_string(keyfile,"global","lib_dir",NULL);
-    TRACE(TRACE_DEBUG, "settings->lib_dir: %s", (*settings)->lib_dir);
 
     if (g_key_file_has_group(keyfile,"sql")) {
         (*settings)->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
@@ -595,6 +595,7 @@ SMFTlsOption_T smf_settings_get_tls(SMFSettings_T *settings) {
     return settings->tls;
 }
 
+
 void smf_settings_set_tls_pass(SMFSettings_T *settings, char *pass) {
     assert(settings);
     assert(pass);
@@ -608,6 +609,21 @@ void smf_settings_set_tls_pass(SMFSettings_T *settings, char *pass) {
 char *smf_settings_get_tls_pass(SMFSettings_T *settings) {
     assert(settings);
     return settings->tls_pass;
+}
+
+void smf_settings_set_lib_dir(SMFSettings_T *settings, char *lib_dir) {
+    assert(settings);
+    assert(lib_dir);
+
+    if (settings->lib_dir != NULL)
+        g_free(settings->lib_dir);
+        
+    settings->lib_dir = g_strdup(lib_dir);
+}
+
+char *smf_settings_get_lib_dir(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->lib_dir;
 }
 
 void smf_settings_set_daemon(SMFSettings_T *settings, int i) {
