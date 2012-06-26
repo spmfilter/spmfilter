@@ -15,6 +15,9 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
+#include <cmime.h>
+
 #include "smf_email_address.h"
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
@@ -24,48 +27,111 @@
 /** Creates a new SMFEmailAddress_T object */
 SMFEmailAddress_T *smf_email_address_new(void) {
     SMFEmailAddress_T *ea = NULL;
-    
+    CMimeAddress_T *ca = cmime_address_new();
     ea = g_slice_new(SMFEmailAddress_T);
-    ea->addr = NULL;
+    ea->data = ca;
     ea->lr = NULL;
-    
+    ea->is_local = -1;
+
     return ea;
 }
 
 /** Free SMFEmailAddress_T object */
 void smf_email_address_free(SMFEmailAddress_T *ea) {
-    if (ea != NULL) {
-        if (ea->addr != NULL) {
-            g_free(ea->addr);
-            //if (ea->lr != NULL)
-                // TODO: re-add smf_lookup_result_free
-                //smf_lookup_result_free(ea->lr);
-        }
-        g_slice_free(SMFEmailAddress_T,ea);
-    }
+    assert(ea);
+    if (ea->data != NULL)
+        cmime_address_free((CMimeAddress_T *)ea->data);
+    if (ea->lr != NULL)
+        smf_lookup_result_free(ea->lr);    
+    g_slice_free(SMFEmailAddress_T,ea);
 }
 
-/** Set E-Mail Address */
-SMFEmailAddress_T *smf_email_address_set_addr(SMFEmailAddress_T *ea, char *addr) {
-    if (ea->addr != NULL) {
-        g_free(ea->addr);
+SMFEmailAddress_T *smf_email_address_parse_string(const char *addr) {
+    SMFEmailAddress_T *ea = smf_email_address_new();
+    CMimeAddress_T *a = NULL;
+
+    assert(addr);
+
+    a = cmime_address_parse_string(addr);
+    if (ea->data != NULL) {
+        cmime_address_free(ea->data);
     }
     
-    ea->addr = g_strdup(addr);
+    ea->data = (void *)a;
     return ea;
 }
 
-char *smf_email_address_get_addr(SMFEmailAddress_T *ea) {
-    return (char *)ea->addr;
+char *smf_email_address_to_string(SMFEmailAddress_T *ea) {
+    assert(ea);
+    return (char *)cmime_address_to_string((CMimeAddress_T *)ea->data);
 }
 
-SMFEmailAddress_T *smf_email_address_set_lr(SMFEmailAddress_T *ea,SMFLookupResult_T *lr) {
-    if (ea->lr != NULL) {
-        // TODO: re-add smf_lookup_result_free
-        //smf_lookup_result_free(ea->lr);
+void smf_email_address_set_type(SMFEmailAddress_T *ea, SMFEmailAddressType_T t) {
+    assert(ea);
+    if (ea->data != NULL) 
+        cmime_address_set_type((CMimeAddress_T *)ea->data,(CMimeAddressType_T )t);
+}
+
+SMFEmailAddressType_T smf_email_address_get_type(SMFEmailAddress_T *ea) {
+    CMimeAddress_T *ca = NULL;
+    assert(ea);
+
+    if (ea->data != NULL) {
+        ca = (CMimeAddress_T *)ea->data;
+        return (SMFEmailAddressType_T)cmime_address_get_type(ca);
+    } else
+        return -1;
+}
+
+void smf_email_address_set_name(SMFEmailAddress_T *ea, const char *name) {
+    assert(ea);
+    assert(name);
+    
+    if(ea->data)
+        cmime_address_set_name((CMimeAddress_T *)ea->data,name);
+
+}
+
+char *smf_email_address_get_name(SMFEmailAddress_T *ea) {
+    CMimeAddress_T *ca = NULL;
+    assert(ea);
+
+    if (ea->data != NULL) {
+        ca = (CMimeAddress_T *)ea->data;
+        return cmime_address_get_name(ca);
     }
-    // TODO: re-add smf_lookup_result_new
-    //ea->lr = smf_lookup_result_new();
+
+    return NULL;
+}
+
+void smf_email_address_set_email(SMFEmailAddress_T *ea, const char *email) {
+    assert(ea);
+    assert(email);
+
+    if (ea->data)
+        cmime_address_set_email((CMimeAddress_T *)ea->data,email);
+}
+
+char *smf_email_address_get_email(SMFEmailAddress_T *ea) {
+    CMimeAddress_T *ca = NULL;
+    assert(ea);
+
+    if (ea->data != NULL) {
+        ca = (CMimeAddress_T *)ea->data;
+        return cmime_address_get_email(ca);
+    }
+
+    return NULL;
+}
+
+void smf_email_address_set_lr(SMFEmailAddress_T *ea,SMFLookupResult_T *lr) {
+    assert(ea);
+    assert(lr);
+    if (ea->lr != NULL) {
+        smf_lookup_result_free(ea->lr);
+    }
+    ea->lr = smf_lookup_result_new();
+    ea->lr = lr;
     return ea;
 }
 

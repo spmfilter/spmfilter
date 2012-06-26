@@ -22,9 +22,12 @@
 
 #include "../src/smf_message.h"
 
+#define TEST_ADDR "foo@bar.com"
+
 int main (int argc, char const *argv[]) {
     SMFMessage_T *msg = NULL;
-    
+    char *s = NULL;
+
     g_printf("Start SMFMessage_T tests...\n");
 
     g_printf("* testing smf_message_new()...\t\t\t\t");
@@ -32,5 +35,17 @@ int main (int argc, char const *argv[]) {
     assert(msg);
     g_printf("passed\n");
   
+    g_printf("* testing smf_message_set_sender()...\t\t\t");
+    smf_message_set_sender(msg,TEST_ADDR);
+    g_printf("passed\n");
+    g_printf("* testing smf_message_get_sender()...\t\t\t");
+    s = cmime_message_get_sender_string(msg);
+    assert(strcmp(s,TEST_ADDR)==0);
+    free(s);  
+
+    g_printf("* testing smf_message_free()...\t\t\t\t");
+    smf_message_free(msg);
+    g_printf("passed\n");
+
     return 0;
 }
