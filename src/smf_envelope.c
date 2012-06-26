@@ -76,7 +76,7 @@ void smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt) {
     );
 
     envelope->rcpt[envelope->num_rcpts] = smf_email_address_new();
-    envelope->rcpt[envelope->num_rcpts]->addr = g_strdup(rcpt);
+//    envelope->rcpt[envelope->num_rcpts]->addr = g_strdup(rcpt);
     envelope->num_rcpts++;
 }
 
@@ -100,7 +100,7 @@ void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender) {
         smf_email_address_free(envelope->sender);
     
     envelope->sender = smf_email_address_new();
-    envelope->sender->addr = g_strdup(sender);
+//    envelope->sender->addr = g_strdup(sender);
 }
 
 /** Get envelope sender */

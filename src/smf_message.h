@@ -42,6 +42,13 @@ typedef struct _SMFObject_T SMFMessage_T;
  */
 SMFMessage_T *smf_message_new(void);
 
+/*!
+ * @fn void smf_message_free(SMFMessage_T *message)
+ * @brief Free SMFMessage_T object
+ *
+ * @param message SMFMessage_T object
+ */
+void smf_message_free(SMFMessage_T *message);
 
 /*!
  * @fn char *smf_message_generate_message_id(void)
@@ -50,6 +57,25 @@ SMFMessage_T *smf_message_new(void);
  * @returns a unique string in an addr-spec format suitable for use as a Message-Id.
  */
 char *smf_message_generate_message_id(void);
+
+/*!
+ * @fn void smf_message_set_sender(SMFMessage_T *message, const char *sender)
+ * @brief Set the sender's name and address on the message object.
+ * 
+ * @param message SMFMessage_T object
+ * @param sender The name and address of the sender
+ */
+void smf_message_set_sender(SMFMessage_T *message, const char *sender);
+
+/*!
+ * @fn char *smf_message_get_sender(SMFMessage_T *message)
+ * @brief Gets the email address of the sender from message.
+ * 
+ * @param message SMFmessage_T object
+ * 
+ * @returns the sender's name and address of the message.
+ */
+char *smf_message_get_sender(SMFMessage_T *message);
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
@@ -143,20 +169,9 @@ SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len);
  */
 void smf_message_unref(SMFMessage_T *message);
 
-/** Set the sender's name and address on the message object.
- * 
- * \param message SMFMessage_T object
- * \param sender The name and address of the sender
- */
-void smf_message_set_sender(SMFMessage_T *message, const char *sender);
 
-/** Gets the email address of the sender from message.
- * 
- * \param message SMFmessage_T object
- * 
- * \returns the sender's name and address of the message.
- */
-const char *smf_message_get_sender(SMFMessage_T *message);
+
+
 
 /** Add a recipient of a chosen type to the message object.
  *

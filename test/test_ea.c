@@ -22,29 +22,66 @@
 
 #include "../src/smf_email_address.h"
 
-#define TEST_ADDR "webmaster@spmfilter.org"
+#define TEST_NAME "John Doe"
+#define TEST_EMAIL "foo@bar.com"
+#define TEST_ADDR "John Doe <foo@bar.com>"
 
 int main (int argc, char const *argv[]) {
-	SMFEmailAddress_T *ea = NULL;
-	
-	g_printf("Start SMFEmailAddress_T tests...\n");
+    SMFEmailAddress_T *ea = NULL;
+    SMFEmailAddress_T *ea2 = NULL;
+    char *s = NULL;
 
-	g_printf("* testing smf_email_address_new()...\t\t\t\t");
-	ea = smf_email_address_new();
-	g_printf("passed\n");
-	
-	g_printf("* testing smf_email_address_set_addr()...\t\t\t");
-	ea = smf_email_address_set_addr(ea,TEST_ADDR);
-	
-	if (strcmp(TEST_ADDR,smf_email_address_get_addr(ea)) != 0) {
-		g_printf("failed\n");
-		return -1;
-	} else
-		g_printf("passed\n");
-		
-	g_printf("* testing smf_email_address_free()...\t\t\t\t");
-	smf_email_address_free(ea);
-	g_printf("passed\n");
-	
-	return 0;
+    g_printf("Start SMFEmailAddress_T tests...\n");
+
+    g_printf("* testing smf_email_address_new()...\t\t\t\t");
+    ea = smf_email_address_new();
+    assert(ea);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_email_address_parse_string()...\t\t\t");
+    ea2 = smf_email_address_parse_string(TEST_ADDR);
+    assert(ea2);
+    g_printf("passed\n");   
+
+    g_printf("* testing smf_email_address_to_string()...\t\t\t");
+    s = smf_email_address_to_string(ea2);
+    
+    if (strcmp(TEST_ADDR,s) != 0) {
+        g_printf("failed\n");
+        return -1;
+    } else
+        g_printf("passed\n");
+
+    free(s);
+    smf_email_address_free(ea2);
+
+    g_printf("* testing smf_email_address_set_type()...\t\t\t");
+    smf_email_address_set_type(ea,SMF_EMAIL_ADDRESS_TYPE_TO);
+    if (smf_email_address_get_type(ea) != SMF_EMAIL_ADDRESS_TYPE_TO) {
+        g_printf("failed\n");
+        return -1;
+    } else
+        g_printf("passed\n");
+
+    g_printf("* testing smf_email_address_set_name()...\t\t\t");
+    smf_email_address_set_name(ea,TEST_NAME);
+    if (strcmp(TEST_NAME,smf_email_address_get_name(ea)) != 0) {
+        g_printf("failed\n");
+        return -1;
+    } else
+        g_printf("passed\n");
+
+    g_printf("* testing smf_email_address_set_email()...\t\t\t");
+    smf_email_address_set_email(ea,TEST_EMAIL);
+    if (strcmp(TEST_EMAIL,smf_email_address_get_email(ea)) != 0) {
+        g_printf("failed\n");
+        return -1;
+    } else
+        g_printf("passed\n");
+    
+    g_printf("* testing smf_email_address_free()...\t\t\t\t");
+    smf_email_address_free(ea);
+    g_printf("passed\n");
+    
+    return 0;
 }
