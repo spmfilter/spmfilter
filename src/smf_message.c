@@ -15,6 +15,7 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
 #include <glib.h>
 #include <cmime.h>
 
@@ -54,9 +55,29 @@ SMFMessage_T *smf_message_new(void) {
     return message;
 }
 
+/** Free SMFMessage_T object */
+void smf_message_free(SMFMessage_T *message) {
+    assert(message);
+    cmime_message_free((CMimeMessage_T *)message->data);
+    g_slice_free(SMFMessage_T,message);
+}
+
 /** Generates a unique Message-Id. */
 char *smf_message_generate_message_id(void) {
     return cmime_message_generate_message_id();
+}
+
+/** Set the sender's name and address on the message object.*/
+void smf_message_set_sender(SMFMessage_T *message, const char *sender) {
+    cmime_message_set_sender((CMimeMessage_T *)message->data,sender);
+}
+
+/** Gets the email address of the sender from message. */
+char *smf_message_get_sender(SMFMessage_T *message) {
+    CMimeMessage_T *msg = message->data;
+    CMimeAddress_T *ca = cmime_message_get_sender(msg);
+     
+    //return cmime_message_get_sender(message->data);
 }
 
 #if 0
@@ -205,21 +226,8 @@ SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len) 
 
 
 
-/** Free SMFMessage_T object */
-void smf_message_unref(SMFMessage_T *message) {
-    g_object_unref(message->data);
-    g_slice_free(SMFMessage_T,message);
-}
 
-/** Set the sender's name and address on the message object.*/
-void smf_message_set_sender(SMFMessage_T *message, const char *sender) {
-    g_mime_message_set_sender((GMimeMessage *)message->data,sender);
-}
 
-/** Gets the email address of the sender from message. */
-const char *smf_message_get_sender(SMFMessage_T *message) {
-    return g_mime_message_get_sender((GMimeMessage *)message->data);
-}
 
 /** Add a recipient of a chosen type to the message object. */
 void smf_message_add_recipient(SMFMessage_T *message,

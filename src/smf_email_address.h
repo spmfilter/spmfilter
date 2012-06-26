@@ -23,8 +23,19 @@
 #include "spmfilter_config.h"
 #include "smf_lookup.h"
 
+/*!
+ * @enum SMFEmailAddressType_T 
+ * @brief Possible types of email addresses
+ */
+typedef enum _SMFEmailAddressType {
+        SMF_EMAIL_ADDRESS_TYPE_TO, /**< message recipient */
+        SMF_EMAIL_ADDRESS_TYPE_CC, /**< message cc recipient */
+        SMF_EMAIL_ADDRESS_TYPE_BCC, /**< nessage bcc recipient */
+        SMF_EMAIL_ADDRESS_TYPE_FROM, /**< message sender */
+} SMFEmailAddressType_T;
+
 typedef struct {
-    char *addr;
+    void *data;
     int is_local;
     SMFLookupResult_T *lr;
 } SMFEmailAddress_T;
@@ -44,30 +55,76 @@ SMFEmailAddress_T *smf_email_address_new(void);
 void smf_email_address_free(SMFEmailAddress_T *ea);
 
 /*!
- * @fn SMFEmailAddress_T *smf_email_address_set_addr(SMFEmailAddress_T *ea, char *addr)
- * @brief Set the address of a SMFEmailAddress_T object
- * @param ea SMFEmailAddress_T object
+ * @fn SMFEmailAddress_T *smf_email_address_parse_string(const char *addr)
+ * @brief Parse given string and create SMFEmailAddress_T object
  * @param addr E-Mail address
- * @returns SMFEmailAddress_T object
+ * @returns a newly allocated SMFEmailAddress_T object, or NULL on failure
  */
-SMFEmailAddress_T *smf_email_address_set_addr(SMFEmailAddress_T *ea, char *addr);
+SMFEmailAddress_T *smf_email_address_parse_string(const char *addr);
 
 /*!
- * @fn char *smf_email_address_get_addr(SMFEmailAddress_T *ea)
- * @brief Get E-Mail address of SMFEmailAddress_T object
+ * @fn char *smf_email_address_to_string(SMFEmailAddress_T *ea)
+ * @brief Allocates a string containing the contents of the SMFEmailAddress_T object.
  * @param ea SMFEmailAddress_T object
- * @returns E-Mail Address
+ * @returns the SMFEmailAddress_T object as an newly allocated string in rfc822 format.
  */
-char *smf_email_address_get_addr(SMFEmailAddress_T *ea);
+char *smf_email_address_to_string(SMFEmailAddress_T *ea);
+
+/*!
+ * @fn void smf_email_address_set_type(SMFEmailAddress_T *ea, SMFEmailAddressType_T t)
+ * @brief Set the address type of SMFEmailAddress_T object
+ * @param ea SMFEmailAddress_T object
+ * @param t SMFEmailAddressType_T type
+ */
+void smf_email_address_set_type(SMFEmailAddress_T *ea, SMFEmailAddressType_T t);
+
+/*!
+ * @fn SMFEmailAddressType_T smf_email_address_get_type(SMFEMailAddress_T *ea)
+ * @brief Get the address type of SMFEmailAddress_T object
+ * @param ea SMFEmailAddress_T object
+ * @returns a SMFEmailAddressType_T object
+ */
+SMFEmailAddressType_T smf_email_address_get_type(SMFEmailAddress_T *ea);
+
+/*! 
+ * @fn void smf_email_address_set_name(SMFEmailAddress_T *ea, const char *name)
+ * @brief Set the display name of SMFEmailAddress_T object
+ * @param ea SMFEmailAddress_T pointer
+ * @param name the display name for the address
+ */
+void smf_email_address_set_name(SMFEmailAddress_T *ea, const char *name);
+
+/*!
+ * @fn char *smf_email_address_get_name(SMFEmailAddress_T *ea)
+ * @brief Get the display name of a SMFEmailAddress_T object
+ * @param ea a SMFEmailAddress_T object
+ * @returns the display name of a SMFEmailAddress_T object
+ */
+char *smf_email_address_get_name(SMFEmailAddress_T *ea);
+
+/*! 
+ * @fn void smf_email_address_set_email(SMFEmailAddress_T *ea, const char *email)
+ * @brief Set the email address of SMFEmailAddress_T object
+ * @param ca SMFEmailAddress_T pointer
+ * @param email email address
+ */
+void smf_email_address_set_email(SMFEmailAddress_T *ea, const char *email);
+
+/*!
+ * @fn char *smf_email_address_get_email(SMFEmailAddress_T *ea)
+ * @brief Get the email address of a SMFEmailAddress_T object
+ * @param ea a SMFEmailAddress_T object
+ * @returns the email address of a SMFEmailAddress_T object
+ */
+char *smf_email_address_get_email(SMFEmailAddress_T *ea);
 
 /*!
  * @fn SMFEmailAddress_T *smf_email_address_set_lr(SMFEmailAddress_T *ea, SMFLookupResult_T *lr)
  * @brief Set the lookup result for a SMFEmailAddress_T obejct
  * @param ea SMFEmailAddress_T object
  * @param lr SMFLookupResult_T object
- * @returns SMFEmailAddress_T object
  */
-SMFEmailAddress_T *smf_email_address_set_lr(SMFEmailAddress_T *ea, SMFLookupResult_T *lr);
+void smf_email_address_set_lr(SMFEmailAddress_T *ea,SMFLookupResult_T *lr);
 
 /*!
  * @fn SMFLookupResult_T *smf_email_address_get_lr(SMFEmailAddress_T *ea)
