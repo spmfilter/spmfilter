@@ -132,7 +132,6 @@ void smf_email_address_set_lr(SMFEmailAddress_T *ea,SMFLookupResult_T *lr) {
     }
     ea->lr = smf_lookup_result_new();
     ea->lr = lr;
-    return ea;
 }
 
 SMFLookupResult_T *smf_email_address_get_lr(SMFEmailAddress_T *ea) {

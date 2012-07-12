@@ -22,10 +22,13 @@
 
 #include "../src/smf_message.h"
 
-#define TEST_ADDR "foo@bar.com"
+#define TEST_NAME "John Doe"
+#define TEST_EMAIL "foo@bar.com"
+#define TEST_SENDER "John Doe <foo@bar.com>"
 
 int main (int argc, char const *argv[]) {
     SMFMessage_T *msg = NULL;
+    SMFEmailAddress_T *ea = NULL;
     char *s = NULL;
 
     g_printf("Start SMFMessage_T tests...\n");
@@ -36,12 +39,47 @@ int main (int argc, char const *argv[]) {
     g_printf("passed\n");
   
     g_printf("* testing smf_message_set_sender()...\t\t\t");
-    smf_message_set_sender(msg,TEST_ADDR);
+    smf_message_set_sender(msg,TEST_SENDER);
     g_printf("passed\n");
-    g_printf("* testing smf_message_get_sender()...\t\t\t");
-    s = cmime_message_get_sender_string(msg);
-    assert(strcmp(s,TEST_ADDR)==0);
+
+    g_printf("* testing smf_message_get_sender_string()...\t\t");
+    s = smf_message_get_sender_string(msg);
+    if (strcmp(s,TEST_SENDER) !=0 ) {
+        g_printf("failed\n");
+        return -1;
+    } else
+        g_printf("passed\n");
     free(s);  
+
+    g_printf("* testing smf_message_get_sender()...\t\t\t");
+    ea = smf_message_get_sender(msg);
+    if (strcmp("John Doe ",smf_email_address_get_name(ea)) != 0) {
+        g_printf("failed\n");
+        return -1;
+    }
+
+    if (strcmp("<foo@bar.com>",smf_email_address_get_email(ea)) != 0) {
+        g_printf("failed\n");
+        return -1;
+    } 
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_generate_message_id()...\t\t");
+    s = smf_message_generate_message_id();
+    assert(s);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_set_message_id()...\t\t");
+    smf_message_set_message_id(msg,s);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_get_message_id()...\t\t");
+    if (strcmp(s,smf_message_get_message_id(msg)) != 0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+    free(s);
 
     g_printf("* testing smf_message_free()...\t\t\t\t");
     smf_message_free(msg);
