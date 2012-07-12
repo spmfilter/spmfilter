@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #include "smf_core.h"
+#include "smf_email_address.h"
 
 #if 0 
 #include "smf_lookup.h"
@@ -30,14 +31,19 @@ extern "C" {
 #include "smf_settings.h"
 #endif 
 
-
-typedef struct _SMFObject_T SMFMessage_T;
-
+/*!
+ * @struct SMFMessage_T smf_message.h
+ * @brief Represents an email message
+ */
+typedef struct {
+    SMFEmailAddress_T *sender; /**< sender of email */
+    //CMimeList_T *recipients; /**< double linked list with recipients */
+    void *data; 
+} SMFMessage_T;
 
 /*!
  * @fn SMFMessage_T *smf_message_new(void)
  * @brief Creates a new SMFMessage_T object
- *
  * @returns an empty message object
  */
 SMFMessage_T *smf_message_new(void);
@@ -45,37 +51,56 @@ SMFMessage_T *smf_message_new(void);
 /*!
  * @fn void smf_message_free(SMFMessage_T *message)
  * @brief Free SMFMessage_T object
- *
  * @param message SMFMessage_T object
  */
 void smf_message_free(SMFMessage_T *message);
 
 /*!
- * @fn char *smf_message_generate_message_id(void)
- * @brief Generates a unique Message-Id.
- * 
- * @returns a unique string in an addr-spec format suitable for use as a Message-Id.
- */
-char *smf_message_generate_message_id(void);
-
-/*!
  * @fn void smf_message_set_sender(SMFMessage_T *message, const char *sender)
  * @brief Set the sender's name and address on the message object.
- * 
  * @param message SMFMessage_T object
  * @param sender The name and address of the sender
  */
 void smf_message_set_sender(SMFMessage_T *message, const char *sender);
 
 /*!
- * @fn char *smf_message_get_sender(SMFMessage_T *message)
- * @brief Gets the email address of the sender from message.
- * 
+ * @fn SMFEmailAddress_T *smf_message_get_sender(SMFMessage_T *message)
+ * @brief Gets a SMFEmailAddress_T object of the sender from message.
  * @param message SMFmessage_T object
- * 
  * @returns the sender's name and address of the message.
  */
-char *smf_message_get_sender(SMFMessage_T *message);
+SMFEmailAddress_T *smf_message_get_sender(SMFMessage_T *message);
+
+/*!
+ * @fn char *smf_message_get_sender_string(SMFMessage_T *message)
+ * @brief Get sender of a SMFMessage_T object as string
+ * @param message a SMFMessage_T object
+ * @returns sender of message as newly allocated string
+ */
+char *smf_message_get_sender_string(SMFMessage_T *message);
+
+/*!
+ * @fn void smf_message_set_message_id(SMFMessage_T *message, const char *message_id)
+ * @brief Set the Message-Id on a message
+ * @param message SMFMessage_T object
+ * @param message_id the message id
+ */
+void smf_message_set_message_id(SMFMessage_T *message, const char *message_id);
+
+/*!
+ * @fn const char *smf_message_get_message_id(SMFMessage_T *message)
+ * @brief Get the Message-Id of a message
+ * @param message SMFMessage_T object
+ * @returns the message id
+ */
+const char *smf_message_get_message_id(SMFMessage_T *message);
+
+/*!
+ * @fn char *smf_message_generate_message_id(void)
+ * @brief Generates a unique Message-Id.
+ * @returns a unique string in an addr-spec format suitable for use as a Message-Id.
+ */
+char *smf_message_generate_message_id(void);
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
@@ -231,21 +256,6 @@ void smf_message_set_date(SMFMessage_T *message, time_t date, int gmt_offset);
  * \param tz_offset pointer to timezone offset (in +/- hours)
  */
 void smf_message_get_date(SMFMessage_T *message, time_t *date, int *tz_offset);
-
-/** Set the Message-Id on a message
- *
- * \param message SMFMessage_T object
- * \param message_id the message id
- */
-void smf_message_set_message_id(SMFMessage_T *message, const char *message_id);
-
-/** Get the Message-Id of a message
- *
- * \param message SMFMessage_T object
- *
- * \returns the message id
- */
-const char *smf_message_get_message_id(SMFMessage_T *message);
 
 /** Set the root-level MIME part of the message.
  *

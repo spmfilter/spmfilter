@@ -57,6 +57,9 @@ int main (int argc, char const *argv[]) {
 
     g_printf("* testing smf_email_address_set_type()...\t\t\t");
     smf_email_address_set_type(ea,SMF_EMAIL_ADDRESS_TYPE_TO);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_email_address_get_type()...\t\t\t");
     if (smf_email_address_get_type(ea) != SMF_EMAIL_ADDRESS_TYPE_TO) {
         g_printf("failed\n");
         return -1;
@@ -65,6 +68,9 @@ int main (int argc, char const *argv[]) {
 
     g_printf("* testing smf_email_address_set_name()...\t\t\t");
     smf_email_address_set_name(ea,TEST_NAME);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_email_address_get_name()...\t\t\t");
     if (strcmp(TEST_NAME,smf_email_address_get_name(ea)) != 0) {
         g_printf("failed\n");
         return -1;
@@ -73,6 +79,9 @@ int main (int argc, char const *argv[]) {
 
     g_printf("* testing smf_email_address_set_email()...\t\t\t");
     smf_email_address_set_email(ea,TEST_EMAIL);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_email_address_get_email()...\t\t\t");
     if (strcmp(TEST_EMAIL,smf_email_address_get_email(ea)) != 0) {
         g_printf("failed\n");
         return -1;

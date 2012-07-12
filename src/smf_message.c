@@ -51,6 +51,7 @@ SMFMessage_T *smf_message_new(void) {
     CMimeMessage_T *msg = cmime_message_new();
     message = g_slice_new(SMFMessage_T);
     message->data = msg;
+    message->sender = NULL;
     
     return message;
 }
@@ -59,25 +60,66 @@ SMFMessage_T *smf_message_new(void) {
 void smf_message_free(SMFMessage_T *message) {
     assert(message);
     cmime_message_free((CMimeMessage_T *)message->data);
+    if (message->sender != NULL)
+        smf_email_address_free(message->sender);
     g_slice_free(SMFMessage_T,message);
 }
 
 /** Generates a unique Message-Id. */
 char *smf_message_generate_message_id(void) {
-    return cmime_message_generate_message_id();
+    char *s = NULL;
+    char *id = NULL;
+    int i;
+    int pos = 0;
+
+    s = cmime_message_generate_message_id();
+    if (s[0] != '<') {
+        id = (char *)malloc(strlen(s) + 4);
+        id[pos++] = '<';
+        for (i = 0; i < strlen(s); i++) {
+            id[pos++] = s[i];
+        }
+        id[pos++] = '>';
+        id[pos++] = '\0';
+    } else
+        id = strdup(s);
+
+    free(s);
+    return id;
 }
 
 /** Set the sender's name and address on the message object.*/
 void smf_message_set_sender(SMFMessage_T *message, const char *sender) {
-    cmime_message_set_sender((CMimeMessage_T *)message->data,sender);
+    assert(message);
+    assert(sender);
+
+    message->sender = smf_email_address_parse_string(sender);
 }
 
 /** Gets the email address of the sender from message. */
-char *smf_message_get_sender(SMFMessage_T *message) {
-    CMimeMessage_T *msg = message->data;
-    CMimeAddress_T *ca = cmime_message_get_sender(msg);
-     
-    //return cmime_message_get_sender(message->data);
+SMFEmailAddress_T *smf_message_get_sender(SMFMessage_T *message) {
+    assert(message);
+    return message->sender;
+}
+
+char *smf_message_get_sender_string(SMFMessage_T *message) {
+    char *s = NULL;
+
+    if (message->sender != NULL)
+        s = smf_email_address_to_string(message->sender);
+
+    return(s);
+}
+
+void smf_message_set_message_id(SMFMessage_T *message,const char *message_id) {
+    assert(message);
+    assert(message_id);
+    cmime_message_set_message_id((CMimeMessage_T *)message->data,message_id);
+}
+
+const char *smf_message_get_message_id(SMFMessage_T *message) {
+    assert(message);
+    return cmime_message_get_message_id((CMimeMessage_T *)message->data);
 }
 
 #if 0
@@ -317,24 +359,7 @@ void smf_message_get_date(SMFMessage_T *message, time_t *date, int *tz_offset) {
     g_mime_message_get_date((GMimeMessage *)message->data,date,tz_offset);
 }
 
-/** Set the Message-Id on a message
- *
- * \param message SMFMessage_T object
- * \param message_id the message id
- */
-void smf_message_set_message_id(SMFMessage_T *message,const char *message_id) {
-    g_mime_message_set_message_id((GMimeMessage *)message->data,message_id);
-}
 
-/** Get the Message-Id of a message
- *
- * \param message SMFMessage_T object
- *
- * \returns the message id
- */
-const char *smf_message_get_message_id(SMFMessage_T *message) {
-    return g_mime_message_get_message_id((GMimeMessage *)message->data);
-}
 
 /** Set the root-level MIME part of the message.
  *
