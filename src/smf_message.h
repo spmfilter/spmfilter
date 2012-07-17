@@ -24,6 +24,7 @@ extern "C" {
 
 #include "smf_core.h"
 #include "smf_email_address.h"
+#include "smf_header.h"
 
 #if 0 
 #include "smf_lookup.h"
@@ -101,6 +102,24 @@ const char *smf_message_get_message_id(SMFMessage_T *message);
  * @returns a unique string in an addr-spec format suitable for use as a Message-Id.
  */
 char *smf_message_generate_message_id(void);
+
+/*!
+ * @fn int smf_message_set_header(SMFMessage_T *message, const char *header)
+ * @brief Set a header to message object. If header already exists, it will be overwritten
+ * @param message a SMFMessage_T object
+ * @param header full header string
+ * @returns 0 on success or -1 in case of error
+ */
+int smf_message_set_header(SMFMessage_T *message, const char *header);
+
+/*!
+ * @fn SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header)
+ * @brief Get header for given key
+ * @param message a SMFMessage_T object
+ * @param header name of header to search for
+ * @returns a SMFHeader_T object, or NULL in case of error
+ */
+SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header);
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
