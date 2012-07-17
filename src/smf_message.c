@@ -132,12 +132,11 @@ int smf_message_set_header(SMFMessage_T *message, const char *header) {
 
 
 SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header) {
-    CMimeHeader_T *h = NULL;
+    SMFHeader_T *h = NULL;
     assert(message);
     assert(header);
-    h = cmime_message_get_header((CMimeMessage_T *)message->data,header);
-    printf("H: [%s]\n",h->name);
-    return (SMFHeader_T *)h;    
+    h = (SMFHeader_T *)cmime_message_get_header((CMimeMessage_T *)message->data,header);
+    return h;    
 }
 
 #if 0
