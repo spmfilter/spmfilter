@@ -92,9 +92,13 @@ int main (int argc, char const *argv[]) {
     g_printf("* testing smf_message_get_header()...\t\t\t");
     h = smf_message_get_header(msg,TEST_HEADER_NAME);
     assert(h);
-    g_printf("NAME: [%s]\n",smf_header_get_name(h));
     s = smf_header_to_string(h);
-    g_printf("H [%s]\n",s);
+    if (strcmp(s,TEST_HEADER)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+    free(s);
 
 
     g_printf("* testing smf_message_free()...\t\t\t\t");
