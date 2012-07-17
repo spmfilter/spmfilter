@@ -122,6 +122,24 @@ const char *smf_message_get_message_id(SMFMessage_T *message) {
     return cmime_message_get_message_id((CMimeMessage_T *)message->data);
 }
 
+
+int smf_message_set_header(SMFMessage_T *message, const char *header) {
+    assert(message);
+    assert(header);
+
+    return cmime_message_set_header((CMimeMessage_T *)message->data,header);
+}
+
+
+SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header) {
+    CMimeHeader_T *h = NULL;
+    assert(message);
+    assert(header);
+    h = cmime_message_get_header((CMimeMessage_T *)message->data,header);
+    printf("H: [%s]\n",h->name);
+    return (SMFHeader_T *)h;    
+}
+
 #if 0
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
