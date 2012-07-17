@@ -21,14 +21,18 @@
 #include <glib/gprintf.h>
 
 #include "../src/smf_message.h"
+#include "../src/smf_header.h"
 
 #define TEST_NAME "John Doe"
 #define TEST_EMAIL "foo@bar.com"
 #define TEST_SENDER "John Doe <foo@bar.com>"
+#define TEST_HEADER_NAME "X-Foo"
+#define TEST_HEADER "X-Foo: foobar"
 
 int main (int argc, char const *argv[]) {
     SMFMessage_T *msg = NULL;
     SMFEmailAddress_T *ea = NULL;
+    SMFHeader_T *h = NULL;
     char *s = NULL;
 
     g_printf("Start SMFMessage_T tests...\n");
@@ -80,6 +84,18 @@ int main (int argc, char const *argv[]) {
     }
     g_printf("passed\n");
     free(s);
+
+    g_printf("* testing smf_message_set_header()...\t\t\t");
+    smf_message_set_header(msg,TEST_HEADER);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_get_header()...\t\t\t");
+    h = smf_message_get_header(msg,TEST_HEADER_NAME);
+    assert(h);
+    g_printf("NAME: [%s]\n",smf_header_get_name(h));
+    s = smf_header_to_string(h);
+    g_printf("H [%s]\n",s);
+
 
     g_printf("* testing smf_message_free()...\t\t\t\t");
     smf_message_free(msg);

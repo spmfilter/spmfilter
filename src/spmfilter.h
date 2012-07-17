@@ -19,6 +19,7 @@
 #define SPMFILTER_H
 
 #include <smf/smf_core.h>
+#include <smf/smf_header.h
 #include <smf/smf_lookup.h>
 #include <smf/smf_message.h>
 #include <smf/smf_mime.h>

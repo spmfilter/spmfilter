@@ -6,6 +6,7 @@ set(SPMFILTER_SRC
 set(LIB_SMF_SRC
 	smf_core.c
 	smf_envelope.c
+	smf_header.c
 #	smf_lookup.c
 	smf_lookup_result.c
 	smf_md5.c
@@ -60,6 +61,7 @@ set_property(TARGET smf PROPERTY PRIVATE_HEADER
 	smf_message.h
 	smf_mime.h
 	smf_lookup.h
+	smf_header.h
 )
 
 set_property(TARGET smf PROPERTY VERSION ${SMF_VERSION})
