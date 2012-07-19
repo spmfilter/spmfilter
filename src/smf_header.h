@@ -30,7 +30,7 @@ extern "C" {
  * @struct SMFHeader_T smf_header.h
  * @brief Represents a message header
  */
-typedef struct CMimeHeader_T SMFHeader_T;
+typedef CMimeHeader_T SMFHeader_T;
 
 /*!
  * @fn SMFHeader_T *smf_header_new(void)
@@ -100,4 +100,4 @@ char *smf_header_to_string(SMFHeader_T *header);
 }
 #endif
 
-#endif  /* _SMF_MESSAGE_H */
+#endif  /* _SMF_HEADER_H */

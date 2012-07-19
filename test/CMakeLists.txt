@@ -20,6 +20,10 @@ add_executable(test_ea test_ea.c)
 target_link_libraries(test_ea smf ${COMMON_LIBS})
 ADD_TEST(SMFEmailAddress_T ${EXECUTABLE_OUTPUT_PATH}/test_ea)
 
+add_executable(test_list test_list.c)
+target_link_libraries(test_list smf ${COMMON_LIBS})
+ADD_TEST(SMFList_T ${EXECUTABLE_OUTPUT_PATH}/test_list)
+
 add_executable(test_header test_header.c)
 target_link_libraries(test_header smf ${COMMON_LIBS})
 ADD_TEST(SMFHeader_T ${EXECUTABLE_OUTPUT_PATH}/test_header)
