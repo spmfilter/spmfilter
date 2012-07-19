@@ -160,20 +160,36 @@ char *smf_message_get_content_id(SMFMessage_T *message) {
     return cmime_message_get_content_id((CMimeMessage_T *)message);
 }
 
-void smf_message_set_content_description(SMFMessage_T *message, const char *s) {
-    cmime_message_set_content_description((CMimeMessage_T *)message,s);
-}
-
-char *smf_message_get_content_description(SMFMessage_T *message) {
-    return cmime_message_get_content_description((CMimeMessage_T *)message);
-}
-
 void smf_message_set_mime_version(SMFMessage_T *message, const char *s) {
     cmime_message_set_mime_version((CMimeMessage_T *)message,s);
 }
 
 char *smf_message_get_mime_version(SMFMessage_T *message) {
     return cmime_message_get_mime_version((CMimeMessage_T *)message);
+}
+
+void smf_message_set_date(SMFMessage_T *message, const char *s) {
+    cmime_message_set_date((CMimeMessage_T *)message, s);
+}
+
+char *smf_message_get_date(SMFMessage_T *message) {
+    return cmime_message_get_date((CMimeMessage_T *)message);
+}
+
+int smf_message_set_date_now(SMFMessage_T *message) {
+    return cmime_message_set_date_now((CMimeMessage_T *)message);
+}
+
+void smf_message_set_boundary(SMFMessage_T *message, const char *boundary) {
+    cmime_message_set_boundary((CMimeMessage_T *)message,boundary);
+}
+
+char *smf_message_get_boundary(SMFMessage_T *message) {
+    return cmime_message_get_boundary((CMimeMessage_T *)message);
+}
+
+char *smf_message_generate_boundary(void) {
+    return cmime_message_generate_boundary();
 }
 
 #if 0
