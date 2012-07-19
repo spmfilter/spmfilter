@@ -27,6 +27,7 @@
 #define TEST_EMAIL "foo@bar.com"
 #define TEST_SENDER "John Doe <foo@bar.com>"
 #define TEST_HEADER_NAME "X-Foo"
+#define TEST_HEADER_VALUE "foobar"
 #define TEST_HEADER "X-Foo: foobar"
 
 int main (int argc, char const *argv[]) {
@@ -92,6 +93,17 @@ int main (int argc, char const *argv[]) {
     g_printf("* testing smf_message_get_header()...\t\t\t");
     h = smf_message_get_header(msg,TEST_HEADER_NAME);
     assert(h);
+
+    if (strcmp(smf_header_get_name(h),TEST_HEADER_NAME)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+
+    if (strcmp(smf_header_get_value(h,0),TEST_HEADER_VALUE)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+
     s = smf_header_to_string(h);
     if (strcmp(s,TEST_HEADER)!=0) {
         g_printf("failed\n");
@@ -100,6 +112,12 @@ int main (int argc, char const *argv[]) {
     g_printf("passed\n");
     free(s);
 
+    g_printf("* testing smf_message_add_reciepient()...\t\t");
+    if (smf_message_add_recipient(msg, TEST_SENDER, SMF_EMAIL_ADDRESS_TYPE_TO) != 0) {
+        g_printf("failed\n");
+        return -1;
+    } 
+    g_printf("passed\n");
 
     g_printf("* testing smf_message_free()...\t\t\t\t");
     smf_message_free(msg);

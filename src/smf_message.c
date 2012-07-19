@@ -47,22 +47,14 @@
 
 /** Creates a new SMFMessage_T object */
 SMFMessage_T *smf_message_new(void) {
-    SMFMessage_T *message = NULL;
-    CMimeMessage_T *msg = cmime_message_new();
-    message = g_slice_new(SMFMessage_T);
-    message->data = msg;
-    message->sender = NULL;
-    
-    return message;
+    CMimeMessage_T *message = cmime_message_new();
+    return (SMFMessage_T *)message;
 }
 
 /** Free SMFMessage_T object */
 void smf_message_free(SMFMessage_T *message) {
     assert(message);
-    cmime_message_free((CMimeMessage_T *)message->data);
-    if (message->sender != NULL)
-        smf_email_address_free(message->sender);
-    g_slice_free(SMFMessage_T,message);
+    cmime_message_free((CMimeMessage_T *)message);
 }
 
 /** Generates a unique Message-Id. */
@@ -92,34 +84,28 @@ char *smf_message_generate_message_id(void) {
 void smf_message_set_sender(SMFMessage_T *message, const char *sender) {
     assert(message);
     assert(sender);
-
-    message->sender = smf_email_address_parse_string(sender);
+    cmime_message_set_sender((CMimeMessage_T *)message, sender);
 }
 
 /** Gets the email address of the sender from message. */
 SMFEmailAddress_T *smf_message_get_sender(SMFMessage_T *message) {
     assert(message);
-    return message->sender;
+    return (SMFEmailAddress_T *)cmime_message_get_sender((CMimeMessage_T *)message);
 }
 
 char *smf_message_get_sender_string(SMFMessage_T *message) {
-    char *s = NULL;
-
-    if (message->sender != NULL)
-        s = smf_email_address_to_string(message->sender);
-
-    return(s);
+    return cmime_message_get_sender_string((CMimeMessage_T *)message);
 }
 
 void smf_message_set_message_id(SMFMessage_T *message,const char *message_id) {
     assert(message);
     assert(message_id);
-    cmime_message_set_message_id((CMimeMessage_T *)message->data,message_id);
+    cmime_message_set_message_id((CMimeMessage_T *)message,message_id);
 }
 
 const char *smf_message_get_message_id(SMFMessage_T *message) {
     assert(message);
-    return cmime_message_get_message_id((CMimeMessage_T *)message->data);
+    return cmime_message_get_message_id((CMimeMessage_T *)message);
 }
 
 
@@ -127,16 +113,21 @@ int smf_message_set_header(SMFMessage_T *message, const char *header) {
     assert(message);
     assert(header);
 
-    return cmime_message_set_header((CMimeMessage_T *)message->data,header);
+    return cmime_message_set_header((CMimeMessage_T *)message,header);
 }
 
 
 SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header) {
-    SMFHeader_T *h = NULL;
     assert(message);
     assert(header);
-    h = (SMFHeader_T *)cmime_message_get_header((CMimeMessage_T *)message->data,header);
-    return h;    
+    return (SMFHeader_T *)cmime_message_get_header((CMimeMessage_T *)message,header);    
+}
+
+/** Add a recipient of a chosen type to the message object. */
+int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFEmailAddressType_T t) {
+    assert(message);
+    assert(recipient);
+    return cmime_message_add_recipient((CMimeMessage_T *)message,recipient,(CMimeAddressType_T)t);
 }
 
 #if 0
@@ -285,37 +276,6 @@ SMFContentEncoding_T smf_message_best_encoding(unsigned char *text, size_t len) 
 
 
 
-
-
-
-/** Add a recipient of a chosen type to the message object. */
-void smf_message_add_recipient(SMFMessage_T *message,
-        SMFRecipientType_T type,
-        const char *name,
-        const char *addr)
-{
-#ifdef HAVE_GMIME24
-    g_mime_message_add_recipient(
-        (GMimeMessage *)message->data,
-        (GMimeRecipientType)type,
-        name, addr
-    );
-#else
-    GMimeMessage *msg = (GMimeMessage *)message->data;
-
-    switch(type) {
-        case SMF_RECIPIENT_TYPE_TO:
-            g_mime_message_add_recipient(msg, GMIME_RECIPIENT_TYPE_TO, name, addr);
-            break;
-        case SMF_RECIPIENT_TYPE_CC:
-            g_mime_message_add_recipient(msg, GMIME_RECIPIENT_TYPE_CC, name, addr);
-            break;
-        case SMF_RECIPIENT_TYPE_BCC:
-            g_mime_message_add_recipient(msg, GMIME_RECIPIENT_TYPE_CC, name, addr);
-            break;
-    }
-#endif
-}
 
 /** Set the sender's Reply-To address on the message.
  *

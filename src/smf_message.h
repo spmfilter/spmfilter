@@ -22,6 +22,8 @@
 extern "C" {
 #endif
 
+#include <cmime.h>
+
 #include "smf_core.h"
 #include "smf_email_address.h"
 #include "smf_header.h"
@@ -36,11 +38,8 @@ extern "C" {
  * @struct SMFMessage_T smf_message.h
  * @brief Represents an email message
  */
-typedef struct {
-    SMFEmailAddress_T *sender; /**< sender of email */
-    //CMimeList_T *recipients; /**< double linked list with recipients */
-    void *data; 
-} SMFMessage_T;
+
+typedef CMimeMessage_T SMFMessage_T;
 
 /*!
  * @fn SMFMessage_T *smf_message_new(void)
@@ -120,6 +119,16 @@ int smf_message_set_header(SMFMessage_T *message, const char *header);
  * @returns a SMFHeader_T object, or NULL in case of error
  */
 SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header);
+
+/*!
+ * @fn int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFEmailAddressType_T t)
+ * @brief Add a recipient of a chosen type to the message object.
+ * @param message SMFMessate_T object
+ * @param recipient recipient string
+ * @param t A SMFEmailAddressType_T
+ * @returns 0 on success or -1 in case of error
+ */
+int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFEmailAddressType_T t);
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
@@ -217,17 +226,7 @@ void smf_message_unref(SMFMessage_T *message);
 
 
 
-/** Add a recipient of a chosen type to the message object.
- *
- * \param message SMFMessate_T object
- * \param type A SMFRecipientType_T
- * \param name The recipient's name (or NULL)
- * \param addr The recipient's address
- */
-void smf_message_add_recipient(SMFMessage_T *message,
-        SMFRecipientType_T type,
-        const char *name,
-        const char *addr);
+
 
 /** Set the sender's Reply-To address on the message.
  *
