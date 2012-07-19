@@ -32,7 +32,6 @@
 #define TEST_HEADER "X-Foo: foobar"
 #define TEST_CONTENT_TYPE "text/plain; charset=us-ascii"
 #define TEST_CONTENT_TRANSFER_ENCODING "multipart/mixed"
-#define TEST_STRING "Test string"
 #define TEST_MIME_VERSION "1.0"
 
 int main (int argc, char const *argv[]) {
@@ -43,6 +42,7 @@ int main (int argc, char const *argv[]) {
     SMFListElem_T *elem = NULL;
     char *s = NULL;
     char *id = NULL;
+    char *boundary = NULL;
 
     g_printf("Start SMFMessage_T tests...\n");
 
@@ -178,18 +178,6 @@ int main (int argc, char const *argv[]) {
     g_printf("passed\n");
     free(id);
 
-    g_printf("* testing smf_message_set_content_description()...\t\t");
-    smf_message_set_content_description(msg,TEST_STRING);
-    g_printf("passed\n");
-
-    g_printf("* testing smf_message_get_content_description()...\t\t");
-    s = smf_message_get_content_description(msg);
-    if (strcmp(s,TEST_STRING)!=0) {
-        g_printf("failed\n");
-        return -1;
-    }
-    g_printf("passed\n");
-
     g_printf("* testing smf_message_set_mime_version()...\t\t\t");
     smf_message_set_mime_version(msg,TEST_MIME_VERSION);
     g_printf("passed\n");
@@ -201,6 +189,36 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
     g_printf("passed\n");
+
+    g_printf("* testing smf_message_set_date()...\t\t\t\t");
+    if (smf_message_set_date_now(msg)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+    
+    g_printf("* testing smf_message_get_date()...\t\t\t\t");
+    s = smf_message_get_date(msg);
+    assert(s);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_generate_boundary()...\t\t\t");
+    boundary = smf_message_generate_boundary();
+    assert(boundary);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_set_boundary()...\t\t\t\t");
+    smf_message_set_boundary(msg,boundary);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_get_boundary()...\t\t\t\t");
+    s = smf_message_get_boundary(msg);
+    if (strcmp(s,boundary)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+
 
     g_printf("* testing smf_message_free()...\t\t\t\t\t");
     smf_message_free(msg);

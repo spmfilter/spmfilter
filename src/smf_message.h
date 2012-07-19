@@ -188,21 +188,6 @@ void smf_message_set_content_id(SMFMessage_T *message, const char *s);
 char *smf_message_get_content_id(SMFMessage_T *message);
 
 /*!
- * @fn smf_message_set_content_description(SMFMessage_T *message, const char *s)
- * @brief Set Content-Description value
- * @param message a SMFMessage_T object
- * @param s Content-Description header value
- */
-void smf_message_set_content_description(SMFMessage_T *message, const char *s);
-
-/*!
- * @fn char *smf_message_get_content_description(SMFMessage_T *message)
- * @brief Get Content-Description header value
- * @param message a SMFMessage_T object
- */
-char *smf_message_get_content_description(SMFMessage_T *message);
-
-/*!
  * @fn void smf_message_set_mime_version(SMFMessage_T *message, const char *v)
  * @brief Set Mime-Version header value. According to RFC 2045, Mime-Version header 
  *   is required at the top level of a message. Not required for each body part of 
@@ -221,6 +206,53 @@ void smf_message_set_mime_version(SMFMessage_T *message, const char *s);
  * @returns Mime-Version header value
  */
 char *smf_message_get_mime_version(SMFMessage_T *message);
+
+/*!
+ * @fn void smf_message_set_date(SMFMessage_T *message, const char *s)
+ * @brief Set date string header 
+ * @param message a SMFMessage_T object
+ * @param s date string
+ */
+void smf_message_set_date(SMFMessage_T *message, const char *s);
+
+/*!
+ * @fn char *smf_message_get_date(SMFMessage_T *message)
+ * @brief Get date string from SMFMessage_T object
+ * @param message a SMFMessage_T object
+ * @returns date string
+ */
+char *smf_message_get_date(SMFMessage_T *message);
+
+/*!
+ * @fn int smf_message_set_date_now(SMFMessage_T *message)
+ * @brief Get current time and set date header
+ * @param message a SMFMessage_T object
+ * @returns 0 on success or -1 in case of error
+ */
+int smf_message_set_date_now(SMFMessage_T *message);
+
+/*!
+ * @fn void smf_message_set_boundary(SMFMessage_T *message, const char *boundary)
+ * @brief Set message boundary
+ * @param message a SMFMessage_T object
+ * @param boundary the boundary to set
+ */
+void smf_message_set_boundary(SMFMessage_T *message, const char *boundary);
+
+/*! 
+ * @fn char *smf_message_get_boundary(SMFMessage_T *message)
+ * @brief Get message boundary
+ * @param message a SMFMessage_T object
+ * @returns message boundary
+ */
+char *smf_message_get_boundary(SMFMessage_T *message);
+
+/*! 
+ * @fn char *smf_message_generate_boundary(void)
+ * @brief Generate a message boundary
+ * @returns a newly allocated boundary
+ */
+char *smf_message_generate_boundary(void);
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
