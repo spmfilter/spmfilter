@@ -19,6 +19,7 @@
 #include <glib.h>
 #include <cmime.h>
 
+#include "smf_list.h"
 #include "smf_message.h"
 
 #if 0
@@ -128,6 +129,51 @@ int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFE
     assert(message);
     assert(recipient);
     return cmime_message_add_recipient((CMimeMessage_T *)message,recipient,(CMimeAddressType_T)t);
+}
+
+SMFList_T *smf_message_get_recipients(SMFMessage_T *message) {
+    assert(message);
+    return (SMFList_T *)cmime_message_get_recipients((CMimeMessage_T *)message);
+}
+
+void smf_message_set_content_type(SMFMessage_T *message, const char *s) {
+    cmime_message_set_content_type((CMimeMessage_T *)message, s);
+}
+
+char *smf_message_get_content_type(SMFMessage_T *message) {
+    return cmime_message_get_content_type((CMimeMessage_T *)message);
+}
+
+void smf_message_set_content_transfer_encoding(SMFMessage_T *message, const char *s) {
+    cmime_message_set_content_transfer_encoding((CMimeMessage_T *)message,s);
+}
+
+char *smf_message_get_content_transfer_encoding(SMFMessage_T *message) {
+    return cmime_message_get_content_transfer_encoding((CMimeMessage_T *)message);
+}
+
+void smf_message_set_content_id(SMFMessage_T *message, const char *s) {
+    cmime_message_set_content_id((CMimeMessage_T *)message,s);
+}
+
+char *smf_message_get_content_id(SMFMessage_T *message) {
+    return cmime_message_get_content_id((CMimeMessage_T *)message);
+}
+
+void smf_message_set_content_description(SMFMessage_T *message, const char *s) {
+    cmime_message_set_content_description((CMimeMessage_T *)message,s);
+}
+
+char *smf_message_get_content_description(SMFMessage_T *message) {
+    return cmime_message_get_content_description((CMimeMessage_T *)message);
+}
+
+void smf_message_set_mime_version(SMFMessage_T *message, const char *s) {
+    cmime_message_set_mime_version((CMimeMessage_T *)message,s);
+}
+
+char *smf_message_get_mime_version(SMFMessage_T *message) {
+    return cmime_message_get_mime_version((CMimeMessage_T *)message);
 }
 
 #if 0

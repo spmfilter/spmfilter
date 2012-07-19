@@ -27,6 +27,7 @@ extern "C" {
 #include "smf_core.h"
 #include "smf_email_address.h"
 #include "smf_header.h"
+#include "smf_list.h"
 
 #if 0 
 #include "smf_lookup.h"
@@ -123,12 +124,103 @@ SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header);
 /*!
  * @fn int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFEmailAddressType_T t)
  * @brief Add a recipient of a chosen type to the message object.
- * @param message SMFMessate_T object
+ * @param message SMFMessage_T object
  * @param recipient recipient string
  * @param t A SMFEmailAddressType_T
  * @returns 0 on success or -1 in case of error
  */
 int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFEmailAddressType_T t);
+
+/*!
+ * @fn SMFList_T *smf_message_get_recipients(SMFMessage_T *message)      
+ * @brief Get list with all recipients of message
+ * @param message a SMFMessage_T object
+ * @returns SMFList_T with recipients
+ */
+SMFList_T *smf_message_get_recipients(SMFMessage_T *message);
+
+/*!
+ * @fn void smf_message_set_content_type(SMFMessage_T *message, const char *t)
+ * @brief Set Content-Type header
+ * @param message a SMFMessage_T object
+ * @param s Content-Type string
+ */
+void smf_message_set_content_type(SMFMessage_T *message, const char *s);
+
+/*!
+ * @fn char *smf_message_get_content_type(SMFMessage_T *message)
+ * @brief Get Content-Type header value
+ * @param message a SMFMessage_T object
+ * @returns Content-Type header value
+ */
+char *smf_message_get_content_type(SMFMessage_T *message);
+
+/*! 
+ * @fn void smf_message_set_content_transfer_encoding(SMFMessage_T *message, const char *s)
+ * @brief set Content-Transfer-Encoding value
+ * @param message a SMFMessage_T object
+ * @param s Content-Transfer-Encoding value
+ */
+void smf_message_set_content_transfer_encoding(SMFMessage_T *message, const char *s);
+
+/*!
+ * @fn char *smf_message_get_content_transfer_encoding(SMFMessage_T *message)
+ * @brief Get Content-Transfer-Encoding value
+ * @param message a SMFMessage_T object
+ * @returns Content-Transfer-Encoding header value
+ */
+char *smf_message_get_content_transfer_encoding(SMFMessage_T *message);
+
+/*!
+ * @fn void smf_message_set_content_id(SMFMessage_T *message, const char *s)
+ * @brief Set Content-ID header value
+ * @param message a SMFMessage_T object
+ * @param s Content-ID header value
+ */
+void smf_message_set_content_id(SMFMessage_T *message, const char *s);
+
+/*!
+ * @fn char *smf_message_get_content_id(SMFMessage_T *message)
+ * @brief Get Content-ID header value
+ * @param message a SMFMessage_T object
+ * @returns Content-ID header value
+ */
+char *smf_message_get_content_id(SMFMessage_T *message);
+
+/*!
+ * @fn smf_message_set_content_description(SMFMessage_T *message, const char *s)
+ * @brief Set Content-Description value
+ * @param message a SMFMessage_T object
+ * @param s Content-Description header value
+ */
+void smf_message_set_content_description(SMFMessage_T *message, const char *s);
+
+/*!
+ * @fn char *smf_message_get_content_description(SMFMessage_T *message)
+ * @brief Get Content-Description header value
+ * @param message a SMFMessage_T object
+ */
+char *smf_message_get_content_description(SMFMessage_T *message);
+
+/*!
+ * @fn void smf_message_set_mime_version(SMFMessage_T *message, const char *v)
+ * @brief Set Mime-Version header value. According to RFC 2045, Mime-Version header 
+ *   is required at the top level of a message. Not required for each body part of 
+ *   a multipart entity. It's required for the embedded headers of a body of type 
+ *   "message/rfc822" or "message/partial" if the embedded message is itself 
+ *   claimed to be MIME.
+ * @param message a SMFMessage_T object
+ * @param s Mime-Version header value
+ */
+void smf_message_set_mime_version(SMFMessage_T *message, const char *s);
+
+/*!
+ * @fn char *smf_message_get_mime_version(SMFMessage_T *message)
+ * @brief Get Mime-Version header value
+ * @param message a SMFMessage_T object
+ * @returns Mime-Version header value
+ */
+char *smf_message_get_mime_version(SMFMessage_T *message);
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
