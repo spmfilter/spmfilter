@@ -35,6 +35,7 @@
 #define TEST_CONTENT_TYPE "text/plain; charset=us-ascii"
 #define TEST_CONTENT_TRANSFER_ENCODING "multipart/mixed"
 #define TEST_MIME_VERSION "1.0"
+#define TEST_STRING "Test string"
 
 char test_files[54][10] = {
     "m0001.txt","m0002.txt","m0003.txt","m0004.txt","m0005.txt",
@@ -239,8 +240,19 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
     g_printf("passed\n");
-
     free(s2);
+
+    g_printf("* testing smf_message_set_subject()...\t\t\t\t");
+    smf_message_set_subject(msg,TEST_STRING);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_get_subject()...\t\t\t\t");
+    s = smf_message_get_subject(msg);
+    if (strcmp(s,TEST_STRING)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
 
     g_printf("* testing smf_message_free()...\t\t\t\t\t");
     smf_message_free(msg);
@@ -251,29 +263,35 @@ int main (int argc, char const *argv[]) {
         g_printf("* checking sample message [%s]...\t\t\t", test_files[i]);
             
         msg = smf_message_new();
-        asprintf(&fname,"%s/%s",SAMPLES_DIR,test_files[i]);
+        fname = g_strdup_printf("%s/%s",SAMPLES_DIR,test_files[i]);
         retval = smf_message_from_file(&msg,fname,0);
         if (retval != 0)
             return retval;
                 
         msg_string = smf_message_to_string(msg);
         
-        if ((fp = fopen(fname, "rb")) == NULL) 
+        if ((fp = fopen(fname, "rb")) == NULL) {
+            g_printf("failed\n");
             return(-1);
+        }
         free(fname);    
 
-        if (fseek(fp, 0, SEEK_END)!=0)
+        if (fseek(fp, 0, SEEK_END)!=0) {
+            g_printf("failed\n");
             return(-1);
-            
+        }
+
         size = ftell(fp);
         rewind(fp); 
         s = (char*) calloc(sizeof(char), size + sizeof(char));
         fread(s, size, 1, fp);
-        if(ferror(fp))
+        if(ferror(fp)) {
+            g_printf("failed\n");
             return(-1);
+        }
             
         fclose(fp);
-        asprintf(&s2,"out_%s",test_files[i]);
+        s2 = g_strdup_printf("out_%s",test_files[i]);
         fp2 = fopen(s2,"wb");
         fwrite(msg_string,strlen(msg_string),1,fp2);
         fclose(fp2);

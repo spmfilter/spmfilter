@@ -262,6 +262,22 @@ char *smf_message_generate_boundary(void);
 void smf_message_add_generated_boundary(SMFMessage_T *message);
 
 /*!
+ * @fn void SMF_message_set_subject(SMFMessage_T *message, const char *subject)
+ * @brief Set message subject
+ * @param message a SMFMessage_T object
+ * @param s the subject string
+ */
+void smf_message_set_subject(SMFMessage_T *message, const char *s);
+
+/*!
+ * @fn char *SMF_message_get_subject(SMFMessage_T *message)
+ * @brief Get the subject string from SMFMessage_T object
+ * @param message a SMFMessage_T object
+ * @returns subject string to append
+ */
+char *smf_message_get_subject(SMFMessage_T *message);
+
+/*!
  * @fn int smf_message_from_file(SMFMessage_T **message, const char *filename, int header_only)
  * @brief Parse given file and create a SMFMessage_T object
  * @param message out param to return the new message object
@@ -299,6 +315,8 @@ char *smf_message_to_string(SMFMessage_T *message);
  *   2 if parsing failed due to memory exhaustion
  */
 int smf_message_from_string(SMFMessage_T **message, const char *content, int header_only);
+
+
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
@@ -412,21 +430,6 @@ void smf_message_set_reply_to(SMFMessage_T *message, const char *reply_to);
  * \returns the sender's Reply-To address from the message.
  */
 const char *smf_message_get_reply_to(SMFMessage_T *message);
-
-/** Set the unencoded UTF-8 Subject field on a message.
- *
- * \param message SMFMessage_T object
- * \param subject subject string
- */
-void smf_message_set_subject(SMFMessage_T *message, const char *subject);
-
-/** Gets the subject from message
- *
- * \param message SMFMessage_T object
- *
- * \returns the message subject
- */
-const char *smf_message_get_subject(SMFMessage_T *message);
 
 
 /** Set the root-level MIME part of the message.
