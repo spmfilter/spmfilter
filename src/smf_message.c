@@ -192,6 +192,26 @@ char *smf_message_generate_boundary(void) {
     return cmime_message_generate_boundary();
 }
 
+void smf_message_add_generated_boundary(SMFMessage_T *message) {
+    cmime_message_add_generated_boundary((CMimeMessage_T *)message);
+}
+
+int smf_message_from_file(SMFMessage_T **message, const char *filename, int header_only) {
+    return cmime_message_from_file((CMimeMessage_T **)message,filename,header_only);
+}
+
+int smf_message_to_file(SMFMessage_T *message, const char *filename) {
+    return cmime_message_to_file((CMimeMessage_T *)message,filename);
+}
+
+char *smf_message_to_string(SMFMessage_T *message) {
+    return cmime_message_to_string((CMimeMessage_T *)message);
+}
+
+int smf_message_from_string(SMFMessage_T **message, const char *content, int header_only) {
+    return cmime_message_from_string((CMimeMessage_T **)message,content,header_only);
+}
+
 #if 0
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
@@ -377,29 +397,6 @@ const char *smf_message_get_subject(SMFMessage_T *message) {
     return g_mime_message_get_subject((GMimeMessage *)message->data);
 }
 
-/** Sets the sent-date on a message.
- *
- * \param message SMFMessate_T object
- * \param date Sent-date
- * \param gmt_offset GMT date offset (in +/- hours)
- */
-void smf_message_set_date(SMFMessage_T *message, time_t date, int gmt_offset) {
-    g_mime_message_set_date((GMimeMessage *)message->data,date,gmt_offset);
-}
-
-/** Stores the date in time_t format in date. If tz_offset is non-NULL, then
- *  the timezone offset in will be stored in tz_offset.
- *
- * \param message SMFMessage_T object
- * \param date pointer to a date in time_t
- * \param tz_offset pointer to timezone offset (in +/- hours)
- */
-void smf_message_get_date(SMFMessage_T *message, time_t *date, int *tz_offset) {
-    g_mime_message_get_date((GMimeMessage *)message->data,date,tz_offset);
-}
-
-
-
 /** Set the root-level MIME part of the message.
  *
  * \param message SMFMessage_T object
@@ -418,39 +415,6 @@ void smf_message_set_multipart(SMFMessage_T *message, SMFMultiPart_T *multipart)
     g_mime_message_set_mime_part((GMimeMessage *)message->data,(GMimeObject *)multipart->data);
 }
 
-/** Allocates a string buffer containing the contents of SMFMessage_T.
- *
- * \param message a SMFMessage_T object
- *
- * \returns an allocated string containing the contents of SMFMessage_T
- */
-char *smf_message_to_string(SMFMessage_T *message) {
-    return g_mime_object_to_string((GMimeObject *)message->data);
-}
-
-/** Write SMFMessage_T object to disk.
- *
- * \param message SMFMessage_T object
- * \param filename destination file
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_message_to_file(SMFMessage_T *message, const char *filename) {
-    GMimeStream *stream;
-    FILE *fd;
-    
-    if ((fd = fopen(filename,"wb+")) == NULL) {
-        TRACE(TRACE_ERR,"unable to create %s",filename);
-        return -1;
-    }
-
-    stream = g_mime_stream_file_new(fd);
-    g_mime_object_write_to_stream((GMimeObject *)message->data,stream);
-    
-    g_mime_stream_flush(stream);
-    g_object_unref(stream);
-    return 0;
-}
 
 /** Recursively calls callback on each of the mime parts in the mime message.
  *

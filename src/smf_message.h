@@ -254,6 +254,52 @@ char *smf_message_get_boundary(SMFMessage_T *message);
  */
 char *smf_message_generate_boundary(void);
 
+/*!
+ * @fn void smf_message_add_generated_boundary(SMFMessage_T *message)
+ * @brief Add a newly generated boundary to a SMFMessage_T object
+ * @param message a SMFMessage_T object
+ */
+void smf_message_add_generated_boundary(SMFMessage_T *message);
+
+/*!
+ * @fn int smf_message_from_file(SMFMessage_T **message, const char *filename, int header_only)
+ * @brief Parse given file and create a SMFMessage_T object
+ * @param message out param to return the new message object
+ * @param filename path to message file
+ * @param header_only parse only message headers, 1 = tue, 0 = false
+ * @returns 0 on success, -1 on stat error, -2 if not a regular file, -3 if reading fails, 
+ *   1 if parsing failed because of invalid input, 2 if parsing failed due to memory exhaustion
+ */
+int smf_message_from_file(SMFMessage_T **message, const char *filename, int header_only);
+
+/*!
+ * @fn int smf_message_to_file(SMFMessage_T *message, const char *filename)
+ * @brief Write SMFMessage_T object to file
+ * @param message a SMFMessage_T object
+ * @param filename path to file, which should be written
+ * @returns the number of items successfully written on success, -1 in case of error
+ */
+int smf_message_to_file(SMFMessage_T *message, const char *filename);
+
+/*!
+ * @fn char *smf_message_to_string(SMFMessage_T *message) 
+ * @brief Allocates a string buffer containing the contents of SMFMessage_T.
+ * @param message a SMFMessage_T object 
+ * @returns message as newly allocated string
+ */
+char *smf_message_to_string(SMFMessage_T *message);
+
+/*!
+ * @fn int smf_message_from_string(SMFMessage_T **message, const char *content, int header_only)
+ * @brief Parse given string and create a new SMFMessage_T object
+ * @param message out param to return the new message object
+ * @param content message string to parse
+ * @param header_only parse only message headers, 1 = tue, 0 = false
+ * @returns 0 on success or -1 in case of error, 1 if parsing failed because of invalid input, 
+ *   2 if parsing failed due to memory exhaustion
+ */
+int smf_message_from_string(SMFMessage_T **message, const char *content, int header_only);
+
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
 typedef struct _SMFObject_T SMFMimePart_T;
@@ -382,22 +428,6 @@ void smf_message_set_subject(SMFMessage_T *message, const char *subject);
  */
 const char *smf_message_get_subject(SMFMessage_T *message);
 
-/** Sets the sent-date on a message.
- *
- * \param message SMFMessate_T object
- * \param date Sent-date
- * \param gmt_offset GMT date offset (in +/- hours)
- */
-void smf_message_set_date(SMFMessage_T *message, time_t date, int gmt_offset);
-
-/** Stores the date in time_t format in date. If tz_offset is non-NULL, then 
- *  the timezone offset in will be stored in tz_offset.
- * 
- * \param message SMFMessage_T object
- * \param date pointer to a date in time_t
- * \param tz_offset pointer to timezone offset (in +/- hours)
- */
-void smf_message_get_date(SMFMessage_T *message, time_t *date, int *tz_offset);
 
 /** Set the root-level MIME part of the message.
  *
@@ -413,22 +443,6 @@ void smf_message_set_mime_part(SMFMessage_T *message, SMFMimePart_T *part);
  */
 void smf_message_set_multipart(SMFMessage_T *message, SMFMultiPart_T *multipart);
 
-/** Allocates a string buffer containing the contents of SMFMessage_T.
- *
- * \param message a SMFMessage_T object
- *
- * \returns an allocated string containing the contents of SMFMessage_T
- */
-char *smf_message_to_string(SMFMessage_T *message);
-
-/** Write SMFMessage_T object to disk.
- *
- * \param message SMFMessage_T object
- * \param filename destination file
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_message_to_file(SMFMessage_T *message, const char *filename);
 
 #ifdef HAVE_GMIME24
 /** The function signature for a callback to smf_message_foreach() and smf_mime_multipart_foreach().

@@ -104,6 +104,11 @@ CONFIGURE_FILE(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter_config.h
 )
 
+CONFIGURE_FILE(
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/test.h.cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/test.h
+)
+
 # write spmfilter.pc
 CONFIGURE_FILE(
 	${CMAKE_CURRENT_SOURCE_DIR}/src/spmfilter.pc.cmake
