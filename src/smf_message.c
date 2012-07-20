@@ -137,55 +137,74 @@ SMFList_T *smf_message_get_recipients(SMFMessage_T *message) {
 }
 
 void smf_message_set_content_type(SMFMessage_T *message, const char *s) {
+    assert(message);
+    assert(s);
     cmime_message_set_content_type((CMimeMessage_T *)message, s);
 }
 
 char *smf_message_get_content_type(SMFMessage_T *message) {
+    assert(message);
     return cmime_message_get_content_type((CMimeMessage_T *)message);
 }
 
 void smf_message_set_content_transfer_encoding(SMFMessage_T *message, const char *s) {
+    assert(message);
+    assert(s);
     cmime_message_set_content_transfer_encoding((CMimeMessage_T *)message,s);
 }
 
 char *smf_message_get_content_transfer_encoding(SMFMessage_T *message) {
+    assert(message);
     return cmime_message_get_content_transfer_encoding((CMimeMessage_T *)message);
 }
 
 void smf_message_set_content_id(SMFMessage_T *message, const char *s) {
+    assert(message);
+    assert(s);
     cmime_message_set_content_id((CMimeMessage_T *)message,s);
 }
 
 char *smf_message_get_content_id(SMFMessage_T *message) {
+    assert(message);
     return cmime_message_get_content_id((CMimeMessage_T *)message);
 }
 
 void smf_message_set_mime_version(SMFMessage_T *message, const char *s) {
+    assert(message);
+    assert(s);
     cmime_message_set_mime_version((CMimeMessage_T *)message,s);
 }
 
 char *smf_message_get_mime_version(SMFMessage_T *message) {
+    assert(message);
     return cmime_message_get_mime_version((CMimeMessage_T *)message);
 }
 
 void smf_message_set_date(SMFMessage_T *message, const char *s) {
+    assert(message);
+    assert(s);
     cmime_message_set_date((CMimeMessage_T *)message, s);
 }
 
 char *smf_message_get_date(SMFMessage_T *message) {
+    assert(message);
     return cmime_message_get_date((CMimeMessage_T *)message);
 }
 
 int smf_message_set_date_now(SMFMessage_T *message) {
+    assert(message);
     return cmime_message_set_date_now((CMimeMessage_T *)message);
 }
 
 void smf_message_set_boundary(SMFMessage_T *message, const char *boundary) {
+    assert(message);
+    assert(boundary);
     cmime_message_set_boundary((CMimeMessage_T *)message,boundary);
 }
 
 char *smf_message_get_boundary(SMFMessage_T *message) {
-    return cmime_message_get_boundary((CMimeMessage_T *)message);
+    assert(message);
+    return (char *)cmime_message_get_boundary((CMimeMessage_T *)message);
 }
 
 char *smf_message_generate_boundary(void) {
@@ -193,152 +212,48 @@ char *smf_message_generate_boundary(void) {
 }
 
 void smf_message_add_generated_boundary(SMFMessage_T *message) {
+    assert(message);
     cmime_message_add_generated_boundary((CMimeMessage_T *)message);
 }
 
 int smf_message_from_file(SMFMessage_T **message, const char *filename, int header_only) {
+    assert(message);
+    assert(filename);
     return cmime_message_from_file((CMimeMessage_T **)message,filename,header_only);
 }
 
 int smf_message_to_file(SMFMessage_T *message, const char *filename) {
+    assert(message);
+    assert(filename);
     return cmime_message_to_file((CMimeMessage_T *)message,filename);
 }
 
 char *smf_message_to_string(SMFMessage_T *message) {
+    assert(message);
     return cmime_message_to_string((CMimeMessage_T *)message);
 }
 
 int smf_message_from_string(SMFMessage_T **message, const char *content, int header_only) {
+    assert(message);
+    assert(content);
     return cmime_message_from_string((CMimeMessage_T **)message,content,header_only);
+}
+
+void smf_message_set_subject(SMFMessage_T *message, const char *s) {
+    assert(message);
+    assert(s);
+    cmime_message_set_subject((CMimeMessage_T *)message, s);
+}
+
+char *smf_message_get_subject(SMFMessage_T *message) {
+    assert(message);
+    return cmime_message_get_subject((CMimeMessage_T *)message);
 }
 
 #if 0
 #define EMAIL_EXTRACT "(?:.*<)?([^>]*)(?:>)?"
 
 
-//void smf_message_extract_addresses(SMFMessageEnvelope_T **envelope) {
-//  InternetAddressList *ia;
-//  InternetAddress *addr;
-//  SMFSettings_T *settings = smf_settings_get();
-//  SMFMessageEnvelope_T *e = (*envelope);
-    
-//  if (e == NULL) 
-//      return;
-    
-    /* get the from field */
-//  e->message->message_from = g_slice_new(SMFEmailAddress_T);
-//  e->message->message_from->addr = smf_core_get_substring(
-//      EMAIL_EXTRACT,g_mime_message_get_sender(GMIME_MESSAGE(e->message)),1);
-//  e->message->message_from->lr = NULL;
-    
-//  if (e->message->message_from->addr != NULL) {
-//      TRACE(TRACE_DEBUG,"envelope->message_from: %s",e->message->message_from->addr);
-//      if (settings->backend != NULL) {
-//          smf_lookup_check_user(e->message->message_from);
-//      } else {
-//          e->message->message_from->lr = NULL;
-//      }
-//      TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-//          e->message->message_from->addr,
-//          e->message->message_from->is_local);
-//  }
-
-    /* now check the to field */
-//  e->message->message_to_num = 0;
-    
-//#ifdef HAVE_GMIME24
-//  /* g_mime_message_get_all_recipients() appeared in gmime 2.2.5 */
-//  ia = g_mime_message_get_all_recipients(GMIME_MESSAGE(e->message));
-//  if (ia != NULL) {
-//      int i;
-//      for (i=0; i < internet_address_list_length(ia); i++) {
-//          addr = internet_address_list_get_address(ia,i);
-//          e->message->message_to = g_realloc(
-//                  e->message->message_to,
-//                  sizeof(SMFEmailAddress_T) * (e->message->message_to_num + 1)
-//              );
-//          e->message->message_to[e->message->message_to_num] = g_slice_new(SMFEmailAddress_T);
-//          e->message->message_to[e->message->message_to_num]->addr =
-//                  smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-//          e->message->message_to[e->message->message_to_num]->lr = NULL;
-//          if (e->message->message_to[e->message->message_to_num]->addr != NULL) {
-//              TRACE(TRACE_DEBUG,"envelope->message_to[%d]: %s",
-//                      e->message->message_to_num,
-//                      e->message->message_to[e->message->message_to_num]->addr);
-//
-//              if (settings->backend != NULL) {
-//                  e->message->message_to[e->message->message_to_num]->lr = NULL;
-//                  if (e->message->message_to[e->message->message_to_num]->addr != NULL) {
-//                      smf_lookup_check_user(e->message->message_to[e->message->message_to_num]);
-//                      TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-//                          e->message->message_to[e->message->message_to_num]->addr,
-//                          e->message->message_to[e->message->message_to_num]->is_local);
-//                  }
-//              } else {
-//                  e->message->message_to[e->message->message_to_num]->lr = NULL;
-//              }
-//              e->message->message_to_num++;
-//          }
-//      }
-//  }
-//#else
-//  /* all recipients from to */
-//  ia = (InternetAddressList *)g_mime_message_get_recipients(
-//      (GMimeMessage *)e->message,
-//      GMIME_RECIPIENT_TYPE_TO
-//  );
-//  if (ia != NULL) {
-//
-//      /* all recipients from cc */
-//      internet_address_list_concat(
-//          ia,
-//          (InternetAddressList *)g_mime_message_get_recipients(
-//              (GMimeMessage *)e->message,
-//              GMIME_RECIPIENT_TYPE_CC
-//          )
-//      );
-//
-//      /* all recipients from bcc */
-//      internet_address_list_concat(
-//          ia,
-//          (InternetAddressList *)g_mime_message_get_recipients(
-//              (GMimeMessage *)e->message,
-//              GMIME_RECIPIENT_TYPE_BCC
-//          )
-//      );
-//
-//      while(ia) {
-//          addr = internet_address_list_get_address(ia);
-//
-//          e->message_to = g_realloc(
-//                  e->message_to,
-//                  sizeof(SMFEmailAddress_T) * (e->message_to_num + 1)
-//              );
-//          e->message_to[e->message_to_num] = g_slice_new(SMFEmailAddress_T);
-//          e->message_to[e->message_to_num]->addr =
-//                  smf_core_get_substring(EMAIL_EXTRACT, internet_address_to_string(addr,TRUE),1);
-//          e->message_to[e->message_to_num]->lr = NULL;
-//          if (e->message_to[e->message_to_num]->addr != NULL) {
-//              TRACE(TRACE_DEBUG,"envelope->message_to[%d]: %s",
-//                      e->message_to_num,
-//                      e->message_to[e->message_to_num]->addr);
-//              if (settings->backend != NULL) {
-//                  e->message_to[e->message_to_num]->lr = NULL;
-//                  smf_lookup_check_user(e->message_to[e->message_to_num]);
-//                  TRACE(TRACE_DEBUG,"[%s] is local [%d]",
-//                          e->message_to[e->message_to_num]->addr,
-//                          e->message_to[e->message_to_num]->is_local);
-//              } else {
-//                  e->message_to[e->message_to_num]->lr = NULL;
-//              }
-//              e->message_to_num++;
-//          }
-//          ia = internet_address_list_next(ia);
-//      }
-//  }
-//#endif
-
-//}
 
 /** Decodes an rfc2047 encoded 'text' header. */
 char *smf_message_decode_text(const char *text) {
@@ -378,24 +293,6 @@ const char *smf_message_get_reply_to(SMFMessage_T *message) {
     return g_mime_message_get_reply_to((GMimeMessage *)message->data);
 }
 
-/** Set the unencoded UTF-8 Subject field on a message.
- *
- * \param message SMFMessage_T object
- * \param subject subject string
- */
-void smf_message_set_subject(SMFMessage_T *message, const char *subject) {
-    g_mime_message_set_subject((GMimeMessage *)message->data,subject);
-}
-
-/** Gets the subject from message
- *
- * \param message SMFMessage_T object
- *
- * \returns the message subject
- */
-const char *smf_message_get_subject(SMFMessage_T *message) {
-    return g_mime_message_get_subject((GMimeMessage *)message->data);
-}
 
 /** Set the root-level MIME part of the message.
  *
