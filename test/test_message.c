@@ -36,6 +36,8 @@
 #define TEST_CONTENT_TRANSFER_ENCODING "multipart/mixed"
 #define TEST_MIME_VERSION "1.0"
 #define TEST_STRING "Test string"
+#define TEST_PREPEND "[TEST] Test string"
+#define TEST_APPEND "[TEST] Test string [TEST]"
 
 char test_files[54][10] = {
     "m0001.txt","m0002.txt","m0003.txt","m0004.txt","m0005.txt",
@@ -253,6 +255,33 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
     g_printf("passed\n");
+
+    g_printf("* testing smf_message_prepend_subject()...\t\t\t");
+    smf_message_prepend_subject(msg,"[TEST]");
+    s = smf_message_get_subject(msg);
+    if (strcmp(s,TEST_PREPEND)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_append_subject()...\t\t\t");
+    smf_message_append_subject(msg,"[TEST]");
+    s = smf_message_get_subject(msg);
+    if (strcmp(s,TEST_APPEND)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_set_body()...\t\t\t\t");
+    if (smf_message_set_body(msg,TEST_STRING)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+    
+    
 
     g_printf("* testing smf_message_free()...\t\t\t\t\t");
     smf_message_free(msg);
