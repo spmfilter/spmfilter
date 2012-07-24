@@ -20,6 +20,7 @@
 #include <cmime.h>
 
 #include "smf_list.h"
+#include "smf_header.h"
 #include "smf_message.h"
 
 #if 0
@@ -248,6 +249,18 @@ void smf_message_set_subject(SMFMessage_T *message, const char *s) {
 char *smf_message_get_subject(SMFMessage_T *message) {
     assert(message);
     return cmime_message_get_subject((CMimeMessage_T *)message);
+}
+
+void smf_message_prepend_subject(SMFMessage_T *message, const char *s) {
+    cmime_message_prepend_subject((CMimeMessage_T *)message,s);
+}
+
+void smf_message_append_subject(SMFMessage_T *message, const char *s) {
+    cmime_message_append_subject((CMimeMessage_T *)message,s);
+}
+
+int smf_message_set_body(SMFMessage_T *message, const char *content) {
+    return cmime_message_set_body((CMimeMessage_T *)message,content);
 }
 
 #if 0
