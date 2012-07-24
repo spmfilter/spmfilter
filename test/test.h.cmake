@@ -24,6 +24,24 @@ extern "C" {
 
 #define SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test/samples"
 
+char mime_type_string[] = "text/plain; charset=us-ascii";
+char mime_disposition_string[] = "inline";
+char mime_encoding_string[] = "quoted-printable";
+
+char id_string[] = "4DF9E5EB.6080300@foo.bar";
+char id_string_out[] = "<4DF9E5EB.6080300@foo.bar>";
+
+char test_postface_string[] = "\n";
+
+char test_content_string[] = "\
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo \
+ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis \
+dis parturient montes, nascetur ridiculus mus. Donec quam felis, \
+ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa \
+quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, \
+arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. \
+Nullam dictum felis eu pede mollis pretium.";
+
 #ifdef __cplusplus
 }
 #endif

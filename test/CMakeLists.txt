@@ -28,6 +28,10 @@ add_executable(test_header test_header.c)
 target_link_libraries(test_header smf ${COMMON_LIBS})
 ADD_TEST(SMFHeader_T ${EXECUTABLE_OUTPUT_PATH}/test_header)
 
+add_executable(test_part test_part.c)
+target_link_libraries(test_part smf ${COMMON_LIBS})
+ADD_TEST(SMFPart_T ${EXECUTABLE_OUTPUT_PATH}/test_part)
+
 add_executable(test_message test_message.c)
 target_link_libraries(test_message smf ${COMMON_LIBS})
 ADD_TEST(SMFMessage_T ${EXECUTABLE_OUTPUT_PATH}/test_message)

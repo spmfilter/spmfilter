@@ -14,6 +14,7 @@ set(LIB_SMF_SRC
 	smf_message.c
 #	smf_mime.c
 	smf_modules.c
+	smf_part.c
 	smf_platform.c
 	smf_session.c
 	smf_settings.c
@@ -64,6 +65,7 @@ set_property(TARGET smf PROPERTY PRIVATE_HEADER
 	smf_list.h
 	smf_lookup.h
 	smf_header.h
+	smf_part.h
 )
 
 set_property(TARGET smf PROPERTY VERSION ${SMF_VERSION})

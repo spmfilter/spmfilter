@@ -28,6 +28,7 @@ extern "C" {
 #include "smf_email_address.h"
 #include "smf_header.h"
 #include "smf_list.h"
+#include "smf_part.h"
 
 #if 0 
 #include "smf_lookup.h"
@@ -316,7 +317,39 @@ char *smf_message_to_string(SMFMessage_T *message);
  */
 int smf_message_from_string(SMFMessage_T **message, const char *content, int header_only);
 
+/*!
+ * @fn void smf_message_prepend_subject(SMFMessage_T *message, const char *s)
+ * @brief prepend string to subject
+ * @param message a SMFMessage_T object
+ * @param s string to prepend
+ */
+void smf_message_prepend_subject(SMFMessage_T *message, const char *s);
 
+/*!
+ * @fn void smf_message_append_subject(SMFMessage_T *message, const char *s)
+ * @brief append string to subject
+ * @param message a SMFMessage_T object
+ * @param s a append string for subject
+ */
+void smf_message_append_subject(SMFMessage_T *message, const char *s);
+
+/*!
+ * @fn int smf_message_set_body(SMFMessage_T *message, const char *body)
+ * @brief Set plain body to non multipart message.
+ * @param message a SMFMessage_T object
+ * @param content body content
+ * @returns 0 on sucess, -1 if message is multipart
+ */
+int smf_message_set_body(SMFMessage_T *message, const char *content);
+
+/*!
+ * @fn int smf_message_append_part(SMFMessage_T *message, SMFPart_T *part)
+ * @brief Append mime part to message object and generate boundary if necessary
+ * @param message a SMFMessage_T object
+ * @param part a SMFPart_T part
+ * @returns 0 on success, -1 in case of error
+ */
+int smf_message_append_part(SMFMessage_T *message, SMFPart_T *part);
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
