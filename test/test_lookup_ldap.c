@@ -29,8 +29,8 @@
 
 /*
  *
- * this tests can only be run successfull if there is an ldap server available with the following
- * scheme: 
+ * this tests can only run successfull if there is a local ldap server available with the following
+ * scheme installed:
  * 
 
  // base.ldif
@@ -80,7 +80,6 @@
 
 int main (int argc, char const *argv[]) {
 
-    char *ldap_uri = NULL;
     int scope_retval;
     int ldap_connect_retval;
     char *conn_type = LDAP_CONN_TYPE;
@@ -95,7 +94,6 @@ int main (int argc, char const *argv[]) {
     host[1] = g_strdup(LDAP_HOST_1);
     host[2] = '\0';
 
-    ldap_uri = ldap_get_uri("127.0.0.1", LDAP_PORT);
     SMFSettings_T *settings = smf_settings_new();
     smf_settings_set_ldap_host(settings, host);
     smf_settings_set_ldap_scope(settings, "subtree");
@@ -104,8 +102,13 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_ldap_binddn(settings, bind_dn);
     smf_settings_set_ldap_base(settings, LDAP_BASE);
     smf_settings_set_ldap_referrals(settings, 0);  
-    smf_lookup_ldap_connect(ldap_uri, settings);
-    ldapresult = smf_lookup_ldap_query(ldap_uri, settings, LDAP_QUERY_STRING);
+
+    printf("settings->backend_connection: [%s]\n", settings->backend_connection);
+    smf_lookup_ldap_connect(settings);
+    printf("settings->ldap_uri: [%s]\n", settings->ldap_uri);
+
+    
+    ldapresult = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);
     
     if(ldapresult != NULL) {
         if(ldapresult->len > 0) {
@@ -119,11 +122,11 @@ int main (int argc, char const *argv[]) {
     }
     
     smf_lookup_result_free(ldapresult);
-    smf_lookup_ldap_disconnect(ldap_uri,settings);
+    smf_lookup_ldap_disconnect(settings);
     smf_settings_free(settings);
 
-    if(uidNumber != NULL)
-        free(uidNumber);
+    //if(uidNumber != NULL)
+    //    free(uidNumber);
 
     if(host[0] != NULL)
         free(host[0]);
@@ -134,8 +137,6 @@ int main (int argc, char const *argv[]) {
      if(host != NULL)
         g_free(host);
 
-    if(ldap_uri != NULL)
-        free(ldap_uri);
 
     return 0;
 }

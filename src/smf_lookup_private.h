@@ -98,12 +98,12 @@ char *ldap_get_uri(char *ldap_host, int ldap_port);
 char *ldap_get_rand_host(SMFSettings_T *settings);
 
 /*!
- * @fn int smf_ldap_bind(char *uri, SMFSettings_T *settings);
+ * @fn int smf_ldap_bind(SMFSettings_T *settings);
  * @brief function to get random ldap host
  * @param SMFSettings_T Pointer
  * @returns random ldap host
  */
-int smf_ldap_bind(char *uri, SMFSettings_T *settings);
+int smf_ldap_bind(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_ldap_bind(char *uri, SMFSettings_T *settings);
