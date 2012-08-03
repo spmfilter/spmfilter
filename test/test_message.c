@@ -23,21 +23,17 @@
 #include "../src/smf_message.h"
 #include "../src/smf_list.h"
 #include "../src/smf_header.h"
+#include "../src/smf_part.h"
 
 #include "test.h"
 
-#define TEST_NAME "John Doe"
-#define TEST_EMAIL "foo@bar.com"
-#define TEST_SENDER "John Doe <foo@bar.com>"
 #define TEST_HEADER_NAME "X-Foo"
 #define TEST_HEADER_VALUE "foobar"
 #define TEST_HEADER "X-Foo: foobar"
 #define TEST_CONTENT_TYPE "text/plain; charset=us-ascii"
 #define TEST_CONTENT_TRANSFER_ENCODING "multipart/mixed"
 #define TEST_MIME_VERSION "1.0"
-#define TEST_STRING "Test string"
-#define TEST_PREPEND "[TEST] Test string"
-#define TEST_APPEND "[TEST] Test string [TEST]"
+
 
 char test_files[54][10] = {
     "m0001.txt","m0002.txt","m0003.txt","m0004.txt","m0005.txt",
@@ -67,6 +63,7 @@ int main (int argc, char const *argv[]) {
     FILE *fp = NULL;
     FILE *fp2 = NULL;
     long size = 0;
+    SMFPart_T *part = NULL;
 
     g_printf("Start SMFMessage_T tests...\n");
 
@@ -74,14 +71,14 @@ int main (int argc, char const *argv[]) {
     msg = smf_message_new();
     assert(msg);
     g_printf("passed\n");
-  
-    g_printf("* testing smf_message_set_sender()...\t\t\t\t");
-    smf_message_set_sender(msg,TEST_SENDER);
-    g_printf("passed\n");
 
+    g_printf("* testing smf_message_set_sender()...\t\t\t\t");
+    smf_message_set_sender(msg,addr_string1);
+    g_printf("passed\n");
+#if 0
     g_printf("* testing smf_message_get_sender_string()...\t\t\t");
     s = smf_message_get_sender_string(msg);
-    if (strcmp(s,TEST_SENDER) !=0 ) {
+    if (strcmp(s,test_addr) !=0 ) {
         g_printf("failed\n");
         return -1;
     } else
@@ -145,7 +142,7 @@ int main (int argc, char const *argv[]) {
     free(s);
 
     g_printf("* testing smf_message_add_reciepient()...\t\t\t");
-    if (smf_message_add_recipient(msg, TEST_SENDER, SMF_EMAIL_ADDRESS_TYPE_TO) != 0) {
+    if (smf_message_add_recipient(msg, test_addr, SMF_EMAIL_ADDRESS_TYPE_TO) != 0) {
         g_printf("failed\n");
         return -1;
     } 
@@ -157,13 +154,13 @@ int main (int argc, char const *argv[]) {
 
     elem = smf_list_head(l);
     s = smf_email_address_to_string((SMFEmailAddress_T *)smf_list_data(elem));
-    if (strcmp(s,TEST_SENDER)!=0) {
+    if (strcmp(s,test_addr)!=0) {
         g_printf("failed\n");
         return -1;
     }
     g_printf("passed\n");
     free(s);
-    
+   
     g_printf("* testing smf_message_set_content_type()...\t\t\t");
     smf_message_set_content_type(msg,TEST_CONTENT_TYPE);
     g_printf("passed\n");
@@ -226,6 +223,43 @@ int main (int argc, char const *argv[]) {
     assert(s);
     g_printf("passed\n");
 
+    g_printf("* testing smf_message_set_subject()...\t\t\t\t");
+    smf_message_set_subject(msg,test_string);
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_get_subject()...\t\t\t\t");
+    s = smf_message_get_subject(msg);
+    if (strcmp(s,test_string)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_prepend_subject()...\t\t\t");
+    smf_message_prepend_subject(msg,"[TEST]");
+    s = smf_message_get_subject(msg);
+    if (strcmp(s,test_prepend)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_append_subject()...\t\t\t");
+    smf_message_append_subject(msg,"[TEST]");
+    s = smf_message_get_subject(msg);
+    if (strcmp(s,test_append)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_set_body()...\t\t\t\t");
+    if (smf_message_set_body(msg,test_content_string)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+    
     g_printf("* testing smf_message_generate_boundary()...\t\t\t");
     s2 = smf_message_generate_boundary();
     assert(s2);
@@ -244,49 +278,65 @@ int main (int argc, char const *argv[]) {
     g_printf("passed\n");
     free(s2);
 
-    g_printf("* testing smf_message_set_subject()...\t\t\t\t");
-    smf_message_set_subject(msg,TEST_STRING);
-    g_printf("passed\n");
-
-    g_printf("* testing smf_message_get_subject()...\t\t\t\t");
-    s = smf_message_get_subject(msg);
-    if (strcmp(s,TEST_STRING)!=0) {
-        g_printf("failed\n");
-        return -1;
-    }
-    g_printf("passed\n");
-
-    g_printf("* testing smf_message_prepend_subject()...\t\t\t");
-    smf_message_prepend_subject(msg,"[TEST]");
-    s = smf_message_get_subject(msg);
-    if (strcmp(s,TEST_PREPEND)!=0) {
-        g_printf("failed\n");
-        return -1;
-    }
-    g_printf("passed\n");
-
-    g_printf("* testing smf_message_append_subject()...\t\t\t");
-    smf_message_append_subject(msg,"[TEST]");
-    s = smf_message_get_subject(msg);
-    if (strcmp(s,TEST_APPEND)!=0) {
-        g_printf("failed\n");
-        return -1;
-    }
-    g_printf("passed\n");
-
-    g_printf("* testing smf_message_set_body()...\t\t\t\t");
-    if (smf_message_set_body(msg,TEST_STRING)!=0) {
-        g_printf("failed\n");
-        return -1;
-    }
-    g_printf("passed\n");
+    g_printf("* testing smf_message_append_part()...\t\t\t\t");
     
-    
+    elem = smf_list_head(msg->parts);
+    part = (CMimePart_T *)cmime_list_data(elem);
+    s = smf_part_get_content(part);
+
+    part = smf_part_new();
+    s = g_strdup_printf("%s/redball.png",SAMPLES_DIR);
+    if (smf_part_from_file(&part,s,NULL) != 0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    free(s);
+    if (smf_message_append_part(msg,part) != 0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    if (smf_message_get_part_count(msg) != 2) {
+        g_printf("failed\n");
+        return -1;
+    }
+    g_printf("passed\n");
+
+    g_printf("* testing smf_message_add_attachment()...\t\t\t");
+    s = g_strdup_printf("%s/redball.png",SAMPLES_DIR);
+    smf_message_add_attachment(msg,s);
+
+    if (smf_message_get_part_count(msg) != 3) {
+        g_printf("failed\n");
+        return -1;
+    }
+    free(s);
+    g_printf("passed\n");
+
 
     g_printf("* testing smf_message_free()...\t\t\t\t\t");
     smf_message_free(msg);
     g_printf("passed\n");
 
+    g_printf("* testing smf_message_create_skeleton()...\t\t\t");
+#endif
+    /*
+    msg = smf_message_create_skeleton(test_addr,test_addr,test_string);
+    if (smf_message_set_body(msg,test_content_string)!=0) {
+        g_printf("failed\n");
+        return -1;
+    }
+    */
+
+    msg_string = smf_message_to_string(msg);
+    g_printf("%s\n",msg_string);
+    assert(msg_string);
+    free(msg_string);
+  
+    smf_message_free(msg);
+    g_printf("passed\n");
+
+
+#if 0
     g_printf("Start message parsing tests...\n");
     for (i=0; i < 54; i++) {
         g_printf("* checking sample message [%s]...\t\t\t", test_files[i]);
@@ -332,6 +382,6 @@ int main (int argc, char const *argv[]) {
         smf_message_free(msg);
         printf("passed!\n");
     }
-
+#endif
     return 0;
 }
