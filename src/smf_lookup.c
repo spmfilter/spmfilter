@@ -27,9 +27,6 @@
 #include "smf_trace.h"
 #include "smf_core.h"
 
-#ifdef HAVE_PCRE
-#include <pcre.h>
-#endif
 
 #define THIS_MODULE "lookup"
 
@@ -116,15 +113,8 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	int i;
 	SMFLookupResult_T *result = NULL;
 	SMFSettings_T *settings = smf_settings_get();
-
-#if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
 	GMatchInfo *match_info = NULL;
-#else
-	pcre *re;
-	int rc;
-	int ovector[30];
-#endif
 	
 	va_start(ap, q);
 	va_copy(cp, ap);
@@ -132,7 +122,6 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	va_end(cp);
 	g_strstrip(query);
 	
-#if (GLIB2_VERSION >= 21400)
 	re = g_regex_new("/(^SELECT|^UPDATE|^DELETE|^INSERT|^DROP|^CREATE|^ALTER)/", G_REGEX_CASELESS, 0, NULL);
 	g_regex_match(re, query, 0, &match_info);
 	if(g_match_info_matches(match_info)) {
@@ -140,16 +129,6 @@ SMFLookupResult_T *smf_lookup_query(const char *q, ...) {
 	}
 	g_match_info_free(match_info);
 	g_regex_unref(re);
-#else
-	re = pcre_compile("/(^SELECT|^UPDATE|^DELETE|^INSERT)/", PCRE_CASELESS, NULL, NULL, NULL);
-	if(re != NULL) {
-		rc = pcre_exec(re, NULL, query, strlen(query), 0, 0, ovector, 30);
-		if(rc > 0) {
-			is_sql = TRUE;
-		}
-	}
-#endif
-
 	
 	for (i=0; settings->backend[i] != NULL; i++) {
 #ifdef HAVE_ZDB

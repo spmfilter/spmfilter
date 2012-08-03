@@ -36,7 +36,6 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
     if (haystack == NULL)
         return NULL;
     
-#if (GLIB2_VERSION >= 21400)
     GRegex *re = NULL;
     GMatchInfo *match_info = NULL;
     char *value = NULL;
@@ -49,29 +48,6 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
     
     g_match_info_free(match_info);
     g_regex_unref(re);
-#else
-    pcre *re;
-    const char *error;
-    int rc, erroffset;
-    int ovector[30];
-    const char *strptr;
-    char *value;
-    
-    re = pcre_compile(pattern, PCRE_CASELESS, &error, &erroffset, NULL);
-    if(re == NULL) {
-        TRACE(TRACE_NOTICE, "pcre_match : failed to compile pattern %s", pattern);
-    } else {
-        rc = pcre_exec(re, NULL, haystack, strlen(haystack), 0, 0, ovector, 30);
-        if(rc > 0) {
-            pcre_get_substring(haystack,ovector,rc,pos,&strptr);
-            value = g_strdup((char *)strptr);
-        } else {
-            TRACE(TRACE_ERR, "pcre_match : failed to match pattern %s : code was %d", pattern, rc);
-        }
-    }
-    pcre_free_substring(strptr);
-    pcre_free(re);
-#endif  
 
     return value;
 }
@@ -196,7 +172,6 @@ char *smf_md5sum(const char *data) {
 
 int smf_core_valid_address(const char *addr) {
     int match = -1;
-#if (GLIB2_VERSION >= 21400)
     GRegex *re = NULL;
     GMatchInfo *match_info = NULL;
 
@@ -208,19 +183,6 @@ int smf_core_valid_address(const char *addr) {
 
     g_match_info_free(match_info);
     g_regex_unref(re);
-#else
-    pcre *re;
-    const char *error;
-    int rc, erroffset;
-    int ovector[30];
-
-    re = pcre_compile(RE_MAIL, PCRE_CASELESS, &error, &erroffset, NULL);
-    if(re != NULL) {
-        rc = pcre_exec(re, NULL, addr, strlen(addr), 0, 0, ovector, 30);
-        if(rc > 0) 
-            match = 0;
-    }
-#endif
 
     return match;
 }

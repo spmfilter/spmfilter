@@ -30,11 +30,6 @@
 #include "smf_trace.h"
 #include "smf_md5.h"
 
-#ifdef HAVE_PCRE
-#include <pcre.h>
-#endif
-
-
 /* GLIB2 VERSION INFORMATION */
 #define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
 	+ GLIB_MINOR_VERSION * 100 \
