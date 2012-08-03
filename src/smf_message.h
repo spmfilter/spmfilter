@@ -44,6 +44,18 @@ extern "C" {
 typedef CMimeMessage_T SMFMessage_T;
 
 /*!
+ * @enum SMFMultipartType_T 
+ * @brief Possible multipart mime subtypes
+ */
+typedef enum _SMFMultipartType {
+    SMF_MULTIPART_MIXED, /**< multipart/mixed */
+    SMF_MULTIPART_DIGEST, /**< multipart/digest */
+    SMF_MULTIPART_MESSAGE, /**< message/rfc822 */
+    SMF_MULTIPART_ALTERNATIVE, /**< multipart/alternative */
+    SMF_MULTIPART_RELATED /**< multipart/related */
+} SMFMultipartType_T;
+
+/*!
  * @fn SMFMessage_T *smf_message_new(void)
  * @brief Creates a new SMFMessage_T object
  * @returns an empty message object
@@ -350,6 +362,55 @@ int smf_message_set_body(SMFMessage_T *message, const char *content);
  * @returns 0 on success, -1 in case of error
  */
 int smf_message_append_part(SMFMessage_T *message, SMFPart_T *part);
+
+/*!
+ * @fn int smf_message_part_count(SMFMessage_T *message)
+ * @brief Get number of mime parts
+ * @param message a SMFMessage_T object
+ * @returns number of mime parts
+ */
+ int smf_message_get_part_count(SMFMessage_T *message);
+
+ /*!
+ * @fn void smf_message_add_attachment(SMFMessage_T *message, char *attachment)
+ * @brief add attachment to message 
+ * @param message a SMFMessage_T object
+ * @param attachment a file pointer
+ */
+void smf_message_add_attachment(SMFMessage_T *message, char *attachment);
+
+/*!
+ * @fn SMFMessage_T *smf_message_create_skeleton( const char *sender, const char *recipient, const char *subject)
+ * @brief create message skeleton with basic header information
+ * @param sender a from sender
+ * @param recipient a to recipient
+ * @param subject a subject string
+ * @returns SMFMessage_T pointer
+ */
+SMFMessage_T *smf_message_create_skeleton(const char *sender, const char *recipient, const char *subject);
+
+/*! 
+ * @fn int cmime_message_add_child_part(CMimeMessage_T *message, CMimePart_T *part, CMimePart_T *child, CMimeMultipartType_T subtype)
+ * @brief Add a child part to given mimepart, set content type and generate a boundary if necessary.
+ * @param message a CMimeMessage_T object
+ * @param part the parent mime part
+ * @param child the child mime part, which should be added
+ * @param subtype the multipart subtype
+ * @returns 0 on success or -1 in case of error
+ */
+int smf_message_add_child_part(SMFMessage_T *message, SMFPart_T *part, SMFPart_T *child, SMFMultipartType_T subtype);
+
+/*!
+ * @def cmime_message_part_first(message)
+ * @returns returns the first mime part of message
+ */
+#define cmime_message_part_first(message) ((CMimePart_T *)cmime_list_head(message->parts)->data)
+
+/*!
+ * @def cmime_message_part_last(message)
+ * @returns returns the last mime part of message
+ */
+#define cmime_message_part_last(message) ((CMimePart_T *)cmime_list_tail(message->parts)->data)
 
 #if 0
 typedef struct _SMFObject_T SMFObject_T;
