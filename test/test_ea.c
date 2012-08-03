@@ -22,9 +22,7 @@
 
 #include "../src/smf_email_address.h"
 
-#define TEST_NAME "John Doe"
-#define TEST_EMAIL "foo@bar.com"
-#define TEST_ADDR "John Doe <foo@bar.com>"
+#include "test.h"
 
 int main (int argc, char const *argv[]) {
     SMFEmailAddress_T *ea = NULL;
@@ -39,14 +37,14 @@ int main (int argc, char const *argv[]) {
     g_printf("passed\n");
 
     g_printf("* testing smf_email_address_parse_string()...\t\t\t");
-    ea2 = smf_email_address_parse_string(TEST_ADDR);
+    ea2 = smf_email_address_parse_string(test_addr);
     assert(ea2);
     g_printf("passed\n");   
 
     g_printf("* testing smf_email_address_to_string()...\t\t\t");
     s = smf_email_address_to_string(ea2);
     
-    if (strcmp(TEST_ADDR,s) != 0) {
+    if (strcmp(test_addr,s) != 0) {
         g_printf("failed\n");
         return -1;
     } else
@@ -67,22 +65,22 @@ int main (int argc, char const *argv[]) {
         g_printf("passed\n");
 
     g_printf("* testing smf_email_address_set_name()...\t\t\t");
-    smf_email_address_set_name(ea,TEST_NAME);
+    smf_email_address_set_name(ea,test_name);
     g_printf("passed\n");
 
     g_printf("* testing smf_email_address_get_name()...\t\t\t");
-    if (strcmp(TEST_NAME,smf_email_address_get_name(ea)) != 0) {
+    if (strcmp(test_name,smf_email_address_get_name(ea)) != 0) {
         g_printf("failed\n");
         return -1;
     } else
         g_printf("passed\n");
 
     g_printf("* testing smf_email_address_set_email()...\t\t\t");
-    smf_email_address_set_email(ea,TEST_EMAIL);
+    smf_email_address_set_email(ea,test_email);
     g_printf("passed\n");
 
     g_printf("* testing smf_email_address_get_email()...\t\t\t");
-    if (strcmp(TEST_EMAIL,smf_email_address_get_email(ea)) != 0) {
+    if (strcmp(test_email,smf_email_address_get_email(ea)) != 0) {
         g_printf("failed\n");
         return -1;
     } else
