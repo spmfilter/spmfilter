@@ -22,6 +22,7 @@
 #include "smf_list.h"
 #include "smf_header.h"
 #include "smf_message.h"
+#include "smf_part.h"
 
 #if 0
 #include <stdio.h>
@@ -252,15 +253,52 @@ char *smf_message_get_subject(SMFMessage_T *message) {
 }
 
 void smf_message_prepend_subject(SMFMessage_T *message, const char *s) {
+    assert(message);
+    assert(s);
     cmime_message_prepend_subject((CMimeMessage_T *)message,s);
 }
 
 void smf_message_append_subject(SMFMessage_T *message, const char *s) {
+    assert(message);
+    assert(s);
     cmime_message_append_subject((CMimeMessage_T *)message,s);
 }
 
 int smf_message_set_body(SMFMessage_T *message, const char *content) {
+    assert(message);
+    assert(content);
     return cmime_message_set_body((CMimeMessage_T *)message,content);
+}
+
+int smf_message_append_part(SMFMessage_T *message, SMFPart_T *part) {
+    assert(message);
+    assert(part);
+    return cmime_message_append_part((CMimeMessage_T *)message,(CMimePart_T *)part);
+}
+
+int smf_message_get_part_count(SMFMessage_T *message) {
+    assert(message);
+    return message->parts->size;
+}
+
+void smf_message_add_attachment(SMFMessage_T *message, char *attachment) {
+    assert(message);
+    assert(attachment);
+    cmime_message_add_attachment((CMimeMessage_T *)message,attachment);
+}
+
+SMFMessage_T *smf_message_create_skeleton(const char *sender, const char *recipient, const char *subject) {
+    assert(sender);
+    assert(recipient);
+    assert(subject);
+    return (SMFMessage_T *)cmime_message_create_skeleton(sender,recipient,subject);
+}
+
+int smf_message_add_child_part(SMFMessage_T *message, SMFPart_T *part, SMFPart_T *child, SMFMultipartType_T subtype) {
+    assert(message);
+    assert(part);
+    assert(child);
+    return smf_message_add_child_part((CMimeMessage_T *)message, (CMimePart_T *)part,(CMimePart_T *)child,(CMimeMultipartType_T)subtype);
 }
 
 #if 0

@@ -41,10 +41,6 @@
 #include "smf_message.h"
 #include "smf_message_private.h"
 
-#ifdef HAVE_PCRE
-#include <pcre.h>
-#endif
-
 #define THIS_MODULE "smtpd"
 
 #define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
@@ -398,15 +394,8 @@ int load(SMFSettings_T *settings,int sock) {
 	const char *mail_from_addr = NULL;
 	clock_t start_process, stop_process;
 	int sock_in, sock_out;
-#if (GLIB2_VERSION >= 21400)
 	GRegex *re = NULL;
 	GMatchInfo *match_info = NULL;
-#else
-	pcre *re;
-	int ovector[30];
-	int rc, erroffset;
-	const char *error;
-#endif
 
 	/* start clock, to see how long
 	 * the processing time takes */
@@ -520,7 +509,6 @@ int load(SMFSettings_T *settings,int sock) {
 				smtpd_string_reply(session->sock_out,"503 Error: nested MAIL command\r\n");
 			} else {
 				session->envelope->sender = g_slice_new(SMFEmailAddress_T);
-#if (GLIB2_VERSION >= 21400)
 				re = g_regex_new(RE_MAIL_FROM, G_REGEX_CASELESS, 0, NULL);
 				g_regex_match(re, line, 0, &match_info);
 				if(g_match_info_matches(match_info)) {
@@ -538,31 +526,6 @@ int load(SMFSettings_T *settings,int sock) {
 				}
 				g_match_info_free(match_info);
 				g_regex_unref(re);
-#else
-				re = pcre_compile(RE_MAIL_FROM,
-						PCRE_CASELESS, &error, &erroffset, NULL);
-				if(re != NULL) {
-					rc = pcre_exec(re, NULL, line, strlen(line), 0, 0, ovector, 30);
-					if (rc > 0) {
-						pcre_get_substring(line,ovector,rc,1,&mail_from_addr);
-						if (mail_from_addr != NULL) {
-							session->envelope->sender->addr = g_strdup(mail_from_addr);
-							pcre_free_substring(mail_from_addr);
-						}
-						if (settings->max_size != 0 )
-							pcre_get_substring(line,ovector,rc,2,&requested_size);
-					} else{
-						smtpd_string_reply(session->sock_out,CODE_552);
-						g_slice_free(SMFEmailAddress_T,session->envelope->sender);
-						session->envelope->sender = NULL;
-					}
-					pcre_free(re);
-				} else {
-					smtpd_string_reply(session->sock_out,CODE_552);
-					g_slice_free(SMFEmailAddress_T,session->envelope->sender);
-					session->envelope->sender = NULL;
-				}
-#endif
 
 				if (settings->max_size != 0) {
 					if (requested_size != NULL) {
@@ -574,11 +537,7 @@ int load(SMFSettings_T *settings,int sock) {
 							session->envelope->sender = NULL;
 							continue;
 						}
-#if (GLIB2_VERSION >= 21400)
 						free(requested_size);
-#else
-						pcre_free_substring(requested_size);
-#endif
 					}
 				}
 

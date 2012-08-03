@@ -1,8 +1,4 @@
-if(HAVE_GLIB214)
-	list(APPEND COMMON_LIBS ${GLIB214_LIBRARIES})
-else(HAVE_GLIB214)
-	list(APPEND COMMON_LIBS ${GLIB2_LIBRARIES})
-endif(HAVE_GLIB214)
+list(APPEND COMMON_LIBS ${GLIB2_LIBRARIES})
 
 add_executable(test_settings test_settings.c)
 target_link_libraries(test_settings smf ${COMMON_LIBS})

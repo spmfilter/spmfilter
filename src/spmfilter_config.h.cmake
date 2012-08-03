@@ -36,7 +36,4 @@
 /* db4 */
 #cmakedefine HAVE_DB4
 
-/* pcre */
-#cmakedefine HAVE_PCRE
-
 #endif /* _SPMFILTER_CONFIG_H */
