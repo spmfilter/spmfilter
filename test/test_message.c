@@ -73,9 +73,9 @@ int main (int argc, char const *argv[]) {
     g_printf("passed\n");
 
     g_printf("* testing smf_message_set_sender()...\t\t\t\t");
-    smf_message_set_sender(msg,addr_string1);
+    smf_message_set_sender(msg,test_addr);
     g_printf("passed\n");
-#if 0
+
     g_printf("* testing smf_message_get_sender_string()...\t\t\t");
     s = smf_message_get_sender_string(msg);
     if (strcmp(s,test_addr) !=0 ) {
@@ -318,25 +318,21 @@ int main (int argc, char const *argv[]) {
     g_printf("passed\n");
 
     g_printf("* testing smf_message_create_skeleton()...\t\t\t");
-#endif
-    /*
+
+    
     msg = smf_message_create_skeleton(test_addr,test_addr,test_string);
     if (smf_message_set_body(msg,test_content_string)!=0) {
         g_printf("failed\n");
         return -1;
     }
-    */
-
+    
     msg_string = smf_message_to_string(msg);
-    g_printf("%s\n",msg_string);
     assert(msg_string);
     free(msg_string);
   
     smf_message_free(msg);
     g_printf("passed\n");
 
-
-#if 0
     g_printf("Start message parsing tests...\n");
     for (i=0; i < 54; i++) {
         g_printf("* checking sample message [%s]...\t\t\t", test_files[i]);
@@ -382,6 +378,6 @@ int main (int argc, char const *argv[]) {
         smf_message_free(msg);
         printf("passed!\n");
     }
-#endif
+
     return 0;
 }
