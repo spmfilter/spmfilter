@@ -42,8 +42,6 @@ quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, \
 arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. \
 Nullam dictum felis eu pede mollis pretium.";
 
-char addr_string1[] = "Foo Bar <foobar@example.com>";
-
 char test_name[] = "John Doe";
 char test_email[] = "foo@bar.com";
 char test_addr[] = "John Doe <foo@bar.com>";
