@@ -27,6 +27,8 @@ extern "C" {
 char mime_type_string[] = "text/plain; charset=us-ascii";
 char mime_disposition_string[] = "inline";
 char mime_encoding_string[] = "quoted-printable";
+char mime_version[] = "1.0";
+char mime_tranfer_encoding[] = "multipart/mixed";
 
 char id_string[] = "4DF9E5EB.6080300@foo.bar";
 char id_string_out[] = "<4DF9E5EB.6080300@foo.bar>";
@@ -48,6 +50,10 @@ char test_addr[] = "John Doe <foo@bar.com>";
 char test_string[] = "Test string";
 char test_prepend[] = "[TEST] Test string";
 char test_append[] = "[TEST] Test string [TEST]";
+
+char test_header_name[] = "X-Foo";
+char test_header_value[] = "foobar";
+char test_header[] = "X-Foo: foobar";
 
 #ifdef __cplusplus
 }
