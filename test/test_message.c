@@ -27,14 +27,6 @@
 
 #include "test.h"
 
-#define TEST_HEADER_NAME "X-Foo"
-#define TEST_HEADER_VALUE "foobar"
-#define TEST_HEADER "X-Foo: foobar"
-#define TEST_CONTENT_TYPE "text/plain; charset=us-ascii"
-#define TEST_CONTENT_TRANSFER_ENCODING "multipart/mixed"
-#define TEST_MIME_VERSION "1.0"
-
-
 char test_files[54][10] = {
     "m0001.txt","m0002.txt","m0003.txt","m0004.txt","m0005.txt",
     "m0006.txt","m0007.txt","m0008.txt","m0009.txt","m0010.txt",
@@ -116,25 +108,25 @@ int main (int argc, char const *argv[]) {
     free(s);
 
     g_printf("* testing smf_message_set_header()...\t\t\t\t");
-    smf_message_set_header(msg,TEST_HEADER);
+    smf_message_set_header(msg,test_header);
     g_printf("passed\n");
 
     g_printf("* testing smf_message_get_header()...\t\t\t\t");
-    h = smf_message_get_header(msg,TEST_HEADER_NAME);
+    h = smf_message_get_header(msg,test_header_name);
     assert(h);
 
-    if (strcmp(smf_header_get_name(h),TEST_HEADER_NAME)!=0) {
+    if (strcmp(smf_header_get_name(h),test_header_name)!=0) {
         g_printf("failed\n");
         return -1;
     }
 
-    if (strcmp(smf_header_get_value(h,0),TEST_HEADER_VALUE)!=0) {
+    if (strcmp(smf_header_get_value(h,0),test_header_value)!=0) {
         g_printf("failed\n");
         return -1;
     }
 
     s = smf_header_to_string(h);
-    if (strcmp(s,TEST_HEADER)!=0) {
+    if (strcmp(s,test_header)!=0) {
         g_printf("failed\n");
         return -1;
     }
@@ -162,24 +154,24 @@ int main (int argc, char const *argv[]) {
     free(s);
    
     g_printf("* testing smf_message_set_content_type()...\t\t\t");
-    smf_message_set_content_type(msg,TEST_CONTENT_TYPE);
+    smf_message_set_content_type(msg,mime_type_string);
     g_printf("passed\n");
 
     g_printf("* testing smf_message_get_content_type()...\t\t\t");
     s = smf_message_get_content_type(msg);
-    if (strcmp(s,TEST_CONTENT_TYPE)!=0) {
+    if (strcmp(s,mime_type_string)!=0) {
         g_printf("failed\n");
         return -1;
     }
     g_printf("passed\n");
 
     g_printf("* testing smf_message_set_content_transfer_encoding()...\t");
-    smf_message_set_content_transfer_encoding(msg,TEST_CONTENT_TRANSFER_ENCODING);
+    smf_message_set_content_transfer_encoding(msg,mime_tranfer_encoding);
     g_printf("passed\n");
 
     g_printf("* testing smf_message_get_content_transfer_encoding()...\t");
     s = smf_message_get_content_transfer_encoding(msg);
-    if (strcmp(s,TEST_CONTENT_TRANSFER_ENCODING)!=0) {
+    if (strcmp(s,mime_tranfer_encoding)!=0) {
         g_printf("failed\n");
         return -1;
     }
@@ -200,12 +192,12 @@ int main (int argc, char const *argv[]) {
     free(s2);
 
     g_printf("* testing smf_message_set_mime_version()...\t\t\t");
-    smf_message_set_mime_version(msg,TEST_MIME_VERSION);
+    smf_message_set_mime_version(msg,mime_version);
     g_printf("passed\n");
 
     g_printf("* testing smf_message_get_mime_version()...\t\t\t");
     s = smf_message_get_mime_version(msg);
-    if (strcmp(s,TEST_MIME_VERSION)!=0) {
+    if (strcmp(s,mime_version)!=0) {
         g_printf("failed\n");
         return -1;
     }
