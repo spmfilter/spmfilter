@@ -125,9 +125,6 @@ int main (int argc, char const *argv[]) {
     smf_lookup_ldap_disconnect(settings);
     smf_settings_free(settings);
 
-    //if(uidNumber != NULL)
-    //    free(uidNumber);
-
     if(host[0] != NULL)
         free(host[0]);
 
