@@ -15,18 +15,31 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
+
 #include "smf_envelope.h"
 #include "smf_email_address.h"
+#include "smf_message.h"
+#include "smf_list.h"
 
 #define THIS_MODULE "envelope"
+
+void _recipient_list_destroy(void *data) {
+    assert(data);
+    smf_email_address_free((SMFEmailAddress_T *)data);
+}
 
  /** Creates a new SMFEnvelope_T object */
 SMFEnvelope_T *smf_envelope_new(void) {
     SMFEnvelope_T *envelope = NULL;
 
-    envelope = g_slice_new(SMFEnvelope_T);
-    envelope->num_rcpts = 0;
-    envelope->rcpt = NULL;
+    envelope = (SMFEnvelope_T *)calloc((size_t)1, sizeof(SMFEnvelope_T));
+    
+    if (smf_list_new(&envelope->recipients,_recipient_list_destroy)!=0) {
+        free(envelope);
+        return NULL;
+    }
+
     envelope->sender = NULL;
     envelope->message_file = NULL;
     envelope->message = NULL;
@@ -39,56 +52,29 @@ SMFEnvelope_T *smf_envelope_new(void) {
 
 /** Free SMFEnvelope_T object */
 void smf_envelope_free(SMFEnvelope_T *envelope) {
-    int i;
-
-    if (envelope->sender != NULL) {
-        smf_email_address_free(envelope->sender);
-    }
-
-    if (envelope->rcpt != NULL) {
-        for (i = 0; i < envelope->num_rcpts; i++) {
-            if (envelope->rcpt[i] != NULL) {
-                smf_email_address_free(envelope->rcpt[i]);
-            }
-        }
-        g_free(envelope->rcpt);
-    }
-
-    g_free(envelope->nexthop);
-
-    //if (envelope->message != NULL)
-        // TODO: free envelope->message
-    //    smf_message_unref(envelope->message);
-        
-    g_free(envelope->message_file);    
-    g_free(envelope->auth_user);    
-    g_free(envelope->auth_pass);    
-    g_slice_free(SMFEnvelope_T,envelope);
-}
-
-/** Add new recipient to envelope */
-void smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt) {
     assert(envelope);
-    assert(rcpt);
-    envelope->rcpt = g_realloc(
-        envelope->rcpt,
-        sizeof(SMFEmailAddress_T) * (envelope->num_rcpts + 1)
-    );
 
-    envelope->rcpt[envelope->num_rcpts] = smf_email_address_new();
-//    envelope->rcpt[envelope->num_rcpts]->addr = g_strdup(rcpt);
-    envelope->num_rcpts++;
-}
-
-void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope, 
-        SMFRcptForeachFunc callback, void  *user_data) {
-    int i;
+    if (envelope->sender != NULL) 
+        smf_email_address_free(envelope->sender);
     
-    if (envelope->rcpt != NULL) {
-        for (i = 0; i < envelope->num_rcpts; i++) {
-            (*callback)(envelope->rcpt[i],user_data);
-        }
-    }       
+    smf_list_free(envelope->recipients);
+    
+    if (envelope->nexthop != NULL)
+        free(envelope->nexthop);
+
+    if (envelope->message != NULL)
+        smf_message_free(envelope->message);
+    
+    if (envelope->message_file != NULL)    
+        free(envelope->message_file);    
+    
+    if (envelope->auth_user != NULL)
+        free(envelope->auth_user);    
+    
+    if (envelope->auth_pass != NULL)
+        free(envelope->auth_pass);    
+    
+    free(envelope);
 }
 
 /** Set envelope sender */
@@ -99,14 +85,56 @@ void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender) {
     if (envelope->sender != NULL)
         smf_email_address_free(envelope->sender);
     
-    envelope->sender = smf_email_address_new();
-//    envelope->sender->addr = g_strdup(sender);
+    envelope->sender = smf_email_address_parse_string(sender);
 }
 
-/** Get envelope sender */
+char *smf_envelope_get_sender_string(SMFEnvelope_T *envelope) {
+    char *s = NULL;
+    assert(envelope);
+
+    if (envelope->sender != NULL)
+        s = smf_email_address_to_string(envelope->sender);
+
+    return s;
+}
+
 SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope) {
     assert(envelope);
     return envelope->sender;
+}
+
+/** Add new recipient to envelope */
+int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt) {
+    SMFEmailAddress_T *ea = NULL;
+
+    assert(envelope);
+    assert(rcpt);
+
+    ea = smf_email_address_parse_string(rcpt);
+    smf_email_address_set_type(ea, SMF_EMAIL_ADDRESS_TYPE_TO);
+    if (envelope->recipients == NULL) {
+        if (smf_list_new(&envelope->recipients,_recipient_list_destroy) != 0)
+            return -1;
+    }
+
+    if (smf_list_append(envelope->recipients,ea) != 0)
+        return -1;
+
+    return 0; 
+}
+
+void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope, 
+        SMFRcptForeachFunc callback, void  *user_data) {
+    SMFListElem_T *elem = NULL;
+    
+
+    elem = smf_list_head(envelope->recipients);
+    while (elem != NULL) {
+        SMFEmailAddress_T *ea = smf_list_data(elem);
+        (*callback)(ea,user_data);
+    elem = elem->next;
+    }
+
 }
 
 /** Set message file path */
@@ -114,10 +142,10 @@ void smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp) {
     assert(envelope);
     assert(fp);
     if (envelope->message_file != NULL) {
-        g_free(envelope->message_file);
+        free(envelope->message_file);
     }
     
-    envelope->message_file = g_strdup(fp);
+    envelope->message_file = strdup(fp);
 }
 
 char *smf_envelope_get_message_file(SMFEnvelope_T *envelope) {
@@ -130,10 +158,10 @@ void smf_envelope_set_auth_user(SMFEnvelope_T *envelope, char *auth_user) {
     assert(envelope);
     assert(auth_user);
     if (envelope->auth_user != NULL) {
-        g_free(envelope->auth_user);
+        free(envelope->auth_user);
     }
     
-    envelope->auth_user = g_strdup(auth_user);
+    envelope->auth_user = strdup(auth_user);
 }
 
 /** Get auth user */
@@ -147,10 +175,10 @@ void smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pass) {
     assert(envelope);
     assert(auth_pass);
     if (envelope->auth_pass != NULL) {
-        g_free(envelope->auth_pass);
+        free(envelope->auth_pass);
     }
     
-    envelope->auth_pass = g_strdup(auth_pass);
+    envelope->auth_pass = strdup(auth_pass);
 }
 
 /** Get auth pass */
@@ -164,7 +192,7 @@ void smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop) {
     assert(envelope);
     assert(nexthop);
     if (envelope->nexthop != NULL) {
-        g_free(envelope->nexthop);
+        free(envelope->nexthop);
     }
     
     envelope->nexthop = g_strdup(nexthop);

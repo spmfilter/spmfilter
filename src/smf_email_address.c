@@ -68,7 +68,6 @@ void smf_email_address_set_name(SMFEmailAddress_T *ea, const char *name) {
 }
 
 char *smf_email_address_get_name(SMFEmailAddress_T *ea) {
-    //CMimeAddress_T *ca = NULL;
     assert(ea);
 
     return (char *)cmime_address_get_name((CMimeAddress_T *)ea);

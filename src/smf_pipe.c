@@ -169,7 +169,7 @@ int load(SMFSettings_T *settings,int sock) {
     }
 
     TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
-    session->envelope->num_rcpts = 0;
+//    session->envelope->num_rcpts = 0;
     
     
     

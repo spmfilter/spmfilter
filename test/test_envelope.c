@@ -17,102 +17,124 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include <glib.h>
-#include <glib/gprintf.h>
 
 #include "../src/smf_envelope.h"
-
-#define TEST_SENDER "webmaster@spmfilter.org"
-#define TEST_RCPT1 "ast@spmfilter.org"
-#define TEST_RCPT2 "postmaster@spmfilter.org"
-#define TEST_PATH "/tmp/test.eml"
-#define TEST_AUTH_USER "testusername"
-#define TEST_AUTH_PASS "testpassword"
-#define TEST_NEXTHOP "localhost:2525"
+#include "../src/smf_email_address.h"
+#include "test.h"
 
 int foreach_rc = -1;
 
-#if 0
 static void print_rcpt_func(SMFEmailAddress_T *ea, void *data) {
-    if ((strcmp(ea->addr,TEST_RCPT1) != 0) && 
-            (strcmp(ea->addr,TEST_RCPT2) != 0)) {
+    char *s = NULL;
+    s = smf_email_address_to_string(ea);
+    
+    if ((strcmp(s,test_addr) != 0) && 
+            (strcmp(s,test_addr2) != 0)) {
         foreach_rc = -1;
     } else {
         foreach_rc = 0;
     }
+    free(s);
 }
-#endif
+
 
 int main (int argc, char const *argv[]) {
     SMFEnvelope_T *env = NULL;
-    g_printf("Start SMFEnvelope_T tests...\n");
-    g_printf("* testing smf_envelope_new()...\t\t\t");
+    SMFEmailAddress_T *ea = NULL;
+    char *s = NULL;
+
+    printf("Start SMFEnvelope_T tests...\n");
+    printf("* testing smf_envelope_new()...\t\t\t\t");
     env = smf_envelope_new();
     assert(env);
-    g_printf("passed\n");
-#if 0    
-    g_printf("* testing smf_envelope_set_sender()...\t\t");
-    smf_envelope_set_sender(env,TEST_SENDER);
-    if (strcmp(TEST_SENDER,smf_envelope_get_sender(env)->addr) != 0) {
-        g_printf("failed\n");
-        return -1;
-    } else
-        g_printf("passed\n");
-    
-    g_printf("* testing smf_envelope_add_rcpt()...\t\t");
-    smf_envelope_add_rcpt(env,TEST_RCPT1);
-    smf_envelope_add_rcpt(env,TEST_RCPT2);
-    if (env->num_rcpts != 2) {
-        g_printf("failed\n");
-        return -1;
-    } else
-        g_printf("passed\n");
-     
+    printf("passed\n");
 
-    g_printf("* testing smf_envelope_foreach_rcpt()...\t");
+    printf("* testing smf_envelope_set_sender()...\t\t\t");
+    smf_envelope_set_sender(env,test_addr);
+    printf("passed\n");
+
+    printf("* testing smf_envelope_get_sender_string()...\t\t");
+    s = smf_envelope_get_sender_string(env);
+    if (strcmp(test_addr,s) != 0) {
+        printf("failed\n");
+        return -1;
+    } 
+    free(s);
+    printf("passed\n");
+
+    printf("* testing smf_envelope_get_sender()...\t\t\t");
+    ea = smf_envelope_get_sender(env);
+    if ((strcmp(test_name2,smf_email_address_get_name(ea))!=0) || (strcmp(test_email2,smf_email_address_get_email(ea))!=0)) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+   
+    printf("* testing smf_envelope_add_rcpt()...\t\t\t");
+    smf_envelope_add_rcpt(env,test_addr);
+    smf_envelope_add_rcpt(env,test_addr2);
+
+    if (env->recipients->size != 2) {
+        printf("failed\n");
+        return -1;
+    } else
+        printf("passed\n");
+     
+    printf("* testing smf_envelope_foreach_rcpt()...\t\t");
     smf_envelope_foreach_rcpt(env, print_rcpt_func, NULL);
     if (foreach_rc != 0) {
-        g_printf("failed\n");
+        printf("failed\n");
         return -1;
     } else
-        g_printf("passed\n");
+        printf("passed\n");
 
-    
-    g_printf("* testing smf_envelope_set_message_file()...\t");
-    smf_envelope_set_message_file(env,TEST_PATH);
-    if (strcmp(TEST_PATH,smf_envelope_get_message_file(env)) != 0) {
-        g_printf("failed\n");
+    printf("* testing smf_envelope_set_message_file()...\t\t");
+    smf_envelope_set_message_file(env,test_path);
+    printf("passed\n");
+
+    printf("* testing smf_envelope_get_message_file()...\t\t");
+    if (strcmp(test_path,smf_envelope_get_message_file(env)) != 0) {
+        printf("failed\n");
         return -1;
     } else
-        g_printf("passed\n");
+        printf("passed\n");
     
 
-    g_printf("* testing smf_envelope_set_auth_user()...\t");
-    smf_envelope_set_auth_user(env,TEST_AUTH_USER);
-    if (strcmp(TEST_AUTH_USER,smf_envelope_get_auth_user(env)) != 0) {
-        g_printf("failed\n");
+    printf("* testing smf_envelope_set_auth_user()...\t\t");
+    smf_envelope_set_auth_user(env,test_auth_user);
+    printf("passed\n");
+
+    printf("* testing smf_envelope_get_auth_user()...\t\t");
+    if (strcmp(test_auth_user,smf_envelope_get_auth_user(env)) != 0) {
+        printf("failed\n");
         return -1;
     } else 
-        g_printf("passed\n");
+        printf("passed\n");
 
-    g_printf("* testing smf_envelope_set_auth_pass()...\t");
-    smf_envelope_set_auth_pass(env,TEST_AUTH_PASS);
-    if (strcmp(TEST_AUTH_PASS,smf_envelope_get_auth_pass(env)) != 0) {
-        g_printf("failed\n");
+    printf("* testing smf_envelope_set_auth_pass()...\t\t");
+    smf_envelope_set_auth_pass(env,test_auth_pass);
+    printf("passed\n");
+
+    printf("* testing smf_envelope_get_auth_pass()...\t\t");
+    if (strcmp(test_auth_pass,smf_envelope_get_auth_pass(env)) != 0) {
+        printf("failed\n");
         return -1;
     } else
-        g_printf("passed\n");
+        printf("passed\n");
 
-    g_printf("* testing smf_envelope_set_nexthop()...\t\t");
-    smf_envelope_set_nexthop(env,TEST_NEXTHOP);
-    if (strcmp(TEST_NEXTHOP,smf_envelope_get_nexthop(env)) != 0) {
-        g_printf("failed\n");
+    printf("* testing smf_envelope_set_nexthop()...\t\t\t");
+    smf_envelope_set_nexthop(env,test_nexthop);
+    printf("passed\n");
+
+    printf("* testing smf_envelope_get_nexthop()...\t\t\t");
+    if (strcmp(test_nexthop,smf_envelope_get_nexthop(env)) != 0) {
+        printf("failed\n");
         return -1;
     } else 
-        g_printf("passed\n");
-#endif    
-    g_printf("* testing smf_envelope_free()...\t\t");
+        printf("passed\n");
+
+    printf("* testing smf_envelope_free()...\t\t\t");
     smf_envelope_free(env);
-    g_printf("passed\n");
+    printf("passed\n");
     return 0;
 }
