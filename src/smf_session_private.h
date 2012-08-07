@@ -20,7 +20,18 @@
 
 #include "smf_session.h"
 
+/*!
+ * @fn SMFSession_T *smf_session_new(void)
+ * @brief Create a new SMFSession_T object
+ * @returns a newly allocated SMFSession_T object
+ */
 SMFSession_T *smf_session_new(void);
+
+/*!
+ * @fn void smf_session_free(SMFSession_T *session)
+ * @brief Free a SMFSession_T object
+ * @param session a SMFSession_T object
+ */
 void smf_session_free(SMFSession_T *session);
 
 #endif	/* _SMF_SESSION_PRIVATE_H */

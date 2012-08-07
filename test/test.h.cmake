@@ -63,6 +63,10 @@ char test_auth_user[] = "testusername";
 char test_auth_pass[] = "testpassword";
 char test_nexthop[] = "localhost:2525";
 
+char test_helo[] = "foo.bar";
+char test_ip[] = "127.0.0.1";
+char test_response[] = "250 OK message accepted";
+
 #ifdef __cplusplus
 }
 #endif
