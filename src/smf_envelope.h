@@ -18,9 +18,7 @@
 #ifndef _SMF_ENVELOPE_H
 #define _SMF_ENVELOPE_H
 
-#include <assert.h>
-#include <glib.h>
-
+#include "smf_list.h"
 #include "smf_email_address.h"
 #include "smf_message.h"
 
@@ -29,8 +27,7 @@
  * @brief Message envelope object 
  */
 typedef struct {
-    SMFEmailAddress_T **rcpt; /**< envelope recipients */
-    int num_rcpts; /**< number of envelope recipients */
+    SMFList_T *recipients; /**< envelope recipients */
     SMFEmailAddress_T *sender; /**< envelope sender */
     char *message_file; /**< path to message */
     char *auth_user; /**< SMTP auth user, if needed */
@@ -54,12 +51,37 @@ SMFEnvelope_T *smf_envelope_new(void);
 void smf_envelope_free(SMFEnvelope_T *envelope);
 
 /*!
- * @fn void smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt)
+ * @fn void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender)
+ * @brief Set sender to envelope
+ * @param envelope SMFEnvelope_T object
+ * @param sender envelope sender address
+ */
+void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender);
+
+/*!
+ * @fn char *smf_envelope_get_sender_string(SMFEnvelope_T *envelope)
+ * @brief Get envelope sender as string
+ * @param envelope SMFEnvelope_T object
+ * @returns envelope sender
+ */
+char *smf_envelope_get_sender_string(SMFEnvelope_T *envelope);
+
+/*!
+ * @fn SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope)
+ * @brief Get envelope sender 
+ * @param envelope SMFEnvelope_T object
+ * @returns SMFEmailAddress_T object
+ */
+SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope);
+
+/*!
+ * @fn int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt)
  * @brief Add new recipient to envelope
  * @param envelope SMFEnvelope_T object
  * @param rcpt rcpt address
+ * @returns 0 on success or -1 in case of error
  */
-void smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt);
+int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt);
 
 /*!
  * @fn typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data)
@@ -77,22 +99,6 @@ typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data);
  * @param user-supplied callback data
  */
 void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope, SMFRcptForeachFunc callback, void  *user_data);
-
-/*!
- * @fn void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender)
- * @brief Set sender to envelope
- * @param envelope SMFEnvelope_T object
- * @param sender envelope sender address
- */
-void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender);
-
-/*!
- * @fn SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope)
- * @brief Get envelope sender 
- * @param envelope SMFEnvelope_T object
- * @returns SMFEmailAddress_T object
- */
-SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope);
 
 /*!
  * @fn void smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp)
