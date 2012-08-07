@@ -45,8 +45,11 @@ arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. \
 Nullam dictum felis eu pede mollis pretium.";
 
 char test_name[] = "John Doe";
+char test_name2[] = "John Doe ";
 char test_email[] = "foo@bar.com";
+char test_email2[] = "<foo@bar.com>";
 char test_addr[] = "John Doe <foo@bar.com>";
+char test_addr2[] = "Jane Doe <jane@example.com>";
 char test_string[] = "Test string";
 char test_prepend[] = "[TEST] Test string";
 char test_append[] = "[TEST] Test string [TEST]";
@@ -54,6 +57,11 @@ char test_append[] = "[TEST] Test string [TEST]";
 char test_header_name[] = "X-Foo";
 char test_header_value[] = "foobar";
 char test_header[] = "X-Foo: foobar";
+
+char test_path[] = "/tmp/test.eml";
+char test_auth_user[] = "testusername";
+char test_auth_pass[] = "testpassword";
+char test_nexthop[] = "localhost:2525";
 
 #ifdef __cplusplus
 }
