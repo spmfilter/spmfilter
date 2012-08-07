@@ -64,7 +64,10 @@ void smf_lookup_result_free(SMFLookupResult_T *l) {
 			if (e != NULL)
 				g_hash_table_destroy((GHashTable *)e);
 		}
+
+		
 		g_ptr_array_free((GPtrArray *)l,TRUE);
+
 	}
 }
 
