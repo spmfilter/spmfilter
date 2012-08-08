@@ -18,9 +18,6 @@
 #ifndef _SMF_SESSION_H
 #define _SMF_SESSION_H
 
-#include <assert.h>
-#include <glib.h>
-
 #include "smf_envelope.h"
 #include "smf_message.h"
 #include "smf_trace.h"
