@@ -279,3 +279,17 @@ int smf_message_add_child_part(SMFMessage_T *message, SMFPart_T *part, SMFPart_T
     assert(child);
     return smf_message_add_child_part((CMimeMessage_T *)message, (CMimePart_T *)part,(CMimePart_T *)child,(CMimeMultipartType_T)subtype);
 }
+
+SMFPart_T *smf_message_part_first(SMFMessage_T *message) {
+    SMFPart_T *part = NULL;
+    assert(message);
+    part = (SMFPart_T *)smf_list_head(message->parts)->data;
+    return part;
+}
+
+SMFPart_T *smf_message_part_last(SMFMessage_T *message) {
+    SMFPart_T *part = NULL;
+    assert(message);
+    part = (SMFPart_T *)smf_list_tail(message->parts)->data;
+    return part;
+}

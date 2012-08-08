@@ -156,11 +156,6 @@ int smf_ldap_bind(SMFSettings_T *settings) {
     cred->bv_len = strlen(settings->ldap_bindpw);
     cred->bv_val = settings->ldap_bindpw;
 
-    // brauchen wir das, passiert schon in smf_lookup_ldap_connect
-    //if ((ret = ldap_initialize(&ld, settings->ldap_uri)) == LDAP_SUCCESS) {
-    //TRACE(TRACE_DEBUG,"ldap_initialize() to host [%s] successful ", settings->ldap_uri);
-    //TRACE(TRACE_LOOKUP, "binding to ldap server as [%s] / [xxxxxxxx]",  settings->ldap_binddn);
-
     if ((err = ldap_sasl_bind_s(ld,settings->ldap_binddn,LDAP_SASL_SIMPLE,cred,NULL,NULL,NULL))) {
         TRACE(TRACE_ERR, "ldap_sasl_bind_s on host [%s] failed: %s", settings->ldap_uri, ldap_err2string(err));
         free(cred);
@@ -168,13 +163,10 @@ int smf_ldap_bind(SMFSettings_T *settings) {
     }
 
     TRACE(TRACE_LOOKUP, "successfully bound to host [%s]", settings->ldap_uri);
-    //printf("successfully bound to host [%s]", settings->ldap_uri);
     free(cred);
+    
     return 0;
-    //} 
-
-    //free(cred);
-    //return -1;
+    
 }
 
 
@@ -209,7 +201,6 @@ int ldap_failover_connect(SMFSettings_T *settings) {
 }
 
 
-
 /*!
  * @fn LDAP *ldap_con_get(char *ldap_uri, SMFSettings_T *settings)
  * @brief get active LDAP connection, if no connection is available reconnect to LDAP server
@@ -225,7 +216,6 @@ LDAP *ldap_con_get(SMFSettings_T *settings) {
     }
     return ld;
 }
-
 
 
 void smf_lookup_ldap_disconnect(SMFSettings_T *settings) {
@@ -274,6 +264,8 @@ SMFLookupResult_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q,
     TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
     TRACE(TRACE_DEBUG,"[%p] [%s]",c,query);
 
+
+
     if (ldap_search_ext_s(c,settings->ldap_base,ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
         TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);
 
@@ -285,19 +277,16 @@ SMFLookupResult_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q,
         TRACE(TRACE_LOOKUP,"[%p] found [%d] entries", c, ldap_count_entries(c,msg));
     }
 
-
     for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
         SMFLookupElement_T *e = smf_lookup_element_new();
 
-        for(attr = ldap_first_attribute(c, msg, &ptr); attr != NULL;
-                attr = ldap_next_attribute(c, msg, ptr)) {
-
-            // here we are
+        for(attr = ldap_first_attribute(c, msg, &ptr); attr != NULL; attr = ldap_next_attribute(c, msg, ptr)) {
+    
             SMFLdapValue_T *vals = malloc(sizeof(SMFLdapValue_T));
-
             bvals = ldap_get_values_len(c, entry, attr);
             value_count = ldap_count_values_len(bvals);
             TRACE(TRACE_LOOKUP,"found attribute [%s] in entry [%p] with [%d] values", attr, entry, value_count);
+           
 
             vals->len = value_count;
             vals->data = (char *)calloc(value_count, sizeof(char *));
@@ -306,13 +295,16 @@ SMFLookupResult_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q,
                 vals->data[i] = (char *)malloc(strlen((char *)((struct berval)*bvals[i]).bv_val) + 1);
                 strcpy(vals->data[i], (char *)((struct berval)*bvals[i]).bv_val);
             }
+
             smf_lookup_element_add(e,g_strdup(attr),vals);
             ldap_value_free_len(bvals);
+            
             free(attr);
         }
+        
         smf_lookup_result_add(result,e);
     }
-
+    
     ber_free(ptr,0);
     ldap_msgfree(msg);
     ldap_msgfree(entry);

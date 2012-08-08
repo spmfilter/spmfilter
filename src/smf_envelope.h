@@ -124,7 +124,6 @@ char *smf_envelope_get_message_file(SMFEnvelope_T *envelope);
  */
 void smf_envelope_set_auth_user(SMFEnvelope_T *envelope,char *auth_user);
 
-
 /*!
  * @fn char *smf_envelope_get_auth_user(SMFEnvelope_T *envelope)
  * @brief Get auth user
@@ -140,7 +139,6 @@ char *smf_envelope_get_auth_user(SMFEnvelope_T *envelope);
  * @param auth_pass Auth password
  */
 void smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pass);
-
 
 /*!
  * @fn char *smf_envelope_get_auth_pass(SMFEnvelope_T *envelope)
@@ -165,5 +163,21 @@ void smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop);
  * @returns nexthop
  */
 char *smf_envelope_get_nexthop(SMFEnvelope_T *nexthop);
+
+/*! 
+ * @fn void smd_envelope_set_message(SMFEnvelope_T *envelope, SMFMessage_T *message)
+ * @brief Set SMFMessage_T object
+ * @param envelope a SMFEnvelope_T object
+ * @param message a SMFMessage_T object
+ */ 
+void smf_envelope_set_message(SMFEnvelope_T *envelope, SMFMessage_T *message);
+
+/*!
+ * @fn SMFMessage_T *smf_envelope_get_message(SMFEnvelope_T *envelope)
+ * @brief Get SMFMessage_T object of SMFEnvelope_T
+ * @param envelope a SMFEnvelope_T object
+ * @returns a SMFMessage_T object
+ */
+SMFMessage_T *smf_envelope_get_message(SMFEnvelope_T *envelope);
 
 #endif  /* _SMF_ENVELOPE_H */
