@@ -48,7 +48,7 @@ int main (int argc, char const *argv[]) {
     smf_session_set_xforward_addr(session,test_ip);
     printf("passed\n");
 
-    printf("* testing smf_session_get_xforward_addr()...\t\t\t");
+    printf("* testing smf_session_get_xforward_addr()...\t\t");
     if (strcmp(test_ip,smf_session_get_xforward_addr(session)) != 0) {
         printf("failed\n");
         return -1;
