@@ -203,3 +203,14 @@ char *smf_envelope_get_nexthop(SMFEnvelope_T *envelope) {
     assert(envelope);
     return envelope->nexthop;
 }
+
+void smf_envelope_set_message(SMFEnvelope_T *envelope, SMFMessage_T *message) {
+    assert(envelope);
+    assert(message);
+    envelope->message = message;
+}
+
+SMFMessage_T *smf_envelope_get_message(SMFEnvelope_T *envelope) {
+    assert(envelope);
+    return envelope->message;
+}
