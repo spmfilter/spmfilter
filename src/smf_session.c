@@ -17,6 +17,8 @@
 
 #include <assert.h>
 
+#include "smf_envelope.h"
+#include "smf_trace.h"
 #include "smf_session.h"
 #include "smf_session_private.h"
 

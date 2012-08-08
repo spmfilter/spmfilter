@@ -20,6 +20,7 @@
 
 #include "../src/smf_envelope.h"
 #include "../src/smf_email_address.h"
+#include "../src/smf_message.h"
 #include "test.h"
 
 int foreach_rc = -1;
@@ -41,6 +42,7 @@ static void print_rcpt_func(SMFEmailAddress_T *ea, void *data) {
 int main (int argc, char const *argv[]) {
     SMFEnvelope_T *env = NULL;
     SMFEmailAddress_T *ea = NULL;
+    SMFMessage_T *msg = NULL;
     char *s = NULL;
 
     printf("Start SMFEnvelope_T tests...\n");
@@ -132,6 +134,16 @@ int main (int argc, char const *argv[]) {
         return -1;
     } else 
         printf("passed\n");
+
+    printf("* testing smf_envelope_set_message()...\t\t\t");
+    msg = smf_message_create_skeleton(test_addr, test_addr2, test_string);
+    smf_envelope_set_message(env,msg);
+    printf("passed\n");
+
+    printf("* testing smf_envelope_get_message()...\t\t\t");
+    msg = smf_envelope_get_message(env);
+    assert(msg);
+    printf("passed\n");
 
     printf("* testing smf_envelope_free()...\t\t\t");
     smf_envelope_free(env);

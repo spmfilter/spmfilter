@@ -30,12 +30,6 @@ extern "C" {
 #include "smf_list.h"
 #include "smf_part.h"
 
-#if 0 
-#include "smf_lookup.h"
-
-#include "smf_settings.h"
-#endif 
-
 /*!
  * @struct SMFMessage_T smf_message.h
  * @brief Represents an email message
@@ -401,16 +395,20 @@ SMFMessage_T *smf_message_create_skeleton(const char *sender, const char *recipi
 int smf_message_add_child_part(SMFMessage_T *message, SMFPart_T *part, SMFPart_T *child, SMFMultipartType_T subtype);
 
 /*!
- * @def cmime_message_part_first(message)
+ * @fn SMFPart_T *smf_message_part_first(SMFMessage_T *message)
+ * @brief Get the first mime part of a SMFMessage_T object
+ * @param message a SMFMessage_T object
  * @returns returns the first mime part of message
  */
-#define cmime_message_part_first(message) ((CMimePart_T *)cmime_list_head(message->parts)->data)
+SMFPart_T *smf_message_part_first(SMFMessage_T *message);
 
 /*!
- * @def cmime_message_part_last(message)
- * @returns returns the last mime part of message
+ * @fn SMFPart_T *smf_message_part_first(SMFMessage_T *message)
+ * @brief Get the last mime part of a SMFMessage_T object
+ * @param message a SMFMessage_T object
+ * @returns returns the lat mime part of message
  */
-#define cmime_message_part_last(message) ((CMimePart_T *)cmime_list_tail(message->parts)->data)
+SMFPart_T *smf_message_part_last(SMFMessage_T *message);
 
 #ifdef __cplusplus
 }

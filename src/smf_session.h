@@ -19,8 +19,6 @@
 #define _SMF_SESSION_H
 
 #include "smf_envelope.h"
-#include "smf_message.h"
-#include "smf_trace.h"
 
 /*!
  * @struct SMFSession_T 

@@ -17,8 +17,6 @@
 
 #include <stdio.h>
 #include <assert.h>
-#include <glib.h>
-#include <glib/gprintf.h>
 
 #include "../src/smf_header.h"
 
@@ -30,58 +28,58 @@ int main(int argc, char const *argv[]) {
     SMFHeader_T *header = NULL;
     char *s = NULL;
     int i;
-    g_printf("Start SMFHeader_T tests...\n");
+    printf("Start SMFHeader_T tests...\n");
 
-    g_printf("* testing smf_header_new()...\t\t\t\t");
+    printf("* testing smf_header_new()...\t\t\t\t");
     header = smf_header_new();
     assert(header);
-    g_printf("passed\n");
+    printf("passed\n");
 
 
-    g_printf("* testing smf_header_set_name()...\t\t\t");
+    printf("* testing smf_header_set_name()...\t\t\t");
     smf_header_set_name(header,HEADER_KEY);
-    g_printf("passed\n");
+    printf("passed\n");
 
-    g_printf("* testing smf_header_get_name()...\t\t\t");
+    printf("* testing smf_header_get_name()...\t\t\t");
     s = smf_header_get_name(header);
     if (strcmp(s,HEADER_KEY)!=0) {
-        g_printf("failed\n");
+        printf("failed\n");
         return -1;
     }
-    g_printf("passed\n");
+    printf("passed\n");
 
 
-    g_printf("* testing smf_header_set_value()...\t\t\t");
+    printf("* testing smf_header_set_value()...\t\t\t");
     smf_header_set_value(header,HEADER_VALUE,0);
-    g_printf("passed\n");
+    printf("passed\n");
 
-    g_printf("* testing smf_header_get_value()...\t\t\t");
+    printf("* testing smf_header_get_value()...\t\t\t");
     s = smf_header_get_value(header,0);
     if (strcmp(s,HEADER_VALUE)!=0) {
-        g_printf("failed\n");
+        printf("failed\n");
         return -1;
     }
-    g_printf("passed\n");
+    printf("passed\n");
 
-    g_printf("* testing smf_header_get_count()...\t\t\t");
+    printf("* testing smf_header_get_count()...\t\t\t");
     i = smf_header_get_count(header);
     if (i!=1) {
-        g_printf("failed\n");
+        printf("failed\n");
         return -1;
     } 
-    g_printf("passed\n");
+    printf("passed\n");
 
-    g_printf("* testing smf_header_to_string()...\t\t\t");
+    printf("* testing smf_header_to_string()...\t\t\t");
     s = smf_header_to_string(header);
     if (strcmp(s,HEADER_STRING)!=0) {
-        g_printf("failed\n");
+        printf("failed\n");
         return -1;
     }
-    g_printf("passed\n");
+    printf("passed\n");
     free(s);
     
-    g_printf("* testing smf_header_free()...\t\t\t\t");
+    printf("* testing smf_header_free()...\t\t\t\t");
     smf_header_free(header);
-    g_printf("passed\n");
+    printf("passed\n");
     return 0;
 }
