@@ -5,6 +5,7 @@ set(SPMFILTER_SRC
 
 set(LIB_SMF_SRC
 	smf_core.c
+	smf_dict.c
 	smf_envelope.c
 	smf_header.c
 	smf_list.c
@@ -50,6 +51,7 @@ set_property(TARGET smf PROPERTY PUBLIC_HEADER
 
 set_property(TARGET smf PROPERTY PRIVATE_HEADER
 	smf_core.h
+	smf_dict.h
 	smf_envelope.h
 	smf_settings.h
 	smf_session.h
