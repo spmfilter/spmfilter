@@ -43,8 +43,8 @@
 ConnectionPool_T sql_pool = NULL;
 URL_T url = NULL;
 
-static void sql_fallback_handler(const char *error);
-int sql_start_pool(char *dsn);
+static void sql_fallback_handler(SMFSettings_T *settings, const char *error);
+int sql_start_pool(SMFSettings_T *settings, char *dsn);
 
 int active_server = -1;
 
@@ -70,8 +70,9 @@ void sql_con_close(Connection_T c) {
  *
  * \returns hostname of sql server
  */
-char *sql_get_rand_host(void) {
-	SMFSettings_T *settings = smf_settings_get();
+char *sql_get_rand_host(SMFSettings_T *settings) {
+ assert(settings);
+	//SMFSettings_T *settings = smf_settings_get();
 	TRACE(TRACE_DEBUG,"trying to get random sql server");
 	srand(time(NULL));
 	return settings->sql_host[rand() % settings->sql_num_hosts];
@@ -83,10 +84,13 @@ char *sql_get_rand_host(void) {
  *
  * \returns dsn string
  */
-char *sql_get_dsn(char *host) {
+char *sql_get_dsn(SMFSettings_T *settings, char *host) {
+	assert(settings);
+
+	//SMFSettings_T *settings = smf_settings_get();
+
 	GString *sdsn = g_string_new("");
 	char *dsn;
-	SMFSettings_T *settings = smf_settings_get();
 	
 	if (settings->sql_driver != NULL) {
 		g_string_append_printf(sdsn,"%s://",settings->sql_driver);
@@ -99,7 +103,7 @@ char *sql_get_dsn(char *host) {
 		g_string_append_printf(sdsn, "%s", host);
 	
 	if (settings->sql_port)
-		g_string_append_printf(sdsn, "%u", settings->sql_port);
+		g_string_append_printf(sdsn, ":%u", settings->sql_port);
 
 	if (settings->sql_name) {
 		if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") == 0) {
@@ -131,9 +135,10 @@ char *sql_get_dsn(char *host) {
 
 	TRACE(TRACE_LOOKUP,"sql db at url: [%s]", sdsn->str);
 	dsn = g_strdup(sdsn->str);
-	g_string_free(sdsn,TRUE);
+	g_string_free(sdsn,TRUE);	
 	return dsn;
 }
+
 
 /** Try to start a new connection pool
  *
@@ -141,13 +146,14 @@ char *sql_get_dsn(char *host) {
  *
  * \returns 0 on success or -1 in case of error
  */
-int sql_start_pool(char *dsn) {
-	SMFSettings_T *settings = smf_settings_get();
+int sql_start_pool(SMFSettings_T *settings, char *dsn) {
+	assert(settings);
+	//SMFSettings_T *settings = smf_settings_get();
 	int sweep_interval = 60;
 	Connection_T con = NULL;
 
-
 	url = URL_new(dsn);
+	g_free(dsn);
 
 	if (!(sql_pool = ConnectionPool_new(url))) {
 		TRACE(TRACE_ERR,"error creating database connection pool");
@@ -176,6 +182,7 @@ int sql_start_pool(char *dsn) {
 	if (!(con = ConnectionPool_getConnection(sql_pool))) {
 		sql_con_close(con);
 		TRACE(TRACE_ERR, "error getting a database connection from the pool");
+
 		return -1;
 	}
 	sql_con_close(con);
@@ -189,8 +196,8 @@ int sql_start_pool(char *dsn) {
  *
  * \param error exception message
  */
-static void sql_fallback_handler(const char *error) {
-	SMFSettings_T *settings = smf_settings_get();
+static void sql_fallback_handler(SMFSettings_T *settings, const char *error) {
+	//SMFSettings_T *settings = smf_settings_get();
 	char *dsn;
 	TRACE(TRACE_ERR, "%s", error);
 
@@ -204,34 +211,35 @@ static void sql_fallback_handler(const char *error) {
 	}
 	
 	TRACE(TRACE_WARNING,"trying sql failover connection to [%s]", settings->sql_host[active_server]);
-	dsn = sql_get_dsn(settings->sql_host[active_server]);
+	dsn = sql_get_dsn(settings, settings->sql_host[active_server]);
 	smf_lookup_sql_disconnect();
-	sql_start_pool(dsn);
+	sql_start_pool(settings,dsn);
 }
 
 /** Connect to sql server
  *
  * \returns 0 on success or -1 in case of error
  */
-int smf_lookup_sql_connect(void) {
-	
-	SMFSettings_T *settings = smf_settings_get();
+int smf_lookup_sql_connect(SMFSettings_T *settings) {
+	assert(settings);
+
+	//SMFSettings_T *settings = smf_settings_get();
 	char *dsn = NULL;
 
 	/* try to get a random host if backend_connection is set to "balance"
 	 * and the database driver is not sqlite */
 	if ((g_ascii_strcasecmp(settings->backend_connection,"balance") == 0) &&
-			(g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0))
-		dsn = sql_get_dsn(sql_get_rand_host());
-	else {
+			(g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0)) {
+			dsn = sql_get_dsn(settings, sql_get_rand_host(settings));
+	} else {
 		if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0)
-			dsn = sql_get_dsn(settings->sql_host[0]);
+			dsn = sql_get_dsn(settings, settings->sql_host[0]);
 		else
-			dsn = sql_get_dsn(NULL);
+			dsn = sql_get_dsn(settings, NULL);
 		active_server = 0;
 	}
 
-	if(sql_start_pool(dsn) != 0)
+	if(sql_start_pool(settings,dsn) != 0)
 		return -1;
 	else
 		return 0;
@@ -299,17 +307,19 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
 			
 		for (i=1; i <= ResultSet_getColumnCount(r); i++) {
 			int blob_size = 0;
-			char *c = (char *)ResultSet_getColumnName(r,i);
-			char *col_name = (char *)malloc(strlen(c) + 1);
-			memcpy(col_name,c,sizeof(c));
+			char *c = (char *)ResultSet_getColumnName(r,i);	
+			char *col_name = NULL;
+			col_name = g_strdup(c);
 			int col_size = ResultSet_getColumnSize(r,i);
-			void *data = malloc(col_size);
-			memcpy(data,ResultSet_getBlob(r,i,&blob_size),col_size);
+			const void *data = ResultSet_getBlob(r, i, &blob_size);
 			smf_lookup_element_add(e,col_name,data);
+			g_free(col_name);
 		}
+
 		smf_lookup_result_add(result,e);
 	}
 	TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->len);
+
 	g_free(query);
 	sql_con_close(c);
 	return result;
@@ -320,13 +330,13 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
  *
  * \param user a SMFEmailAddress_T object
  */
-void smf_lookup_sql_check_user(SMFEmailAddress_T *user) {
-	SMFSettings_T *settings = smf_settings_get();
-	char *query;
+void smf_lookup_sql_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user) {
+//	SMFSettings_T *settings = smf_settings_get();
+char *query;
 
-	smf_core_expand_string(settings->sql_user_query,user->addr,&query);
-	user->user_data = NULL;
-	user->user_data = smf_lookup_sql_query(query);
-	free(query);
+	smf_core_expand_string(settings->sql_user_query,user->email,&query);
+//	user->user_data = NULL;
+//	user->user_data = smf_lookup_sql_query(query);
+free(query);
 }
 
