@@ -13,6 +13,8 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Original implementation by N.Devillard
  */
 
 #include <stdio.h>
@@ -29,7 +31,7 @@ int main (int argc, char const *argv[]) {
 
     printf("Start SMFEmailAddress_T tests...\n");
 
-    g_printf("* testing smf_email_address_new()...\t\t\t\t");
+    printf("* testing smf_email_address_new()...\t\t\t\t");
     ea = smf_email_address_new();
     assert(ea);
     printf("passed\n");
