@@ -20,6 +20,10 @@ add_executable(test_list test_list.c)
 target_link_libraries(test_list smf ${COMMON_LIBS})
 ADD_TEST(SMFList_T ${EXECUTABLE_OUTPUT_PATH}/test_list)
 
+add_executable(test_dict test_dict.c)
+target_link_libraries(test_dict smf ${COMMON_LIBS})
+ADD_TEST(SMFDict_T ${EXECUTABLE_OUTPUT_PATH}/test_dict)
+
 add_executable(test_header test_header.c)
 target_link_libraries(test_header smf ${COMMON_LIBS})
 ADD_TEST(SMFHeader_T ${EXECUTABLE_OUTPUT_PATH}/test_header)
