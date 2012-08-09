@@ -64,10 +64,7 @@ void smf_lookup_result_free(SMFLookupResult_T *l) {
 			if (e != NULL)
 				g_hash_table_destroy((GHashTable *)e);
 		}
-
-		
 		g_ptr_array_free((GPtrArray *)l,TRUE);
-
 	}
 }
 
@@ -89,6 +86,9 @@ SMFLookupElement_T *smf_lookup_element_new(void) {
  * \param *value the value to associate with the key
  */
 void smf_lookup_element_add(SMFLookupElement_T *e, char *key, void *value) {
+	assert(e);
+	assert(key);
+	assert(value);
 	g_hash_table_insert((GHashTable *)e, key, value);
 }
 

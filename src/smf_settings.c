@@ -701,6 +701,7 @@ void smf_settings_set_sql_host(SMFSettings_T *settings, char **host) {
     if (host != NULL) {
         settings->sql_host = g_strdupv(host);
     }
+    
     settings->sql_num_hosts = g_strv_length(host);
 }
 
