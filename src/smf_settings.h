@@ -23,14 +23,6 @@
 #ifndef _SMF_SETTINGS_H
 #define _SMF_SETTINGS_H
 
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <assert.h>
-#include <glib.h>
-#include <glib/gstdio.h>
-
 #include "spmfilter_config.h"
 #include "smf_trace.h"
 

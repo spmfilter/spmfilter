@@ -17,6 +17,14 @@
 
 #define THIS_MODULE "settings"
 
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <assert.h>
+#include <glib.h>
+#include <glib/gstdio.h>
+
 #include "smf_trace.h"
 #include "smf_settings.h"
 #include "smf_settings_private.h"
