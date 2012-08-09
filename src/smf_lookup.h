@@ -103,14 +103,21 @@ int smf_lookup_disconnect(void);
  */
 char *smf_lookup_db4_query(char *database, char *key);
 
-/** Connect to sql server
- *
+/*!
+ * @fn *smpf_lookup_sql_connect (SMFSettings_T *settings);
+ * @brief connect to sql server
+ * @param settings Pointer to SMFSettings_T 
  * \returns 0 on success or -1 in case of error
  */
-int smf_lookup_sql_connect(void);
+int smf_lookup_sql_connect(SMFSettings_T *settings);
 
-/** Disconnect from sql server */
-void smf_lookup_sql_disconnect(void);
+
+/*!
+ * @fn *smpf_lookup_sql_disconnect (SMFSettings_T *settings);
+ * @brief connect to sql server
+ * @param settings Pointer to SMFSettings_T
+ */
+ void smf_lookup_sql_disconnect(void);
 
 /** Query SQL server with given query string
  *
