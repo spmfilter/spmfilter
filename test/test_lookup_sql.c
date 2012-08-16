@@ -88,13 +88,16 @@ int main (int argc, char const *argv[]) {
 
     result = smf_lookup_sql_query(sql_query);
     
-    void *data = NULL;
+    void *bla = NULL;
+
     if(result != NULL) {
         if(result->len > 0) {
             for(i=0; i < result->len; i++) {
                  SMFLookupElement_T *elem = smf_lookup_result_index(result,i);
-                 data = (void *) smf_lookup_element_get(elem, "data");
-                 printf("RES:[%p]\n", data);printf("bla\n");
+                 //data = (void *) smf_lookup_element_get(elem, "data");
+                 bla = (char *) smf_lookup_element_get(elem, "data");
+
+                 printf("RES:[%p], RES[%s]\n", bla, bla);
                  //assert(strcmp((char *)data,SQL_QUERY_RESULT_STRING)==0);
             }
         }
@@ -113,6 +116,9 @@ int main (int argc, char const *argv[]) {
 
     if(sql_host != NULL)
         g_free(sql_host);
+
+    if(bla != NULL)
+        free(bla);
 
     return 0;
 }
