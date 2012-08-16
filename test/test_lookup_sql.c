@@ -117,9 +117,6 @@ int main (int argc, char const *argv[]) {
     if(sql_host != NULL)
         g_free(sql_host);
 
-    if(bla != NULL)
-        free(bla);
-
     return 0;
 }
 
