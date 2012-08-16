@@ -54,9 +54,6 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 #define SQL_QUERY   "SELECT data FROM test_lookup_sql_table LIMIT 1"
 #define SQL_QUERY_RESULT_STRING "LoremIpsumDolorSitAmet"
 
-
-// grant all on test_lookup_sql.* to 'test_lookup_sql'@'localhost' IDENTIFIED BY 'MndDksjs';  
-
 int main (int argc, char const *argv[]) {
     int i;
     char *sql_driver = SQL_DRIVER;
@@ -87,16 +84,14 @@ int main (int argc, char const *argv[]) {
     smf_lookup_sql_connect(settings);
 
     result = smf_lookup_sql_query(sql_query);
-    
-    void *bla = NULL;
+    char *bla = NULL;
 
+    
     if(result != NULL) {
         if(result->len > 0) {
             for(i=0; i < result->len; i++) {
                  SMFLookupElement_T *elem = smf_lookup_result_index(result,i);
-                 //data = (void *) smf_lookup_element_get(elem, "data");
                  bla = (char *) smf_lookup_element_get(elem, "data");
-
                  printf("RES:[%p], RES[%s]\n", bla, bla);
                  //assert(strcmp((char *)data,SQL_QUERY_RESULT_STRING)==0);
             }
