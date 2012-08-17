@@ -54,7 +54,7 @@ void smf_dict_free(SMFDict_T *dict);
  * @param dict a SMFDict_T object to modify.
  * @param key Key to modify or add.
  * @param val Value to add.
- * @returns 0 on success or -1 in case of error
+ * @return 0 on success or -1 in case of error
  *
  * If the given key is found in the dictionary, the associated value is
  * replaced by the provided one. If the key cannot be found in the
@@ -82,7 +82,7 @@ void smf_dict_remove(SMFDict_T *dict, const char * key);
 
 /*!
  * @def smf_dict_count(dict)
- * @returns number of elemtents in a SMFDict_T 
+ * @return number of elemtents in a SMFDict_T 
  */
 #define smf_dict_count(dict) ((dict)->n)
 

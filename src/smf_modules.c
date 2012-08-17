@@ -239,6 +239,8 @@ int smf_modules_process(
     }
     modlist = smf_modules_stf_processed_modules(stfh);
 
+// TODO: fix module loading
+#if 0
     for(i=0;settings->modules[i] != NULL; i++) {
         curmod = settings->modules[i];
 
@@ -321,7 +323,7 @@ int smf_modules_process(
             smf_modules_stf_write_entry(stfh, settings->modules[i]);
         }
     }
-
+#endif
     /* close file, cleanup modlist and remove state file */
     TRACE(TRACE_DEBUG, "module processing finished successfully.");
     fclose(stfh);
