@@ -15,6 +15,9 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
+#include <ctype.h>
+
 #include "smf_core.h"
 
 
@@ -185,4 +188,25 @@ int smf_core_valid_address(const char *addr) {
     g_regex_unref(re);
 
     return match;
+}
+
+char *smf_core_strstrip(char *s) {
+    assert(s);
+
+    char * e = s + strlen(s) - 1;
+    while(*s && isspace(*s)) s++;
+    while(e > s && isspace(*e)) *e-- = '\0';
+
+    return(s);
+}
+
+
+char *smf_core_strlwc(char *s) {
+    assert(s);
+    
+    while (*s) {
+        *s = tolower(*s);
+        s++;
+    }
+    return s;
 }
