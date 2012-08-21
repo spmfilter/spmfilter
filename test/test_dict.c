@@ -21,11 +21,16 @@
 #include <assert.h>
 
 #include "../src/smf_dict.h"
+#include "../src/smf_list.h"
 
 #include "test.h"
 
 int main(int argc, char const *argv[]) {
     SMFDict_T *dict = NULL;
+    SMFList_T *l = NULL;
+    SMFListElem_T *e = NULL;
+    char *s = NULL;
+    int count = 0;
 
     printf("Start SMFDict_T tests...\n");
 
@@ -52,17 +57,34 @@ int main(int argc, char const *argv[]) {
     }
     printf("passed\n");
 
-    printf("* testing smf_dict_remove()...\t\t\t");
+    printf("* testing smf_dict_get_keys()...\t\t");
     if (smf_dict_set(dict,test_header_value,test_header_value)!=0) {
         printf("failed\n");
         return -1;
     }
-    
+
+    l = smf_dict_get_keys(dict);
+    e = smf_list_head(l);
+    while(e != NULL) {
+        s = smf_list_data(e);
+        if ((strcmp(s,test_header_name)!=0)&&(strcmp(s,test_header_value)!=0)) {
+            printf("failed\n");
+            return -1;
+        }
+        count++;
+        e = e->next;
+    }
     if (smf_dict_count(dict) != 2) {
         printf("failed\n");
         return -1;
     }
+    if (smf_list_free(l)!=0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
 
+    printf("* testing smf_dict_remove()...\t\t\t");
     smf_dict_remove(dict,test_header_value);
 
     if (smf_dict_count(dict) != 1) {

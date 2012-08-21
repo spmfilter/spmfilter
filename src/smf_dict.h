@@ -25,6 +25,8 @@
 #ifndef _SMF_DICT_H
 #define _SMF_DICT_H
 
+#include "smf_list.h"
+
 typedef struct {
     int n; /**< number of entries in dictionary */
     int size; /**< storage size */
@@ -79,6 +81,14 @@ char *smf_dict_get(SMFDict_T *dict, const char * key);
  * @param key Key to remove.
  */
 void smf_dict_remove(SMFDict_T *dict, const char * key);
+
+/*!
+ * @fn SMFList_T *smf_dict_get_keys(SMFDict_T *dict)
+ * @brief Get list with keys stored in dictionary
+ * @param dict a SMFDict_T  object
+ * @return a SMFList_T object
+ */
+SMFList_T *smf_dict_get_keys(SMFDict_T *dict);
 
 /*!
  * @def smf_dict_count(dict)

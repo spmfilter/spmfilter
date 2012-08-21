@@ -23,7 +23,9 @@
 #include <unistd.h>
 #include <assert.h>
 
+#include "smf_internal.h"
 #include "smf_dict.h"
+#include "smf_list.h"
 
 /* Doubles the allocated size associated to a pointer */
 /* 'size' is the current allocated size. */
@@ -199,4 +201,23 @@ void smf_dict_remove(SMFDict_T *dict, const char * key) {
     }
     dict->hash[i] = 0;
     dict->n --;
+}
+
+SMFList_T *smf_dict_get_keys(SMFDict_T *dict) {
+    int i = 0;
+    SMFList_T *l = NULL;
+    assert(dict);
+
+    if (smf_list_new(&l,_string_list_destroy)!=0) 
+        return NULL;
+
+    for (i=0 ; i<dict->size ; i++) {
+        if (dict->key[i]) {
+            if (smf_list_append(l, strdup(dict->key[i])) != 0) {
+                smf_list_free(l);
+                return NULL;
+            }
+        }
+    }
+    return l;
 }

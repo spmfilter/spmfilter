@@ -63,7 +63,9 @@ int main (int argc, char const *argv[]) {
         printf("failed\n");
         return -1;
     }
-  
+    
+    smf_settings_set_debug(settings, 1);
+
     printf("* testing smf_settings_parse_config()...\t\t");
     if (smf_settings_parse_config(&settings,"../../spmfilter.conf.sample") != 0) {
         printf("failed\n");

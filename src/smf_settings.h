@@ -51,7 +51,7 @@ typedef struct {
     char *nexthop; /**< next smtp hop */
     int nexthop_fail_code; /**< smtp code, when delivery to nexthop fails */
     char *nexthop_fail_msg; /**< smtp return message, when delivery to nexthop fails */
-    SMFList_T *backend; /**< configured lookup backend */
+    char *backend; /**< configured lookup backend */
     char *backend_connection; /**< if multiple backend hosts are defined,
                                * it's possible to balance connections
                                * between all, or do failover connections.
@@ -266,21 +266,20 @@ void smf_settings_set_nexthop_fail_msg(SMFSettings_T *settings, char *msg);
 char *smf_settings_get_nexthop_fail_msg(SMFSettings_T *settings);
 
 /*!
- * @fn int smf_settings_add_backend(SMFSettings_T *settings, char *backend)
+ * @fn void smf_settings_set_backend(SMFSettings_T *settings, char *backend)
  * @brief Set lookup backend. 
  * @param settings a SMFSettings_T object
  * @param backend backend setting list
- * @returns 0 on success or -1 in case of error  
  */
-int smf_settings_add_backend(SMFSettings_T *settings, char *backend);
+void smf_settings_set_backend(SMFSettings_T *settings, char *backend);
 
 /*!
- * @fn SMFList_T *smf_settings_get_backend(SMFSettings_T *settings)
+ * @fn char *smf_settings_get_backend(SMFSettings_T *settings)
  * @brief Get backend setting
  * @param settings a SMFSettings_T object
- * @returns backend setting list 
+ * @returns backend setting 
  */
-SMFList_T *smf_settings_get_backend(SMFSettings_T *settings);
+char *smf_settings_get_backend(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_backend_connection(SMFSettings_T *settings, char *conn)

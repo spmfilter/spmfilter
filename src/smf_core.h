@@ -115,4 +115,13 @@ char *smf_core_strstrip(char *s);
  */
 char *smf_core_strlwc(char *s);
 
+/**
+ * @fn char **smf_core_strsplit(char *s, char *sep)
+ * @brief Split a given string
+ * @param s String to split
+ * @param sep separator
+ * @return a newly-allocated NULL-terminated array of strings. 
+ */
+char **smf_core_strsplit(char *s, char *sep);
+
 #endif	/* _SMF_CORE_H */
