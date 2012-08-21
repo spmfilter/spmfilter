@@ -15,6 +15,9 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
+#include <ctype.h>
+
 #include "smf_core.h"
 
 
@@ -185,4 +188,56 @@ int smf_core_valid_address(const char *addr) {
     g_regex_unref(re);
 
     return match;
+}
+
+char *smf_core_strstrip(char *s) {
+    assert(s);
+
+    char * e = s + strlen(s) - 1;
+    while(*s && isspace(*s)) s++;
+    while(e > s && isspace(*e)) *e-- = '\0';
+/*
+    while(*it) {
+        if (isspace(*it)!=0) 
+            t[pos++] = *it;
+        it++;
+    }
+
+    t[pos] = '\0';
+    */
+    return(s);
+}
+
+
+char *smf_core_strlwc(char *s) {
+    assert(s);
+    
+    while (*s) {
+        *s = tolower(*s);
+        s++;
+    }
+    return s;
+}
+
+char **smf_core_strsplit(char *s, char *sep) {
+    char **sl = NULL;   
+    char *cp = NULL;
+    char *tf = NULL;
+    char *tmp = NULL;
+    int count = 0;
+    
+    assert(s);
+    assert(sep);
+    
+    tf = cp = strdup(s);
+      
+    while ((tmp = strsep(&cp, sep)) != NULL) {
+        sl = (char**)realloc(sl, (sizeof(*sl) * (count+2)));
+        sl[count] = strdup(tmp);
+        count++; 
+    }
+    free(tf);
+    sl[count] = '\0';
+
+    return(sl);
 }

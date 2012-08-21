@@ -25,6 +25,8 @@
 #ifndef _SMF_DICT_H
 #define _SMF_DICT_H
 
+#include "smf_list.h"
+
 typedef struct {
     int n; /**< number of entries in dictionary */
     int size; /**< storage size */
@@ -54,7 +56,7 @@ void smf_dict_free(SMFDict_T *dict);
  * @param dict a SMFDict_T object to modify.
  * @param key Key to modify or add.
  * @param val Value to add.
- * @returns 0 on success or -1 in case of error
+ * @return 0 on success or -1 in case of error
  *
  * If the given key is found in the dictionary, the associated value is
  * replaced by the provided one. If the key cannot be found in the
@@ -81,8 +83,16 @@ char *smf_dict_get(SMFDict_T *dict, const char * key);
 void smf_dict_remove(SMFDict_T *dict, const char * key);
 
 /*!
+ * @fn SMFList_T *smf_dict_get_keys(SMFDict_T *dict)
+ * @brief Get list with keys stored in dictionary
+ * @param dict a SMFDict_T  object
+ * @return a SMFList_T object
+ */
+SMFList_T *smf_dict_get_keys(SMFDict_T *dict);
+
+/*!
  * @def smf_dict_count(dict)
- * @returns number of elemtents in a SMFDict_T 
+ * @return number of elemtents in a SMFDict_T 
  */
 #define smf_dict_count(dict) ((dict)->n)
 

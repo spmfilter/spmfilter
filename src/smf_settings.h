@@ -24,7 +24,8 @@
 #define _SMF_SETTINGS_H
 
 #include "spmfilter_config.h"
-#include "smf_trace.h"
+#include "smf_dict.h"
+#include "smf_list.h"
 
 /*!
  * @enum SMFTlsOption_T
@@ -45,12 +46,12 @@ typedef struct {
     char *config_file; /**< path to config file */
     char *queue_dir; /**< path to spool directory */
     char *engine; /**< configured engine */
-    char **modules; /**< all configured modules */
+    SMFList_T *modules; /**< all configured modules */
     int module_fail; /**< module fail behavior */
     char *nexthop; /**< next smtp hop */
     int nexthop_fail_code; /**< smtp code, when delivery to nexthop fails */
     char *nexthop_fail_msg; /**< smtp return message, when delivery to nexthop fails */
-    char **backend; /**< configured lookup backend */
+    char *backend; /**< configured lookup backend */
     char *backend_connection; /**< if multiple backend hosts are defined,
                                * it's possible to balance connections
                                * between all, or do failover connections.
@@ -67,12 +68,11 @@ typedef struct {
     int daemon; /**< daemonize flag */
     char *lib_dir; /**< user defined directory path for shared libraries */
 
-    GHashTable *smtp_codes; /**< user defined smtp return codes */
+    SMFDict_T *smtp_codes; /**< user defined smtp return codes */
 
     char *sql_driver; /**< sql driver name */
     char *sql_name; /**< sql database name */
-    char **sql_host; /**< list with sql database hosts */
-    int sql_num_hosts; /**< number of sql database hosts */
+    SMFList_T *sql_host; /**< list with sql database hosts */
     int sql_port; /**< sql database port */
     char *sql_user; /**< sql database username */
     char *sql_pass; /**< sql database password */
@@ -81,8 +81,7 @@ typedef struct {
     int sql_max_connections; /**< max. number of sql conncetions */
 
     char *ldap_uri; /**< ldap uri */
-    char **ldap_host; /**< list with ldap hosts */
-    int ldap_num_hosts; /**< number of ldap hosts */
+    SMFList_T *ldap_host; /**< list with ldap hosts */
     int ldap_port; /**< ldap port */
     char *ldap_binddn; /**< ldap bind dn */
     char *ldap_bindpw; /**< ldap bind password */
@@ -175,20 +174,21 @@ void smf_settings_set_engine(SMFSettings_T *settings, char *engine);
 char *smf_settings_get_engine(SMFSettings_T *settings);
 
 /*!
- * @fn void smf_settings_set_modules(SMFSettings_T *settings, char **modules)
- * @brief Set available modules, which will be loaded at runtime.
+ * @fn void smf_settings_add_module(SMFSettings_T *settings, char *module)
+ * @brief Add available module to module list, which will be loaded at runtime.
  * @param settings a SMFSettings_T object
- * @param modules list with available modules
+ * @param module module name
+ * @returns 0 on success or -1 in case of error  
  */
-void smf_settings_set_modules(SMFSettings_T *settings, char **modules);
+int smf_settings_add_module(SMFSettings_T *settings, char *module);
 
 /*!
- * @fn char **smf_settings_get_modules(SMFSettings_T *settings)
+ * @fn SMFList_T *smf_settings_get_modules(SMFSettings_T *settings)
  * @brief Get available modules
  * @param settings a SMFSettings_T object
  * @returns modules list
  */
-char **smf_settings_get_modules(SMFSettings_T *settings);
+SMFList_T *smf_settings_get_modules(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_module_fail(SMFSettings_T *settings, int i)
@@ -266,20 +266,20 @@ void smf_settings_set_nexthop_fail_msg(SMFSettings_T *settings, char *msg);
 char *smf_settings_get_nexthop_fail_msg(SMFSettings_T *settings);
 
 /*!
- * @fn void smf_settings_set_backend(SMFSettings_T *settings, char **backend)
+ * @fn void smf_settings_set_backend(SMFSettings_T *settings, char *backend)
  * @brief Set lookup backend. 
  * @param settings a SMFSettings_T object
  * @param backend backend setting list
  */
-void smf_settings_set_backend(SMFSettings_T *settings, char **backend);
+void smf_settings_set_backend(SMFSettings_T *settings, char *backend);
 
 /*!
- * @fn char **smf_settings_get_backend(SMFSettings_T *settings)
+ * @fn char *smf_settings_get_backend(SMFSettings_T *settings)
  * @brief Get backend setting
  * @param settings a SMFSettings_T object
- * @returns backend setting list 
+ * @returns backend setting 
  */
-char **smf_settings_get_backend(SMFSettings_T *settings);
+char *smf_settings_get_backend(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_backend_connection(SMFSettings_T *settings, char *conn)
@@ -406,13 +406,14 @@ void smf_settings_set_daemon(SMFSettings_T *settings, int i);
 int smf_settings_get_daemon(SMFSettings_T *settings);
 
 /*!
- * @fn void smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
+ * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
  * @biref Add smtp return code to list
  * @param settings a SMFSettings_T object
  * @param code smtp code
  * @param msg smtp return message
+ * @returns 0 on success or -1 in case of error
  */
-void smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg);
+int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg);
 
 /*! 
  * @fn char *smf_settings_get_smtp_code(SMFSettings_T *settings, int code)
@@ -460,28 +461,21 @@ void smf_settings_set_sql_name(SMFSettings_T *settings, char *name);
 char *smf_settings_get_sql_name(SMFSettings_T *settings);
 
 /*!
- * @fn void smf_settings_set_sql_host(SMFSettings_T *settings, char **host)
+ * @fn int smf_settings_add_sql_host(SMFSettings_T *settings, char *host)
  * @brief Set SQL host(s)
  * @param settings a SMFSettings_T object
  * @param host sql_host list
+ * @returns 0 on success or -1 in case of error  
  */
-void smf_settings_set_sql_host(SMFSettings_T *settings, char **host);
+int smf_settings_add_sql_host(SMFSettings_T *settings, char *host);
 
 /*!
- * @fn char **smf_settings_get_sql_host(SMFSettings_T *settings)
+ * @fn SMFList_T *smf_settings_get_sql_host(SMFSettings_T *settings)
  * @brief Get SQL host(s)
  * @param settings a SMFSettings_T object
  * @returns sql_host list
  */
-char **smf_settings_get_sql_host(SMFSettings_T *settings);
-
-/*!
- * @fn int smf_settings_get_sql_num_hosts(SMFSettings_T *settings)
- * @brief Get number of configured SQL hosts
- * @param settings a SMFSettings_T object
- * @returns sql_num_hosts value
- */
-int smf_settings_get_sql_num_hosts(SMFSettings_T *settings);
+SMFList_T *smf_settings_get_sql_host(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_sql_port(SMFSettings_T *settings, int port)
@@ -596,28 +590,21 @@ void smf_settings_set_ldap_uri(SMFSettings_T *settings, char *uri);
 char *smf_settings_get_ldap_uri(SMFSettings_T *settings);
 
 /*!
- * @fn void smf_settings_set_ldap_host(SMFSettings_T *settings, char **host)
+ * @fn int smf_settings_add_ldap_host(SMFSettings_T *settings, char *host)
  * @brief Set LDAP host(s)
  * @param settings a SMFSettings_T object
  * @param host ldap host list
+ * @returns 0 on success or -1 in case of error  
  */
-void smf_settings_set_ldap_host(SMFSettings_T *settings, char **host);
+int smf_settings_add_ldap_host(SMFSettings_T *settings, char *host);
 
 /*!
- * @fn char **smf_settings_get_ldap_host(SMFSettings_T *settings)
+ * @fn SMFList_T *smf_settings_get_ldap_host(SMFSettings_T *settings)
  * @brief Get LDAP host(s)
  * @param settings a SMFSettings_T object
  * @returns ldap host list
  */
-char **smf_settings_get_ldap_host(SMFSettings_T *settings);
-
-/*!
- * @fn int smf_settings_get_ldap_num_hosts(SMFSettings_T *settings)
- * @brief Get number of configured LDAP hosts
- * @param settings a SMFSettings_T object
- * @returns ldap_num_hosts value
- */
-int smf_settings_get_ldap_num_hosts(SMFSettings_T *settings);
+SMFList_T *smf_settings_get_ldap_host(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_ldap_port(SMFSettings_T *settings, int port)
