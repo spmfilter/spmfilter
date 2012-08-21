@@ -35,6 +35,8 @@
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
 #include "smf_core.h"
+#include "smf_dict.h"
+#include "smf_list.h"
 
 #define THIS_MODULE "sql_lookup"
 
@@ -47,6 +49,12 @@ static void sql_fallback_handler(SMFSettings_T *settings, const char *error);
 int sql_start_pool(SMFSettings_T *settings, char *dsn);
 
 int active_server = -1;
+
+void _sql_result_list_destroy(void *data) {
+    assert(data);
+    smf_dict_free((SMFDict_T *)data);
+}
+
 
 /** Disconnect from sql server and destroy connection pool */
 void smf_lookup_sql_disconnect(void) {
@@ -72,10 +80,23 @@ void sql_con_close(Connection_T c) {
  */
 char *sql_get_rand_host(SMFSettings_T *settings) {
  assert(settings);
-	//SMFSettings_T *settings = smf_settings_get();
+	int random;
+	SMFListElem_T *e = NULL;
+	int count = 0;
+
 	TRACE(TRACE_DEBUG,"trying to get random sql server");
 	srand(time(NULL));
-	return settings->sql_host[rand() % settings->sql_num_hosts];
+	random = rand() % smf_list_size(settings->sql_host);
+	e = smf_list_head(settings->sql_host);
+
+	while(e != NULL) {     
+ 	count++;
+  if(count == random) {
+  		return (char *)smf_list_data(e);
+  }
+		e = e->next;
+	}
+
 }
 
 /** Build a DSN string
@@ -136,6 +157,7 @@ char *sql_get_dsn(SMFSettings_T *settings, char *host) {
 	TRACE(TRACE_LOOKUP,"sql db at url: [%s]", sdsn->str);
 	dsn = g_strdup(sdsn->str);
 	g_string_free(sdsn,TRUE);	
+	printf("dsn[%s]",dsn);
 	return dsn;
 }
 
@@ -148,7 +170,7 @@ char *sql_get_dsn(SMFSettings_T *settings, char *host) {
  */
 int sql_start_pool(SMFSettings_T *settings, char *dsn) {
 	assert(settings);
-	//SMFSettings_T *settings = smf_settings_get();
+
 	int sweep_interval = 60;
 	Connection_T con = NULL;
 
@@ -169,7 +191,7 @@ int sql_start_pool(SMFSettings_T *settings, char *dsn) {
 
 	ConnectionPool_setReaper(sql_pool, sweep_interval);
 
-	if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0)
+	if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0) 
 		ConnectionPool_setAbortHandler(sql_pool, sql_fallback_handler);
 
 	TRACE(TRACE_LOOKUP, "run a database connection reaper thread every [%d] seconds", sweep_interval);
@@ -190,20 +212,42 @@ int sql_start_pool(SMFSettings_T *settings, char *dsn) {
 	return 0;
 }
 
+
+// Needs to be rewritten as we now have the hosts within an SMFList_T Struct
+static void sql_fallback_handler(SMFSettings_T *settings, const char *error) {
+	//char *dsn;
+	//SMFListElem_T *e = NULL;
+	//TRACE(TRACE_ERR, "%s", error);
+	//e = smf_list_head(settings->sql_host);
+	//while(e != NULL) {
+
+	//dsn = sql_get_dsn(settings, (char *)smf_list_data(e));	
+//		printf("dsn[%s]",dsn);	
+	//	e = e->next;
+//	}
+    
+    return(0);
+}
+
+
+
 /** Fallback function if connection dies or server is not available.
  *  If more than one server is configured, try to establish a connection
  *  to one of the remaining server.
  *
  * \param error exception message
  */
+ /*
 static void sql_fallback_handler(SMFSettings_T *settings, const char *error) {
-	//SMFSettings_T *settings = smf_settings_get();
+	SMFListElem_T *e = NULL;
+
 	char *dsn;
 	TRACE(TRACE_ERR, "%s", error);
+	printf("ERROR: [%s]", error);
 
 	if (active_server == -1)
 		active_server = 0;
-	else if (active_server < (settings->sql_num_hosts - 1))
+	else if (active_server < (smf_list_size(settings->sql_host) - 1))
 		active_server++;
 	else {
 		TRACE(TRACE_CRIT,"no sql server available");
@@ -211,10 +255,14 @@ static void sql_fallback_handler(SMFSettings_T *settings, const char *error) {
 	}
 	
 	TRACE(TRACE_WARNING,"trying sql failover connection to [%s]", settings->sql_host[active_server]);
-	dsn = sql_get_dsn(settings, settings->sql_host[active_server]);
+
+	e = smf_list_head(settings->sql_host);
+	dsn = sql_get_dsn(settings, (char *)smf_list_data(e));
+	//dsn = sql_get_dsn(settings, settings->sql_host[active_server]);
 	smf_lookup_sql_disconnect();
 	sql_start_pool(settings,dsn);
 }
+*/
 
 /** Connect to sql server
  *
@@ -223,8 +271,9 @@ static void sql_fallback_handler(SMFSettings_T *settings, const char *error) {
 int smf_lookup_sql_connect(SMFSettings_T *settings) {
 	assert(settings);
 
-	//SMFSettings_T *settings = smf_settings_get();
 	char *dsn = NULL;
+
+	SMFListElem_T *e = NULL;
 
 	/* try to get a random host if backend_connection is set to "balance"
 	 * and the database driver is not sqlite */
@@ -232,10 +281,13 @@ int smf_lookup_sql_connect(SMFSettings_T *settings) {
 			(g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0)) {
 			dsn = sql_get_dsn(settings, sql_get_rand_host(settings));
 	} else {
-		if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0)
-			dsn = sql_get_dsn(settings, settings->sql_host[0]);
-		else
+		if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0) {
+			SMFListElem_T *e = NULL;
+			e = smf_list_head(settings->sql_host);
+			dsn = sql_get_dsn(settings, (char *)smf_list_data(e));
+		} else {
 			dsn = sql_get_dsn(settings, NULL);
+		}
 		active_server = 0;
 	}
 
@@ -276,6 +328,69 @@ Connection_T sql_con_get(void) {
 }
 
 
+
+SMFList_T *smf_lookup_sql_query(const char *q, ...) {	
+	Connection_T c; 
+	ResultSet_T r;
+	SMFList_T *result;
+	va_list ap, cp;
+	char *query;
+	int i;
+
+	va_start(ap, q);
+	va_copy(cp, ap);
+	query = (char *)malloc(strlen(q) + 1);
+	vsprintf(query,q,cp);
+	va_end(cp);
+	smf_core_strstrip(query);
+
+	if (strlen(query) == 0)
+		return NULL;
+
+	if (smf_list_new(&result,_sql_result_list_destroy)!=0) {
+ 	return NULL;
+ } else {
+
+ 	c = sql_con_get();
+		TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
+		TRY
+			r = Connection_executeQuery(c, query,NULL);
+		CATCH(SQLException)
+			printf("got SQLException");
+			TRACE(TRACE_ERR,"got SQLException");
+			return NULL;
+		END_TRY;
+		
+		while (ResultSet_next(r)) {
+			SMFDict_T *d = smf_dict_new();
+
+			for (i=1; i <= ResultSet_getColumnCount(r); i++) {
+				int blob_size = 0;
+				char *c = (char *)ResultSet_getColumnName(r,i);	
+				char *col_name = NULL;
+				col_name = strdup(c);
+				int col_size = ResultSet_getColumnSize(r,i);
+				const void *data = ResultSet_getBlob(r, i, &blob_size);
+
+				smf_dict_set(d,col_name,data);
+				free(col_name);
+			}
+			
+			if (smf_list_append(result,d) != 0)
+								return NULL;
+		}
+
+		printf("[%p] found [%d] rows", c, result->size);
+		TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->size);
+ }
+
+ free(query);
+ sql_con_close(c);
+ return result;
+}
+
+
+/*
 SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
 	Connection_T c; 
 	ResultSet_T r;
@@ -324,7 +439,7 @@ SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
 	sql_con_close(c);
 	return result;
 }
-
+*/
 
 /** Check if given user exists in database
  *
