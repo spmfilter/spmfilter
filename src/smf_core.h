@@ -98,4 +98,30 @@ char *smf_md5sum(const char *data);
  * \returns 0 on success or -1 in case of error
  */
 int smf_core_valid_address(const char *addr);
+
+/**
+ * @fn char *smf_core_strstrip(char *s)
+ * @brief Remove blanks at the beginning and the end of a string.
+ * @param s String to parse.
+ * @return ptr to string.
+ */
+char *smf_core_strstrip(char *s); 
+
+/**
+ * @fn char *smf_core_strlwc(const char *s)
+ * @brief Convert a string to lowercase.
+ * @param s String to convert.
+ * @return ptr to string
+ */
+char *smf_core_strlwc(char *s);
+
+/**
+ * @fn char **smf_core_strsplit(char *s, char *sep)
+ * @brief Split a given string
+ * @param s String to split
+ * @param sep separator
+ * @return a newly-allocated NULL-terminated array of strings. 
+ */
+char **smf_core_strsplit(char *s, char *sep);
+
 #endif	/* _SMF_CORE_H */
