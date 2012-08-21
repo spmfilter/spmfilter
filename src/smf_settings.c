@@ -37,6 +37,7 @@
 #include "smf_list.h"
 #include "smf_dict.h"
 #include "smf_core.h"
+#include "smf_internal.h"
 
 #define MAX_LINE 200
 
@@ -52,12 +53,6 @@ typedef enum _line_status {
     LINE_VALUE
 } line_status ;
 
-void _string_list_destroy(void *data) {
-    char *s = (char *)data;
-    assert(data);
-    free(s);
-}
-
 int _get_boolean(char *val) {
     int ret = 0;
 
@@ -66,6 +61,10 @@ int _get_boolean(char *val) {
     } 
 
     return ret;
+}
+
+int _get_integer(char *val) {
+    return (int)strtol(val, NULL, 0);
 }
 
 static line_status _parse_line(
@@ -96,7 +95,7 @@ static line_status _parse_line(
         sta = LINE_SECTION ;
     } else if (sscanf (line, "%[^=] = \"%[^\"]\"", key, value) == 2
            ||  sscanf (line, "%[^=] = '%[^\']'",   key, value) == 2
-           ||  sscanf (line, "%[^=] = %[^;#]",     key, value) == 2) {
+           ||  sscanf (line, "%[^=] = %[^#]",     key, value) == 2) {
         /* Usual key=value, with or without comments */
         key = smf_core_strstrip(key);
         key = smf_core_strlwc(key);
@@ -128,17 +127,26 @@ static line_status _parse_line(
     return sta ;
 }
 
-void _store_values(SMFSettings_T **settings, char *section, char *key, char *val) {
+void _set_config_value(SMFSettings_T **settings, char *section, char *key, char *val) {
+    char **sl = NULL;
+    char **p = NULL;
+    char *s = NULL;
+    int i;
+
+    if (val==NULL || strlen(val) == 0)
+        return;
+
+    /** [global]debug **/
     if (strcmp(key,"debug")==0) {
-        //(*settings)->debug = (int)strtol(val, NULL, 0);
         (*settings)->debug = _get_boolean(val);
         configure_debug((*settings)->debug);
+    /** [global]queue_dir **/
     } else if (strcmp(key,"queue_dir")==0) {
         if ((*settings)->queue_dir!=NULL)
             free((*settings)->queue_dir);
 
         (*settings)->queue_dir = strdup(val);
-        TRACE(TRACE_DEBUG, "settings->queue_dir: %s", (*settings)->queue_dir);
+    /** [global]modules **/
     } else if (strcmp(key, "modules")==0) {
         if (smf_list_size((*settings)->modules) > 0) {
             if (smf_list_free((*settings)->modules)!=0)
@@ -147,7 +155,71 @@ void _store_values(SMFSettings_T **settings, char *section, char *key, char *val
                 if (smf_list_new(&((*settings)->modules),_string_list_destroy)!=0)
                     TRACE(TRACE_ERR,"failed to create modules list");
         }
-        printf("VAL: [%s]\n",val);
+        sl = smf_core_strsplit(val, ";");
+        p = sl;
+        while(*p != NULL) {
+            s = smf_core_strstrip(*p);
+            smf_list_append((*settings)->modules, s);
+            p++;
+        }
+        free(sl);
+    /** [global]engine **/
+    } else if (strcmp(key,"engine")==0) {
+        if ((*settings)->engine!=NULL) 
+            free((*settings)->engine);
+
+        (*settings)->engine = strdup(val);
+    /** [global]module_fail **/
+    } else if (strcmp(key,"module_fail")==0) {
+        i = _get_integer(val);
+
+        /** check allowed values... */
+        if (i==1 || i==2 || i==3)
+            (*settings)->module_fail = i;
+    /** [global]nexthop **/
+    } else if (strcmp(key,"nexthop")==0) {
+        if ((*settings)->nexthop!=NULL)
+            free((*settings)->nexthop);
+    
+        (*settings)->nexthop = strdup(val);
+    /** [global]backend **/
+    } else if (strcmp(key,"backend")==0) {
+        if ((*settings)->backend!=NULL)
+            free((*settings)->backend);
+
+        if ((strcmp(val,"sql")==0)||(strcmp(val,"ldap")==0))
+            (*settings)->backend = strdup(val);
+    /** [global]backend_connection **/
+    } else if (strcmp(key,"backend_connection")==0) {
+        if ((*settings)->backend_connection!=NULL) 
+            free((*settings)->backend_connection);
+
+        if ((strcmp(val,"balance")==0)||(strcmp(val,"failover")==0)) 
+            (*settings)->backend_connection = strdup(val);
+    /** [global]add_header **/
+    } else if (strcmp(key,"add_header")==0) {
+        (*settings)->add_header = _get_boolean(val);
+    /** [global]max_size **/
+    } else if (strcmp(key,"max_size")==0) {
+        (*settings)->max_size = _get_integer(val);
+    /** [global]tls_enable **/
+    } else if (strcmp(key,"tls_enable")==0) {
+        i = _get_integer(val);
+        /** check allowed values... */
+        if (i==0 || i==1 || i==2)
+            (*settings)->tls = i;
+    /** [global]tls_pass **/
+    } else if (strcmp(key,"tls_pass")==0) {
+        if ((*settings)->tls_pass!=NULL)
+            free((*settings)->tls_pass);
+    
+        (*settings)->tls_pass = strdup(val);
+    /** [global]lib_dir **/
+    } else if (strcmp(key,"lib_dir")==0) {
+        if ((*settings)->lib_dir!=NULL)
+            free((*settings)->lib_dir);
+    
+        (*settings)->lib_dir = strdup(val);
     }
 }
 
@@ -169,12 +241,7 @@ SMFSettings_T *smf_settings_new(void) {
     }
     settings->nexthop = NULL;
     settings->nexthop_fail_msg = NULL;
-    if (smf_list_new(&settings->backend, _string_list_destroy) != 0) {
-        TRACE(TRACE_ERR,"failed to allocate space for settings->backend");
-        smf_list_free(settings->modules);
-        free(settings);
-        return NULL;
-    }
+    settings->backend = NULL;
     settings->backend_connection = NULL;
     settings->tls_pass = NULL;
     settings->lib_dir = NULL;
@@ -184,7 +251,6 @@ SMFSettings_T *smf_settings_new(void) {
     if (smf_list_new(&settings->sql_host, _string_list_destroy) != 0) {
         TRACE(TRACE_ERR,"failed to allocate space for settings->sql_host");
         smf_list_free(settings->modules);
-        smf_list_free(settings->backend);
         free(settings);
         return NULL;
     }
@@ -196,7 +262,6 @@ SMFSettings_T *smf_settings_new(void) {
     if (smf_list_new(&settings->ldap_host, _string_list_destroy) != 0) {
         TRACE(TRACE_ERR,"failed to allocate space for settings->ldap_host");
         smf_list_free(settings->modules);
-        smf_list_free(settings->backend);
         smf_list_free(settings->ldap_host);
         free(settings);
         return NULL;
@@ -226,15 +291,12 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (smf_list_free(settings->modules) != 0)
         TRACE(TRACE_ERR,"failed to free settings->modules");
     
-    if (smf_list_free(settings->backend) != 0)
-        TRACE(TRACE_ERR,"failed to free settings->backend");
-    
-    
     if (settings->config_file != NULL) free(settings->config_file);
     if (settings->queue_dir != NULL) free(settings->queue_dir);
     if (settings->engine != NULL) free(settings->engine);
     if (settings->nexthop != NULL) free(settings->nexthop);
     if (settings->nexthop_fail_msg != NULL) free(settings->nexthop_fail_msg);
+    if (settings->backend != NULL) free(settings->backend);
     if (settings->backend_connection != NULL) free(settings->backend_connection);
     if (settings->tls_pass != NULL) free(settings->tls_pass);
     if (settings->lib_dir != NULL) free(settings->lib_dir);
@@ -264,11 +326,11 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     char line[MAX_LINE+1];
     char section[MAX_LINE+1];
     char key[MAX_LINE+1];
-    char tmp[MAX_LINE+1];
     char val[MAX_LINE+1];
-
+    SMFListElem_T *elem = NULL;
+    char *s = NULL;
     int last=0;
-    int len;
+    int len=0;
     int lineno=0;
     int errs=0;
 
@@ -293,7 +355,6 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     memset(section, 0, MAX_LINE);
     memset(key, 0, MAX_LINE);
     memset(val, 0, MAX_LINE);
-    last=0;
 
     while (fgets(line+last, MAX_LINE-last, in) != NULL) {
         lineno++ ;
@@ -305,12 +366,6 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
             TRACE(TRACE_ERR,"input line too long in %s (%d)\n", (*settings)->config_file, lineno);
             fclose(in);
             return -1;
-        }
-
-        /* Get rid of \n and spaces at end of line */
-        while ((len>=0) && ((line[len]=='\n') || (isspace(line[len])))) {
-            line[len]=0;
-            len--;
         }
 
         /* Detect multi-line */
@@ -334,7 +389,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
             break;
 
             case LINE_VALUE:
-            _store_values(settings,section,key,val);
+            _set_config_value(settings,section,key,val);
             //printf("%s:%s=>%s\n",section,key,val);
             //sprintf(tmp, "%s:%s", section, key);
             //errs = dictionary_set(dict, tmp, val) ;
@@ -353,7 +408,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         memset(line, 0, MAX_LINE);
         last=0;
         if (errs<0) {
-            fprintf(stderr, "iniparser: memory allocation failure\n");
+            fprintf(stderr, "memory allocation failure\n");
             break ;
         }
     }
@@ -362,9 +417,43 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         TRACE(TRACE_ERR,"failed to close config file: %s (%d)",strerror(errno), errno);
 
     // check defaults
-    if ((*settings)->queue_dir == NULL)
+    if ((*settings)->queue_dir == NULL) {
         (*settings)->queue_dir = strdup("/var/spool/spmfilter");
+        TRACE(TRACE_DEBUG,"config value queue_dir not set, using default");
+    }
 
+    if ((*settings)->nexthop == NULL) {
+        TRACE(TRACE_ERR,"config value nexthop not set");
+        return -1;
+    }
+
+    if ((*settings)->engine == NULL) {
+        TRACE(TRACE_ERR,"config value engine not set");
+        return -1;
+    }
+
+    if ((*settings)->backend_connection == NULL) {
+        (*settings)->backend_connection = strdup("failover");
+        TRACE(TRACE_DEBUG,"config value backend_connection not set, using default");
+    }
+
+    TRACE(TRACE_DEBUG, "settings->queue_dir: [%s]", (*settings)->queue_dir);
+    TRACE(TRACE_DEBUG, "settings->engine: [%s]", (*settings)->engine);
+    elem = smf_list_head((*settings)->modules);
+    while(elem != NULL) {
+        s = (char *)smf_list_data(elem);
+        TRACE(TRACE_DEBUG, "settings->modules: [%s]", s);
+        elem = elem->next;
+    }
+    TRACE(TRACE_DEBUG, "settings->module_fail [%d]",(*settings)->module_fail);
+    TRACE(TRACE_DEBUG, "settings->nexthop: [%s]", (*settings)->nexthop);
+    TRACE(TRACE_DEBUG, "settings->backend: [%s]", (*settings)->backend);
+    TRACE(TRACE_DEBUG, "settings->backend_connection: [%s]", (*settings)->backend_connection);
+    TRACE(TRACE_DEBUG, "settings->add_header: [%d]", (*settings)->add_header);
+    TRACE(TRACE_DEBUG, "settings->max_size: [%d]", (*settings)->max_size);
+    TRACE(TRACE_DEBUG, "settings->tls: [%d]", (*settings)->tls);
+    TRACE(TRACE_DEBUG, "settings->tls_pass: [%s]", (*settings)->tls_pass);
+    TRACE(TRACE_DEBUG, "settings->lib_dir: [%s]", (*settings)->lib_dir);
 
     return 0;
 #if 0
@@ -802,14 +891,16 @@ char *smf_settings_get_nexthop_fail_msg(SMFSettings_T *settings) {
     return settings->nexthop_fail_msg;
 }
 
-int smf_settings_add_backend(SMFSettings_T *settings, char *backend) {
+void smf_settings_set_backend(SMFSettings_T *settings, char *backend) {
     assert(settings);
     assert(backend);
 
-    return smf_list_append(settings->backend, (void *)backend);
+    if (settings->backend != NULL) free(settings->backend);
+        
+    settings->backend = strdup(backend);
 }
 
-SMFList_T *smf_settings_get_backend(SMFSettings_T *settings) {
+char *smf_settings_get_backend(SMFSettings_T *settings) {
     assert(settings);
     return settings->backend;
 }
