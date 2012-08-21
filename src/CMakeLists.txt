@@ -8,6 +8,7 @@ set(LIB_SMF_SRC
 	smf_dict.c
 	smf_envelope.c
 	smf_header.c
+	smf_internal.c
 	smf_list.c
 #	smf_lookup.c
 	smf_lookup_result.c
