@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <glib.h>
 #include <db.h>
 #include <glib/gprintf.h>
 #include <assert.h>
@@ -26,6 +25,8 @@
 #include "../src/smf_lookup_private.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
+#include "../src/smf_dict.h"
+#include "../src/smf_internal.h"
 
 
 /*
@@ -42,7 +43,6 @@ CREATE TABLE `test_lookup_sql_table` (
 INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 */
 
-
 #define SQL_HOST1   "localhost"
 #define SQL_HOST2   "localhost"
 #define SQL_DRIVER  "mysql"
@@ -54,64 +54,47 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 #define SQL_QUERY   "SELECT data FROM test_lookup_sql_table LIMIT 1"
 #define SQL_QUERY_RESULT_STRING "LoremIpsumDolorSitAmet"
 
+
 int main (int argc, char const *argv[]) {
-    int i;
-    char *sql_driver = SQL_DRIVER;
-    char *sql_user = SQL_USER;
-    char *sql_pass = SQL_PASS;
-    char *sql_query = SQL_QUERY;
-    char *sql_name = SQL_NAME;
-    char *sql_backend_conn = SQL_BACKEND_CONN;
-    char **sql_host = (char**)g_malloc(3*sizeof(char*));
+	int i;
+	char *sql_driver = SQL_DRIVER;
+	char *sql_user = SQL_USER;
+	char *sql_pass = SQL_PASS;
+	char *sql_query = SQL_QUERY;
+	char *sql_name = SQL_NAME;
+	char *sql_backend_conn = SQL_BACKEND_CONN;
+	char *host1 = strdup(SQL_HOST1);
+	char *host2 = strdup(SQL_HOST2);
+   
+	SMFList_T *result = NULL;
+	SMFListElem_T *e = NULL;
+	SMFSettings_T *settings = smf_settings_new();
+	SMFDict_T *d = NULL;
 
-    sql_host[0] = g_strdup(SQL_HOST1);
-    sql_host[1] = g_strdup(SQL_HOST2);
-    sql_host[2] = '\0';
+	smf_settings_add_sql_host(settings, host1);
+	smf_settings_add_sql_host(settings, host2);
+	smf_settings_set_sql_driver(settings, sql_driver);
+	smf_settings_set_sql_port(settings, SQL_PORT);
+	smf_settings_set_sql_user(settings, sql_user);
+	smf_settings_set_sql_pass(settings, sql_pass);
+	smf_settings_set_sql_name(settings, sql_name);
+	smf_settings_set_sql_max_connections(settings, 5);
+	smf_settings_set_sql_user_query(settings, sql_query);
+	smf_settings_set_backend_connection(settings, sql_backend_conn);
+	smf_lookup_sql_connect(settings);
+	result = smf_lookup_sql_query(sql_query);
 
-    
-    SMFLookupResult_T *result = NULL;
-    SMFSettings_T *settings = smf_settings_new();
+	e = smf_list_head(result);
+	while(e != NULL) {
+		d = (SMFDict_T *)smf_list_data(e);
+		printf("[%s]",smf_dict_get(d,"data"));
+		e = e->next;
+	}
 
-    smf_settings_set_sql_host(settings, sql_host);
-    smf_settings_set_sql_driver(settings, sql_driver);
-    smf_settings_set_sql_port(settings, SQL_PORT);
-    smf_settings_set_sql_user(settings, sql_user);
-    smf_settings_set_sql_pass(settings, sql_pass);
-    smf_settings_set_sql_name(settings, sql_name);
-    smf_settings_set_sql_max_connections(settings, 5);
-    smf_settings_set_sql_user_query(settings, sql_query);
-    smf_settings_set_backend_connection(settings, sql_backend_conn);
-    smf_lookup_sql_connect(settings);
+	smf_list_free(result);
+	smf_lookup_sql_disconnect();
+	smf_settings_free(settings);
 
-    result = smf_lookup_sql_query(sql_query);
-    char *bla = NULL;
-
-    
-    if(result != NULL) {
-        if(result->len > 0) {
-            for(i=0; i < result->len; i++) {
-                 SMFLookupElement_T *elem = smf_lookup_result_index(result,i);
-                 bla = (char *) smf_lookup_element_get(elem, "data");
-                 printf("RES:[%p], RES[%s]\n", bla, bla);
-                 //assert(strcmp((char *)data,SQL_QUERY_RESULT_STRING)==0);
-            }
-        }
-    }
-    
-    
-    smf_lookup_result_free(result);
-    smf_lookup_sql_disconnect();
-    smf_settings_free(settings);
-
-    if(sql_host[0] != NULL)
-        free(sql_host[0]);
-
-    if(sql_host[1] != NULL)
-        free(sql_host[1]);
-
-    if(sql_host != NULL)
-        g_free(sql_host);
-
-    return 0;
+	return 0;
 }
 

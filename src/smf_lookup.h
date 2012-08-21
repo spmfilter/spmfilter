@@ -21,7 +21,7 @@
  * @brief spmfilter lookup functions
  */
 #include "smf_settings.h"
-
+#include "smf_list.h"
 
 
 #ifndef _SMF_LOOKUP_H
@@ -123,9 +123,9 @@ int smf_lookup_sql_connect(SMFSettings_T *settings);
  * @fn *smf_lookup_sql_query (const char *q, ...);
  * @brief Query SQL server with given query string
  * @param q format string for sql query for sql query
- * @returns SMFLookupResult_T
+ * @returns SMFList_T or NULL
  */
-SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...);
+SMFList_T *smf_lookup_sql_query(const char *q, ...);
 
 /*!
  * @fn int smf_lookup_ldap_connect(char *ldap_uri);
