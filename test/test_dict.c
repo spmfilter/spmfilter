@@ -25,6 +25,16 @@
 
 #include "test.h"
 
+int iter_ok = 0;
+
+void _iter_test(char *key, char *value, void *args) {
+    if ((strcmp(key,test_header_name)==0)||(strcmp(key,test_header_value)==0)) {
+        if (strcmp(value,test_header_value)==0) {
+            iter_ok++;
+        }
+    }
+}
+
 int main(int argc, char const *argv[]) {
     SMFDict_T *dict = NULL;
     SMFList_T *l = NULL;
@@ -83,6 +93,15 @@ int main(int argc, char const *argv[]) {
         return -1;
     }
     printf("passed\n");
+
+    printf("* testing smf_dict_map()...\t\t\t");
+    smf_dict_map(dict,_iter_test,NULL);
+    if (iter_ok==2)
+        printf("passed\n");
+    else {
+        printf("failed\n");
+        return -1;
+    }
 
     printf("* testing smf_dict_remove()...\t\t\t");
     smf_dict_remove(dict,test_header_value);
