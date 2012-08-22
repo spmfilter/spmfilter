@@ -41,7 +41,7 @@ module_fail = 3
 
 # Define lookup backend, this can be either  sql  or  ldap.  Every backend 
 # has it's own config section, [sql] and [ldap].
-backend=sql
+backend=
   
 # If  there  are multiple server configured in the specified backend, it's  
 # possible  to  define  a  failover  or  load-balancing behaviour. 
@@ -82,7 +82,7 @@ nexthop_fail_code = 451
 nexthop_fail_msg = Requested action aborted: local error in processing
 
 
-[sql]
+#[sql]
 
 # SQL database driver. Supported drivers are mysql, pgsql, sqlite.
 driver = mysql
@@ -100,8 +100,11 @@ name = test
 # Database password.
 #pass =
 
+# Maximum number of connections to database server
 #max_connections = 10
-#port = 3306
+
+# Database port
+#port = 
 
 # If you store user information within a SQL database in your net-
 # work  infrastructure,  you can configure spmfilter to query your
@@ -120,6 +123,9 @@ name = test
 # localhost if LDAP server is on the same host as spmfilter.
 #host =
 
+# LDAP Port
+# port = 389
+
 # Bind DN of LDAP user
 #binddn =
 
@@ -127,7 +133,10 @@ name = test
 #bindpw =
 
 # Base DN (distinguishing name) for the LDAP server.
-#base =
+#base = 
+
+# LDAP search scope, either subtree, onelevel or base.
+# scope = subtree
 
 # If you store user information within a LDAP  directory  in  your
 # network  infrastructure,  you  can  configure spmfilter to query
@@ -140,3 +149,6 @@ name = test
 #   %d = replaced by the domain part of the email address.
 #user_query = (mail=%s)
 
+[smtpd]
+250=sfasfaf sdfsadfsa
+456= dgadgdagg

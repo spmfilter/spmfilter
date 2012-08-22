@@ -19,17 +19,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../src/smf_trace.h"
+#include "../src/smf_list.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
 
+#include "test.h"
+#if 0
 #define TEST_ENGINE "smtpd"
 #define TEST_STRING_1 "String1"
 #define TEST_STRING_2 "String2"
 #define TEST_CONFIG_FILE "test_settings"
 #define TEST_QUEUE_DIR "/tmp"
-#define TEST_MODULE_1 "clamav"
-#define TEST_MODULE_2 "spamassassin"
 #define TEST_NEXTHOP "localhost:10025"
 #define TEST_FAIL_MSG "processing aborted"
 #define TEST_BACKEND_CONN "failover"
@@ -45,14 +45,13 @@
 #define TEST_LDAP_QUERY "(objectClass=*)"
 
 #define THIS_MODULE "bla"
+#endif
 
 int main (int argc, char const *argv[]) {
     SMFSettings_T *settings = NULL;
     SMFSettingsGroup_T *test_group = NULL;
     char *s = NULL;
-    char **sl = NULL;
-    char **sl2 = NULL;
-    int sl_length = 0;
+    SMFList_T *list = NULL;
 
     printf("Start SMFSettings_T tests...\n");
     printf("* testing smf_settings_new()...\t\t\t\t");
@@ -72,78 +71,80 @@ int main (int argc, char const *argv[]) {
         return -1;
     } else 
         printf("passed\n");
-#if 0
+
     printf("* testing smf_settings_set_debug()...\t\t\t");
-    if (smf_settings_set_debug(settings,0) != smf_settings_get_debug(settings)) {
+    if (smf_settings_set_debug(settings,0) != 0) {
         printf("failed\n");
         return -1;
     } else {
-        if (smf_settings_set_debug(settings,3) != -1) {
-            printf("failed\n");
-            return -1;
-        } else {
-            printf("passed\n");
-        }
+        printf("passed\n");
     }
 
     printf("* testing smf_settings_set_config_file()...\t\t");
-    if (smf_settings_set_config_file(settings,TEST_CONFIG_FILE) != 0) {
-        printf("1failed\n");
+    if (smf_settings_set_config_file(settings,test_config_file) != 0) {
+        printf("failed\n");
         return -1;
-    } else {
-        if (strcmp(smf_settings_get_config_file(settings),TEST_CONFIG_FILE) != 0) {
-            printf("failed\n");
-            return -1;
-        } else {
-            printf("passed\n");
-            smf_settings_set_config_file(settings, "../../spmfilter.conf.sample");
-        }
     }
-    
-    printf("* testing smf_settings_set_queue_dir()...\t\t");
-    if (smf_settings_set_queue_dir(settings, TEST_QUEUE_DIR) != 0) {
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_config_file()...\t\t");
+    if (strcmp(smf_settings_get_config_file(settings),test_config_file) != 0) {
         printf("failed\n");
         return -1;
     } else {
-        if (strcmp(smf_settings_get_queue_dir(settings),TEST_QUEUE_DIR) != 0) {
-            printf("failed\n");
-            return -1;
-        } else {
-            printf("passed\n");
-        }
+        printf("passed\n");
+        smf_settings_set_config_file(settings, "../../spmfilter.conf.sample");
     }
     
+    printf("* testing smf_settings_set_queue_dir()...\t\t");
+    if (smf_settings_set_queue_dir(settings, test_queue_dir) != 0) {
+        printf("failed\n");
+        return -1;
+    } 
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_queue_dir()...\t\t");
+    if (strcmp(smf_settings_get_queue_dir(settings),test_queue_dir) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+    
     printf("* testing smf_settings_set_engine()...\t\t\t");
-    smf_settings_set_engine(settings, TEST_STRING_1);
-    if (strcmp(smf_settings_get_engine(settings),TEST_STRING_1) != 0) {
+    smf_settings_set_engine(settings, test_string);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_engine()...\t\t\t");
+    if (strcmp(smf_settings_get_engine(settings),test_string) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+    
+
+    printf("* testing smf_settings_add_module()...\t\t\t");
+    s = strdup(test_module);
+    if (smf_settings_add_module(settings,s)!=0) {
         printf("failed\n");
         return -1;
     } else {
         printf("passed\n");
     }
 
-#if 0
-    printf("* testing smf_settings_set_modules()...\t\t\t");
-    sl = g_malloc(sizeof(char *) * 3);
-    sl[0] = g_strdup(TEST_STRING_1);
-    sl[1] = g_strdup(TEST_STRING_2);
-    sl[2] = '\0';
-    smf_settings_set_modules(settings, sl);
-    sl2 = smf_settings_get_modules(settings);
-    if (strcmp(sl[0],sl2[0]) != 0) {
-        printf("\nSL: [%s] - [%s]\n",sl[0],sl2[0]);
+    printf("* testing smf_settings_get_modules()...\t\t\t");
+    list = smf_settings_get_modules(settings);
+    if (smf_list_size(list)!=3) {
         printf("failed\n");
         return -1;
-    } else if (strcmp(sl[1],sl2[1]) != 0) {
-        printf("failed\n");
-        return -1;
-    } else {
-        printf("passed\n");
     }
-    g_strfreev(sl);
-#endif  
+    printf("passed\n");
+
+
     printf("* testing smf_settings_set_module_fail()...\t\t");
     smf_settings_set_module_fail(settings,2);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_module_fail()...\t\t");
     if (smf_settings_get_module_fail(settings) == 2) {
         printf("passed\n");
     } else {
@@ -152,149 +153,168 @@ int main (int argc, char const *argv[]) {
     }
     
     printf("* testing smf_settings_set_nexthop()...\t\t\t");
-    smf_settings_set_nexthop(settings, TEST_NEXTHOP);
-    if(strcmp(smf_settings_get_nexthop(settings),TEST_NEXTHOP) != 0) {
+    smf_settings_set_nexthop(settings, test_ip);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_nexthop()...\t\t\t");
+    if(strcmp(smf_settings_get_nexthop(settings),test_ip) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
-    }
+    } 
+    printf("passed\n");
 
     printf("* testing smf_settings_set_nexthop_fail_code()...\t");
     smf_settings_set_nexthop_fail_code(settings, 450);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_nexthop_fail_code()...\t");
     if(smf_settings_get_nexthop_fail_code(settings) != 450) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
       
     printf("* testing smf_settings_set_nexthop_fail_msg()...\t");
-    smf_settings_set_nexthop_fail_msg(settings, TEST_FAIL_MSG);
-    if(strcmp(smf_settings_get_nexthop_fail_msg(settings),TEST_FAIL_MSG) != 0) {
+    smf_settings_set_nexthop_fail_msg(settings, test_string);
+    printf("passed\n");
+    
+    printf("* testing smf_settings_get_nexthop_fail_msg()...\t");
+    if(strcmp(smf_settings_get_nexthop_fail_msg(settings),test_string) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
-    }   
-#if 0  
+    }
+    printf("passed\n");
+       
+
     printf("* testing smf_settings_set_backend()...\t\t\t");
-    sl = g_malloc(sizeof(char *) * 3);
-    sl[0] = g_strdup(TEST_STRING_1);
-    sl[1] = g_strdup(TEST_STRING_2);
-    sl[2] = '\0';
-    smf_settings_set_backend(settings, sl);
-    sl2 = smf_settings_get_backend(settings);
-    if (strcmp(sl[0],sl2[0]) != 0) {
-        printf("\nSL: [%s] - [%s]\n",sl[0],sl2[0]);
+    smf_settings_set_backend(settings,test_backend);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_backend()...\t\t\t");
+    if(strcmp(smf_settings_get_backend(settings),test_backend) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
-    g_strfreev(sl); 
-#endif
+    printf("passed\n");
+
+
     printf("* testing smf_settings_set_backend_connection()...\t");
-    smf_settings_set_backend_connection(settings, TEST_BACKEND_CONN);
-    if(strcmp(smf_settings_get_backend_connection(settings),TEST_BACKEND_CONN) != 0) {
+    smf_settings_set_backend_connection(settings, test_backend_conn);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_backend_connection()...\t");
+    if(strcmp(smf_settings_get_backend_connection(settings),test_backend_conn) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
+    
     
     printf("* testing smf_settings_set_add_header()...\t\t");
     smf_settings_set_add_header(settings, 1);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_add_header()...\t\t");
     if(smf_settings_get_add_header(settings) != 1) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
+    
     
     printf("* testing smf_settings_set_max_size()...\t\t");
     smf_settings_set_max_size(settings, 5000);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_max_size()...\t\t");
     if(smf_settings_get_max_size(settings) != 5000) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_tls()...\t\t\t");
     smf_settings_set_tls(settings, SMF_TLS_REQUIRED);
+    printf("passed\n");
+    
+    printf("* testing smf_settings_get_tls()...\t\t\t");
     if (smf_settings_get_tls(settings) != SMF_TLS_REQUIRED) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
+   
     printf("* testing smf_settings_set_tls_pass()...\t\t");
-    smf_settings_set_tls_pass(settings, TEST_PASS);
-    if(strcmp(smf_settings_get_tls_pass(settings),TEST_PASS) != 0) {
-        printf("failed\n");
-        return -1;
-    } else {
-        printf("passed\n");
-    }
+    smf_settings_set_tls_pass(settings, test_string);
+    printf("passed\n");
 
-    printf("* testing smf_settings_set_lib_dir()...\t\t\t");
-    smf_settings_set_lib_dir(settings, TEST_QUEUE_DIR);
-    if(strcmp(smf_settings_get_lib_dir(settings),TEST_QUEUE_DIR) != 0) {
+    printf("* testing smf_settings_get_tls_pass()...\t\t");
+    if(strcmp(smf_settings_get_tls_pass(settings),test_string) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
+    
+    printf("* testing smf_settings_set_lib_dir()...\t\t\t");
+    smf_settings_set_lib_dir(settings, test_queue_dir);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_lib_dir()...\t\t\t");
+    if(strcmp(smf_settings_get_lib_dir(settings),test_queue_dir) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_daemon()...\t\t\t");
     smf_settings_set_daemon(settings, 1);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_daemon()...\t\t\t");
     if (smf_settings_get_daemon(settings) != 1) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
+   
     printf("* testing smf_settings_set_sql_driver()...\t\t");
-    smf_settings_set_sql_driver(settings, TEST_SQL_DRIVER);
-    if (strcmp(smf_settings_get_sql_driver(settings),TEST_SQL_DRIVER) != 0) {
+    smf_settings_set_sql_driver(settings, test_sql_driver);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_sql_driver()...\t\t");
+    if (strcmp(smf_settings_get_sql_driver(settings),test_sql_driver) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_sql_name()...\t\t");
-    smf_settings_set_sql_name(settings, TEST_SQL_NAME);
-    if (strcmp(smf_settings_get_sql_name(settings),TEST_SQL_NAME) != 0) {
+    smf_settings_set_sql_name(settings, test_sql_name);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_sql_name()...\t\t");
+    if (strcmp(smf_settings_get_sql_name(settings),test_sql_name) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n"); 
+
+    printf("* testing smf_settings_add_sql_host()...\t\t");
+    s = strdup(test_ip);
+    smf_settings_add_sql_host(settings, s);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_sql_hosts()...\t\t");
+    list = smf_settings_get_sql_hosts(settings);
+    if (smf_list_size(list)!=1) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
 #if 0
-    printf("* testing smf_settings_set_sql_host()...\t\t");
-    sl = (char**)g_malloc(2*sizeof(char*));
-    sl[0] = g_strdup(TEST_HOST);
-    sl[1] = '\0';
-    smf_settings_set_sql_host(settings, sl);
-    sl2 = smf_settings_get_sql_host(settings);
-    if (strcmp(sl[0],sl2[0]) != 0) {
-        printf("\nSL: [%s] - [%s]\n",sl[0],sl2[0]);
-        printf("failed\n");
-        return -1;
-    } else {
-        if (smf_settings_get_sql_num_hosts(settings) != 1) {
-            printf("failed\n");
-            return -1;
-        } else {
-            printf("passed\n");
-        }
-    }
-    g_strfreev(sl);
-#endif  
     printf("* testing smf_settings_set_sql_port()...\t\t");
     smf_settings_set_sql_port(settings, 1234);
     if (smf_settings_get_sql_port(settings) != 1234) {
