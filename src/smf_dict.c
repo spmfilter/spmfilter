@@ -221,3 +221,24 @@ SMFList_T *smf_dict_get_keys(SMFDict_T *dict) {
     }
     return l;
 }
+
+void smf_dict_map(SMFDict_T *dict, void(*func)(char *key,char *value, void *args), void *args) {
+    assert(dict);
+    SMFList_T *list = NULL;
+    SMFListElem_T *elem = NULL;
+    char *key = NULL;
+    char *value = NULL;
+
+    assert(dict);
+    
+    list = smf_dict_get_keys(dict);
+    elem = cmime_list_head(list);
+    while(elem != NULL) {
+        key = (char *)smf_list_data(elem);
+        value = smf_dict_get(dict,key);
+        func(key,value,args);
+        elem = elem->next;
+    }
+
+    smf_list_free(list);
+}

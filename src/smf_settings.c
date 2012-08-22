@@ -26,11 +26,6 @@
 #include <assert.h>
 #include <sys/stat.h>
 
-#if 0
-#include <glib.h>
-#include <glib/gstdio.h>
-#endif
-
 #include "smf_trace.h"
 #include "smf_settings.h"
 #include "smf_settings_private.h"
@@ -73,7 +68,7 @@ static line_status _parse_line(
         char *key,
         char *value) {   
     
-    line_status sta ;
+    line_status sta;
     char *line;
     int len;
 
@@ -90,40 +85,32 @@ static line_status _parse_line(
     } else if (line[0]=='[' && line[len-1]==']') {
         /* Section name */
         sscanf(line, "[%[^]]", section);
-        section = smf_core_strstrip(section);
-        section = smf_core_strlwc(section);
         sta = LINE_SECTION ;
-    } else if (sscanf (line, "%[^=] = \"%[^\"]\"", key, value) == 2
-           ||  sscanf (line, "%[^=] = '%[^\']'",   key, value) == 2
-           ||  sscanf (line, "%[^=] = %[^#]",     key, value) == 2) {
-        /* Usual key=value, with or without comments */
-        key = smf_core_strstrip(key);
-        key = smf_core_strlwc(key);
-        value = smf_core_strstrip(value);
-        /*
-         * sscanf cannot handle '' or "" as empty values
+    } else if (sscanf(line, "%[^=] = \"%[^\"]\"", key, value)==2
+           ||  sscanf(line, "%[^=] = '%[^\']'", key, value)==2
+           ||  sscanf(line, "%[^=] = %[^#]", key, value)==2) {
+        /* sscanf cannot handle '' or "" as empty values
          * this is done here
          */
         if (!strcmp(value, "\"\"") || (!strcmp(value, "''"))) {
-            value[0]=0 ;
+            value[0]=0;
         }
         sta = LINE_VALUE ;
     } else if (sscanf(line, "%[^=] = %[;#]", key, value)==2
-           ||  sscanf(line, "%[^=] %[=]", key, value) == 2) {
+           ||  sscanf(line, "%[^=] %[=]", key, value)==2) {
         /*
          * Special cases:
          * key=
          * key=;
          * key=#
          */
-        key = smf_core_strstrip(key);
-        key = smf_core_strlwc(key);
-        value[0]=0 ;
+        value[0]=0;
         sta = LINE_VALUE ;
     } else {
         /* Generate syntax error */
         sta = LINE_ERROR ;
     }
+
     return sta ;
 }
 
@@ -132,95 +119,258 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
     char **p = NULL;
     char *s = NULL;
     int i;
+    char *clean_section = NULL;
+    char *clean_key = NULL;
+    char *clean_val = NULL;
 
     if (val==NULL || strlen(val) == 0)
         return;
 
-    /** [global]debug **/
-    if (strcmp(key,"debug")==0) {
-        (*settings)->debug = _get_boolean(val);
-        configure_debug((*settings)->debug);
-    /** [global]queue_dir **/
-    } else if (strcmp(key,"queue_dir")==0) {
-        if ((*settings)->queue_dir!=NULL)
-            free((*settings)->queue_dir);
+    clean_section = smf_core_strstrip(section);
+    clean_key = smf_core_strstrip(key);
+    clean_val = smf_core_strstrip(val);
 
-        (*settings)->queue_dir = strdup(val);
-    /** [global]modules **/
-    } else if (strcmp(key, "modules")==0) {
-        if (smf_list_size((*settings)->modules) > 0) {
-            if (smf_list_free((*settings)->modules)!=0)
-                TRACE(TRACE_ERR,"failed to free modules list");
-            else 
-                if (smf_list_new(&((*settings)->modules),_string_list_destroy)!=0)
-                    TRACE(TRACE_ERR,"failed to create modules list");
+    /** global section **/
+    if (strcmp(clean_section,"global")==0) {
+        /** [global]debug **/
+        if (strcmp(clean_key,"debug")==0) {
+            (*settings)->debug = _get_boolean(clean_val);
+            configure_debug((*settings)->debug);
+        /** [global]queue_dir **/
+        } else if (strcmp(clean_key,"queue_dir")==0) {
+            if ((*settings)->queue_dir!=NULL)
+                free((*settings)->queue_dir);
+
+            (*settings)->queue_dir = strdup(clean_val);
+        /** [global]modules **/
+        } else if (strcmp(clean_key, "modules")==0) {
+            if (smf_list_size((*settings)->modules) > 0) {
+                if (smf_list_free((*settings)->modules)!=0)
+                    TRACE(TRACE_ERR,"failed to free modules list");
+                else 
+                    if (smf_list_new(&((*settings)->modules),_string_list_destroy)!=0)
+                        TRACE(TRACE_ERR,"failed to create modules list");
+            }
+            sl = smf_core_strsplit(clean_val, ";");
+            p = sl;
+            while(*p != NULL) {
+                s = smf_core_strstrip(*p);
+                smf_list_append((*settings)->modules, s);
+                p++;
+            }
+            free(sl);
+        /** [global]engine **/
+        } else if (strcmp(clean_key,"engine")==0) {
+            if ((*settings)->engine!=NULL) 
+                free((*settings)->engine);
+
+            (*settings)->engine = strdup(clean_val);
+        /** [global]module_fail **/
+        } else if (strcmp(clean_key,"module_fail")==0) {
+            i = _get_integer(clean_val);
+
+            /** check allowed values... */
+            if (i==1 || i==2 || i==3)
+                (*settings)->module_fail = i;
+        /** [global]nexthop **/
+        } else if (strcmp(clean_key,"nexthop")==0) {
+            if ((*settings)->nexthop!=NULL)
+                free((*settings)->nexthop);
+        
+            (*settings)->nexthop = strdup(clean_val);
+        /** [global]backend **/
+        } else if (strcmp(clean_key,"backend")==0) {
+            if ((*settings)->backend!=NULL)
+                free((*settings)->backend);
+
+            if ((strcmp(clean_val,"sql")==0)||(strcmp(clean_val,"ldap")==0))
+                (*settings)->backend = strdup(clean_val);
+        /** [global]backend_connection **/
+        } else if (strcmp(clean_key,"backend_connection")==0) {
+            if ((*settings)->backend_connection!=NULL) 
+                free((*settings)->backend_connection);
+
+            if ((strcmp(clean_val,"balance")==0)||(strcmp(clean_val,"failover")==0)) 
+                (*settings)->backend_connection = strdup(clean_val);
+        /** [global]add_header **/
+        } else if (strcmp(clean_key,"add_header")==0) {
+            (*settings)->add_header = _get_boolean(clean_val);
+        /** [global]max_size **/
+        } else if (strcmp(clean_key,"max_size")==0) {
+            (*settings)->max_size = _get_integer(clean_val);
+        /** [global]tls_enable **/
+        } else if (strcmp(clean_key,"tls_enable")==0) {
+            i = _get_integer(clean_val);
+            /** check allowed values... */
+            if (i==0 || i==1 || i==2)
+                (*settings)->tls = i;
+        /** [global]tls_pass **/
+        } else if (strcmp(clean_key,"tls_pass")==0) {
+            if ((*settings)->tls_pass!=NULL)
+                free((*settings)->tls_pass);
+        
+            (*settings)->tls_pass = strdup(clean_val);
+        /** [global]lib_dir **/
+        } else if (strcmp(clean_key,"lib_dir")==0) {
+            if ((*settings)->lib_dir!=NULL)
+                free((*settings)->lib_dir);
+        
+            (*settings)->lib_dir = strdup(clean_val);
+        /** [global]daemon **/
+        } else if (strcmp(clean_key,"daemon")==0) {
+            (*settings)->daemon = _get_boolean(clean_val);
         }
-        sl = smf_core_strsplit(val, ";");
-        p = sl;
-        while(*p != NULL) {
-            s = smf_core_strstrip(*p);
-            smf_list_append((*settings)->modules, s);
-            p++;
-        }
-        free(sl);
-    /** [global]engine **/
-    } else if (strcmp(key,"engine")==0) {
-        if ((*settings)->engine!=NULL) 
-            free((*settings)->engine);
-
-        (*settings)->engine = strdup(val);
-    /** [global]module_fail **/
-    } else if (strcmp(key,"module_fail")==0) {
-        i = _get_integer(val);
-
-        /** check allowed values... */
-        if (i==1 || i==2 || i==3)
-            (*settings)->module_fail = i;
-    /** [global]nexthop **/
-    } else if (strcmp(key,"nexthop")==0) {
-        if ((*settings)->nexthop!=NULL)
-            free((*settings)->nexthop);
-    
-        (*settings)->nexthop = strdup(val);
-    /** [global]backend **/
-    } else if (strcmp(key,"backend")==0) {
-        if ((*settings)->backend!=NULL)
-            free((*settings)->backend);
-
-        if ((strcmp(val,"sql")==0)||(strcmp(val,"ldap")==0))
-            (*settings)->backend = strdup(val);
-    /** [global]backend_connection **/
-    } else if (strcmp(key,"backend_connection")==0) {
-        if ((*settings)->backend_connection!=NULL) 
-            free((*settings)->backend_connection);
-
-        if ((strcmp(val,"balance")==0)||(strcmp(val,"failover")==0)) 
-            (*settings)->backend_connection = strdup(val);
-    /** [global]add_header **/
-    } else if (strcmp(key,"add_header")==0) {
-        (*settings)->add_header = _get_boolean(val);
-    /** [global]max_size **/
-    } else if (strcmp(key,"max_size")==0) {
-        (*settings)->max_size = _get_integer(val);
-    /** [global]tls_enable **/
-    } else if (strcmp(key,"tls_enable")==0) {
-        i = _get_integer(val);
-        /** check allowed values... */
-        if (i==0 || i==1 || i==2)
-            (*settings)->tls = i;
-    /** [global]tls_pass **/
-    } else if (strcmp(key,"tls_pass")==0) {
-        if ((*settings)->tls_pass!=NULL)
-            free((*settings)->tls_pass);
-    
-        (*settings)->tls_pass = strdup(val);
-    /** [global]lib_dir **/
-    } else if (strcmp(key,"lib_dir")==0) {
-        if ((*settings)->lib_dir!=NULL)
-            free((*settings)->lib_dir);
-    
-        (*settings)->lib_dir = strdup(val);
     }
+
+    /** sql section **/
+    if (strcmp(clean_section,"sql")==0) {
+        /** [sql]driver **/
+        if (strcmp(clean_key,"driver")==0) {
+            if ((*settings)->sql_driver != NULL)
+                free((*settings)->sql_driver);
+
+            if ((strcmp(clean_val,"mysql")==0)||(strcmp(clean_val,"pgsql")==0)||(strcmp(clean_val,"sqlite")==0))
+                (*settings)->sql_driver = strdup(clean_val);
+        /** [sql]name **/
+        } else if (strcmp(clean_key, "name")==0) {
+            if ((*settings)->sql_name != NULL)
+                free((*settings)->sql_name);
+
+            (*settings)->sql_name = strdup(clean_val);
+        /** [sql]host **/
+        } else if (strcmp(clean_key, "host")==0) {
+            if (smf_list_size((*settings)->sql_host) > 0) {
+                if (smf_list_free((*settings)->sql_host)!=0)
+                    TRACE(TRACE_ERR,"failed to free host list");
+                else 
+                    if (smf_list_new(&((*settings)->sql_host),_string_list_destroy)!=0)
+                        TRACE(TRACE_ERR,"failed to create host list");
+            }
+            sl = smf_core_strsplit(clean_val, ";");
+            p = sl;
+            while(*p != NULL) {
+                s = smf_core_strstrip(*p);
+                smf_list_append((*settings)->sql_host, s);
+                p++;
+            }
+            free(sl); 
+        /** [sql]user **/
+        } else if (strcmp(clean_key, "user")==0) {
+            if ((*settings)->sql_user != NULL)
+                free((*settings)->sql_user);
+
+            (*settings)->sql_user = strdup(clean_val);
+        /** [sql]pass **/
+        } else if (strcmp(clean_key, "pass")==0) {
+            if ((*settings)->sql_pass != NULL)
+                free((*settings)->sql_pass);
+
+            (*settings)->sql_pass = strdup(clean_val);
+        /** [sql]user_query **/
+        } else if (strcmp(clean_key, "user_query")==0) {
+            if ((*settings)->sql_user_query != NULL)
+                free((*settings)->sql_user_query);
+
+            (*settings)->sql_user_query = strdup(clean_val);
+        /** [sql]encoding **/
+        } else if (strcmp(clean_key, "encoding")==0) {
+            if ((*settings)->sql_encoding != NULL)
+                free((*settings)->sql_encoding);
+
+            (*settings)->sql_encoding = strdup(clean_val);
+        /** [sql]max_connections **/
+        } else if (strcmp(clean_key,"max_connections")==0) {
+            (*settings)->sql_max_connections = _get_integer(clean_val);
+        /** [sql]port **/
+        } else if (strcmp(clean_key,"port")==0) {
+            (*settings)->sql_port = _get_integer(clean_val);
+        }
+    }
+
+    /** ldap section **/
+    if (strcmp(clean_section,"ldap")==0) {
+        /** [ldap]uri **/
+        if (strcmp(clean_key, "uri")==0) {
+            if ((*settings)->ldap_uri != NULL)
+                free((*settings)->ldap_uri);
+
+            (*settings)->ldap_uri = strdup(clean_val);
+        /** [ldap]host **/
+        } else if (strcmp(clean_key, "host")==0) {
+            if (smf_list_size((*settings)->ldap_host) > 0) {
+                if (smf_list_free((*settings)->ldap_host)!=0)
+                    TRACE(TRACE_ERR,"failed to free host list");
+                else 
+                    if (smf_list_new(&((*settings)->ldap_host),_string_list_destroy)!=0)
+                        TRACE(TRACE_ERR,"failed to create host list");
+            }
+            sl = smf_core_strsplit(clean_val, ";");
+            p = sl;
+            while(*p != NULL) {
+                s = smf_core_strstrip(*p);
+                smf_list_append((*settings)->ldap_host, s);
+                p++;
+            }
+            free(sl);
+        /** [ldap]port **/
+        } else if (strcmp(clean_key,"port")==0) {
+            (*settings)->ldap_port = _get_integer(clean_val);
+        /** [ldap]binddn **/
+        } else if (strcmp(clean_key, "binddn")==0) {
+            if ((*settings)->ldap_binddn != NULL)
+                free((*settings)->ldap_binddn);
+
+            (*settings)->ldap_binddn = strdup(clean_val);
+        /** [ldap]bindpw **/
+        } else if (strcmp(clean_key, "bindpw")==0) {
+            if ((*settings)->ldap_bindpw != NULL)
+                free((*settings)->ldap_bindpw);
+
+            (*settings)->ldap_bindpw = strdup(clean_val);
+        /** [ldap]base **/
+        } else if (strcmp(clean_key, "base")==0) {
+            if ((*settings)->ldap_base != NULL)
+                free((*settings)->ldap_base);
+
+            (*settings)->ldap_base = strdup(clean_val);
+        /** [ldap]user_query **/
+        } else if (strcmp(clean_key, "user_query")==0) {
+            if ((*settings)->ldap_user_query != NULL)
+                free((*settings)->ldap_user_query);
+
+            (*settings)->ldap_user_query = strdup(clean_val);
+        /** [ldap]scope **/
+        } else if (strcmp(clean_key, "scope")==0) {
+            if ((*settings)->ldap_scope != NULL)
+                free((*settings)->ldap_scope);
+
+            (*settings)->ldap_scope = strdup(clean_val);
+        /** [ldap]referrals **/
+        } else if (strcmp(clean_key,"referrals")==0) {
+            (*settings)->ldap_referrals = _get_boolean(clean_val);
+        }
+    }
+
+    /** smtpd section **/
+    if (strcmp(clean_section,"smtpd")==0) {
+        /** [smtpd]nexthop_fail_msg **/
+        if (strcmp(clean_key, "nexthop_fail_msg")==0) {
+            if ((*settings)->nexthop_fail_msg != NULL)
+                free((*settings)->nexthop_fail_msg);
+
+            (*settings)->nexthop_fail_msg = strdup(clean_val);
+        /** [smtpd]nexthop_fail_code **/
+        } else if (strcmp(clean_key, "nexthop_fail_code")==0) {
+            (*settings)->nexthop_fail_code = _get_integer(clean_val);
+        /** smtp code **/
+        } else {
+            i = _get_integer(clean_key);
+            if (i >= 250 && i < 600) {
+                smf_dict_set((*settings)->smtp_codes,clean_key,clean_val);
+            }
+        }
+    }
+
 }
 
 /* has to be removed */
@@ -281,6 +431,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->sql_max_connections = 3;
     settings->sql_port = 0;
     settings->ldap_connection = NULL;
+    settings->ldap_port = 0;
     
     return settings;
 }
@@ -327,6 +478,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     char section[MAX_LINE+1];
     char key[MAX_LINE+1];
     char val[MAX_LINE+1];
+    SMFList_T *list = NULL;
     SMFListElem_T *elem = NULL;
     char *s = NULL;
     int last=0;
@@ -376,7 +528,6 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         } else {
             last=0;
         }
-
         switch (_parse_line(line, section, key, val)) {
             case LINE_EMPTY:
             case LINE_COMMENT:
@@ -390,6 +541,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
 
             case LINE_VALUE:
             _set_config_value(settings,section,key,val);
+            
+            
             //printf("%s:%s=>%s\n",section,key,val);
             //sprintf(tmp, "%s:%s", section, key);
             //errs = dictionary_set(dict, tmp, val) ;
@@ -406,9 +559,10 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
             break;
         }
         memset(line, 0, MAX_LINE);
+
         last=0;
         if (errs<0) {
-            fprintf(stderr, "memory allocation failure\n");
+            TRACE(TRACE_ERR, "memory allocation failure");
             break ;
         }
     }
@@ -437,6 +591,58 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         TRACE(TRACE_DEBUG,"config value backend_connection not set, using default");
     }
 
+    if ((*settings)->backend != NULL) {
+        /** sql checks **/
+        if (strcmp((*settings)->backend,"sql")==0) {
+            if ((*settings)->sql_driver==NULL) {
+                TRACE(TRACE_ERR, "no database driver set");
+                return -1;
+            }
+            if ((*settings)->sql_name==NULL) {
+                TRACE(TRACE_ERR, "config value sql name not set");
+                return -1;
+            }
+
+            if ((strcmp((*settings)->sql_driver,"mysql")==0)||(strcmp((*settings)->sql_driver,"pgsql")==0)) {
+                if (smf_list_size((*settings)->sql_host)==0){
+                    TRACE(TRACE_ERR, "no sql host set");
+                    return -1;
+                }
+            }
+
+            if (strcmp((*settings)->sql_driver,"mysql")==0) {
+                if ((*settings)->sql_port == 0)
+                    (*settings)->sql_port = 3306;
+            }
+
+            if (strcmp((*settings)->sql_driver,"pgsql")==0) {
+                if ((*settings)->sql_port == 0)
+                    (*settings)->sql_port = 5432;
+            }        
+        }
+
+        /** ldap checks **/
+        if (strcmp((*settings)->backend,"ldap")==0) {
+            if ((*settings)->ldap_port == 0)
+                (*settings)->ldap_port = 389;
+
+            if ((*settings)->ldap_base == NULL) {
+                TRACE(TRACE_ERR, "no ldap search base set");
+                return -1;
+            }
+
+            if ((*settings)->ldap_scope != NULL) {
+                if ((strcmp((*settings)->ldap_scope,"base")!=0)
+                        && (strcmp((*settings)->ldap_scope,"onlevel")!=0)
+                        && (strcmp((*settings)->ldap_scope,"subtree")!=0)) {
+                    TRACE(TRACE_ERR, "invalid ldap search scope");
+                    return -1;
+                }
+            } else
+                (*settings)->ldap_scope = strdup("subtree");
+        }
+    }
+
     TRACE(TRACE_DEBUG, "settings->queue_dir: [%s]", (*settings)->queue_dir);
     TRACE(TRACE_DEBUG, "settings->engine: [%s]", (*settings)->engine);
     elem = smf_list_head((*settings)->modules);
@@ -454,301 +660,65 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->tls: [%d]", (*settings)->tls);
     TRACE(TRACE_DEBUG, "settings->tls_pass: [%s]", (*settings)->tls_pass);
     TRACE(TRACE_DEBUG, "settings->lib_dir: [%s]", (*settings)->lib_dir);
-
-    return 0;
-#if 0
-    GError *error = NULL;
-    GKeyFile *keyfile;
-    gchar **code_keys;
-    gsize modules_length = 0;
-    gsize backend_length = 0;
-    gsize codes_length = 0;
-    gsize sql_num_hosts = 0;
-    gsize ldap_num_hosts = 0;
-    char *code_msg = NULL;
-    int i, code;
-
-    assert(*settings);
-    assert(alternate_file);
-
-    /* fallback to default config path,
-     * if config file is not defined as
-     * command argument */
-    if (alternate_file != NULL) {
-        (*settings)->config_file = g_strdup(alternate_file);
-    } else {
-        (*settings)->config_file = g_strdup("/etc/spmfilter.conf");
-    }
-
-    /* open config file and start parsing */
-    keyfile = g_key_file_new();
-    if (!g_key_file_load_from_file (keyfile, (*settings)->config_file, G_KEY_FILE_NONE, &error)) {
-        TRACE(TRACE_ERR,"Error loading config: %s",error->message);
-        g_error_free(error);
-        return -1;
-    }
-
-    /* parse general settings */
-    (*settings)->debug =  g_key_file_get_boolean(keyfile, "global", "debug", NULL);
-    configure_debug((*settings)->debug);
-    
-    (*settings)->queue_dir = g_key_file_get_string(keyfile, "global", "queue_dir", NULL);
-    if ((*settings)->queue_dir == NULL)
-        (*settings)->queue_dir = g_strdup("/var/spool/spmfilter");
-
-    (*settings)->engine = g_key_file_get_string(keyfile, "global", "engine", &error);
-    if (error != NULL) {
-        TRACE(TRACE_ERR, "config error: %s", error->message);
-        g_error_free(error);
-        return -1;
-    } else 
-        (*settings)->engine = g_strstrip((*settings)->engine);
-        
-    TRACE(TRACE_DEBUG, "settings->engine: %s", (*settings)->engine);
-    
-    (*settings)->modules = g_key_file_get_string_list(keyfile,"global","modules",&modules_length,&error);
-    if (error != NULL) {
-        TRACE(TRACE_ERR, "config error: %s", error->message);
-        g_error_free(error);
-        return -1;
-    }
-
-    (*settings)->module_fail = g_key_file_get_integer(keyfile, "global", "module_fail",NULL);
-
-    (*settings)->nexthop = g_key_file_get_string(keyfile, "global", "nexthop", &error);
-    if (error != NULL) {
-        TRACE(TRACE_ERR, "config error: %s", error->message);
-        g_error_free(error);
-        return -1;
-    }
-
-    (*settings)->backend = g_key_file_get_string_list(keyfile, "global", "backend", &backend_length,NULL);
-    (*settings)->backend_connection = g_key_file_get_string(keyfile,"global","backend_connection",NULL);
-    if ((*settings)->backend_connection == NULL)
-        (*settings)->backend_connection = g_strdup("failover");
-    else {
-        if (strlen((*settings)->backend_connection) > 0) {
-            (*settings)->backend_connection = g_strstrip((*settings)->backend_connection);
-            if ((g_ascii_strcasecmp((*settings)->backend_connection,"balance") != 0) &&
-                    (g_ascii_strcasecmp((*settings)->backend_connection,"failover") != 0)) {
-                TRACE(TRACE_ERR,"invalid backend_connection option");
-                return -1;
-            }
-        }
-    }
-
-    for(i = 0; (*settings)->modules[i] != NULL; i++) {
-        TRACE(TRACE_DEBUG, "settings->modules: %s", (*settings)->modules[i]);
-    }
-    TRACE(TRACE_DEBUG, "settings->module_fail: %d", (*settings)->module_fail);
-    TRACE(TRACE_DEBUG, "settings->nexthop: %s", (*settings)->nexthop);
-    if((*settings)->backend != NULL) {
-        for (i=0; (*settings)->backend[i] != NULL; i++) {
-            TRACE(TRACE_DEBUG,"settings->backend: %s",(*settings)->backend[i]);
-        }
-    }
-    TRACE(TRACE_DEBUG, "settings->backend_connection: %s", (*settings)->backend_connection);
-    
-    if (g_key_file_get_boolean(keyfile, "global", "add_header",&error)) {
-        (*settings)->add_header = 1;
-    } else {
-        if (error != NULL) {
-            if (error->code == G_KEY_FILE_ERROR_KEY_NOT_FOUND) {
-                (*settings)->add_header = 1;
-            }
-            g_error_free(error);
-        } else {
-            (*settings)->add_header = 0;
-        }
-    }
-    TRACE(TRACE_DEBUG, "settings->add_header: %d", (*settings)->add_header);
-
-    (*settings)->max_size = g_key_file_get_integer(keyfile, "global", "max_size",NULL);
-    TRACE(TRACE_DEBUG, "settings->max_size: %d", (*settings)->max_size);
-
-    (*settings)->tls = g_key_file_get_integer(keyfile,"global","tls_enable",NULL);
-    TRACE(TRACE_DEBUG, "settings->tls: %d", (*settings)->tls);
-
-    (*settings)->tls_pass = g_key_file_get_string(keyfile,"global","tls_pass",NULL);
-    TRACE(TRACE_DEBUG, "settings->tls_pass: %s", (*settings)->tls_pass);
-
-    (*settings)->lib_dir = g_key_file_get_string(keyfile,"global","lib_dir",NULL);
-    TRACE(TRACE_DEBUG, "settings->lib_dir: %s", (*settings)->lib_dir);
-
-    (*settings)->daemon = g_key_file_get_boolean(keyfile,"global","daemon",NULL);
-    if ((g_ascii_strcasecmp((*settings)->engine,"pipe") == 0) && ((*settings)->daemon == 1)) {
-        TRACE(TRACE_ERR,"pipe engine can not be used in daemon mode");
-        return -1;
-    } 
-    TRACE(TRACE_DEBUG, "settings->daemon: %d", (*settings)->daemon);
-
-    if (g_key_file_has_group(keyfile,"sql")) {
-        (*settings)->sql_driver = g_key_file_get_string(keyfile, "sql", "driver", NULL);
-        (*settings)->sql_name = g_key_file_get_string(keyfile, "sql", "name", &error);
-        if((*settings)->backend != NULL) {
-            for (i=0; (*settings)->backend[i] != NULL; i++) {
-                if (g_ascii_strcasecmp((*settings)->backend[i],"sql") == 0) {
-                    if ((*settings)->sql_name == NULL) {
-                        TRACE(TRACE_ERR, "config error: %s", error->message);
-                        g_error_free(error);
-                        return -1;
-                    }
-                    break;
-                }
-            }
-        }
-        (*settings)->sql_host = g_key_file_get_string_list(keyfile, "sql", "host", &sql_num_hosts,NULL);
-        (*settings)->sql_num_hosts = sql_num_hosts;
-        (*settings)->sql_port = g_key_file_get_integer(keyfile, "sql", "port", NULL);
-        (*settings)->sql_user = g_key_file_get_string(keyfile, "sql", "user", NULL);
-        (*settings)->sql_pass = g_key_file_get_string(keyfile, "sql", "pass", NULL);
-        (*settings)->sql_user_query = g_key_file_get_string(keyfile, "sql", "user_query", &error);
-        if ((*settings)->sql_user_query == NULL) {
-            TRACE(TRACE_ERR, "config error: %s", error->message);
-            g_error_free(error);
+    if ((*settings)->daemon == 1){
+        if (strcmp((*settings)->engine,"pipe")==0) {
+            TRACE(TRACE_ERR,"pipe engine can not be used in daemon mode");
             return -1;
         }
-
-        (*settings)->sql_encoding = g_key_file_get_string(keyfile, "sql", "encoding", NULL);
-        (*settings)->sql_max_connections = g_key_file_get_integer(keyfile, "sql", "max_connections", NULL);
-
-        TRACE(TRACE_DEBUG, "settings->sql_driver: %s", (*settings)->sql_driver);
-        TRACE(TRACE_DEBUG, "settings->sql_name: %s", (*settings)->sql_name);
-        if ((*settings)->sql_host != NULL) {
-            for(i = 0; (*settings)->sql_host[i] != NULL; i++) {
-                TRACE(TRACE_DEBUG, "settings->sql_host: %s", (*settings)->sql_host[i]);
-            }
-        }
-        TRACE(TRACE_DEBUG, "settings->sql_port: %d", (*settings)->sql_port);
-        TRACE(TRACE_DEBUG, "settings->sql_user: %s", (*settings)->sql_user);
-        TRACE(TRACE_DEBUG, "settings->sql_pass: %s", (*settings)->sql_pass);
-        TRACE(TRACE_DEBUG, "settings->sql_user_query: %s", (*settings)->sql_user_query);
-        TRACE(TRACE_DEBUG, "settings->sql_encoding: %s", (*settings)->sql_encoding);
-        TRACE(TRACE_DEBUG, "settings->sql_max_connections: %d", (*settings)->sql_max_connections);
-    } else {
-        if((*settings)->backend != NULL) {
-            for (i=0; (*settings)->backend[i] != NULL; i++) {
-                if (g_ascii_strcasecmp((*settings)->backend[i],"sql") == 0) {
-                    TRACE(TRACE_ERR,"Can't find settings group sql");
-                    return -1;
-                }
-            }
-        }
     }
+    TRACE(TRACE_DEBUG, "settings->daemon: [%d]", (*settings)->daemon);
 
-    if (g_key_file_has_group(keyfile,"ldap")) {
-        (*settings)->ldap_uri = g_key_file_get_string(keyfile,"ldap","uri",NULL);
-        (*settings)->ldap_host = g_key_file_get_string_list(keyfile, "ldap", "host", &ldap_num_hosts,NULL);
-        (*settings)->ldap_num_hosts = ldap_num_hosts;
-
-        if((*settings)->backend != NULL) {
-            for (i=0; (*settings)->backend[i] != NULL; i++) {
-                if (g_ascii_strcasecmp((*settings)->backend[i],"ldap") == 0) {
-                    if ((*settings)->ldap_uri == NULL && (*settings)->ldap_host == NULL) {
-                        TRACE(TRACE_ERR, "config error: neither ldap uri nor ldap host supplied");
-                        return -1;
-                    }
-                    break;
-                }
-            }
-        }
-        (*settings)->ldap_port = g_key_file_get_integer(keyfile,"ldap","port",NULL);
-        if (!(*settings)->ldap_port)
-            (*settings)->ldap_port = 389;
-        (*settings)->ldap_binddn = g_key_file_get_string(keyfile,"ldap","binddn",NULL);
-        (*settings)->ldap_bindpw = g_key_file_get_string(keyfile,"ldap","bindpw",NULL);
-
-        (*settings)->ldap_base = g_key_file_get_string(keyfile,"ldap","base",&error);
-        if((*settings)->backend != NULL) {
-            for (i=0; (*settings)->backend[i] != NULL; i++) {
-                if ((g_ascii_strcasecmp((*settings)->backend[i],"ldap") == 0) && ((*settings)->ldap_base == NULL)) {
-                    TRACE(TRACE_ERR, "config error: %s", error->message);
-                    g_error_free(error);
-                    return -1;
-                }
-            }
-        }
-
-        (*settings)->ldap_referrals = g_key_file_get_boolean(keyfile, "ldap","referrals",NULL);
-
-        (*settings)->ldap_scope = g_key_file_get_string(keyfile, "ldap", "scope", NULL);
-        if ((*settings)->ldap_scope != NULL && (*settings)->backend != NULL) {
-            for (i=0; (*settings)->backend[i] != NULL; i++) {
-                if (g_ascii_strcasecmp((*settings)->backend[i],"ldap") == 0) {
-                    if ((g_ascii_strcasecmp((*settings)->ldap_scope,"subtree") != 0) &&
-                            (g_ascii_strcasecmp((*settings)->ldap_scope,"onelevel") != 0) &&
-                            (g_ascii_strcasecmp((*settings)->ldap_scope,"base") != 0)) {
-                        TRACE(TRACE_ERR, "invalid ldap scope");
-                        return -1;
-                    }
-                }
-            }
-        } else {
-            (*settings)->ldap_scope = g_strdup("subtree");
-        }
-
-        (*settings)->ldap_user_query = g_key_file_get_string(keyfile, "ldap", "user_query", &error);
-        if ((*settings)->ldap_user_query == NULL) {
-            TRACE(TRACE_ERR, "config error: %s", error->message);
-            g_error_free(error);
-            return -1;
-        }
-
-        TRACE(TRACE_DEBUG, "settings->ldap_uri: %s", (*settings)->ldap_uri);
-        if ((*settings)->ldap_host != NULL) {
-            for(i = 0; (*settings)->ldap_host[i] != NULL; i++) {
-                TRACE(TRACE_DEBUG, "settings->ldap_host: %s", (*settings)->ldap_host[i]);
-            }
-        }
-        TRACE(TRACE_DEBUG, "settings->ldap_port: %d", (*settings)->ldap_port);
-        TRACE(TRACE_DEBUG, "settings->ldap_binddn: %s", (*settings)->ldap_binddn);
-        TRACE(TRACE_DEBUG, "settings->ldap_bindpw: %s", (*settings)->ldap_bindpw);
-        TRACE(TRACE_DEBUG, "settings->ldap_base: %s", (*settings)->ldap_base);
-        TRACE(TRACE_DEBUG, "settings->ldap_referrals: %d", (*settings)->ldap_referrals);
-        TRACE(TRACE_DEBUG, "settings->ldap_scope: %s", (*settings)->ldap_scope);
-        TRACE(TRACE_DEBUG, "settings->ldap_user_query: %s", (*settings)->ldap_user_query);
-    } else {
-        if((*settings)->backend != NULL) {
-            for (i=0; (*settings)->backend[i] != NULL; i++) {
-                if (g_ascii_strcasecmp((*settings)->backend[i],"ldap") == 0) {
-                    TRACE(TRACE_ERR,"Can't find settings group ldap");
-                    return -1;
-                }
-            }
-        }
+    TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
+    TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
+    elem = smf_list_head((*settings)->sql_host);
+    while(elem != NULL) {
+        s = (char *)smf_list_data(elem);
+        TRACE(TRACE_DEBUG, "settings->sql_host: [%s]", s);
+        elem = elem->next;
     }
+    TRACE(TRACE_DEBUG, "settings->sql_user: [%s]", (*settings)->sql_user);
+    TRACE(TRACE_DEBUG, "settings->sql_pass: [%s]", (*settings)->sql_pass);
+    TRACE(TRACE_DEBUG, "settings->sql_user_query: [%s]", (*settings)->sql_user_query);
+    TRACE(TRACE_DEBUG, "settings->encoding: [%s]", (*settings)->sql_encoding);
+    TRACE(TRACE_DEBUG, "settings->max_connections: [%d]", (*settings)->sql_max_connections);
+    TRACE(TRACE_DEBUG, "settings->port: [%d]", (*settings)->sql_port);
+
+    TRACE(TRACE_DEBUG, "settings->ldap_uri: [%s]", (*settings)->ldap_uri);
+    elem = smf_list_head((*settings)->ldap_host);
+    while(elem != NULL) {
+        s = (char *)smf_list_data(elem);
+        TRACE(TRACE_DEBUG, "settings->ldap_host: [%s]", s);
+        elem = elem->next;
+    }
+    TRACE(TRACE_DEBUG, "settings->ldap_port: [%d]", (*settings)->ldap_port);
+    TRACE(TRACE_DEBUG, "settings->ldap_binddn: [%s]", (*settings)->ldap_binddn);
+    TRACE(TRACE_DEBUG, "settings->ldap_bindpw: [%s]", (*settings)->ldap_bindpw);
+    TRACE(TRACE_DEBUG, "settings->ldap_base: [%s]", (*settings)->ldap_base);
+    TRACE(TRACE_DEBUG, "settings->ldap_user_query: [%s]", (*settings)->ldap_user_query);
+    TRACE(TRACE_DEBUG, "settings->ldap_scope: [%s]", (*settings)->ldap_scope);
+    TRACE(TRACE_DEBUG, "settings->ldap_referrals: [%d]", (*settings)->ldap_referrals);
+
+    /** smtpd checks **/
+    if ((*settings)->nexthop_fail_msg == NULL)
+        (*settings)->nexthop_fail_msg = strdup("Requested action aborted: local error in processing");
+
+    TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: [%d]", (*settings)->nexthop_fail_code);
+    TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: [%s]", (*settings)->nexthop_fail_msg);
     
-    /* smtpd group */
-    (*settings)->nexthop_fail_code = g_key_file_get_integer(keyfile, "smtpd", "nexthop_fail_code", NULL);
-
-    (*settings)->nexthop_fail_msg = g_key_file_get_string(keyfile, "smtpd", "nexthop_fail_msg", NULL);
-    if ((*settings)->nexthop_fail_msg == NULL) {
-        /* nexthop_fail_msg not configured, now we use default vaules */
-        (*settings)->nexthop_fail_msg = g_strdup("Requested action aborted: local error in processing");
+    list = smf_dict_get_keys((*settings)->smtp_codes);
+    elem = smf_list_head(list);
+    while(elem != NULL) {
+        s = (char *)smf_list_data(elem);
+        TRACE(TRACE_DEBUG, "settings->smtp_codes: append %s=%s",s,smf_dict_get((*settings)->smtp_codes,s));
+        elem = elem->next;
     }
-
-    TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: %d", (*settings)->nexthop_fail_code);
-    TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: %s", (*settings)->nexthop_fail_msg);
-
-    code_keys = g_key_file_get_keys(keyfile,"smtpd",&codes_length,NULL);
-    while (codes_length--) {
-        /* only insert smtp codes to hashtable */
-        code = g_ascii_strtod(code_keys[codes_length],NULL);
-        if ((code > 400) && (code < 600)) {
-            code_msg = g_key_file_get_string(keyfile, "smtpd", code_keys[codes_length],NULL);
-            smf_settings_set_smtp_code((*settings),code,code_msg);
-            TRACE(TRACE_DEBUG,"settings->smtp_codes: append %d=%s",code,smf_settings_get_smtp_code((*settings),code));
-            g_free(code_msg);
-        }
-    }
-    g_strfreev(code_keys);
-    g_key_file_free(keyfile);
-#endif 
+    smf_list_free(list);
     return 0;
 }
 
 int smf_settings_set_debug(SMFSettings_T *settings, int debug) {
     assert(settings);
+
     if ((debug != 0) && (debug != 1)) {
         TRACE(TRACE_ERR,"debug setting must be either 0 or 1");
         return -1;
@@ -1050,7 +1020,7 @@ int smf_settings_add_sql_host(SMFSettings_T *settings, char *host) {
     return smf_list_append(settings->sql_host,(void *)host);
 }
 
-SMFList_T *smf_settings_get_sql_host(SMFSettings_T *settings) {
+SMFList_T *smf_settings_get_sql_hosts(SMFSettings_T *settings) {
     assert(settings);
     return settings->sql_host;
 }
@@ -1152,7 +1122,7 @@ int smf_settings_add_ldap_host(SMFSettings_T *settings, char *host) {
     return smf_list_append(settings->ldap_host, (void *)host);
 }
 
-SMFList_T *smf_settings_get_ldap_host(SMFSettings_T *settings) {
+SMFList_T *smf_settings_get_ldap_hosts(SMFSettings_T *settings) {
     assert(settings);
     return settings->ldap_host;
 }
