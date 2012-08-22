@@ -101,9 +101,12 @@ int smf_core_valid_address(const char *addr);
 
 /**
  * @fn char *smf_core_strstrip(char *s)
- * @brief Remove blanks at the beginning and the end of a string.
+ * @brief Removes leading and trailing whitespace from a string.
+ * This function doesn't allocate or reallocate any memory; it 
+ * modifies string in place. The pointer to string is returned 
+ * to allow the nesting of functions.
  * @param s String to parse.
- * @return ptr to string.
+ * @return a newly allocated copy of input string
  */
 char *smf_core_strstrip(char *s); 
 

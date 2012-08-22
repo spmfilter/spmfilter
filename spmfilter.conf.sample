@@ -82,23 +82,26 @@ nexthop_fail_code = 451
 nexthop_fail_msg = Requested action aborted: local error in processing
 
 
-#[sql]
+[sql]
 
 # SQL database driver. Supported drivers are mysql, pgsql, sqlite.
-#driver =
+driver = mysql
 
 # List of available database hosts, separated by a semicolon.  Set to 
 # localhost if database is on the same host as spmfilter.
-#host =
+host =  127.0.0.1 ; db.treibsand.com 
 
 # Database name, or path to database if driver is set to sqlite.
-#name =
+name = test
 
 # Database username.
 #user =
 
 # Database password.
 #pass =
+
+#max_connections = 10
+#port = 3306
 
 # If you store user information within a SQL database in your net-
 # work  infrastructure,  you can configure spmfilter to query your
