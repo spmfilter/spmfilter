@@ -191,21 +191,16 @@ int smf_core_valid_address(const char *addr) {
 }
 
 char *smf_core_strstrip(char *s) {
-    assert(s);
-
-    char * e = s + strlen(s) - 1;
-    while(*s && isspace(*s)) s++;
-    while(e > s && isspace(*e)) *e-- = '\0';
-/*
-    while(*it) {
-        if (isspace(*it)!=0) 
-            t[pos++] = *it;
-        it++;
+    int start, end = strlen(s);
+    for (start = 0; s[start] && isspace(s[start]); ++start) {}
+    if (s[start]) {
+        while (end > 0 && isspace(s[end-1]))
+            --end;
     }
-
-    t[pos] = '\0';
-    */
-    return(s);
+    memmove(s, &s[start], end - start);
+    s[end - start] = '\0';
+    
+    return s;
 }
 
 
