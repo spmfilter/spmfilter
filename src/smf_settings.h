@@ -470,12 +470,12 @@ char *smf_settings_get_sql_name(SMFSettings_T *settings);
 int smf_settings_add_sql_host(SMFSettings_T *settings, char *host);
 
 /*!
- * @fn SMFList_T *smf_settings_get_sql_host(SMFSettings_T *settings)
+ * @fn SMFList_T *smf_settings_get_sql_hosts(SMFSettings_T *settings)
  * @brief Get SQL host(s)
  * @param settings a SMFSettings_T object
  * @returns sql_host list
  */
-SMFList_T *smf_settings_get_sql_host(SMFSettings_T *settings);
+SMFList_T *smf_settings_get_sql_hosts(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_sql_port(SMFSettings_T *settings, int port)
@@ -599,12 +599,12 @@ char *smf_settings_get_ldap_uri(SMFSettings_T *settings);
 int smf_settings_add_ldap_host(SMFSettings_T *settings, char *host);
 
 /*!
- * @fn SMFList_T *smf_settings_get_ldap_host(SMFSettings_T *settings)
+ * @fn SMFList_T *smf_settings_get_ldap_hosts(SMFSettings_T *settings)
  * @brief Get LDAP host(s)
  * @param settings a SMFSettings_T object
  * @returns ldap host list
  */
-SMFList_T *smf_settings_get_ldap_host(SMFSettings_T *settings);
+SMFList_T *smf_settings_get_ldap_hosts(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_ldap_port(SMFSettings_T *settings, int port)

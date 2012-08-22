@@ -90,6 +90,15 @@ void smf_dict_remove(SMFDict_T *dict, const char * key);
  */
 SMFList_T *smf_dict_get_keys(SMFDict_T *dict);
 
+/*! 
+ * @fn void smf_dict_map(SMFDict_T *dict, void(*func)(char *key,char *value, void *args), void *args)
+ * @brief Iterates over dict and calls function for every key/value pair  
+ * @param dict a SMFDict_T object
+ * @param func function to call for each element
+ * @param args optional arguments for function pointer
+ */
+void smf_dict_map(SMFDict_T *dict, void(*func)(char *key,char *value, void *args), void *args);
+
 /*!
  * @def smf_dict_count(dict)
  * @return number of elemtents in a SMFDict_T 
