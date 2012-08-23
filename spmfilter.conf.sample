@@ -148,7 +148,3 @@ name = test
 #   %u = replaced by the local part of the email address.
 #   %d = replaced by the domain part of the email address.
 #user_query = (mail=%s)
-
-[smtpd]
-250=sfasfaf sdfsadfsa
-456= dgadgdagg
