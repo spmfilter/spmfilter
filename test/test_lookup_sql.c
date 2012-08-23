@@ -86,7 +86,7 @@ int main (int argc, char const *argv[]) {
 
 
 	if(smf_lookup_sql_connect(settings) == 0) {
-		result = smf_lookup_sql_query(sql_query);
+		result = smf_lookup_sql_query(settings,sql_query);
 
 
 		e = smf_list_head(result);
