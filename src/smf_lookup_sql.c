@@ -248,10 +248,7 @@ static void sql_fallback_handler(SMFSettings_T *settings, const char *error) {
 }
 */
 
-/** Connect to sql server
- *
- * \returns 0 on success or -1 in case of error
- */
+
 int smf_lookup_sql_connect(SMFSettings_T *settings) {
 	assert(settings);
 
@@ -282,23 +279,30 @@ int smf_lookup_sql_connect(SMFSettings_T *settings) {
 
 int smf_lookup_sql_connect_fallback(SMFSettings_T *settings) {
 	assert(settings);
-	char *dsn = NULL;
+
 	SMFList_T *l = NULL;
 	SMFListElem_T *e = NULL;
+	char *dsn=NULL;
 
 	if (g_ascii_strcasecmp(settings->sql_driver,"sqlite") != 0) {
 		l = smf_settings_get_sql_hosts(settings);
 		e = smf_list_head(l);
 
 		while(e != NULL) {
-			printf("[%s]", (char *)smf_list_data(e));
+			if(strcasecmp(smf_settings_get_active_lookup_host(settings), 
+			(char *)smf_list_data(e)) != 0) {
+					dsn = sql_get_dsn(settings, (char *)smf_list_data(e));
+					smf_settings_set_active_lookup_host(settings, (char *)smf_list_data(e));
+			}
 			e = e->next;
 		}
 	}
-	return 0;
+	smf_lookup_sql_disconnect();
+	if(sql_start_pool(settings,dsn) != 0)
+		return -1;
+	else
+		return 0;
 }
-
-
 
 /** Get open connection from connection pool
  *
@@ -332,7 +336,7 @@ Connection_T sql_con_get(void) {
 
 
 
-SMFList_T *smf_lookup_sql_query(const char *q, ...) {	
+SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {	
 	Connection_T c; 
 	ResultSet_T r;
 	SMFList_T *result;
@@ -355,12 +359,13 @@ SMFList_T *smf_lookup_sql_query(const char *q, ...) {
  } else {
  	c = sql_con_get();
 		TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-			
-		if(Connection_ping(c) != 1) {
+		
+		if(Connection_ping(c) == 0) {
 			smf_lookup_sql_connect_fallback(settings);
+			c = sql_con_get();
 		}
+
 		TRY
-			// hier den ping rein, wenn ping failed, connection an den anderen
 			r = Connection_executeQuery(c, query,NULL);
 		CATCH(SQLException)
 			TRACE(TRACE_ERR,"got SQLException");
