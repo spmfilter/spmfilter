@@ -48,13 +48,10 @@ URL_T url = NULL;
 void sql_abort_handler(const char *error);
 int sql_start_pool(SMFSettings_T *settings, char *dsn);
 
-//int active_server = -1;
-
 void _sql_result_list_destroy(void *data) {
     assert(data);
     smf_dict_free((SMFDict_T *)data);
 }
-
 
 /** Disconnect from sql server and destroy connection pool */
 void smf_lookup_sql_disconnect(void) {
@@ -91,20 +88,17 @@ char *sql_get_rand_host(SMFSettings_T *settings) {
 
 	while(e != NULL) {     
  	count++;
-  if(count == random) {
+  if(count != random) {
+  		printf("chosen[%s]", (char *)smf_list_data(e));
   		return (char *)smf_list_data(e);
   }
 		e = e->next;
 	}
 
+	return NULL;
 }
 
-/** Build a DSN string
- *
- * \param host to connect
- *
- * \returns dsn string
- */
+
 char *sql_get_dsn(SMFSettings_T *settings, char *host) {
 	assert(settings);
 
@@ -214,46 +208,10 @@ void sql_abort_handler(const char *error) {
 }
 
 
-
-/** Fallback function if connection dies or server is not available.
- *  If more than one server is configured, try to establish a connection
- *  to one of the remaining server.
- *
- * \param error exception message
- */
- /*
-static void sql_fallback_handler(SMFSettings_T *settings, const char *error) {
-	SMFListElem_T *e = NULL;
-
-	char *dsn;
-	TRACE(TRACE_ERR, "%s", error);
-	printf("ERROR: [%s]", error);
-
-	if (active_server == -1)
-		active_server = 0;
-	else if (active_server < (smf_list_size(settings->sql_host) - 1))
-		active_server++;
-	else {
-		TRACE(TRACE_CRIT,"no sql server available");
-		exit(1);
-	}
-	
-	TRACE(TRACE_WARNING,"trying sql failover connection to [%s]", settings->sql_host[active_server]);
-
-	e = smf_list_head(settings->sql_host);
-	dsn = sql_get_dsn(settings, (char *)smf_list_data(e));
-	//dsn = sql_get_dsn(settings, settings->sql_host[active_server]);
-	smf_lookup_sql_disconnect();
-	sql_start_pool(settings,dsn);
-}
-*/
-
-
 int smf_lookup_sql_connect(SMFSettings_T *settings) {
 	assert(settings);
 
 	char *dsn = NULL;
-
 	/* try to get a random host if backend_connection is set to "balance"
 	 * and the database driver is not sqlite */
 	if ((g_ascii_strcasecmp(settings->backend_connection,"balance") == 0) &&
@@ -268,14 +226,12 @@ int smf_lookup_sql_connect(SMFSettings_T *settings) {
 		} else {
 			dsn = sql_get_dsn(settings, NULL);
 		}
-		//active_server = 0;
 	}
 	if(sql_start_pool(settings,dsn) != 0)
 		return -1;
 	else
 		return 0;
 }
-
 
 int smf_lookup_sql_connect_fallback(SMFSettings_T *settings) {
 	assert(settings);
@@ -398,58 +354,6 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {
  sql_con_close(c);
  return result;
 }
-
-
-/*
-SMFLookupResult_T *smf_lookup_sql_query(const char *q, ...) {
-	Connection_T c; 
-	ResultSet_T r;
-	SMFLookupResult_T *result = smf_lookup_result_new();
-	va_list ap, cp;
-	char *query;
-	int i;
-
-	va_start(ap, q);
-	va_copy(cp, ap);
-	query = g_strdup_vprintf(q, cp);
-	va_end(cp);
-	g_strstrip(query);
-
-	if (strlen(query) == 0)
-		return NULL;
-	
-	c = sql_con_get();
-	TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-	TRY
-		r = Connection_executeQuery(c, query,NULL);
-	CATCH(SQLException)
-		TRACE(TRACE_ERR,"got SQLException");
-		return NULL;
-	END_TRY;
-
-	while (ResultSet_next(r)) {
-		SMFLookupElement_T *e = smf_lookup_element_new();
-			
-		for (i=1; i <= ResultSet_getColumnCount(r); i++) {
-			int blob_size = 0;
-			char *c = (char *)ResultSet_getColumnName(r,i);	
-			char *col_name = NULL;
-			col_name = g_strdup(c);
-			int col_size = ResultSet_getColumnSize(r,i);
-			const void *data = ResultSet_getBlob(r, i, &blob_size);
-			smf_lookup_element_add(e,col_name,data);
-			g_free(col_name);
-		}
-
-		smf_lookup_result_add(result,e);
-	}
-	TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->len);
-
-	g_free(query);
-	sql_con_close(c);
-	return result;
-}
-*/
 
 /** Check if given user exists in database
  *
