@@ -69,7 +69,6 @@ int smf_dict_set(SMFDict_T *dict, const char * key, const char * val);
  * @brief Get a value from a dictionary.
  * @param dict a SMFDict_T object
  * @param key Key to look for in the dictionary.
- * @param def Default value to return if key not found.
  * @return value of key
  */
 char *smf_dict_get(SMFDict_T *dict, const char * key);

@@ -24,32 +24,9 @@
 #include "../src/smf_settings_private.h"
 
 #include "test.h"
-#if 0
-#define TEST_ENGINE "smtpd"
-#define TEST_STRING_1 "String1"
-#define TEST_STRING_2 "String2"
-#define TEST_CONFIG_FILE "test_settings"
-#define TEST_QUEUE_DIR "/tmp"
-#define TEST_NEXTHOP "localhost:10025"
-#define TEST_FAIL_MSG "processing aborted"
-#define TEST_BACKEND_CONN "failover"
-#define TEST_PASS "test"
-#define TEST_SQL_DRIVER "mysql"
-#define TEST_SQL_NAME "maildb"
-#define TEST_HOST "localhost"
-#define TEST_USER "username"
-#define TEST_SQL_QUERY "select * from test"
-#define TEST_ENCODING "UTF-8"
-#define TEST_LDAP_BASE "dc=example,dc=com"
-#define TEST_LDAP_SCOPE "subtree"
-#define TEST_LDAP_QUERY "(objectClass=*)"
-
-#define THIS_MODULE "bla"
-#endif
 
 int main (int argc, char const *argv[]) {
     SMFSettings_T *settings = NULL;
-    SMFSettingsGroup_T *test_group = NULL;
     char *s = NULL;
     SMFList_T *list = NULL;
 
@@ -314,233 +291,186 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
 
-#if 0
+
     printf("* testing smf_settings_set_sql_port()...\t\t");
     smf_settings_set_sql_port(settings, 1234);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_sql_port()...\t\t");
     if (smf_settings_get_sql_port(settings) != 1234) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
-    
+    printf("passed\n");
+        
     printf("* testing smf_settings_set_sql_user()...\t\t");
-    smf_settings_set_sql_user(settings, TEST_USER);
-    if (strcmp(smf_settings_get_sql_user(settings),TEST_USER) != 0) {
+    smf_settings_set_sql_user(settings, test_email);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_sql_user()...\t\t");
+    if (strcmp(smf_settings_get_sql_user(settings),test_email) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_sql_pass()...\t\t");
-    smf_settings_set_sql_pass(settings, TEST_PASS);
-    if (strcmp(smf_settings_get_sql_pass(settings),TEST_PASS) != 0) {
+    smf_settings_set_sql_pass(settings, test_string);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_sql_pass()...\t\t");
+    if (strcmp(smf_settings_get_sql_pass(settings),test_string) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_sql_user_query()...\t\t");
-    smf_settings_set_sql_user_query(settings, TEST_SQL_QUERY);
-    if (strcmp(smf_settings_get_sql_user_query(settings),TEST_SQL_QUERY) != 0) {
+    smf_settings_set_sql_user_query(settings, test_sql_query);
+    printf("passed\n");
+    
+    printf("* testing smf_settings_get_sql_user_query()...\t\t");
+    if (strcmp(smf_settings_get_sql_user_query(settings),test_sql_query) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_sql_encoding()...\t\t");
-    smf_settings_set_sql_encoding(settings, TEST_ENCODING);
-    if (strcmp(smf_settings_get_sql_encoding(settings),TEST_ENCODING) != 0) {
+    smf_settings_set_sql_encoding(settings, test_encoding);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_sql_encoding()...\t\t");
+    if (strcmp(smf_settings_get_sql_encoding(settings),test_encoding) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_sql_max_connections()...\t");
     smf_settings_set_sql_max_connections(settings, 10);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_sql_max_connections()...\t");
     if (smf_settings_get_sql_max_connections(settings) != 10) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
+    
     
     printf("* testing smf_settings_set_ldap_uri()...\t\t");
-    smf_settings_set_ldap_uri(settings, TEST_HOST);
-    if (strcmp(smf_settings_get_ldap_uri(settings),TEST_HOST) != 0) {
-        printf("failed\n");
-        return -1;
-    } else {
-        printf("passed\n");
-    }
+    smf_settings_set_ldap_uri(settings, test_ip);
+    printf("passed\n");
     
-#if 0
-    printf("* testing smf_settings_set_ldap_host()...\t\t");
-    sl = (char**)g_malloc(2*sizeof(char*));
-    sl[0] = g_strdup(TEST_HOST);
-    sl[1] = '\0';
-    smf_settings_set_ldap_host(settings, sl);
-    sl2 = smf_settings_get_ldap_host(settings);
-    if (strcmp(sl[0],sl2[0]) != 0) {
-        printf("\nSL: [%s] - [%s]\n",sl[0],sl2[0]);
+    printf("* testing smf_settings_get_ldap_uri()...\t\t");
+    if (strcmp(smf_settings_get_ldap_uri(settings),test_ip) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        if (smf_settings_get_ldap_num_hosts(settings) != 1) {
-            printf("failed\n");
-            return -1;
-        } else {
-            printf("passed\n");
-        }
     }
-    g_strfreev(sl);
-#endif 
+    printf("passed\n");
+    
+    printf("* testing smf_settings_add_ldap_host()...\t\t");
+    s = strdup(test_ip);
+    smf_settings_add_ldap_host(settings, s);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_ldap_hosts()...\t\t");
+    list = smf_settings_get_ldap_hosts(settings);
+    if (smf_list_size(list)!=1) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
     printf("* testing smf_settings_set_ldap_port()...\t\t");
     smf_settings_set_ldap_port(settings, 1234);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_ldap_port()...\t\t");
     if (smf_settings_get_ldap_port(settings) != 1234) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_ldap_binddn()...\t\t");
-    smf_settings_set_ldap_binddn(settings, TEST_USER);
-    if (strcmp(smf_settings_get_ldap_binddn(settings),TEST_USER) != 0) {
+    smf_settings_set_ldap_binddn(settings, test_email);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_ldap_binddn()...\t\t");
+    if (strcmp(smf_settings_get_ldap_binddn(settings),test_email) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_ldap_bindpw()...\t\t");
-    smf_settings_set_ldap_bindpw(settings, TEST_PASS);
-    if (strcmp(smf_settings_get_ldap_bindpw(settings),TEST_PASS) != 0) {
+    smf_settings_set_ldap_bindpw(settings, test_string);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_ldap_bindpw()...\t\t");
+    if (strcmp(smf_settings_get_ldap_bindpw(settings),test_string) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_ldap_base()...\t\t");
-    smf_settings_set_ldap_base(settings, TEST_LDAP_BASE);
-    if (strcmp(smf_settings_get_ldap_base(settings),TEST_LDAP_BASE) != 0) {
+    smf_settings_set_ldap_base(settings, test_ldap_base);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_ldap_base()...\t\t");
+    if (strcmp(smf_settings_get_ldap_base(settings),test_ldap_base) != 0) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
-    
+    printf("passed\n");
+
     printf("* testing smf_settings_set_ldap_referrals()...\t\t");
     smf_settings_set_ldap_referrals(settings, 1);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_ldap_referrals()...\t\t");
     if (smf_settings_get_ldap_referrals(settings) != 1) {
         printf("failed\n");
         return -1;
-    } else {
-        printf("passed\n");
     }
+    printf("passed\n");
     
     printf("* testing smf_settings_set_ldap_scope()...\t\t");
-    smf_settings_set_ldap_scope(settings, TEST_LDAP_SCOPE);
-    if (strcmp(smf_settings_get_ldap_scope(settings),TEST_LDAP_SCOPE) != 0) {
-        printf("failed\n");
-        return -1;
-    } else {
-        printf("passed\n");
-    }
-    
-    printf("* testing smf_settings_set_ldap_user_query()...\t\t");
-    smf_settings_set_ldap_user_query(settings, TEST_LDAP_QUERY);
-    if (strcmp(smf_settings_get_ldap_user_query(settings),TEST_LDAP_QUERY) != 0) {
-        printf("failed\n");
-        return -1;
-    } else {
-        printf("passed\n");
-    }
-    
-    printf("* testing smf_settings_group_load()...\t\t\t");
-    test_group = smf_settings_group_load(settings, "global");
-    if (test_group != NULL) { 
-        printf("passed\n");
-    } else {
-        printf("failed\n");
-        return -1;
-    }
-    
-    printf("* testing smf_settings_group_get_string()...\t\t");
-    s = smf_settings_group_get_string(test_group,"engine");
-    if (strcmp(s,TEST_ENGINE) != 0) {
-        printf("failed\n");
-        if (s!=NULL)
-            free(s);
-        return -1;
-    } else {
-        printf("passed\n");
-        free(s);
-    }
-    
-    printf("* testing smf_settings_group_get_value()...\t\t");
-    s = (char *)smf_settings_group_get_value(test_group,"engine");
-    if (strcmp(s,TEST_ENGINE) != 0) {
-        printf("failed\n");
-        if (s!=NULL)
-            free(s);
-        return -1;
-    } else {
-        printf("passed\n");
-        free(s);
-    }
-
-    printf("* testing smf_settings_group_get_boolean()...\t\t");
-    if (smf_settings_group_get_boolean(test_group,"add_header")) {
-        printf("passed\n");
-    } else {
-        printf("failed\n");
-        return -1;
-    }
-    
-    printf("* testing smf_settings_group_get_integer()...\t\t");
-    if (smf_settings_group_get_integer(test_group,"module_fail") != 3) {
-        printf("failed\n");
-        return -1;
-    } else
-        printf("passed\n");
-    
-    printf("* testing smf_settings_group_get_double()...\t\t");
-    if (smf_settings_group_get_double(test_group,"max_size") != 0) {
-        printf("failed\n");
-        return -1;
-    } else
-        printf("passed\n");
-    
-    printf("* testing smf_settings_group_get_string_list()...\t");
-    sl = smf_settings_group_get_string_list(test_group,"modules",&sl_length);
-    if (sl != NULL) {
-        if (strcmp((char *)sl[0],"clamav") != 0) {
-            printf("failed\n");
-            return -1;
-        }
-        if (strcmp((char *)sl[1],"spamassassin") != 0) {
-            printf("failed\n");
-            return -1;
-        }
-        printf("passed\n");
-        g_strfreev(sl);
-    } else {
-        printf("failed\n");
-        return -1;
-    }
-    
-    printf("* testing smf_settings_group_free()...\t\t\t");
-    smf_settings_group_free(test_group);
+    smf_settings_set_ldap_scope(settings, test_ldap_scope);
     printf("passed\n");
 
-#endif 
+    printf("* testing smf_settings_get_ldap_scope()...\t\t");
+    if (strcmp(smf_settings_get_ldap_scope(settings),test_ldap_scope) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
     
+    printf("* testing smf_settings_set_ldap_user_query()...\t\t");
+    smf_settings_set_ldap_user_query(settings, test_ldap_query);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_ldap_user_query()...\t\t");
+    if (strcmp(smf_settings_get_ldap_user_query(settings),test_ldap_query) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+    printf("* testing smf_settings_set_active_lookup_host()...\t");
+    smf_settings_set_active_lookup_host(settings, test_ip);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_active_lookup_host()...\t");
+    if (strcmp(smf_settings_get_active_lookup_host(settings),test_ip) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
     printf("* testing smf_settings_free()...\t\t\t");
     smf_settings_free(settings);
     printf("passed\n");
