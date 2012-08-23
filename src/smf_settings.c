@@ -545,17 +545,12 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
                         ||(strcmp(clean_section,"ldap")==0)) {
                     _set_config_value(settings,clean_section,clean_key,clean_val);
                 } else {
-
-                    printf("%s:%s=>%s\n",clean_section,clean_key,clean_val);
                     asprintf(&tmp,"%s:%s",clean_section,clean_key);
                     if (smf_dict_set((*settings)->groups,tmp,clean_val)!=0) {
                         errs++;
                         TRACE(TRACE_ERR,"failed to set config value: %s:%s=>%s");
                     }
                     free(tmp);
-                    //sprintf(tmp, "%s:%s", section, key);
-                    //errs = dictionary_set(dict, tmp, val) ;
-
                 }
                 break;
 
