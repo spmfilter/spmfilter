@@ -51,6 +51,9 @@ char test_email2[] = "<foo@bar.com>";
 char test_addr[] = "John Doe <foo@bar.com>";
 char test_addr2[] = "Jane Doe <jane@example.com>";
 char test_string[] = "Test string";
+char test_string_strip[] = " Test string ";
+char test_string_lower[] = "test string";
+char test_string_md5[] = "0fd3dbec9730101bff92acc820befc34";
 char test_prepend[] = "[TEST] Test string";
 char test_append[] = "[TEST] Test string [TEST]";
 
@@ -79,6 +82,11 @@ char test_encoding[] = "UTF-8";
 char test_ldap_base[] = "dc=example,dc=com";
 char test_ldap_scope[] = "subtree";
 char test_ldap_query[] = "(objectClass=*)";
+
+char test_split[] = "value1;value2;value3";
+char test_split_value1[] = "value1";
+char test_split_value2[] = "value2";
+char test_split_value3[] = "value3";
 
 #ifdef __cplusplus
 }

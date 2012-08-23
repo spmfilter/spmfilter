@@ -15,8 +15,13 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <assert.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdarg.h>
 
 #include "smf_core.h"
 
@@ -26,6 +31,93 @@
 
 #define RE_MAIL "[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
 
+char *smf_core_strstrip(char *s) {
+    int start, end = strlen(s);
+    for (start = 0; s[start] && isspace(s[start]); ++start) {}
+    if (s[start]) {
+        while (end > 0 && isspace(s[end-1]))
+            --end;
+    }
+    memmove(s, &s[start], end - start);
+    s[end - start] = '\0';
+    
+    return s;
+}
+
+
+char *smf_core_strlwc(char *s) {
+    assert(s);
+    
+    while (*s) {
+        *s = tolower(*s);
+        s++;
+    }
+    return s;
+}
+
+char *smf_core_strcat_printf(char **s, const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    char *tmp = NULL;
+    
+    assert((*s));
+
+    vasprintf(&tmp,fmt,ap);
+    va_end(ap);
+    (*s) = (char *)realloc((*s),strlen((*s)) + strlen(tmp) + sizeof(char));
+    strcat((*s),tmp);
+    free(tmp);
+    return (*s);
+}
+
+char **smf_core_strsplit(char *s, char *sep) {
+    char **sl = NULL;   
+    char *cp = NULL;
+    char *tf = NULL;
+    char *tmp = NULL;
+    int count = 0;
+    
+    assert(s);
+    assert(sep);
+    
+    tf = cp = strdup(s);
+      
+    while ((tmp = strsep(&cp, sep)) != NULL) {
+        sl = (char**)realloc(sl, (sizeof(*sl) * (count+2)));
+        sl[count] = strdup(tmp);
+        count++; 
+    }
+    free(tf);
+    sl[count] = '\0';
+
+    return(sl);
+}
+
+int smf_core_gen_queue_file(char *queue_dir, char **tempname) {
+    asprintf(&(*tempname),"%s/spmfilter.XXXXXX",queue_dir);
+    if(mkstemp(*tempname) == -1) {
+        TRACE(TRACE_ERR, "failed creating temporary file: %s (%d)",strerror(errno), errno);
+        return -1;
+    }
+    return 0;   
+}
+
+char *smf_core_md5sum(const char *data) {
+    md5_state_t state;
+    md5_byte_t digest[16];
+    int offset = 0;
+    char *hex = (char *)calloc(16*2+1,sizeof(char));
+
+    md5_init(&state);
+    md5_append(&state, (const md5_byte_t *)data, strlen(data));
+    md5_finish(&state, digest);
+
+    for(offset=0; offset<16; offset++) {
+        sprintf(hex + offset * 2, "%02x", digest[offset]);
+    }
+
+    return(hex);
+}
 
 /** extract a substring from given string
  *
@@ -55,21 +147,6 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
     return value;
 }
 
-/** Generate a new queue file name
- *
- * \buf pointer to unallocated buffer for filename, needs to
- *      free'd by caller if not required anymore
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_core_gen_queue_file(char *queue_dir, char **tempname) {
-    /* create spooling file */
-    *tempname = g_strdup_printf("%s/spmfilter.XXXXXX",queue_dir);
-    if(g_mkstemp(*tempname) == -1)
-        return -1;
-    
-    return 0;   
-}
 
 /** Generates a unique maildir filename
  *
@@ -150,29 +227,6 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
     return(rep_made);
 }
 
-/*
-void smf_core_object_unref(void *object) {
-    g_object_unref(object);
-}
-*/
-
-char *smf_md5sum(const char *data) {
-    md5_state_t state;
-    md5_byte_t digest[16];
-    int offset = 0;
-    char *hex = (char *)calloc(16*2+1,sizeof(char));
-
-    md5_init(&state);
-    md5_append(&state, (const md5_byte_t *)data, strlen(data));
-    md5_finish(&state, digest);
-
-    for(offset=0; offset<16; offset++) {
-        sprintf(hex + offset * 2, "%02x", digest[offset]);
-    }
-
-    return(hex);
-}
-
 int smf_core_valid_address(const char *addr) {
     int match = -1;
     GRegex *re = NULL;
@@ -190,49 +244,3 @@ int smf_core_valid_address(const char *addr) {
     return match;
 }
 
-char *smf_core_strstrip(char *s) {
-    int start, end = strlen(s);
-    for (start = 0; s[start] && isspace(s[start]); ++start) {}
-    if (s[start]) {
-        while (end > 0 && isspace(s[end-1]))
-            --end;
-    }
-    memmove(s, &s[start], end - start);
-    s[end - start] = '\0';
-    
-    return s;
-}
-
-
-char *smf_core_strlwc(char *s) {
-    assert(s);
-    
-    while (*s) {
-        *s = tolower(*s);
-        s++;
-    }
-    return s;
-}
-
-char **smf_core_strsplit(char *s, char *sep) {
-    char **sl = NULL;   
-    char *cp = NULL;
-    char *tf = NULL;
-    char *tmp = NULL;
-    int count = 0;
-    
-    assert(s);
-    assert(sep);
-    
-    tf = cp = strdup(s);
-      
-    while ((tmp = strsep(&cp, sep)) != NULL) {
-        sl = (char**)realloc(sl, (sizeof(*sl) * (count+2)));
-        sl[count] = strdup(tmp);
-        count++; 
-    }
-    free(tf);
-    sl[count] = '\0';
-
-    return(sl);
-}
