@@ -74,6 +74,11 @@ char test_backend[] = "sql";
 char test_backend_conn[] = "failover";
 char test_sql_driver[] = "mysql";
 char test_sql_name[] = "maildb";
+char test_sql_query[] = "select * from test";
+char test_encoding[] = "UTF-8";
+char test_ldap_base[] = "dc=example,dc=com";
+char test_ldap_scope[] = "subtree";
+char test_ldap_query[] = "(objectClass=*)";
 
 #ifdef __cplusplus
 }
