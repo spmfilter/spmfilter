@@ -46,7 +46,7 @@ static char *smf_modules_stf_path(SMFSettings_T *settings, SMFSession_T *session
 
     /* build path to file*/
     // TODO: refactoring for new datatypes
-    //hex = smf_md5sum(smf_session_header_get(session,"message-id"));
+    //hex = smf_core_md5sum(smf_session_header_get(session,"message-id"));
     snprintf(buf, sizeof(buf), "%s/%s.modules", settings->queue_dir, hex);
     free(hex);
 

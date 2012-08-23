@@ -36,6 +36,10 @@ add_executable(test_message test_message.c)
 target_link_libraries(test_message smf ${COMMON_LIBS})
 ADD_TEST(SMFMessage_T ${EXECUTABLE_OUTPUT_PATH}/test_message)
 
+add_executable(test_core test_core.c)
+target_link_libraries(test_core smf ${COMMON_LIBS})
+ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
+
 if(HAVE_DB4)
 	add_executable(test_db4 test_db4.c)
 	target_link_libraries(test_db4 smf ${COMMON_LIBS} db)

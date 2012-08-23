@@ -25,25 +25,79 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include <stdarg.h>
+
 #include "spmfilter_config.h"
 #include "smf_settings.h"
 #include "smf_trace.h"
 #include "smf_md5.h"
 
-/* GLIB2 VERSION INFORMATION */
-#define GLIB2_VERSION (GLIB_MAJOR_VERSION * 10000 \
-	+ GLIB_MINOR_VERSION * 100 \
-	+ GLIB_MICRO_VERSION)
+/**
+ * @fn char *smf_core_strstrip(char *s)
+ * @brief Removes leading and trailing whitespace from a string.
+ * This function doesn't allocate or reallocate any memory; it 
+ * modifies string in place. The pointer to string is returned 
+ * to allow the nesting of functions.
+ * @param s String to parse.
+ * @return intput string
+ */
+char *smf_core_strstrip(char *s); 
 
+/**
+ * @fn char *smf_core_strlwc(const char *s)
+ * @brief Convert a string to lowercase.
+ * @param s String to convert.
+ * @return ptr to string
+ */
+char *smf_core_strlwc(char *s);
 
-/** Generate a new queue file name
- *
- * \buf pointer to unallocated buffer for filename, needs to
- *      free'd by caller if not required anymore
- *
- * \returns 0 on success or -1 in case of error
+/**
+ * @fn char *smf_core_strcat_printf(char *s, const char *fmt, ...)
+ * @brief Append format string to string and reallocate memory.
+ * The pointer to string is returned to allow the nesting of functions.
+ * @param string to append to 
+ * @param fmt format string
+ * @return new appended string
+ */
+char *smf_core_strcat_printf(char **s, const char *fmt, ...);
+
+/**
+ * @fn char **smf_core_strsplit(char *s, char *sep)
+ * @brief Split a given string
+ * @param s String to split
+ * @param sep separator
+ * @return a newly-allocated NULL-terminated array of strings. 
+ */
+char **smf_core_strsplit(char *s, char *sep);
+
+/** 
+ * @fn int smf_core_gen_queue_file(char *queue_dir, char **tempname)
+ * @brief Generate a new queue file name
+ * @param queue_dir path to queue directory
+ * @param tempname pointer to unallocated buffer for filename, needs to
+ * free'd by caller if not required anymore
+ * @return 0 on success or -1 in case of error
  */
 int smf_core_gen_queue_file(char *queue_dir, char **tempname);
+
+/**
+ * @fn char *smf_md5sum(const char *data)
+ * @brief Generate md5 hexdigest for string
+ * @param data String to generate md5sum for
+ * @returns Pointer to hexdigest string on success, NULL on error
+ */
+char *smf_core_md5sum(const char *data);
+
+/**
+ * @fn char *smf_core_get_maildir_filename(void)
+ * Generates a unique maildir filename
+ *
+ * \returns generated filename or NULL in case of error
+ */
+char *smf_core_get_maildir_filename(void);
+
+/** TODO: OLD STUFF **/
+
 
 /** Extract a substring from given string
  *
@@ -55,11 +109,7 @@ int smf_core_gen_queue_file(char *queue_dir, char **tempname);
  */
 char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
 
-/** Generates a unique maildir filename
- *
- * \returns generated filename or NULL in case of error
- */
-char *smf_core_get_maildir_filename(void);
+
 
 /** expands placeholders in a user querystring
  *
@@ -76,20 +126,7 @@ struct _SMFObject_T {
 	void *data;
 };
 
-/** Decreases the reference count of object. When its reference count drops to
- *  0, the object is finalized (i.e. its memory is freed).
- *
- * \param object pointer to object
- */
-//void smf_core_object_unref(void *object);
 
-/** generate md5 hexdigest for string
- * 
- * \param data String to generate md5sum for
- * 
- * \returns Pointer to hexdigest string on success, NULL on error
- */
-char *smf_md5sum(const char *data);
 
 /** Check if given string is a valid email address
  *
@@ -98,33 +135,5 @@ char *smf_md5sum(const char *data);
  * \returns 0 on success or -1 in case of error
  */
 int smf_core_valid_address(const char *addr);
-
-/**
- * @fn char *smf_core_strstrip(char *s)
- * @brief Removes leading and trailing whitespace from a string.
- * This function doesn't allocate or reallocate any memory; it 
- * modifies string in place. The pointer to string is returned 
- * to allow the nesting of functions.
- * @param s String to parse.
- * @return a newly allocated copy of input string
- */
-char *smf_core_strstrip(char *s); 
-
-/**
- * @fn char *smf_core_strlwc(const char *s)
- * @brief Convert a string to lowercase.
- * @param s String to convert.
- * @return ptr to string
- */
-char *smf_core_strlwc(char *s);
-
-/**
- * @fn char **smf_core_strsplit(char *s, char *sep)
- * @brief Split a given string
- * @param s String to split
- * @param sep separator
- * @return a newly-allocated NULL-terminated array of strings. 
- */
-char **smf_core_strsplit(char *s, char *sep);
 
 #endif	/* _SMF_CORE_H */
