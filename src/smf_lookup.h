@@ -122,6 +122,14 @@ int smf_lookup_sql_connect(SMFSettings_T *settings);
 int smf_lookup_sql_connect_fallback(SMFSettings_T *settings);
 
 /*!
+ * @fn *sql_get_rand_host (SMFSettings_T *settings);
+ * @brief return random sql backend server
+ * @param settings Pointer to SMFSettings_T 
+ * \returns hostname/ip of sql server, else NULL 
+ */
+char *sql_get_rand_host(SMFSettings_T *settings);
+
+/*!
  * @fn *smpf_lookup_sql_disconnect (void);
  * @brief disconnect to sql server
  */
