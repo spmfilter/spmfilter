@@ -48,12 +48,10 @@ URL_T url = NULL;
 void sql_abort_handler(const char *error);
 int sql_start_pool(SMFSettings_T *settings, char *dsn);
 
-
 void _sql_result_list_destroy(void *data) {
     assert(data);
     smf_dict_free((SMFDict_T *)data);
 }
-
 
 /** Disconnect from sql server and destroy connection pool */
 void smf_lookup_sql_disconnect(void) {
@@ -96,6 +94,8 @@ char *sql_get_rand_host(SMFSettings_T *settings) {
   }
 		e = e->next;
 	}
+
+	return NULL;
 }
 
 
@@ -212,7 +212,6 @@ int smf_lookup_sql_connect(SMFSettings_T *settings) {
 	assert(settings);
 
 	char *dsn = NULL;
-
 	/* try to get a random host if backend_connection is set to "balance"
 	 * and the database driver is not sqlite */
 	if ((g_ascii_strcasecmp(settings->backend_connection,"balance") == 0) &&
