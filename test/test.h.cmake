@@ -67,6 +67,14 @@ char test_helo[] = "foo.bar";
 char test_ip[] = "127.0.0.1";
 char test_response[] = "250 OK message accepted";
 
+char test_config_file[] = "test_settings";
+char test_queue_dir[] = ".";
+char test_module[] = "clamav";
+char test_backend[] = "sql";
+char test_backend_conn[] = "failover";
+char test_sql_driver[] = "mysql";
+char test_sql_name[] = "maildb";
+
 #ifdef __cplusplus
 }
 #endif
