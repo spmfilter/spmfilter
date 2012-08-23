@@ -90,6 +90,7 @@ typedef struct {
     char *ldap_scope; /**< ldap search scope */
     char *ldap_user_query; /**< ldap user query */
     void *ldap_connection; /** ldap connection handle LDAP *ld = NULL */
+    char *active_lookup_host;   /** storage active lookup host */                           
 } SMFSettings_T;
 
 
@@ -721,6 +722,23 @@ void smf_settings_set_ldap_user_query(SMFSettings_T *settings, char *query);
  * @returns ldap user_query
  */
 char *smf_settings_get_ldap_user_query(SMFSettings_T *settings);
+
+/*!
+ * @fn char *smf_settings_set_active_lookup_host(SMFSettings_T *settings)
+ * @brief Get current active lookup host
+ * @param settings a SMFSettings_T object
+ * @returns char pointer with active lookup host
+ */
+void smf_settings_set_active_lookup_host(SMFSettings_T *settings, char *host);
+
+/*!
+ * @fn char *smf_settings_get_active_lookup_host(SMFSettings_T *settings)
+ * @brief Set current active lookup host
+ * @param settings a SMFSettings_T object
+ * @param host char pointer with hostname/IP 
+ * @returns char pointer with active lookup host
+ */
+char *smf_settings_get_active_lookup_host(SMFSettings_T *settings);
 
 /*!
  * @fn SMFSettingsGroup_T *smf_settings_group_load(SMFSettings_T* settings, char *group_name)

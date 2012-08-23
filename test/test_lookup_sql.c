@@ -43,7 +43,7 @@ CREATE TABLE `test_lookup_sql_table` (
 INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 */
 
-#define SQL_HOST1   "localhost"
+#define SQL_HOST1   "127.0.0.1"
 #define SQL_HOST2   "localhost"
 #define SQL_DRIVER  "mysql"
 #define SQL_USER    "test_lookup_sql"
@@ -81,18 +81,28 @@ int main (int argc, char const *argv[]) {
 	smf_settings_set_sql_max_connections(settings, 5);
 	smf_settings_set_sql_user_query(settings, sql_query);
 	smf_settings_set_backend_connection(settings, sql_backend_conn);
-	smf_lookup_sql_connect(settings);
-	result = smf_lookup_sql_query(sql_query);
 
-	e = smf_list_head(result);
-	while(e != NULL) {
-		d = (SMFDict_T *)smf_list_data(e);
-		printf("[%s]",smf_dict_get(d,"data"));
-		e = e->next;
+ 
+
+
+	if(smf_lookup_sql_connect(settings) == 0) {
+		result = smf_lookup_sql_query(sql_query);
+
+
+		e = smf_list_head(result);
+		while(e != NULL) {
+			d = (SMFDict_T *)smf_list_data(e);
+			printf("[%s]",smf_dict_get(d,"data"));
+			e = e->next;
+		}
+
+		smf_list_free(result);
+		smf_lookup_sql_disconnect();
+	} else {
+		printf("active lookup host: [%s]", smf_settings_get_active_lookup_host(settings));
+		printf("unable to establish database connection\n");
 	}
-
-	smf_list_free(result);
-	smf_lookup_sql_disconnect();
+	
 	smf_settings_free(settings);
 
 	return 0;

@@ -412,7 +412,7 @@ SMFSettings_T *smf_settings_new(void) {
     if (smf_list_new(&settings->ldap_host, _string_list_destroy) != 0) {
         TRACE(TRACE_ERR,"failed to allocate space for settings->ldap_host");
         smf_list_free(settings->modules);
-        smf_list_free(settings->ldap_host);
+        smf_list_free(settings->sql_host);
         free(settings);
         return NULL;
     }
@@ -432,6 +432,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->sql_port = 0;
     settings->ldap_connection = NULL;
     settings->ldap_port = 0;
+    settings->active_lookup_host = NULL;
     
     return settings;
 }
@@ -468,6 +469,7 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->ldap_base != NULL) free(settings->ldap_base);
     if (settings->ldap_scope != NULL) free(settings->ldap_scope);
     if (settings->ldap_user_query != NULL) free(settings->ldap_user_query);
+    if (settings->active_lookup_host != NULL) free(settings->active_lookup_host);
     
     free(settings);
 }
@@ -1216,4 +1218,24 @@ char *smf_settings_get_ldap_user_query(SMFSettings_T *settings) {
     assert(settings);
     return settings->ldap_user_query;
 }
+
+void smf_settings_set_active_lookup_host(SMFSettings_T *settings, char *host) {
+    assert(settings);
+    assert(host);
+
+    if (settings->active_lookup_host != NULL) free(settings->active_lookup_host);
+    
+    settings->active_lookup_host = strdup(host);
+} 
+
+char *smf_settings_get_active_lookup_host(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->active_lookup_host;
+}
+
+
+
+
+
+
  
