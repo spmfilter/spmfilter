@@ -114,6 +114,14 @@ char *smf_lookup_db4_query(char *database, char *key);
 int smf_lookup_sql_connect(SMFSettings_T *settings);
 
 /*!
+ * @fn *smpf_lookup_sql_connect_fallback (SMFSettings_T *settings);
+ * @brief fallback_connect to sql server
+ * @param settings Pointer to SMFSettings_T 
+ * \returns 0 on success or -1 in case of error
+ */
+int smf_lookup_sql_connect_fallback(SMFSettings_T *settings);
+
+/*!
  * @fn *smpf_lookup_sql_disconnect (void);
  * @brief disconnect to sql server
  */
@@ -122,10 +130,11 @@ int smf_lookup_sql_connect(SMFSettings_T *settings);
 /*!
  * @fn *smf_lookup_sql_query (const char *q, ...);
  * @brief Query SQL server with given query string
+ * @param settings Pointer to SMFSettings_T
  * @param q format string for sql query for sql query
  * @returns SMFList_T or NULL
  */
-SMFList_T *smf_lookup_sql_query(const char *q, ...);
+SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...);
 
 /*!
  * @fn int smf_lookup_ldap_connect(char *ldap_uri);
