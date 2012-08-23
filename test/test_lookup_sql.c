@@ -43,14 +43,14 @@ CREATE TABLE `test_lookup_sql_table` (
 INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 */
 
-#define SQL_HOST1   "127.0.0.1"
+#define SQL_HOST1   "127.0.1.1"
 #define SQL_HOST2   "localhost"
 #define SQL_DRIVER  "mysql"
 #define SQL_USER    "test_lookup_sql"
 #define SQL_PASS    "MndDksjs"
 #define SQL_NAME    "test_lookup_sql"
 #define SQL_PORT    3306
-#define SQL_BACKEND_CONN "failover"
+#define SQL_BACKEND_CONN "balance"
 #define SQL_QUERY   "SELECT data FROM test_lookup_sql_table LIMIT 1"
 #define SQL_QUERY_RESULT_STRING "LoremIpsumDolorSitAmet"
 
