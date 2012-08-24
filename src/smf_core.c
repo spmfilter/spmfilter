@@ -137,51 +137,14 @@ char *smf_core_get_maildir_filename(void) {
     return filename;
 }
 
-/** extract a substring from given string
- *
- * \param pattern regular expression pattern
- * \param haystack string to search in
- * \param pos position to extract
- *
- * \returns extracted string
- */
-char *smf_core_get_substring(const char *pattern, const char *haystack, int pos) {
-    if (haystack == NULL)
-        return NULL;
-    
-    GRegex *re = NULL;
-    GMatchInfo *match_info = NULL;
-    char *value = NULL;
-
-    re = g_regex_new(pattern, G_REGEX_CASELESS, 0, NULL);
-    g_regex_match(re, haystack, 0, &match_info);
-    if(g_match_info_matches(match_info)) {
-        value = g_match_info_fetch(match_info, pos);
-    } 
-    
-    g_match_info_free(match_info);
-    g_regex_unref(re);
-
-    return value;
-}
-
-
-/** expands placeholders in a user querystring
- *
- * \param format format string to use as input
- * \param addr email address to use for replacements
- * \buf pointer to unallocated buffer for expanded format string, needs to
- *      free'd by caller if not required anymore
- *
- * \returns the number of replacements made or -1 in case of error
- */
 int smf_core_expand_string(char *format, char *addr, char **buf) {
     int rep_made = 0;
     int pos = 0;
     int iter_size;
     char *it = format;
     char *iter;
-    gchar **parts = g_strsplit(addr, "@", 2);
+    char **parts = smf_core_strsplit(addr, "@");
+    char **t;
 
     /* allocate space for buffer
      * TODO: put buffer size declaration somewhere else
@@ -221,9 +184,43 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
         }
     }
 
-    g_strfreev(parts);
+    t= parts;
+    while(*t != NULL) {
+        free(*t);
+        t++;
+    }
+    free(parts);
     return(rep_made);
 }
+
+/** extract a substring from given string
+ *
+ * \param pattern regular expression pattern
+ * \param haystack string to search in
+ * \param pos position to extract
+ *
+ * \returns extracted string
+ */
+char *smf_core_get_substring(const char *pattern, const char *haystack, int pos) {
+    if (haystack == NULL)
+        return NULL;
+    
+    GRegex *re = NULL;
+    GMatchInfo *match_info = NULL;
+    char *value = NULL;
+
+    re = g_regex_new(pattern, G_REGEX_CASELESS, 0, NULL);
+    g_regex_match(re, haystack, 0, &match_info);
+    if(g_match_info_matches(match_info)) {
+        value = g_match_info_fetch(match_info, pos);
+    } 
+    
+    g_match_info_free(match_info);
+    g_regex_unref(re);
+
+    return value;
+}
+
 
 int smf_core_valid_address(const char *addr) {
     int match = -1;
