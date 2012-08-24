@@ -43,7 +43,6 @@ void trace(SMFTrace_T level, const char * module, const char * function, int lin
 
 void configure_debug(int debug);
 
-
 #define TRDEBUG(fmt, ...) TRACE(TRACE_DEBUG, fmt, ##__VA_ARGS__)
 #define TRINFO(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
 #define TRNOTICE(fmt, ...) TRACE(TRACE_NOTICE, fmt, ##__VA_ARGS__)
