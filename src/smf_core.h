@@ -18,20 +18,6 @@
 #ifndef _SMF_CORE_H
 #define	_SMF_CORE_H
 
-#include <glib.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <stdarg.h>
-
-#include "spmfilter_config.h"
-#include "smf_settings.h"
-#include "smf_trace.h"
-#include "smf_md5.h"
-
 /**
  * @fn char *smf_core_strstrip(char *s)
  * @brief Removes leading and trailing whitespace from a string.
@@ -107,8 +93,7 @@ char *smf_core_get_maildir_filename(void);
  */
 int smf_core_expand_string(char *format, char *addr, char **buf);
 
-/** TODO: OLD STUFF **/
-
+/** TODO: replace with something better **/
 
 /** Extract a substring from given string
  *
@@ -119,14 +104,5 @@ int smf_core_expand_string(char *format, char *addr, char **buf);
  * \returns extracted string
  */
 char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
-
-
-/** Check if given string is a valid email address
- *
- * \param addr string to check
- *
- * \returns 0 on success or -1 in case of error
- */
-int smf_core_valid_address(const char *addr);
 
 #endif	/* _SMF_CORE_H */
