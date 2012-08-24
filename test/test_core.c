@@ -101,5 +101,18 @@ int main (int argc, char const *argv[]) {
     free(s);
     printf("passed\n");
 
+    printf("* testing smf_core_expand_string()...\t\t\t");
+    if (smf_core_expand_string(test_sql_expand_query,test_email,&s)==-1) {
+        printf("failed\n");
+        return -1;
+    }
+    if (strcmp(s,test_sql_expand_query_out)!=0) {
+        printf("failed\n");
+        return -1;
+    }
+    free(s);
+    printf("passed\n");
+
+
     return 0;
 }

@@ -96,6 +96,17 @@ char *smf_core_md5sum(const char *data);
  */
 char *smf_core_get_maildir_filename(void);
 
+/**
+ * @fn int smf_core_expand_string(char *format, char *addr, char **buf)
+ * @brief expands placeholders in a user querystring
+ * @param format format string to use as input
+ * @param addr email address to use for replacements
+ * @param buf pointer to unallocated buffer for expanded format string, 
+ *        needs to free'd by caller if not required anymore
+ * @return the number of replacements made or -1 in case of error
+ */
+int smf_core_expand_string(char *format, char *addr, char **buf);
+
 /** TODO: OLD STUFF **/
 
 
@@ -110,17 +121,6 @@ char *smf_core_get_maildir_filename(void);
 char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
 
 
-
-/** expands placeholders in a user querystring
- *
- * \param format format string to use as input
- * \param addr email address to use for replacements
- * \buf pointer to unallocated buffer for expanded format string, needs to
- *      free'd by caller if not required anymore
- *
- * \returns the number of replacements made or -1 in case of error
- */
-int smf_core_expand_string(char *format, char *addr, char **buf);
 
 struct _SMFObject_T {
 	void *data;
