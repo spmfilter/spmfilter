@@ -35,7 +35,6 @@
 #include "smf_message.h"
 #include "smf_message_private.h"
 #include "smf_trace.h"
-#include "smf_platform.h"
 #include "smf_md5.h"
 
 typedef int (*ModuleLoadFunction)(SMFSession_T *session);
