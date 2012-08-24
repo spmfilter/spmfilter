@@ -24,7 +24,6 @@
 #include <smf/smf_list.h>
 #include <smf/smf_lookup.h>
 #include <smf/smf_message.h>
-#include <smf/smf_mime.h>
 #include <smf/smf_part.h>
 #include <smf/smf_session.h>
 #include <smf/smf_settings.h>
