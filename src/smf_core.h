@@ -90,9 +90,9 @@ char *smf_core_md5sum(const char *data);
 
 /**
  * @fn char *smf_core_get_maildir_filename(void)
- * Generates a unique maildir filename
- *
- * \returns generated filename or NULL in case of error
+ * @brief Generates a unique maildir filename
+ * @return newly allocated pointer with generated filename 
+ * or NULL in case of error
  */
 char *smf_core_get_maildir_filename(void);
 
