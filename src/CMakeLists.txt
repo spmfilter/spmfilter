@@ -14,7 +14,6 @@ set(LIB_SMF_SRC
 	smf_lookup_result.c
 	smf_md5.c
 	smf_message.c
-#	smf_mime.c
 	smf_modules.c
 	smf_part.c
 	smf_platform.c
