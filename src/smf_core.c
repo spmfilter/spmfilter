@@ -26,10 +26,8 @@
 #include "smf_core.h"
 
 
-#define THIS_MODULE "utils"
+#define THIS_MODULE "core"
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
-
-#define RE_MAIL "[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?"
 
 char *smf_core_strstrip(char *s) {
     int start, end = strlen(s);
@@ -219,23 +217,5 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
     g_regex_unref(re);
 
     return value;
-}
-
-
-int smf_core_valid_address(const char *addr) {
-    int match = -1;
-    GRegex *re = NULL;
-    GMatchInfo *match_info = NULL;
-
-    re = g_regex_new(RE_MAIL, G_REGEX_CASELESS, 0, NULL);
-    g_regex_match(re, addr, 0, &match_info);
-    if(g_match_info_matches(match_info)) {
-        match = 0;
-    }
-
-    g_match_info_free(match_info);
-    g_regex_unref(re);
-
-    return match;
 }
 

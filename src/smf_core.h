@@ -121,13 +121,6 @@ int smf_core_expand_string(char *format, char *addr, char **buf);
 char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
 
 
-
-struct _SMFObject_T {
-	void *data;
-};
-
-
-
 /** Check if given string is a valid email address
  *
  * \param addr string to check
