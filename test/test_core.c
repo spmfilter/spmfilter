@@ -92,5 +92,14 @@ int main (int argc, char const *argv[]) {
     free(s);
     printf("passed\n");
 
+    printf("* testing smf_core_get_maildir_filanem()...\t\t");
+    s = smf_core_get_maildir_filename();
+    if (s == NULL) {
+        printf("failed\n");
+        return -1;
+    }
+    free(s);
+    printf("passed\n");
+
     return 0;
 }
