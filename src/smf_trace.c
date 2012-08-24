@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
+#define _GNU_SOURCE
+#include <stdio.h>
 #include <syslog.h>
-#include <glib.h>
-#include <glib/gprintf.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdarg.h>
 
 #include "smf_trace.h"
 #include "smf_settings.h"
@@ -54,7 +54,7 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 	SMFTrace_T syslog_level;
 	va_list ap;
 	va_list cp;
-	gchar *message = NULL;
+	char *message = NULL;
 	size_t l, maxlen=1024;
 	
 	/* Return now if we're not logging anything. */
@@ -63,7 +63,7 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 
 	va_start(ap, formatstring);
 	va_copy(cp, ap);
-	message = g_strdup_vprintf(formatstring, cp);
+	vasprintf(&message,formatstring,cp);
 	va_end(cp);
 
 	l = strlen(message);
@@ -113,5 +113,5 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
    		else if (level < 128)
 			syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
 	}
-	g_free(message);
+	free(message);
 }
