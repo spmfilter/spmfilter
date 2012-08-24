@@ -119,6 +119,24 @@ char *smf_core_md5sum(const char *data) {
     return(hex);
 }
 
+char *smf_core_get_maildir_filename(void) {
+    char *filename;
+    char *hostname = NULL;
+    struct timeval starttime;
+    
+    GETTIMEOFDAY(&starttime);
+    hostname = (char *)malloc(MAXHOSTNAMELEN);
+    gethostname(hostname,MAXHOSTNAMELEN);
+    
+    asprintf(&filename,"%lu.V%lu.%s",
+        (unsigned long) starttime.tv_sec,
+        (unsigned long) starttime.tv_usec,
+        hostname);
+
+    free(hostname);
+    return filename;
+}
+
 /** extract a substring from given string
  *
  * \param pattern regular expression pattern
@@ -147,26 +165,6 @@ char *smf_core_get_substring(const char *pattern, const char *haystack, int pos)
     return value;
 }
 
-
-/** Generates a unique maildir filename
- *
- * \returns new allocated maildir filename
- */
-char *smf_core_get_maildir_filename(void) {
-    char *filename;
-    char hostname[256];
-    struct timeval starttime;
-    
-    GETTIMEOFDAY(&starttime);
-    gethostname(hostname,256);
-    
-    filename = g_strdup_printf("%lu.V%lu.%s",
-        (unsigned long) starttime.tv_sec,
-        (unsigned long) starttime.tv_usec,
-        hostname);
-    
-    return filename;
-}
 
 /** expands placeholders in a user querystring
  *
