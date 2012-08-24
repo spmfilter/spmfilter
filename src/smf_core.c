@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner, Sebastian Jäkel and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner, Sebastian Jäkel and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,17 +16,25 @@
  */
 
 #define _GNU_SOURCE
+#define THIS_MODULE "core"
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <stdarg.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <sys/param.h>
+
+#include <glib.h>
 
 #include "smf_core.h"
+#include "smf_trace.h"
+#include "smf_md5.h"
 
-
-#define THIS_MODULE "core"
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
 
 char *smf_core_strstrip(char *s) {
