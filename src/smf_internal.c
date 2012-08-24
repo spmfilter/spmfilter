@@ -18,11 +18,36 @@
 #define THIS_MODULE "internal"
 #define _GNU_SOURCE
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 void _string_list_destroy(void *data) {
     char *s = (char *)data;
     assert(data);
     free(s);
+}
+
+char *_build_module_path(const char *libdir, const char *modname) {
+    char *path = NULL;
+    char *t = NULL;
+
+    if (strncmp(modname,"lib",3)>0) {
+#ifdef __APPLE__
+        asprintf(&t,"%s.dylib",modname);
+#else
+        t = strdup(modname);
+#endif
+    } else {
+#ifdef __APPLE__
+        asprintf(&t,"lib%s.dylib", modname);
+#else
+        asprintf(&t,"lib%s.so",modname);
+#endif
+    }
+    asprintf(&path,"%s/%s",libdir,t);
+    free(t);
+
+    return path;
 }

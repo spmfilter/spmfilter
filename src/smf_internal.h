@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 void _string_list_destroy(void *data);
+char *_build_module_path(const char *libdir, const char *modname);
 
 #ifdef __cplusplus
 }
