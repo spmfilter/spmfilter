@@ -487,7 +487,6 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     char *tmp = NULL;
 
     assert(*settings);
-    assert(alternate_file);
 
     /* fallback to default config path,
      * if config file is not defined as
@@ -500,6 +499,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
 
     if ((in=fopen((*settings)->config_file, "r")) == NULL) {
         TRACE(TRACE_ERR,"Error loading config: %s (%d)",strerror(errno), errno);
+        perror("spmfilter: failed to load config file");
         return -1;
     }
 
@@ -584,20 +584,13 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         TRACE(TRACE_DEBUG,"config value queue_dir not set, using default");
     }
 
-    if ((*settings)->nexthop == NULL) {
-        TRACE(TRACE_ERR,"config value nexthop not set");
-        return -1;
-    }
-
     if ((*settings)->engine == NULL) {
         TRACE(TRACE_ERR,"config value engine not set");
         return -1;
     }
 
-    if ((*settings)->backend_connection == NULL) {
+    if ((*settings)->backend_connection == NULL) 
         (*settings)->backend_connection = strdup("failover");
-        TRACE(TRACE_DEBUG,"config value backend_connection not set, using default");
-    }
 
     if ((*settings)->backend != NULL) {
         /** sql checks **/
@@ -775,7 +768,7 @@ int smf_settings_set_queue_dir(SMFSettings_T *settings, char *qd) {
 
     if(!S_ISDIR(sb.st_mode)) {
         TRACE(TRACE_ERR,"[%s] is not a directory",qd);
-        return(-2); 
+        return -2; 
     }
         
     if (access(qd,W_OK) != 0) {
