@@ -16,7 +16,6 @@ set(LIB_SMF_SRC
 	smf_message.c
 	smf_modules.c
 	smf_part.c
-	smf_platform.c
 	smf_session.c
 	smf_settings.c
 #	smf_smtp.c

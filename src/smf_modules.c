@@ -17,6 +17,7 @@
 
 
 #include "smf_modules.h"
+#include "smf_internal.h"
 
 #define THIS_MODULE "smf_modules"
 
@@ -408,9 +409,9 @@ int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
 
     /* check if engine module starts with lib */
     if (settings->lib_dir != NULL)
-        engine_path = smf_build_module_path(settings->lib_dir, settings->engine);
+        engine_path = _build_module_path(settings->lib_dir, settings->engine);
     else
-        engine_path = smf_build_module_path(LIB_DIR, settings->engine);
+        engine_path = _build_module_path(LIB_DIR, settings->engine);
 
     /* try to open engine module */
     module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
