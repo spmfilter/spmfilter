@@ -154,7 +154,7 @@ char *sql_get_rand_host(SMFSettings_T *settings);
 SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...);
 
 /*!
- * @fn int smf_lookup_ldap_connect(char *ldap_uri);
+ * @fn int smf_lookup_ldap_connect(char *settings);
  * @brief connect to ldap server
  * @param settings Pointer to SMFSettings_T 
  * @returns 0 on success or -1 in case of error
@@ -170,14 +170,14 @@ int smf_lookup_ldap_connect(SMFSettings_T *settings);
 void smf_lookup_ldap_disconnect(SMFSettings_T *settings);
 
 /*!
- * @fn SMFLookupResult_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...)
+ * @fn SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...)
  * @brief query LDAP Server with given query string
  * @param settings Pointer to SMFSettings_T 
  * @param q format string pointer for ldap query
  * @param ... format string arguments
- * @returns newly allocated SMFLookupResult_T
+ * @returns newly allocated SMFList_T
  */
-SMFLookupResult_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...);
+SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...);
 
 
 #endif	/* _SMF_LOOKUP_H */

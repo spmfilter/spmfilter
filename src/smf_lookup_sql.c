@@ -81,7 +81,7 @@ char *sql_get_rand_host(SMFSettings_T *settings) {
 	TRACE(TRACE_DEBUG,"trying to get random sql server");
 	srand(time(NULL));
 	random = rand() % smf_list_size(settings->sql_host);
-	e = (settings->sql_host);
+	e = smf_list_head(settings->sql_host);
 
 	while(e != NULL) {     
  	count++;
