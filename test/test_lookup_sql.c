@@ -56,7 +56,7 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 
 
 int main (int argc, char const *argv[]) {
-	int i;
+	
 	char *sql_driver = SQL_DRIVER;
 	char *sql_user = SQL_USER;
 	char *sql_pass = SQL_PASS;
@@ -89,6 +89,7 @@ int main (int argc, char const *argv[]) {
 		while(e != NULL) {
 			d = (SMFDict_T *)smf_list_data(e);
 			printf("[%s]",smf_dict_get(d,"data"));
+			assert(strcmp(smf_dict_get(d,"data"),SQL_QUERY_RESULT_STRING)==0);
 			e = e->next;
 		}
 
