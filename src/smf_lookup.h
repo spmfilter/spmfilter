@@ -114,6 +114,15 @@ char *smf_lookup_db4_query(char *database, char *key);
 int smf_lookup_sql_connect(SMFSettings_T *settings);
 
 /*!
+ * @fn *sql_get_dsn(SMFSettings_T *settings, char *host)
+ * @brief Get DSN
+ * @param settings Pointer to SMFSettings_T 
+ * @param host Host to be used in DSN
+ * \returns DSN on success or NULL in case of error
+ */
+char *sql_get_dsn(SMFSettings_T *settings, char *host);
+
+/*!
  * @fn *smpf_lookup_sql_connect_fallback (SMFSettings_T *settings);
  * @brief fallback_connect to sql server
  * @param settings Pointer to SMFSettings_T 
