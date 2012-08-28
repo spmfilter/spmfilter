@@ -1026,6 +1026,11 @@ SMFList_T *smf_settings_get_sql_hosts(SMFSettings_T *settings) {
     return settings->sql_host;
 }
 
+SMFList_T *smf_settings_get_ldap_hosts(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_host;
+}
+
 void smf_settings_set_sql_port(SMFSettings_T *settings, int port) {
     assert(settings);
     settings->sql_port = port;
@@ -1121,11 +1126,6 @@ int smf_settings_add_ldap_host(SMFSettings_T *settings, char *host) {
     assert(host);
 
     return smf_list_append(settings->ldap_host, (void *)host);
-}
-
-SMFList_T *smf_settings_get_ldap_hosts(SMFSettings_T *settings) {
-    assert(settings);
-    return settings->ldap_host;
 }
 
 void smf_settings_set_ldap_port(SMFSettings_T *settings, int port) {
