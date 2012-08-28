@@ -88,7 +88,7 @@ int main (int argc, char const *argv[]) {
 		e = smf_list_head(result);
 		while(e != NULL) {
 			d = (SMFDict_T *)smf_list_data(e);
-			printf("[%s]",smf_dict_get(d,"data"));
+			//printf("[%s]",smf_dict_get(d,"data"));
 			assert(strcmp(smf_dict_get(d,"data"),SQL_QUERY_RESULT_STRING)==0);
 			e = e->next;
 		}

@@ -28,7 +28,6 @@
 
 
 /*
- *
  * this tests can only run successfull if there is a local ldap server available with the following
  * scheme installed:
  * 
@@ -85,56 +84,48 @@ int main (int argc, char const *argv[]) {
     char *conn_type = LDAP_CONN_TYPE;
     char *pw = LDAP_PSW;
     char *bind_dn = LDAP_BIND_DN;
-    SMFLookupResult_T *ldapresult = NULL;
-    SMFLdapValue_T *uidNumber = NULL;
+
     int j;
 
-    char **host = (char**)g_malloc(3*sizeof(char*));
-    host[0] = g_strdup(LDAP_HOST_1);
-    host[1] = g_strdup(LDAP_HOST_1);
-    host[2] = '\0';
+    char *host1 = strdup(LDAP_HOST_1);
+    char *host2 = strdup(LDAP_HOST_2);
 
+    SMFList_T *result = NULL;
+    SMFListElem_T *e = NULL;
     SMFSettings_T *settings = smf_settings_new();
-    smf_settings_set_ldap_host(settings, host);
+    SMFDict_T *d = NULL;
+
+    smf_settings_add_ldap_host(settings, host1);
+    smf_settings_add_ldap_host(settings, host2);
     smf_settings_set_ldap_scope(settings, "subtree");
     smf_settings_set_backend_connection(settings, conn_type); 
     smf_settings_set_ldap_bindpw(settings, pw); 
     smf_settings_set_ldap_binddn(settings, bind_dn);
     smf_settings_set_ldap_base(settings, LDAP_BASE);
-    smf_settings_set_ldap_referrals(settings, 0);  
-
-    printf("settings->backend_connection: [%s]\n", settings->backend_connection);
-    smf_lookup_ldap_connect(settings);
-    printf("settings->ldap_uri: [%s]\n", settings->ldap_uri);
-
+    smf_settings_set_ldap_referrals(settings, 0);
+   
+    //printf("settings->backend_connection: [%s]\n", settings->backend_connection);
     
-    ldapresult = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);
+    if(smf_lookup_ldap_connect(settings) == 0) {
     
-    if(ldapresult != NULL) {
-        if(ldapresult->len > 0) {
-            for(j=0; j < ldapresult->len; j++) {
-             SMFLookupElement_T *elem = smf_lookup_result_index(ldapresult,j);
-             uidNumber = (SMFLdapValue_T *) smf_lookup_element_get(elem, "uidNumber");
-             printf("RESULT:[%s]\n", uidNumber->data[0]);
-             assert(strcmp(uidNumber->data[0],LDAP_QUERY_STRING_RESULT)==0);
-            }
+        result = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);    
+        e = smf_list_head(result);
+
+        while(e != NULL) {
+            d = (SMFDict_T *)smf_list_data(e);
+            //printf("[%s]",smf_dict_get(d,"uidNumber"));
+            assert(strcmp(smf_dict_get(d,"uidNumber"),LDAP_QUERY_STRING_RESULT)==0);
+            e = e->next;
         }
+
+        smf_list_free(result);
+        smf_lookup_ldap_disconnect(settings);
+    } else {
+        printf("unable to establish ldap connection");
     }
-    
-    smf_lookup_result_free(ldapresult);
-    smf_lookup_ldap_disconnect(settings);
+   
     smf_settings_free(settings);
-
-    if(host[0] != NULL)
-        free(host[0]);
-
-     if(host[1] != NULL)
-        free(host[1]);
-
-     if(host != NULL)
-        g_free(host);
-
-
+    
     return 0;
 }
 
