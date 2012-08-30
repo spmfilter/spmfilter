@@ -18,9 +18,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <glib.h>
 #include <db.h>
-#include <glib/gprintf.h>
 #include <assert.h>
 #include "../src/smf_lookup.h"
 #include "../src/smf_lookup_private.h"
@@ -65,8 +63,8 @@
  * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/user2.ldif -W
  */
 
-#define LDAP_HOST_1 "127.0.0.1"
-#define LDAP_HOST_2 "127.0.0.1"
+#define LDAP_HOST_1 "blablahost"
+#define LDAP_HOST_2 "localhost"
 #define LDAP_PORT 389
 #define LDAP_BIND_DN "uid=test2,ou=People,dc=example,dc=com"
 #define LDAP_PSW "test"
@@ -85,8 +83,6 @@ int main (int argc, char const *argv[]) {
     char *pw = LDAP_PSW;
     char *bind_dn = LDAP_BIND_DN;
 
-    int j;
-
     char *host1 = strdup(LDAP_HOST_1);
     char *host2 = strdup(LDAP_HOST_2);
 
@@ -104,8 +100,6 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_ldap_base(settings, LDAP_BASE);
     smf_settings_set_ldap_referrals(settings, 0);
    
-    //printf("settings->backend_connection: [%s]\n", settings->backend_connection);
-    
     if(smf_lookup_ldap_connect(settings) == 0) {
     
         result = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);    
