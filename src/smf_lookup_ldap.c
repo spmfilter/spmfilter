@@ -318,7 +318,6 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
             ==19705== 
             */
 
-
             for(attr = ldap_first_attribute(c, msg, &ptr); attr != NULL; attr = ldap_next_attribute(c, msg, ptr)) {
                 char *data;
               
