@@ -63,7 +63,7 @@
  * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/user2.ldif -W
  */
 
-#define LDAP_HOST_1 "blablahost"
+#define LDAP_HOST_1 "hostwhichdoesntexist"
 #define LDAP_HOST_2 "localhost"
 #define LDAP_PORT 389
 #define LDAP_BIND_DN "uid=test2,ou=People,dc=example,dc=com"
