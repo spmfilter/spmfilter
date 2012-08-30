@@ -63,12 +63,12 @@ SMFDict_T *smf_dict_new(void) {
 
     if (!(dict = (SMFDict_T *)calloc(1, sizeof(SMFDict_T))))
         return NULL;
-    
+
     dict->size = 128;
     dict->val  = (char **)calloc(128, sizeof(char*));
     dict->key  = (char **)calloc(128, sizeof(char*));
     dict->hash = (unsigned int *)calloc(128, sizeof(unsigned));
-    return dict ;
+    return dict;
 }
 
 void smf_dict_free(SMFDict_T *dict) {
