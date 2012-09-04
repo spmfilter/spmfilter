@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Werner Detter and SpaceNet AG
+ * Copyright (C) 2009-2012 Werner Detter and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -82,7 +82,6 @@ int main (int argc, char const *argv[]) {
     char *conn_type = LDAP_CONN_TYPE;
     char *pw = LDAP_PSW;
     char *bind_dn = LDAP_BIND_DN;
-
     char *host1 = strdup(LDAP_HOST_1);
     char *host2 = strdup(LDAP_HOST_2);
 
