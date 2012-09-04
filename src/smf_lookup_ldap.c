@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner, Werner Detter and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner, Werner Detter and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -307,6 +307,7 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
 
         for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
             char *attr = NULL;
+
             SMFDict_T *d = smf_dict_new();
             // FIXME: memleak here?
             /*
@@ -338,6 +339,7 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
                 smf_dict_set(d,attr,data);
                 free(attr);
                 free(data);
+
 
                 if (smf_list_append(result,d) != 0)
                     return NULL;
