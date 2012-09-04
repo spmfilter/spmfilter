@@ -207,12 +207,14 @@ void sql_abort_handler(const char *error) {
 int smf_lookup_sql_connect(SMFSettings_T *settings) {
 	assert(settings);
 	char *dsn = NULL;
+
 	/* try to get a random host if backend_connection is set to "balance" */
 	/* and the database driver is not sqlite */
 	if ((strcasecmp(settings->backend_connection,"balance") == 0) &&
 			(strcasecmp(settings->sql_driver,"sqlite") != 0)) {
 			dsn = sql_get_dsn(settings, sql_get_rand_host(settings));
-	} else {
+	}
+	 else {
 		if (strcasecmp(settings->sql_driver,"sqlite") != 0) {
 			SMFListElem_T *e = NULL;
 			e = smf_list_head(settings->sql_host);
@@ -221,6 +223,7 @@ int smf_lookup_sql_connect(SMFSettings_T *settings) {
 		} else {
 			dsn = sql_get_dsn(settings, NULL);
 		}
+
 	}
 	if(sql_start_pool(settings,dsn) != 0)
 		return -1;
