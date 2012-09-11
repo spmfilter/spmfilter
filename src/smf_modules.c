@@ -402,9 +402,10 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 }
 
 int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
-    GModule *module;
+    //GModule *module;
     LoadEngine load_engine;
-    gchar *engine_path;
+    //gchar *engine_path;
+    char *engine_path;
     int ret;
 
     /* check if engine module starts with lib */
@@ -413,6 +414,9 @@ int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
     else
         engine_path = _build_module_path(LIB_DIR, settings->engine);
 
+    printf("engine_path [%s]\n",engine_path);
+
+#if 0
     /* try to open engine module */
     module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
     if (!module) {
@@ -435,7 +439,8 @@ int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
 
     if (!g_module_close(module))
         TRACE(TRACE_WARNING,"%s", g_module_error());
-    g_free(engine_path);
+#endif
+    free(engine_path);
 
     return ret;
 }
