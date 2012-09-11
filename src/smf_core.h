@@ -93,16 +93,4 @@ char *smf_core_get_maildir_filename(void);
  */
 int smf_core_expand_string(char *format, char *addr, char **buf);
 
-/** TODO: replace with something better **/
-
-/** Extract a substring from given string
- *
- * \param pattern regular expression pattern
- * \param haystack string to search in
- * \param pos position to extract
- *
- * \returns extracted string
- */
-char* smf_core_get_substring(const char *pattern, const char *haystack, int pos);
-
 #endif	/* _SMF_CORE_H */

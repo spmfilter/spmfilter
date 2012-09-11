@@ -198,32 +198,3 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
     free(parts);
     return(rep_made);
 }
-
-/** extract a substring from given string
- *
- * \param pattern regular expression pattern
- * \param haystack string to search in
- * \param pos position to extract
- *
- * \returns extracted string
- */
-char *smf_core_get_substring(const char *pattern, const char *haystack, int pos) {
-    if (haystack == NULL)
-        return NULL;
-    
-    GRegex *re = NULL;
-    GMatchInfo *match_info = NULL;
-    char *value = NULL;
-
-    re = g_regex_new(pattern, G_REGEX_CASELESS, 0, NULL);
-    g_regex_match(re, haystack, 0, &match_info);
-    if(g_match_info_matches(match_info)) {
-        value = g_match_info_fetch(match_info, pos);
-    } 
-    
-    g_match_info_free(match_info);
-    g_regex_unref(re);
-
-    return value;
-}
-
