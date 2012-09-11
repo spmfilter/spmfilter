@@ -63,7 +63,7 @@
  * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/user2.ldif -W
  */
 
-#define LDAP_HOST_1 "hostwhichdoesntexist"
+#define LDAP_HOST_1 "localhost"
 #define LDAP_HOST_2 "localhost"
 #define LDAP_PORT 389
 #define LDAP_BIND_DN "uid=test2,ou=People,dc=example,dc=com"
@@ -100,7 +100,6 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_ldap_referrals(settings, 0);
    
     if(smf_lookup_ldap_connect(settings) == 0) {
-    
         result = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);    
         e = smf_list_head(result);
 
