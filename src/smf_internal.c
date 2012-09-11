@@ -33,7 +33,7 @@ char *_build_module_path(const char *libdir, const char *modname) {
     char *path = NULL;
     char *t = NULL;
 
-    if (strncmp(modname,"lib",3)>0) {
+    if (strncmp(modname,"lib",3)==0) {
 #ifdef __APPLE__
         asprintf(&t,"%s.dylib",modname);
 #else

@@ -15,6 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,10 +26,10 @@
 #include <time.h>
 #include <gmodule.h>
 #include <glib/gstdio.h>
-#include <gmime/gmime.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "spmfilter_config.h"
 #include "smf_trace.h"
@@ -47,7 +49,7 @@
 #define CODE_250 "250 OK\r\n"
 #define CODE_250_ACCEPTED "250 OK message accepted\r\n"
 #define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_502 "502 Eh? WTF was that?\r\n"
+#define CODE_502 "502 Command not implemented\r\n"
 #define CODE_552 "552 Requested action aborted: local error in processing\r\n"
 
 /* SMTP States */
@@ -59,6 +61,44 @@
 #define ST_DATA 5
 #define ST_QUIT 6
 
+/* smtp answer with format string as arg */
+void smtpd_string_reply(int sock, const char *format, ...) {
+	FILE *fp = NULL;
+	va_list ap;
+//	GIOChannel *out = NULL;
+//	gchar *msg;
+
+	if ((fp = fdopen(sock, "a")) == NULL) {
+		TRACE(TRACE_ERR,"failed to open stream: %s (%d)",strerror(errno), errno);
+        perror("spmfilter/smtpd: failed to open stream");
+	}
+
+	va_start(ap, format);
+	
+//	out = g_io_channel_unix_new(sock);
+//	g_io_channel_set_encoding(out, NULL, NULL);
+//	g_io_channel_set_close_on_unref(out,FALSE);
+//	msg = g_strdup_vprintf(format,ap);
+	if (vfprintf(fp,format,ap) <= 0)
+		TRACE(TRACE_ERR,"failed to write to stream");
+	
+	if (fflush(fp) != 0) {
+		TRACE(TRACE_ERR,"flush to stream failed: %s (%d)",strerror(errno), errno);
+        perror("spmfilter/smtpd: flush to stream failed");
+	} 
+	va_end(ap);
+//	g_io_channel_write_chars(out,msg,strlen(msg),NULL,NULL);
+//	g_io_channel_flush(out,NULL);
+//	g_io_channel_unref(out);
+//	g_free(msg);
+	if (fclose(fp) != 0) {
+		TRACE(TRACE_ERR,"failed to close stream: %s (%d)",strerror(errno), errno);
+        perror("spmfilter/smtpd: failed to close stream");
+	}
+}
+
+
+#if 0
 #define RE_MAIL_FROM "^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?(?:\\W*SIZE=(\\d+))?"
 
 GPrivate* current_session_key = NULL; 
@@ -86,25 +126,6 @@ void stuffing(char chain[]) {
 		}
 	}
 	chain[j]='\0';
-}
-
-/* smtp answer with format string as arg */
-void smtpd_string_reply(int sock, const char *format, ...) {
-	va_list ap;
-	GIOChannel *out = NULL;
-	gchar *msg;
-	va_start(ap, format);
-	
-	out = g_io_channel_unix_new(sock);
-	g_io_channel_set_encoding(out, NULL, NULL);
-	g_io_channel_set_close_on_unref(out,FALSE);
-	msg = g_strdup_vprintf(format,ap);
-	va_end(ap);
-	g_io_channel_write_chars(out,msg,strlen(msg),NULL,NULL);
-	g_io_channel_flush(out,NULL);
-	g_io_channel_unref(out);
-	g_free(msg);
-
 }
 
 /** Write SMTP answer to stdout
@@ -384,23 +405,27 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	return;
 }
 
+#endif
+
 int load(SMFSettings_T *settings,int sock) {
-	char hostname[256];
-	GIOChannel *in;
-	gchar *line;
+	//char hostname[256];
+	char *hostname = NULL;
+	//GIOChannel *in;
+	//gchar *line;
 	int state=ST_INIT;
 	SMFSession_T *session = smf_session_new();
-	char *requested_size = NULL;
-	const char *mail_from_addr = NULL;
+	//char *requested_size = NULL;
+	//const char *mail_from_addr = NULL;
 	clock_t start_process, stop_process;
 	int sock_in, sock_out;
-	GRegex *re = NULL;
-	GMatchInfo *match_info = NULL;
+	//GRegex *re = NULL;
+	//GMatchInfo *match_info = NULL;
 
 	/* start clock, to see how long
 	 * the processing time takes */
 	start_process = clock();
-	gethostname(hostname,256);
+	hostname = (char *)malloc(MAXHOSTNAMELEN);
+    gethostname(hostname,MAXHOSTNAMELEN);
 	
 	if (sock == 0) {
 		session->sock_in = sock;
@@ -415,6 +440,7 @@ int load(SMFSettings_T *settings,int sock) {
 	}
 
 	smtpd_string_reply(session->sock_out,"220 %s spmfilter\r\n",hostname);
+#if 0
 	session->envelope->num_rcpts = 0;
 	in = g_io_channel_unix_new(session->sock_in);
 	g_io_channel_set_encoding(in, NULL, NULL);
@@ -639,7 +665,7 @@ int load(SMFSettings_T *settings,int sock) {
 		g_free(line);
 	} 
 	g_io_channel_unref(in);
-
+#endif 
 	smf_session_free(session);
 
 	/* processing is done, we can
