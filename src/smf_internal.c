@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <unistd.h>
+#include <errno.h>
 
 void _string_list_destroy(void *data) {
     char *s = (char *)data;
@@ -50,4 +52,45 @@ char *_build_module_path(const char *libdir, const char *modname) {
     free(t);
 
     return path;
+}
+
+
+ssize_t _readn(int fd, void *buf, size_t nbyte) {
+    size_t n;
+    ssize_t br;
+    char *p = buf;
+
+    for (n = nbyte; n > 0; n -= br, p += br) {
+        if ((br = read(fd,p,n)) < 0) {
+            if (errno == EINTR)
+                br = 0;
+            else
+                return -1;
+        } else if (br == 0)
+            return (nbyte - n);
+    }
+
+    return nbyte;
+}
+
+ssize_t _writen(int fd, const void *buf, size_t nbyte) {
+    size_t n;
+    ssize_t bw;
+    const char *p = buf;
+
+    for (n = nbyte; n > 0; n -= bw, p += bw) {
+        if ((bw = write(fd,p,n)) < 0) {
+            if (errno == EINTR)
+                bw = 0;
+            else
+                return -1;
+        } else if (bw == 0)
+            return (nbyte - 1);
+    }
+
+    return nbyte;
+}
+
+ssize_t _readline(int fd, void *buf, size_t nbyte, void **help) {
+
 }
