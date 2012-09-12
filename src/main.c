@@ -30,6 +30,7 @@
 #include "smf_trace.h"
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
+#include "smf_modules.h"
 
 #define THIS_MODULE "spmfilter"
 
@@ -128,8 +129,7 @@ int main(int argc, char *argv[]) {
 //    if (settings->daemon == 1)
 //        ret = smf_daemon_mainloop(settings);
 //    else
-        ret = smf_modules_engine_load(settings, dup(0));
-        printf("RET: [%d]\n",ret);
+        ret = smf_modules_engine_load(settings, STDIN_FILENO);
 
 #if 0
     if(settings->backend != NULL) {
