@@ -30,8 +30,7 @@ typedef struct {
     char *helo; /**< client's helo */
     char *xforward_addr; /**< xforward data */
     char *response_msg; /**< custom response message */
-    int sock_in; /**< in socket */
-    int sock_out; /**< out socket */
+    int sock; /**< socket */
 } SMFSession_T;
 
 /*!

@@ -25,11 +25,10 @@
 #include <glib.h>
 #include <time.h>
 #include <gmodule.h>
-#include <glib/gstdio.h>
+/*#include <glib/gstdio.h> */
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
 
 #include "spmfilter_config.h"
 #include "smf_trace.h"
@@ -42,6 +41,7 @@
 #include "smf_lookup_private.h"
 #include "smf_message.h"
 #include "smf_message_private.h"
+#include "smf_internal.h"
 
 #define THIS_MODULE "smtpd"
 
@@ -62,23 +62,17 @@
 #define ST_QUIT 6
 
 /* smtp answer with format string as arg */
-void smtpd_string_reply(int sock, const char *format, ...) {
-	FILE *fp = NULL;
+void smtpd_string_reply(FILE *fp, const char *format, ...) {
+//	FILE *fp = NULL;
 	va_list ap;
-//	GIOChannel *out = NULL;
-//	gchar *msg;
 
-	if ((fp = fdopen(sock, "a")) == NULL) {
-		TRACE(TRACE_ERR,"failed to open stream: %s (%d)",strerror(errno), errno);
-        perror("spmfilter/smtpd: failed to open stream");
-	}
+//	if ((fp = fdopen(sock, "a")) == NULL) {
+//		TRACE(TRACE_ERR,"failed to open stream: %s (%d)",strerror(errno), errno);
+//        perror("spmfilter/smtpd: failed to open stream");
+//	}
 
 	va_start(ap, format);
 	
-//	out = g_io_channel_unix_new(sock);
-//	g_io_channel_set_encoding(out, NULL, NULL);
-//	g_io_channel_set_close_on_unref(out,FALSE);
-//	msg = g_strdup_vprintf(format,ap);
 	if (vfprintf(fp,format,ap) <= 0)
 		TRACE(TRACE_ERR,"failed to write to stream");
 	
@@ -87,16 +81,15 @@ void smtpd_string_reply(int sock, const char *format, ...) {
         perror("spmfilter/smtpd: flush to stream failed");
 	} 
 	va_end(ap);
-//	g_io_channel_write_chars(out,msg,strlen(msg),NULL,NULL);
-//	g_io_channel_flush(out,NULL);
-//	g_io_channel_unref(out);
-//	g_free(msg);
-	if (fclose(fp) != 0) {
-		TRACE(TRACE_ERR,"failed to close stream: %s (%d)",strerror(errno), errno);
-        perror("spmfilter/smtpd: failed to close stream");
-	}
+
+//	if (fclose(fp) != 0) {
+//		TRACE(TRACE_ERR,"failed to close stream: %s (%d)",strerror(errno), errno);
+//        perror("spmfilter/smtpd: failed to close stream");
+//	}
 }
 
+
+/*=== BELOW IS NOT GLIB CLEAN ===*/
 
 #if 0
 #define RE_MAIL_FROM "^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?(?:\\W*SIZE=(\\d+))?"
@@ -412,12 +405,14 @@ int load(SMFSettings_T *settings,int sock) {
 	char *hostname = NULL;
 	//GIOChannel *in;
 	//gchar *line;
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t read = 0;
 	int state=ST_INIT;
 	SMFSession_T *session = smf_session_new();
 	//char *requested_size = NULL;
 	//const char *mail_from_addr = NULL;
 	clock_t start_process, stop_process;
-	int sock_in, sock_out;
 	//GRegex *re = NULL;
 	//GMatchInfo *match_info = NULL;
 
@@ -427,19 +422,15 @@ int load(SMFSettings_T *settings,int sock) {
 	hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
 	
-	if (sock == 0) {
-		session->sock_in = sock;
-		sock_in = sock;
-		session->sock_out = 1;
-		sock_out = 1;
-	} else {
-		session->sock_in = sock;
-		sock_in = sock;
-		session->sock_out = sock;
-		sock_out = sock;
-	}
+	session->sock = sock;
 
-	smtpd_string_reply(session->sock_out,"220 %s spmfilter\r\n",hostname);
+	smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
+
+	while((read = getline(&line, &len, fp)) != -1) {
+		TRACE(TRACE_DEBUG,"LINE [%s] READ [%d]\n",line,read);
+		smtpd_string_reply(fp,"LINE: [%s]\n",line);
+
+	}
 #if 0
 	session->envelope->num_rcpts = 0;
 	in = g_io_channel_unix_new(session->sock_in);
@@ -666,6 +657,8 @@ int load(SMFSettings_T *settings,int sock) {
 	} 
 	g_io_channel_unref(in);
 #endif 
+
+	free(hostname);
 	smf_session_free(session);
 
 	/* processing is done, we can

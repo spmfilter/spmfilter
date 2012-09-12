@@ -22,8 +22,14 @@
 extern "C" {
 #endif
 
+#include <unistd.h>
+
 void _string_list_destroy(void *data);
 char *_build_module_path(const char *libdir, const char *modname);
+
+ssize_t _readn(int fd, void *buf, size_t nbyte);
+ssize_t _writen(int fd, const void *buf, size_t nbyte);
+ssize_t _readline(int fd, void *buf, size_t nbyte, void **help);
 
 #ifdef __cplusplus
 }

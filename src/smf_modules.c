@@ -15,6 +15,13 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <dlfcn.h>
 
 #include "smf_modules.h"
 #include "smf_internal.h"
@@ -215,6 +222,7 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
 
 int smf_modules_process(
         ProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
+#if 0
     int i;
     int retval;
     ModuleLoadFunction runner;
@@ -241,7 +249,7 @@ int smf_modules_process(
     modlist = smf_modules_stf_processed_modules(stfh);
 
 // TODO: fix module loading
-#if 0
+
     for(i=0;settings->modules[i] != NULL; i++) {
         curmod = settings->modules[i];
 
@@ -324,7 +332,7 @@ int smf_modules_process(
             smf_modules_stf_write_entry(stfh, settings->modules[i]);
         }
     }
-#endif
+
     /* close file, cleanup modlist and remove state file */
     TRACE(TRACE_DEBUG, "module processing finished successfully.");
     fclose(stfh);
@@ -352,6 +360,7 @@ int smf_modules_process(
         TRACE(TRACE_DEBUG, "will now deliver to nexthop %s", settings->nexthop);
         return(smf_modules_deliver_nexthop(q, session));
     }
+#endif
     return(0);
 }
 
@@ -402,10 +411,10 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 }
 
 int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
-    //GModule *module;
-    LoadEngine load_engine;
-    //gchar *engine_path;
-    char *engine_path;
+    void *module = NULL;
+    LoadEngine load_engine = NULL;
+    char *engine_path = NULL;
+    char *error = NULL;
     int ret;
 
     /* check if engine module starts with lib */
@@ -414,32 +423,27 @@ int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
     else
         engine_path = _build_module_path(LIB_DIR, settings->engine);
 
-    printf("engine_path [%s]\n",engine_path);
-
-#if 0
-    /* try to open engine module */
-    module = g_module_open(engine_path, G_MODULE_BIND_LAZY);
-    if (!module) {
-        TRACE(TRACE_ERR,"%s\n", g_module_error());
+    if ((module = dlopen(engine_path, RTLD_LAZY)) == NULL) {
+        TRACE(TRACE_ERR,"failed to load library [%s]: %s", engine_path,dlerror());
+        free(engine_path);
         return -1;
     }
-    
-    /* make engine resident, if daemon mode */
-    if (settings->daemon == 1)
-        g_module_make_resident(module);
-    
-    /* check if the module provides the function load() */
-    if (!g_module_symbol(module, "load", (gpointer *)&load_engine)) {
-        TRACE(TRACE_ERR,"%s", g_module_error());
+    dlerror();  
+
+    load_engine = dlsym(module,"load");
+    if ((error = dlerror()) != NULL)  {
+        TRACE(TRACE_ERR,"library error: %s", error);
+        free(error);
+        free(engine_path);
         return -1;
     }
 
-    /* start processing engine */
-//    ret = load_engine(settings,fd);
+    ret = load_engine(settings,fd);
 
-    if (!g_module_close(module))
-        TRACE(TRACE_WARNING,"%s", g_module_error());
-#endif
+    if (dlclose(module) != 0) {
+        TRACE(TRACE_ERR,"failed to unload module [%s]",engine_path);
+    }
+
     free(engine_path);
 
     return ret;
