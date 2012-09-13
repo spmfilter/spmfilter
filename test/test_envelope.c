@@ -90,18 +90,6 @@ int main (int argc, char const *argv[]) {
     } else
         printf("passed\n");
 
-    printf("* testing smf_envelope_set_message_file()...\t\t");
-    smf_envelope_set_message_file(env,test_path);
-    printf("passed\n");
-
-    printf("* testing smf_envelope_get_message_file()...\t\t");
-    if (strcmp(test_path,smf_envelope_get_message_file(env)) != 0) {
-        printf("failed\n");
-        return -1;
-    } else
-        printf("passed\n");
-    
-
     printf("* testing smf_envelope_set_auth_user()...\t\t");
     smf_envelope_set_auth_user(env,test_auth_user);
     printf("passed\n");

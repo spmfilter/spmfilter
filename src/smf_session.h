@@ -101,7 +101,7 @@ SMFEnvelope_T *smf_session_get_envelope(SMFSession_T *session);
  * @param session SMFSession_T object
  * @param fp message file path
  */
-void smf_envelope_set_message_file(SMFSession_T *session, char *fp);
+void smf_session_set_message_file(SMFSession_T *session, char *fp);
 
 /*!
  * @fn char *smf_envelope_get_message_file(SMFEnvelope_T *envelope)
@@ -109,7 +109,7 @@ void smf_envelope_set_message_file(SMFSession_T *session, char *fp);
  * @param session SMFSession_T object
  * @returns path to message file
  */
-char *smf_envelope_get_message_file(SMFSession_T *session);
+char *smf_session_get_message_file(SMFSession_T *session);
 
 
 
