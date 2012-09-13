@@ -32,18 +32,14 @@
 #define _GNU_SOURCE
 #define BUFF_SIZE 1024
 
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <glib.h>
-#include <glib/gprintf.h>
-#include <gmodule.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <cmime.h>
+#include <errno.h>
 
 #include "spmfilter_config.h"
 #include "smf_core.h"
@@ -57,7 +53,6 @@
 
 #define THIS_MODULE "pipe"
 #define BUF_SIZE 1024
-
 
 /* error handler used when building module queue
  * return 1 if processing should continue, else 0
@@ -132,132 +127,54 @@ int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
 int load(SMFSettings_T *settings,int sock) {
     clock_t start_process, stop_process;
     char buffer[BUF_SIZE];
-    size_t contentSize = 1;
-    char *content = malloc(sizeof(char) * BUF_SIZE);
-    
-    if(content == NULL) {
-        TRACE(TRACE_ERR, "Failed to allocate memory for content");
-        return(-1);
-    }
-
+    FILE *spool_file;
+    struct stat st;
+    SMFMessage_T *message = smf_message_new();
     SMFSession_T *session = smf_session_new();
 
     /* start clock, to see how long the processing time takes */
     start_process = clock();
+
+    /* generate the queue file */
     smf_core_gen_queue_file(settings->queue_dir, &session->message_file);
     TRACE(TRACE_DEBUG,"using spool file: '%s'", session->message_file);
-    printf("using spool file: '%s'", session->message_file);
-        
-    /* make null terminated */
-    content[0] = '\0'; 
 
-    /* start receiving data */
+    /* open the spool file */
+    spool_file = fopen(session->message_file, "w");
+    if(spool_file == NULL) {
+        TRACE(TRACE_ERR,"unable to open spool file: %s",strerror(NULL));
+        return(-1);
+    }
+
+    /* write stream directly to spool_file */
     while(!feof(stdin)) {
-      fread(&buffer, BUF_SIZE, sizeof(char), stdin);
-      char *old = content;
-        contentSize += strlen(buffer);
-        content = realloc(content, contentSize);
-        
-        if(content == NULL) {
+        char *content_to_write = malloc(sizeof(char) * BUF_SIZE);
+
+        if(content_to_write == NULL) {
             TRACE(TRACE_ERR, "Failed to reallocate memory for content");
-            free(old);
+            fclose(spool_file);
             return(-1);
         }
-        strcat(content, buffer);
+
+        content_to_write[0] = '\0';
+        fread(&buffer, BUF_SIZE-1, sizeof(char), stdin);
+        strcat(content_to_write, buffer);
+        fwrite(content_to_write, sizeof(char), strlen(content_to_write), spool_file);
+        free(content_to_write);
     }
-    printf("%s", content);
-    free(content);
-    
 
+    fclose(spool_file);
+    if(smf_message_from_file(&message,session->message_file,1) != 0) {
+        TRACE(TRACE_ERR, "smf_message_from_file() failed");
+        return(-1);
+    }
 
+    session->envelope->message = message;
 
+    stop_process = clock();
+    TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 
     /*
-    in_channel = g_io_channel_unix_new(STDIN_FILENO);
-    g_io_channel_set_encoding(in_channel, NULL, NULL);
-
-    out_channel = g_io_channel_new_file(session->message_file,"w",&error);
-    g_io_channel_set_encoding(out_channel, NULL, NULL);
-    if(!out_channel) {
-        TRACE(TRACE_ERR,"failed writing queue file: %s",error->message);
-        g_error_free(error);
-        return -1;
-    }
-
-
-    do {
-        g_io_channel_read_chars(in_channel,buf,100,&bytes_read,&error);
-        if(error) {
-            TRACE(TRACE_ERR,"error while reading: %s",error->message);
-            g_error_free(error);
-            return -1;
-        }
-        
-        g_io_channel_write_chars(out_channel,buf,bytes_read,&bytes_written,&error);
-        if(error) {
-            TRACE(TRACE_ERR,"error while writing queue file: %s",error->message);
-            g_error_free(error);
-            return -1;
-        }
-        session->msgbodysize+=bytes_written;
-    }
-    while(bytes_read > 0);
-
-    g_io_channel_unref(in_channel);
-    g_io_channel_shutdown(out_channel,TRUE,&error);
-
-    if(error){
-        TRACE(TRACE_ERR,"failed to close queue file: %s",error->message);
-        g_error_free(error);
-        return 1;
-    }
-
-    TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
-
-// blockweise <stdin> einlesen, 
-// ausgangsdatei schreiben
-// dateigrösse im struct speichern /in session
-// cmime_parse_file (ggf. smf_parse_file)
-// msg objekt im session struct speichern
-// error handling errno/fread
-
-
-//    session->envelope->num_rcpts = 0;
-    
-    
-    
-    /* parse email data and fill session struct*/
-    /* extract message headers */
-/*
-    g_mime_stream_flush(out);
-    g_mime_stream_seek(out,0,0);
-    parser = g_mime_parser_new_with_stream(out);
-    message = GMIME_OBJECT(g_mime_parser_construct_message(parser));
-*/
-//    smf_message_extract_addresses(&session->envelope);
-
-#if 0
-#ifdef HAVE_GMIME24
-    headers = (void *)g_mime_object_get_header_list(message);
-    session->envelope->message->headers = (void *)g_mime_header_list_new();
-    g_mime_header_list_foreach(headers, copy_header_func, session->envelope->message->headers);
-#else
-    headers = (void *)g_mime_object_get_headers(message);
-    session->envelope->message->headers = (void *)g_mime_header_new();
-    g_mime_header_foreach(headers, copy_header_func, session->envelope->message->headers);
-#endif
-#endif
-//    g_object_unref(parser);
-//    g_object_unref(message);
-//    g_object_unref(out);
-//    g_io_channel_unref(in);
-
-    /* processing is done, we can
-     * stop our clock */
-    stop_process = clock();
-    printf("processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
-    TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
-/*
     if (load_modules(session, settings) != 0) {
         remove(session->message_file);
         smf_session_free(session);
@@ -269,6 +186,7 @@ int load(SMFSettings_T *settings,int sock) {
         TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
         return 0;
     }
-  */  
+    */
+    
     return 0;
 }
