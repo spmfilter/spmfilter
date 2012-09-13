@@ -42,7 +42,7 @@ ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
 
 add_executable(test_engine_pipe test_engine_pipe.c)
 target_link_libraries(test_engine_pipe smf ${COMMON_LIBS})
-ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_core)
+ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_engine_pipe)
 
 target_link_libraries(test_core smf ${COMMON_LIBS})
 ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
