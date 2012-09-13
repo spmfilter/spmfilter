@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steine, Werner Detter and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -14,6 +14,25 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+//test_settings.c spicken
+// spmfilter.conf.sample nehmen 
+// settings_parse_file
+// auf pipe setzen
+
+// blockweise <stdin> mit fread einlesen, 
+// ausgangsdatei schreiben
+// dateigrösse im struct speichern /in session
+// cmime_parse_file (ggf. smf_parse_file)
+// msg objekt im session struct speichern
+// error handling errno/fread
+// socket auf port > 65500 um nexthop zu setzen
+
+
+#define _GNU_SOURCE
+#define BUFF_SIZE 1024
+
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +56,7 @@
 #include "smf_message_private.h"
 
 #define THIS_MODULE "pipe"
+#define BUF_SIZE 1024
 
 
 /* error handler used when building module queue
@@ -67,7 +87,7 @@ static int handle_q_processing_error(int retval, int module_fail, char *response
         return(2);
     } else {
         if (response_msg != NULL) 
-            g_printerr("%s\n",response_msg);
+            printf("%s\n",response_msg);
         return(1);
     }
     /* if none of the above matched, halt processing, this is just
@@ -106,33 +126,57 @@ int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
         TRACE(TRACE_DEBUG, "pipe engine failed to process modules!");
         return(-1);
     }
-
-
     return(0);
 }
 
 int load(SMFSettings_T *settings,int sock) {
-    GIOChannel *in_channel, *out_channel;
-    gchar buf[100];
-    gsize bytes_read,bytes_written;
-    GError *error = NULL;
     clock_t start_process, stop_process;
+    char buffer[BUF_SIZE];
+    size_t contentSize = 1;
+    char *content = malloc(sizeof(char) * BUF_SIZE);
+    
+    if(content == NULL) {
+        TRACE(TRACE_ERR, "Failed to allocate memory for content");
+        return(-1);
+    }
 
     SMFSession_T *session = smf_session_new();
 
-    /* start clock, to see how long
-     * the processing time takes */
+    /* start clock, to see how long the processing time takes */
     start_process = clock();
-
-    smf_core_gen_queue_file(settings->queue_dir, &session->envelope->message_file);
-
-    TRACE(TRACE_DEBUG,"using spool file: '%s'", session->envelope->message_file);
+    smf_core_gen_queue_file(settings->queue_dir, &session->message_file);
+    TRACE(TRACE_DEBUG,"using spool file: '%s'", session->message_file);
+    printf("using spool file: '%s'", session->message_file);
         
+    /* make null terminated */
+    content[0] = '\0'; 
+
     /* start receiving data */
+    while(!feof(stdin)) {
+      fread(&buffer, BUF_SIZE, sizeof(char), stdin);
+      char *old = content;
+        contentSize += strlen(buffer);
+        content = realloc(content, contentSize);
+        
+        if(content == NULL) {
+            TRACE(TRACE_ERR, "Failed to reallocate memory for content");
+            free(old);
+            return(-1);
+        }
+        strcat(content, buffer);
+    }
+    printf("%s", content);
+    free(content);
+    
+
+
+
+
+    /*
     in_channel = g_io_channel_unix_new(STDIN_FILENO);
     g_io_channel_set_encoding(in_channel, NULL, NULL);
 
-    out_channel = g_io_channel_new_file(session->envelope->message_file,"w",&error);
+    out_channel = g_io_channel_new_file(session->message_file,"w",&error);
     g_io_channel_set_encoding(out_channel, NULL, NULL);
     if(!out_channel) {
         TRACE(TRACE_ERR,"failed writing queue file: %s",error->message);
@@ -161,6 +205,7 @@ int load(SMFSettings_T *settings,int sock) {
 
     g_io_channel_unref(in_channel);
     g_io_channel_shutdown(out_channel,TRUE,&error);
+
     if(error){
         TRACE(TRACE_ERR,"failed to close queue file: %s",error->message);
         g_error_free(error);
@@ -168,6 +213,15 @@ int load(SMFSettings_T *settings,int sock) {
     }
 
     TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
+
+// blockweise <stdin> einlesen, 
+// ausgangsdatei schreiben
+// dateigrösse im struct speichern /in session
+// cmime_parse_file (ggf. smf_parse_file)
+// msg objekt im session struct speichern
+// error handling errno/fread
+
+
 //    session->envelope->num_rcpts = 0;
     
     
@@ -201,17 +255,18 @@ int load(SMFSettings_T *settings,int sock) {
     /* processing is done, we can
      * stop our clock */
     stop_process = clock();
+    printf("processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
     TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
 /*
     if (load_modules(session, settings) != 0) {
-        remove(session->envelope->message_file);
+        remove(session->message_file);
         smf_session_free(session);
-        TRACE(TRACE_DEBUG,"removing spool file %s",session->envelope->message_file);
+        TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
         return -1;
     } else {
-        remove(session->envelope->message_file);
+        remove(session->message_file);
         smf_session_free(session);
-        TRACE(TRACE_DEBUG,"removing spool file %s",session->envelope->message_file);
+        TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
         return 0;
     }
   */  

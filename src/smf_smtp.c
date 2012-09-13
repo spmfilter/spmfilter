@@ -46,6 +46,10 @@ void print_recipient_status (smtp_recipient_t recipient, const char *mailbox, vo
  *
  * \returns 0 on success or -1 in case of error
  */
+
+// SMFMessageEnvelope_T *msg_data ersetzen durch SMFSession_T *session
+
+#if 0
 int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 	smtp_session_t session;
 	smtp_message_t message;
@@ -171,7 +175,7 @@ int smf_message_deliver(SMFMessageEnvelope_T *msg_data) {
 
 	return ret;
 }
-
+#endif
 
 static int authinteract (auth_client_request_t request, char **result, int fields, void *arg) {
 	int i;
