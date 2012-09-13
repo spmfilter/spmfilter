@@ -24,12 +24,21 @@ extern "C" {
 
 #include <unistd.h>
 
+#define READCBUF 512
+
+typedef struct {
+    int count;
+    char *current;
+    char buf[READCBUF];
+} readline_t;
+
 void _string_list_destroy(void *data);
 char *_build_module_path(const char *libdir, const char *modname);
 
 ssize_t _readn(int fd, void *buf, size_t nbyte);
 ssize_t _writen(int fd, const void *buf, size_t nbyte);
 ssize_t _readline(int fd, void *buf, size_t nbyte, void **help);
+ssize_t _readcbuf(int fd, char *buf, readline_t *rl);
 
 #ifdef __cplusplus
 }
