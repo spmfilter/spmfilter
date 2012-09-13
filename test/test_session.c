@@ -70,5 +70,18 @@ int main (int argc, char const *argv[]) {
     smf_session_free(session);
     printf("passed\n");
 
+
+    printf("* testing smf_session_set_message_file()...\t\t");
+    smf_session_set_message_file(session,test_path);
+    printf("passed\n");
+
+    printf("* testing smf_session_get_message_file()...\t\t");
+    if (strcmp(test_path,smf_session_get_message_file(session)) != 0) {
+        printf("failed\n");
+        return -1;
+    } else
+        printf("passed\n");
+
+
     return 0;
 }
