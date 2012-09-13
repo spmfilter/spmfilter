@@ -62,7 +62,7 @@
 #define ST_QUIT 6
 
 /* smtp answer with format string as arg */
-void smtpd_string_reply(FILE *fp, const char *format, ...) {
+void smtpd_string_reply(int sock, const char *format, ...) {
 //	FILE *fp = NULL;
 	va_list ap;
 
@@ -73,13 +73,13 @@ void smtpd_string_reply(FILE *fp, const char *format, ...) {
 
 	va_start(ap, format);
 	
-	if (vfprintf(fp,format,ap) <= 0)
-		TRACE(TRACE_ERR,"failed to write to stream");
+//	if (vfprintf(fp,format,ap) <= 0)
+//		TRACE(TRACE_ERR,"failed to write to stream");
 	
-	if (fflush(fp) != 0) {
-		TRACE(TRACE_ERR,"flush to stream failed: %s (%d)",strerror(errno), errno);
-        perror("spmfilter/smtpd: flush to stream failed");
-	} 
+//	if (fflush(fp) != 0) {
+//		TRACE(TRACE_ERR,"flush to stream failed: %s (%d)",strerror(errno), errno);
+//        perror("spmfilter/smtpd: flush to stream failed");
+//	} 
 	va_end(ap);
 
 //	if (fclose(fp) != 0) {
@@ -426,11 +426,11 @@ int load(SMFSettings_T *settings,int sock) {
 
 	smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
 
-	while((read = getline(&line, &len, fp)) != -1) {
-		TRACE(TRACE_DEBUG,"LINE [%s] READ [%d]\n",line,read);
-		smtpd_string_reply(fp,"LINE: [%s]\n",line);
+//	while((read = getline(&line, &len, fp)) != -1) {
+//		TRACE(TRACE_DEBUG,"LINE [%s] READ [%d]\n",line,read);
+//		smtpd_string_reply(fp,"LINE: [%s]\n",line);
 
-	}
+//	}
 #if 0
 	session->envelope->num_rcpts = 0;
 	in = g_io_channel_unix_new(session->sock_in);

@@ -25,6 +25,8 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "smf_internal.h"
+
 void _string_list_destroy(void *data) {
     char *s = (char *)data;
     assert(data);
@@ -92,5 +94,51 @@ ssize_t _writen(int fd, const void *buf, size_t nbyte) {
 }
 
 ssize_t _readline(int fd, void *buf, size_t nbyte, void **help) {
+    size_t n;
+    ssize_t br;
+    char c, *ptr = buf;
+    readline_t *rl = *help;
 
+    if (rl == NULL) {
+        if ((rl = malloc(sizeof(readline_t))) == NULL)
+            return -1;
+
+        rl->count = 0;
+        rl->current = rl->buf; 
+        *help = rl;
+    }   
+
+    for (n = 1; n < nbyte; n++) {
+        if ((br = _readcbuf(fd,&c,rl)) < 0)
+            return -1;
+
+        *ptr++ = c;
+        if ((br == 0) || ( c == '\n'))
+            break;
+    }
+
+    if ((br == 0) && (n == 1))
+        return 0;
+
+    *ptr = 0;
+    return n;
+}
+
+ssize_t _readcbuf(int fd, char *buf, readline_t *rl) {
+    while(rl->count < 1) {
+        if ((rl->count = read(fd, rl->buf, sizeof(rl->buf))) < 0) {
+            if (errno == EINTR)
+                rl->count = 0;
+            else
+                return -1;
+        } else if (rl->count == 0)
+            return 0;
+
+        rl->current = rl->buf;
+    }
+
+    *buf = *rl->current++;
+    rl->count--;
+
+    return 1;
 }
