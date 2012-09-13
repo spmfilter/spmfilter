@@ -30,7 +30,8 @@ SMFSession_T *smf_session_new(void) {
     session = (SMFSession_T *)calloc((size_t)1, sizeof(SMFSession_T));
     session->helo = NULL;
     session->xforward_addr = NULL;
-    session->msgbodysize = 0;
+    session->message_file = NULL;
+    session->message_size = 0;
     session->response_msg = NULL;
     session->envelope = smf_envelope_new();
     return session;
@@ -41,6 +42,9 @@ void smf_session_free(SMFSession_T *session) {
     TRACE(TRACE_DEBUG,"destroy session data");
     if (session->helo!=NULL)
         free(session->helo);
+
+    if (session->message_file != NULL)    
+        free(session->message_file);  
     
     if (session->xforward_addr!=NULL)
         free(session->xforward_addr);
@@ -68,6 +72,22 @@ char *smf_session_get_helo(SMFSession_T *session) {
     assert(session);
 
     return session->helo;
+}
+
+/** Set message file path */
+void smf_envelope_set_message_file(SMFSession_T *session, char *fp) {
+    assert(session);
+    assert(fp);
+    if (session->message_file != NULL) {
+        free(session->message_file);
+    }
+    
+    session->message_file = strdup(fp);
+}
+
+char *smf_envelope_get_message_file(SMFSession_T *session) {
+    assert(session);
+    return session->message_file;
 }
 
 

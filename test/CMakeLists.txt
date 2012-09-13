@@ -40,6 +40,13 @@ add_executable(test_core test_core.c)
 target_link_libraries(test_core smf ${COMMON_LIBS})
 ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
 
+add_executable(test_engine_pipe test_engine_pipe.c)
+target_link_libraries(test_engine_pipe smf ${COMMON_LIBS})
+ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_core)
+
+target_link_libraries(test_core smf ${COMMON_LIBS})
+ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
+
 if(HAVE_DB4)
 	add_executable(test_db4 test_db4.c)
 	target_link_libraries(test_db4 smf ${COMMON_LIBS} db)

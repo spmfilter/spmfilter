@@ -296,14 +296,14 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	GMimeMessage *message;
 	char *message_id;
 
-	smf_core_gen_queue_file(&session->envelope->message_file);
-	if (session->envelope->message_file == NULL) {
+	smf_core_gen_queue_file(&session->message_file);
+	if (session->message_file == NULL) {
 		TRACE(TRACE_ERR,"got no spool file path");
 		smtpd_code_reply(session->sock_out, 552);
 		return;
 	}
 		
-	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->envelope->message_file);
+	TRACE(TRACE_DEBUG,"using spool file: '%s'", session->message_file);
 		
 	smtpd_string_reply(session->sock_out,"354 End data with <CR><LF>.<CR><LF>\r\n");
 	
@@ -312,9 +312,9 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	g_io_channel_set_encoding(in, NULL, NULL);
 	g_io_channel_set_close_on_unref(in,FALSE);
 
-	if ((fd = fopen(session->envelope->message_file,"wb+")) == NULL) {
+	if ((fd = fopen(session->message_file,"wb+")) == NULL) {
 		TRACE(TRACE_ERR,"failed to create spool file %s: [%d - %s]\n",
-				session->envelope->message_file,errno, strerror(errno));
+				session->message_file,errno, strerror(errno));
 		smtpd_code_reply(session->sock_out,552);
 
 		return;
@@ -331,7 +331,7 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 			g_object_unref(out);
 			g_io_channel_unref(in);
 			g_free(line);
-			if (g_remove(session->envelope->message_file) != 0)
+			if (g_remove(session->message_file) != 0)
 				TRACE(TRACE_ERR,"failed to remove queue file");
 			return;
 		}
@@ -392,9 +392,9 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 
 	load_modules(session,settings);
 	
-	if (g_remove(session->envelope->message_file) != 0)
+	if (g_remove(session->message_file) != 0)
  		TRACE(TRACE_ERR,"failed to remove queue file");
-	TRACE(TRACE_DEBUG,"removing spool file %s",session->envelope->message_file);
+	TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
 	return;
 }
 
