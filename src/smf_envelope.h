@@ -29,7 +29,7 @@
 typedef struct {
     SMFList_T *recipients; /**< envelope recipients */
     SMFEmailAddress_T *sender; /**< envelope sender */
-    char *message_file; /**< path to message */
+    
     char *auth_user; /**< SMTP auth user, if needed */
     char *auth_pass; /**< SMTP auth password, if needed */
     char *nexthop; /**< destination smtp server */
@@ -100,21 +100,6 @@ typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data);
  */
 void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope, SMFRcptForeachFunc callback, void  *user_data);
 
-/*!
- * @fn void smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp)
- * @brief Set path for message file
- * @param envelope SMFEnvelope_T object
- * @param fp message file path
- */
-void smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp);
-
-/*!
- * @fn char *smf_envelope_get_message_file(SMFEnvelope_T *envelope)
- * @brief Get message file
- * @param envelope SMFEnvelope_T object
- * @returns path to message file
- */
-char *smf_envelope_get_message_file(SMFEnvelope_T *envelope);
 
 /*!
  * @fn void smf_envelope_set_auth_user(SMFEnvelope_T *envelope,char *auth_user)

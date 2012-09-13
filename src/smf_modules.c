@@ -395,7 +395,7 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
         return -1;
     }
 
-    envelope->message_file = g_strdup(session->queue_file);
+    session->message_file = g_strdup(session->queue_file);
     envelope->nexthop = g_strdup(settings->nexthop);
 
     /* now deliver, if delivery fails, call error hook */

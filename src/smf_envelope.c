@@ -41,7 +41,6 @@ SMFEnvelope_T *smf_envelope_new(void) {
     }
 
     envelope->sender = NULL;
-    envelope->message_file = NULL;
     envelope->message = NULL;
     envelope->auth_pass = NULL;
     envelope->auth_user = NULL;
@@ -63,10 +62,7 @@ void smf_envelope_free(SMFEnvelope_T *envelope) {
         free(envelope->nexthop);
 
     if (envelope->message != NULL)
-        smf_message_free(envelope->message);
-    
-    if (envelope->message_file != NULL)    
-        free(envelope->message_file);    
+        smf_message_free(envelope->message); 
     
     if (envelope->auth_user != NULL)
         free(envelope->auth_user);    
@@ -135,22 +131,6 @@ void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope,
     elem = elem->next;
     }
 
-}
-
-/** Set message file path */
-void smf_envelope_set_message_file(SMFEnvelope_T *envelope, char *fp) {
-    assert(envelope);
-    assert(fp);
-    if (envelope->message_file != NULL) {
-        free(envelope->message_file);
-    }
-    
-    envelope->message_file = strdup(fp);
-}
-
-char *smf_envelope_get_message_file(SMFEnvelope_T *envelope) {
-    assert(envelope);
-    return envelope->message_file;
 }
 
 /** Set auth user */

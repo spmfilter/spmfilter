@@ -26,12 +26,17 @@
  */
 typedef struct {
     SMFEnvelope_T *envelope; /**< message envelope */
-    size_t msgbodysize; /**< size of message body */
+    size_t message_size; /**< size of message body */
+			 char *message_file; /**< path to message */
     char *helo; /**< client's helo */
     char *xforward_addr; /**< xforward data */
     char *response_msg; /**< custom response message */
     int sock; /**< socket */
 } SMFSession_T;
+
+
+
+
 
 /*!
  * @fn void smf_session_set_helo(SMFSession_T *session, char *helo)
@@ -89,5 +94,27 @@ char *smf_session_get_response_msg(SMFSession_T *session);
  * @returns SMFEnvelope_T object
  */
 SMFEnvelope_T *smf_session_get_envelope(SMFSession_T *session);
+
+/*!
+ * @fn void smf_envelope_set_message_file(SMFSession_T *session, char *fp)
+ * @brief Set path for message file
+ * @param session SMFSession_T object
+ * @param fp message file path
+ */
+void smf_envelope_set_message_file(SMFSession_T *session, char *fp);
+
+/*!
+ * @fn char *smf_envelope_get_message_file(SMFEnvelope_T *envelope)
+ * @brief Get message file
+ * @param session SMFSession_T object
+ * @returns path to message file
+ */
+char *smf_envelope_get_message_file(SMFSession_T *session);
+
+
+
+
+
+
 
 #endif  /* _SMF_SESSION_H */
