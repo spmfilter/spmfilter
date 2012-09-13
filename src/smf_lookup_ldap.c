@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#define _GNU_SOURCE
 
 #include <lber.h>
 #include <ldap.h>
@@ -23,6 +24,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <assert.h>
+#include <stdio.h>
 
 #include "smf_trace.h"
 #include "smf_settings.h"
@@ -36,10 +38,9 @@
 
 void _ldap_result_list_destroy(void *data) {
     assert(data);
-    //FIXME?
-    //smf_dict_free((SMFDict_T *)data);
+    smf_dict_free((SMFDict_T *)data);
 }
-
+    
 
 int ldap_get_scope(SMFSettings_T *settings) {
     assert(settings);
@@ -306,46 +307,38 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
         }
 
         for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
-            char *attr = NULL;
 
+            char *attr = NULL;
             SMFDict_T *d = smf_dict_new();
-            // FIXME: memleak here?
-            /*
-            ==19705== 2,779 (32 direct, 2,747 indirect) bytes in 1 blocks are definitely lost in loss record 6 of 6
-            ==19705==    at 0x4C25A28: calloc (vg_replace_malloc.c:467)     
-            ==19705==    by 0x4E364CD: smf_dict_new (smf_dict.c:64)
-            ==19705==    by 0x4E41DAC: smf_lookup_ldap_query (smf_lookup_ldap.c:310)
-            ==19705==    by 0x400E83: main (test_lookup_ldap.c:105)
-            ==19705== 
-            */
 
             for(attr = ldap_first_attribute(c, msg, &ptr); attr != NULL; attr = ldap_next_attribute(c, msg, ptr)) {
-                char *data;
-              
+                char *data = NULL;
+                
                 bvals = ldap_get_values_len(c, entry, attr);
                 value_count = ldap_count_values_len(bvals);
-
                 TRACE(TRACE_LOOKUP,"found attribute [%s] in entry [%p] with [%d] values", attr, entry, value_count);
-
+                
                 data = (char *)calloc(1,sizeof(char));
+                
                 for (i = 0; i < value_count; i++) {
                     if(i == 0) {
                         smf_core_strcat_printf(&data, "%s", (char *)((struct berval)*bvals[i]).bv_val);
-                    } else {
+                    } else {    
                         smf_core_strcat_printf(&data, ",%s", (char *)((struct berval)*bvals[i]).bv_val);
                     }
                 }
-
+            
                 smf_dict_set(d,attr,data);
-                free(attr);
+                ldap_memfree(attr);
                 free(data);
 
-
-                if (smf_list_append(result,d) != 0)
-                    return NULL;
-
+                
                 ldap_value_free_len(bvals);
             }
+
+            if (smf_list_append(result,d) != 0)
+                return NULL;
+
         }
     }  
     ber_free(ptr,0);
