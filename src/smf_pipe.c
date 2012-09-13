@@ -15,20 +15,6 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//test_settings.c spicken
-// spmfilter.conf.sample nehmen 
-// settings_parse_file
-// auf pipe setzen
-
-// blockweise <stdin> mit fread einlesen, 
-// ausgangsdatei schreiben
-// dateigrösse im struct speichern /in session
-// cmime_parse_file (ggf. smf_parse_file)
-// msg objekt im session struct speichern
-// error handling errno/fread
-// socket auf port > 65500 um nexthop zu setzen
-
-
 #define _GNU_SOURCE
 #define BUFF_SIZE 1024
 
