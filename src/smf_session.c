@@ -75,7 +75,7 @@ char *smf_session_get_helo(SMFSession_T *session) {
 }
 
 /** Set message file path */
-void smf_envelope_set_message_file(SMFSession_T *session, char *fp) {
+void smf_session_set_message_file(SMFSession_T *session, char *fp) {
     assert(session);
     assert(fp);
     if (session->message_file != NULL) {
@@ -85,7 +85,7 @@ void smf_envelope_set_message_file(SMFSession_T *session, char *fp) {
     session->message_file = strdup(fp);
 }
 
-char *smf_envelope_get_message_file(SMFSession_T *session) {
+char *smf_session_get_message_file(SMFSession_T *session) {
     assert(session);
     return session->message_file;
 }
