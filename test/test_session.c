@@ -16,6 +16,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include "../src/smf_session.h"
@@ -31,6 +32,10 @@ int main (int argc, char const *argv[]) {
     printf("* testing smf_session_new()...\t\t\t\t");
     session = smf_session_new();
     assert(session);
+    if (strlen(smf_session_get_sid(session)) != 12) {
+        printf("failed\n");
+        return -1;
+    }
     printf("passed\n");
     
     printf("* testing smf_session_set_helo()...\t\t\t");
@@ -66,11 +71,6 @@ int main (int argc, char const *argv[]) {
     } else
         printf("passed\n");
   
-    printf("* testing smf_session_free()...\t\t\t\t");
-    smf_session_free(session);
-    printf("passed\n");
-
-
     printf("* testing smf_session_set_message_file()...\t\t");
     smf_session_set_message_file(session,test_path);
     printf("passed\n");
@@ -79,9 +79,12 @@ int main (int argc, char const *argv[]) {
     if (strcmp(test_path,smf_session_get_message_file(session)) != 0) {
         printf("failed\n");
         return -1;
-    } else
-        printf("passed\n");
+    }
+    printf("passed\n");
 
+    printf("* testing smf_session_free()...\t\t\t\t");
+    smf_session_free(session);
+    printf("passed\n");
 
     return 0;
 }
