@@ -16,6 +16,7 @@
  */
 
 #include <assert.h>
+#include <time.h>
 
 #include "smf_envelope.h"
 #include "smf_trace.h"
@@ -25,7 +26,11 @@
 #define THIS_MODULE "session"
 
 SMFSession_T *smf_session_new(void) {
+    static const char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     SMFSession_T *session;
+    int i;
+    int pos = 0;
+
     TRACE(TRACE_DEBUG,"initialize session data");
     session = (SMFSession_T *)calloc((size_t)1, sizeof(SMFSession_T));
     session->helo = NULL;
@@ -34,6 +39,15 @@ SMFSession_T *smf_session_new(void) {
     session->message_size = 0;
     session->response_msg = NULL;
     session->envelope = smf_envelope_new();
+
+    /* generate session id */
+    srandom(time(NULL));
+    session->sid = (char *)calloc(13,sizeof(char));
+    for(i=0; i < 12; i++)
+        session->sid[pos++] = chars[random() % 36];
+
+    session->sid[pos] = '\0';
+    TRACE(TRACE_DEBUG,"session->sid: [%s]\n",session->sid);
     return session;
 }
 
@@ -53,6 +67,9 @@ void smf_session_free(SMFSession_T *session) {
         free(session->response_msg);
     smf_envelope_free(session->envelope);
     
+    if (session->sid!=NULL)
+        free(session->sid);
+
     free(session);
 }
 
@@ -131,4 +148,10 @@ SMFEnvelope_T *smf_session_get_envelope(SMFSession_T *session) {
     assert(session);
 
     return session->envelope;
+}
+
+char *smf_session_get_sid(SMFSession_T *session) {
+    assert(session);
+
+    return session->sid;
 }
