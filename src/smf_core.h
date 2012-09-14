@@ -57,14 +57,15 @@ char *smf_core_strcat_printf(char **s, const char *fmt, ...);
 char **smf_core_strsplit(char *s, char *sep);
 
 /** 
- * @fn int smf_core_gen_queue_file(char *queue_dir, char **tempname)
+ * @fn int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid)
  * @brief Generate a new queue file name
  * @param queue_dir path to queue directory
  * @param tempname pointer to unallocated buffer for filename, needs to
  * free'd by caller if not required anymore
+ * @param sid current session id
  * @return 0 on success or -1 in case of error
  */
-int smf_core_gen_queue_file(char *queue_dir, char **tempname);
+int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid);
 
 /**
  * @fn char *smf_md5sum(const char *data)
