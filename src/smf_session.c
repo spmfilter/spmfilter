@@ -42,12 +42,12 @@ SMFSession_T *smf_session_new(void) {
 
     /* generate session id */
     srandom(time(NULL));
-    session->sid = (char *)calloc(13,sizeof(char));
+    session->id = (char *)calloc(13,sizeof(char));
     for(i=0; i < 12; i++)
-        session->sid[pos++] = chars[random() % 36];
+        session->id[pos++] = chars[random() % 36];
 
-    session->sid[pos] = '\0';
-    TRACE(TRACE_DEBUG,"session->sid: [%s]\n",session->sid);
+    session->id[pos] = '\0';
+    TRACE(TRACE_DEBUG,"session->id: [%s]\n",session->id);
     return session;
 }
 
@@ -67,8 +67,8 @@ void smf_session_free(SMFSession_T *session) {
         free(session->response_msg);
     smf_envelope_free(session->envelope);
     
-    if (session->sid!=NULL)
-        free(session->sid);
+    if (session->id!=NULL)
+        free(session->id);
 
     free(session);
 }
@@ -150,8 +150,8 @@ SMFEnvelope_T *smf_session_get_envelope(SMFSession_T *session) {
     return session->envelope;
 }
 
-char *smf_session_get_sid(SMFSession_T *session) {
+char *smf_session_get_id(SMFSession_T *session) {
     assert(session);
 
-    return session->sid;
+    return session->id;
 }

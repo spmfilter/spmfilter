@@ -61,11 +61,10 @@ char *_strip_email_addr(char *addr) {
     char *p2 = NULL;
     char *out = NULL;
     size_t len1, len2, offset;  
-    printf("IN [%s]\n",addr);
-    if ((*addr != (char)32) && (*addr == '<')) {
-        p2 = addr;
-        p1 = ++p2;
-    } else
+
+    if (*addr == '<') 
+        p1 = addr;
+    else
         p1 = strchr(addr,'<');
     
     if (p1 != NULL) {
@@ -81,7 +80,6 @@ char *_strip_email_addr(char *addr) {
     } else
         out = strdup(addr);
     
-    printf("OUT [%s]\n",out);
     return out;
 }
 
