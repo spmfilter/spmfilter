@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <sys/times.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <cmime.h>
@@ -36,6 +36,7 @@
 #include "smf_session_private.h"
 #include "smf_lookup.h"
 #include "smf_message_private.h"
+#include "smf_internal.h"
 
 #define THIS_MODULE "pipe"
 #define BUF_SIZE 1024
@@ -111,15 +112,14 @@ int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
 }
 
 int load(SMFSettings_T *settings,int sock) {
-    clock_t start_process, stop_process;
+    struct tms start_acct;
     char buffer[BUF_SIZE];
     FILE *spool_file;
     struct stat st;
     SMFMessage_T *message = smf_message_new();
     SMFSession_T *session = smf_session_new();
 
-    /* start clock, to see how long the processing time takes */
-    start_process = clock();
+    start_acct = _init_runtime_stats();
 
     /* generate the queue file */
     smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
@@ -128,7 +128,7 @@ int load(SMFSettings_T *settings,int sock) {
     /* open the spool file */
     spool_file = fopen(session->message_file, "w");
     if(spool_file == NULL) {
-        TRACE(TRACE_ERR,"unable to open spool file: %s",strerror(NULL));
+        TRACE(TRACE_ERR,"unable to open spool file: %s (%d)",strerror(errno), errno);
         return(-1);
     }
 
@@ -157,9 +157,7 @@ int load(SMFSettings_T *settings,int sock) {
 
     session->envelope->message = message;
 
-    stop_process = clock();
-    TRACE(TRACE_DEBUG,"processing time: %0.5f sec.", (float)(stop_process-start_process)/CLOCKS_PER_SEC);
-
+    
     /*
     if (load_modules(session, settings) != 0) {
         remove(session->message_file);
@@ -174,5 +172,7 @@ int load(SMFSettings_T *settings,int sock) {
     }
     */
     
+    _print_runtime_stats(start_acct);
+
     return 0;
 }
