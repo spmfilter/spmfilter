@@ -32,7 +32,7 @@ typedef struct {
     char *xforward_addr; /**< xforward data */
     char *response_msg; /**< custom response message */
     int sock; /**< socket */
-    char *sid; /**< session id **/
+    char *id; /**< session id **/
 } SMFSession_T;
 
 /*!
@@ -109,11 +109,11 @@ void smf_session_set_message_file(SMFSession_T *session, char *fp);
 char *smf_session_get_message_file(SMFSession_T *session);
 
 /*!
- * @fn char *smf_envelope_get_sid(SMFEnvelope_T *envelope)
+ * @fn char *smf_envelope_get_id(SMFEnvelope_T *envelope)
  * @brief Get session id
  * @param session SMFSession_T object
  * @returns session id
  */
-char *smf_session_get_sid(SMFSession_T *session);
+char *smf_session_get_id(SMFSession_T *session);
 
 #endif  /* _SMF_SESSION_H */
