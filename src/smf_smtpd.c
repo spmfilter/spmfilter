@@ -29,6 +29,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "spmfilter_config.h"
 #include "smf_trace.h"
@@ -42,6 +43,7 @@
 #include "smf_message.h"
 #include "smf_message_private.h"
 #include "smf_internal.h"
+#include "smf_dict.h"
 
 #define THIS_MODULE "smtpd"
 
@@ -61,33 +63,81 @@
 #define ST_DATA 5
 #define ST_QUIT 6
 
-/* smtp answer with format string as arg */
-void smtpd_string_reply(int sock, const char *format, ...) {
-//	FILE *fp = NULL;
-	va_list ap;
+char *_get_req_value(char *req, int jmp) {
+	char *p = NULL;
+	char *r = NULL;
+	assert(req);
 
-//	if ((fp = fdopen(sock, "a")) == NULL) {
-//		TRACE(TRACE_ERR,"failed to open stream: %s (%d)",strerror(errno), errno);
-//        perror("spmfilter/smtpd: failed to open stream");
-//	}
+	p = req;
+	p += jmp;
+
+	/* jump over space, if exists */
+	if (*p == (char)32) p++;
+	r = strdup(p);
+	
+	return smf_core_strstrip(r);
+}
+
+/* smtp answer with format string as arg */
+void _smtpd_string_reply(int sock, const char *format, ...) {
+	ssize_t len = 0;
+	char *out = NULL;
+	va_list ap;
 
 	va_start(ap, format);
 	
-//	if (vfprintf(fp,format,ap) <= 0)
-//		TRACE(TRACE_ERR,"failed to write to stream");
-	
-//	if (fflush(fp) != 0) {
-//		TRACE(TRACE_ERR,"flush to stream failed: %s (%d)",strerror(errno), errno);
-//        perror("spmfilter/smtpd: flush to stream failed");
-//	} 
-	va_end(ap);
+	if (vasprintf(&out,format,ap) <= 0) {
+		TRACE(TRACE_ERR,"failed to write message");
+		return;
+	}
 
-//	if (fclose(fp) != 0) {
-//		TRACE(TRACE_ERR,"failed to close stream: %s (%d)",strerror(errno), errno);
-//        perror("spmfilter/smtpd: failed to close stream");
-//	}
+	if ((len = _writen(sock,out,strlen(out))) != strlen(out)) {
+		TRACE(TRACE_WARNING, "unexpected size [%d], expected [%d] bytes",strlen(out),len);
+	} 
+	free(out);
+	va_end(ap);
 }
 
+void _smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
+	char *code_msg = NULL;
+	char *code_str = NULL;
+	char *out = NULL;
+	ssize_t len = 0;
+
+	asprintf(&code_str,"%d",code);
+	code_msg = smf_dict_get(codes,code_str);
+	free(code_str);
+
+	if (code_msg!=NULL) {
+		asprintf(&out,"%d %s\r\n",code,code_msg);
+	} else {
+		switch(code) {
+			case 221:
+				out = strdup(CODE_221);
+				break;
+			case 250:
+				out = strdup(CODE_250);
+				break;
+			case 451:
+				out = strdup(CODE_451);
+				break;
+			case 502:
+				out = strdup(CODE_502);
+				break;
+			case 552:
+				out = strdup(CODE_552);
+				break;
+			default:
+				out = strdup(CODE_451);
+				break;
+		}
+	}
+
+	if ((len = _writen(sock,out,strlen(out))) != strlen(out)) {
+		TRACE(TRACE_WARNING, "unexpected size [%d], expected [%d] bytes",strlen(out),len);
+	} 
+	free(out);
+}
 
 /*=== BELOW IS NOT GLIB CLEAN ===*/
 
@@ -119,53 +169,6 @@ void stuffing(char chain[]) {
 		}
 	}
 	chain[j]='\0';
-}
-
-/** Write SMTP answer to stdout
- *
- * \param wanted smtp code
- */
-void smtpd_code_reply(int sock, int code) {
-	char *code_msg;
-	GIOChannel *out = NULL;
-
-	out = g_io_channel_unix_new(sock);
-	g_io_channel_set_encoding(out, NULL, NULL);
-	g_io_channel_set_close_on_unref(out,FALSE);
-	
-	/* we don't need to free code_msg, will be
-	 * freed by smtp_code_free() */
-	code_msg = smf_smtp_codes_get(code);
-	if (code_msg!=NULL) {
-		gchar *msg;
-		msg = g_strdup_printf("%d %s\r\n",code,code_msg);
-		free(code_msg);
-		g_io_channel_write_chars(out,msg,strlen(msg),NULL,NULL);
-		g_free(msg);
-	} else {
-		switch(code) {
-			case 221:
-				g_io_channel_write_chars(out,CODE_221,strlen(CODE_221),NULL,NULL);
-				break;
-			case 250:
-				g_io_channel_write_chars(out,CODE_250,strlen(CODE_250),NULL,NULL);
-				break;
-			case 451:
-				g_io_channel_write_chars(out,CODE_451,strlen(CODE_451),NULL,NULL);
-				break;
-			case 502:
-				g_io_channel_write_chars(out,CODE_502,strlen(CODE_502),NULL,NULL);
-				break;
-			case 552:
-				g_io_channel_write_chars(out,CODE_552,strlen(CODE_552),NULL,NULL);
-				break;
-			default:
-				g_io_channel_write_chars(out,CODE_451,strlen(CODE_451),NULL,NULL);
-				break;
-		}
-	}
-	g_io_channel_flush(out,NULL);
-	g_io_channel_unref(out);
 }
 
 /* error handler used when building module queue
@@ -401,52 +404,48 @@ void process_data(SMFSession_T *session, SMFSettings_T *settings) {
 #endif
 
 int load(SMFSettings_T *settings,int sock) {
-	//char hostname[256];
 	char *hostname = NULL;
-	//GIOChannel *in;
-	//gchar *line;
-	char *line = NULL;
-	size_t len = 0;
-	ssize_t read = 0;
+	int br;
+	void *rl = NULL;
+	char req[MAXLINE];
+	char *req_value = NULL;
+	char *t = NULL;
 	int state=ST_INIT;
 	SMFSession_T *session = smf_session_new();
+	clock_t start_process, stop_process;
+	
+
+
+
+	//GIOChannel *in;
+	//gchar *line;
 	//char *requested_size = NULL;
 	//const char *mail_from_addr = NULL;
-	clock_t start_process, stop_process;
 	//GRegex *re = NULL;
 	//GMatchInfo *match_info = NULL;
 
 	/* start clock, to see how long
 	 * the processing time takes */
 	start_process = clock();
-	hostname = (char *)malloc(MAXHOSTNAMELEN);
-    gethostname(hostname,MAXHOSTNAMELEN);
-	
+
 	session->sock = sock;
 
-	smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
+	hostname = (char *)malloc(MAXHOSTNAMELEN);
+    gethostname(hostname,MAXHOSTNAMELEN);
+	_smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
 
-//	while((read = getline(&line, &len, fp)) != -1) {
-//		TRACE(TRACE_DEBUG,"LINE [%s] READ [%d]\n",line,read);
-//		smtpd_string_reply(fp,"LINE: [%s]\n",line);
+	for (;;) {
+		if ((br = _readline(session->sock,req,MAXLINE,&rl)) < 1) 
+			break; /* EOF or error */
 
-//	}
-#if 0
-	session->envelope->num_rcpts = 0;
-	in = g_io_channel_unix_new(session->sock_in);
-	g_io_channel_set_encoding(in, NULL, NULL);
-	g_io_channel_set_close_on_unref(in,FALSE);
-	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
-		g_strstrip(line);
-		TRACE(TRACE_DEBUG,"client smtp dialog: '%s'",line);
-		
-		if (g_ascii_strncasecmp(line,"quit",4)==0) {
+		TRACE(TRACE_DEBUG,"client smtp dialog: [%s]",req);
+
+		if (strncasecmp(req,"quit",4)==0) {
 			TRACE(TRACE_DEBUG,"SMTP: 'quit' received"); 
-			smtpd_code_reply(session->sock_out,221);
+			_smtpd_code_reply(session->sock,221,settings->smtp_codes);
 			state = ST_QUIT;
-			g_free(line);
 			break;
-		} else if (g_ascii_strncasecmp(line, "helo", 4)==0) {
+		} else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
 			/* An EHLO command MAY be issued by a client later in the session.
 			 * If it is issued after the session begins, the SMTP server MUST
 			 * clear all buffers and reset the state exactly as if a RSET
@@ -456,58 +455,81 @@ int load(SMFSettings_T *settings,int sock) {
 				smf_session_free(session);
 				/* reinit session */
 				session = smf_session_new();
-				session->sock_in = sock_in;
-				session->sock_out = sock_out;
+				session->sock = sock;
+				TRACE(TRACE_DEBUG,"session reset, helo/ehlo recieved not in init state");
 			}
-			TRACE(TRACE_DEBUG,"SMTP: 'helo' received");
-			session = smf_session_set_helo(session,smf_core_get_substring("^HELO\\s(.*)$",line, 1));
-			TRACE(TRACE_DEBUG,"HELO: %s",session->helo);
-			if (session->helo != NULL) {
+			TRACE(TRACE_DEBUG,"SMTP: 'helo/ehlo' received");
+			req_value = _get_req_value(req,4);
+			smf_session_set_helo(session,req_value);
+			if (strncmp(req_value,req,strlen(req_value)) != 0) {
 				if (strcmp(session->helo,"") == 0)  {
-					smtpd_string_reply(session->sock_out,"501 Syntax: HELO hostname\r\n");
+					_smtpd_string_reply(session->sock,"501 Syntax: HELO hostname\r\n");
 				} else {
-					TRACE(TRACE_DEBUG,"session->helo: %s",smf_session_get_helo(session));
-					smtpd_string_reply(session->sock_out,"250 %s\r\n",hostname);
+					TRACE(TRACE_DEBUG,"session->helo: [%s]",smf_session_get_helo(session));
+
+					if (strncasecmp(req, "ehlo", 4)==0) {
+						_smtpd_string_reply(session->sock,
+							"250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE\r\n",hostname);
+					} else {
+						_smtpd_string_reply(session->sock,"250 %s\r\n",hostname);
+					}
 					state = ST_HELO;
 				}
 			} else {
-				smtpd_string_reply(session->sock_out,"501 Syntax: HELO hostname\r\n");
+				_smtpd_string_reply(session->sock,"501 Syntax: HELO hostname\r\n");
 			}
-		} else if (g_ascii_strncasecmp(line, "ehlo", 4)==0) {
-			/* Same here....clear all buffers, if ehlo command is
-			 * received later...
+			free(req_value);
+		} else if (strncasecmp(req,"xforward",8)==0) {
+			TRACE(TRACE_DEBUG,"SMTP: 'xforward' received");
+			t = strcasestr(req,"ADDR=");
+			if (t != NULL) {
+				t = strchr(t,'=');
+				smf_core_strstrip(++t);
+				smf_session_set_xforward_addr(session,t);
+				TRACE(TRACE_DEBUG,"session->xforward_addr: [%s]",smf_session_get_xforward_addr(session));
+				_smtpd_code_reply(session->sock,250,settings->smtp_codes);
+				state = ST_XFWD;
+			} else {
+				_smtpd_string_reply(session->sock,"501 Syntax: XFORWARD attribute=value...\r\n");
+			}
+		} else if (strncasecmp(req, "mail from:", 10)==0) {
+			/* The MAIL command begins a mail transaction. Once started, 
+			 * a mail transaction consists of a transaction beginning command, 
+			 * one or more RCPT commands, and a DATA command, in that order. 
+			 * A mail transaction may be aborted by the RSET (or a new EHLO) 
+			 * command. There may be zero or more transactions in a session. 
+			 * MAIL MUST NOT be sent if a mail transaction is already open, 
+			 * e.g., it should be sent only if no mail transaction had been 
+			 * started in the session, or if the previous one successfully 
+			 * concluded with a successful DATA command, or if the previous 
+			 * one was aborted with a RSET.
 			 */
-			if (state != ST_INIT) {
-				smf_session_free(session);
-				/* reinit session */
-				session = smf_session_new();
-				session->sock_in = sock_in;
-				session->sock_out = sock_out;
-			}
-			TRACE(TRACE_DEBUG,"SMTP: 'ehlo' received");
-			session = smf_session_set_helo(session,smf_core_get_substring("^EHLO\\s(.*)$",line,1));
-			if (session->helo != NULL) {
-				if (strcmp(session->helo,"") == 0) {
-					smtpd_string_reply(session->sock_out,"501 Syntax: EHLO hostname\r\n");
-				} else {
-					TRACE(TRACE_DEBUG,"session->helo: %s",smf_session_get_helo(session));
-					smtpd_string_reply(session->sock_out,
-							"250-%s\r\n250-XFORWARD NAME ADDR PROTO HELO SOURCE\r\n250 SIZE\r\n",hostname);
-					state = ST_HELO;
-				}
+			TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
+			if (state == ST_MAIL) {
+				/* we already got the mail command */
+				_smtpd_string_reply(session->sock,"503 Error: nested MAIL command\r\n");
 			} else {
-				smtpd_string_reply(session->sock_out,"501 Syntax: HELO hostname\r\n");
+				req_value = _get_req_value(req,10);
+				printf("REQVALUE [%s]\n",req_value);
+				smf_envelope_set_sender(session->envelope,req_value);
+				TRACE(TRACE_DEBUG,"session->envelope->sender: [%s]",session->envelope->sender->email);
+				free(req_value);
+				_smtpd_code_reply(session->sock,250,settings->smtp_codes);
+				state = ST_MAIL;
 			}
-		} else if (g_ascii_strncasecmp(line,"xforward name",13)==0) {
-			TRACE(TRACE_DEBUG,"SMTP: 'xforward name' received");
-			session = smf_session_set_xforward_addr(session,
-				smf_core_get_substring("^XFORWARD NAME=.* ADDR=(.*)$",line,1));
-			TRACE(TRACE_DEBUG,"session->xforward_addr: %s",smf_session_get_xforward_addr(session));
-			smtpd_code_reply(session->sock_out,250);
-			state = ST_XFWD;
-		} else if (g_ascii_strncasecmp(line, "xforward proto", 13)==0) {
-			smtpd_code_reply(session->sock_out,250);
-			state = ST_XFWD;
+		}
+	}
+	free(rl);
+#if 0
+	session->envelope->num_rcpts = 0;
+	in = g_io_channel_unix_new(session->sock_in);
+	g_io_channel_set_encoding(in, NULL, NULL);
+	g_io_channel_set_close_on_unref(in,FALSE);
+	while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
+		g_strstrip(line);
+		TRACE(TRACE_DEBUG,"client smtp dialog: '%s'",line);
+		
+
 		} else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
 			/* The MAIL command begins a mail transaction. Once started, 
 			 * a mail transaction consists of a transaction beginning command, 

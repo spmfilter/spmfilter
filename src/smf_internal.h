@@ -25,6 +25,7 @@ extern "C" {
 #include <unistd.h>
 
 #define READCBUF 512
+#define MAXLINE 512
 
 typedef struct {
     int count;
@@ -34,6 +35,10 @@ typedef struct {
 
 void _string_list_destroy(void *data);
 char *_build_module_path(const char *libdir, const char *modname);
+
+/* removes leading < and trailing > 
+ * returns a newlly allocated pointer */
+char *_strip_email_addr(char *addr);
 
 ssize_t _readn(int fd, void *buf, size_t nbyte);
 ssize_t _writen(int fd, const void *buf, size_t nbyte);

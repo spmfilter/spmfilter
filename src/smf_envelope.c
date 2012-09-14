@@ -17,6 +17,7 @@
 
 #include <assert.h>
 
+#include "smf_internal.h"
 #include "smf_envelope.h"
 #include "smf_email_address.h"
 #include "smf_message.h"
@@ -75,13 +76,19 @@ void smf_envelope_free(SMFEnvelope_T *envelope) {
 
 /** Set envelope sender */
 void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender) {
+    char *t = NULL;
+    SMFEmailAddress_T *ea = NULL;
     assert(envelope);
     assert(sender);
     // free sender, if already set...
     if (envelope->sender != NULL)
         smf_email_address_free(envelope->sender);
-    
-    envelope->sender = smf_email_address_parse_string(sender);
+
+    ea = smf_email_address_new();
+    t = _strip_email_addr(sender);
+    smf_email_address_set_email(ea, t);
+    envelope->sender = ea;
+    free(t);
 }
 
 char *smf_envelope_get_sender_string(SMFEnvelope_T *envelope) {

@@ -56,6 +56,34 @@ char *_build_module_path(const char *libdir, const char *modname) {
     return path;
 }
 
+char *_strip_email_addr(char *addr) {
+    char *p1 = NULL;
+    char *p2 = NULL;
+    char *out = NULL;
+    size_t len1, len2, offset;  
+    printf("IN [%s]\n",addr);
+    if ((*addr != (char)32) && (*addr == '<')) {
+        p2 = addr;
+        p1 = ++p2;
+    } else
+        p1 = strchr(addr,'<');
+    
+    if (p1 != NULL) {
+        len1 = strlen(++p1);
+        if ((p2 = strchr(p1,'>')) != NULL) {
+            len2 = strlen(p2);
+            offset = len1 - len2;
+            out = (char *)calloc(offset + 1, sizeof(char));
+            strncpy(out,p1,offset);
+            out[strlen(out)] = '\0';
+        } else 
+            out = strdup(addr);
+    } else
+        out = strdup(addr);
+    
+    printf("OUT [%s]\n",out);
+    return out;
+}
 
 ssize_t _readn(int fd, void *buf, size_t nbyte) {
     size_t n;
