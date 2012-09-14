@@ -99,8 +99,8 @@ char **smf_core_strsplit(char *s, char *sep) {
     return(sl);
 }
 
-int smf_core_gen_queue_file(char *queue_dir, char **tempname) {
-    asprintf(&(*tempname),"%s/spmfilter.XXXXXX",queue_dir);
+int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid) {
+    asprintf(&(*tempname),"%s/%s.XXXXXX",queue_dir,sid);
     if(mkstemp(*tempname) == -1) {
         TRACE(TRACE_ERR, "failed creating temporary file: %s (%d)",strerror(errno), errno);
         return -1;

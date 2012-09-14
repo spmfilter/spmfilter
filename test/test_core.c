@@ -76,7 +76,7 @@ int main (int argc, char const *argv[]) {
     printf("passed\n");
     
     printf("* testing smf_core_gen_queue_file()...\t\t\t");
-    if (smf_core_gen_queue_file(P_tmpdir,&s) != 0) {
+    if (smf_core_gen_queue_file(P_tmpdir,&s,"1234567890") != 0) {
         printf("failed\n");
         return -1;
     }
