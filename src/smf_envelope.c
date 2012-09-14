@@ -87,6 +87,7 @@ void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender) {
     ea = smf_email_address_new();
     t = _strip_email_addr(sender);
     smf_email_address_set_email(ea, t);
+    smf_email_address_set_type(ea, SMF_EMAIL_ADDRESS_TYPE_FROM);
     envelope->sender = ea;
     free(t);
 }
@@ -109,11 +110,14 @@ SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope) {
 /** Add new recipient to envelope */
 int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt) {
     SMFEmailAddress_T *ea = NULL;
-
+    char *t = NULL;
     assert(envelope);
     assert(rcpt);
 
-    ea = smf_email_address_parse_string(rcpt);
+    ea = smf_email_address_new();
+    t = _strip_email_addr(rcpt);
+    smf_email_address_set_email(ea, t);
+    free(t);
     smf_email_address_set_type(ea, SMF_EMAIL_ADDRESS_TYPE_TO);
     if (envelope->recipients == NULL) {
         if (smf_list_new(&envelope->recipients,_recipient_list_destroy) != 0)
@@ -135,7 +139,7 @@ void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope,
     while (elem != NULL) {
         SMFEmailAddress_T *ea = smf_list_data(elem);
         (*callback)(ea,user_data);
-    elem = elem->next;
+        elem = elem->next;
     }
 
 }

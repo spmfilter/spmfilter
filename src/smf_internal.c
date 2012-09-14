@@ -24,8 +24,10 @@
 #include <assert.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/times.h>
 
 #include "smf_internal.h"
+#include "smf_trace.h"
 
 void _string_list_destroy(void *data) {
     char *s = (char *)data;
@@ -168,3 +170,25 @@ ssize_t _readcbuf(int fd, char *buf, readline_t *rl) {
 
     return 1;
 }
+
+struct tms _init_runtime_stats(void) {
+    struct tms start_acct;
+    times(&start_acct);
+    
+    return start_acct;
+}
+
+void _print_runtime_stats(struct tms start_acct) {
+    struct tms end_acct;
+
+    times(&end_acct);
+    TRACE(TRACE_DEBUG,"CPU time (user and system): %0.5f\n",
+        (float)(end_acct.tms_utime - start_acct.tms_utime)  + /* User CPU time */
+        (float)(end_acct.tms_stime - start_acct.tms_stime) + /* System CPU time */
+        (float)(end_acct.tms_cutime - start_acct.tms_cutime) + /* User CPU time of terminated child processes */
+        (float)(end_acct.tms_cstime - start_acct.tms_cstime) /* System CPU time of terminated child processes */
+    );
+
+    return;
+}
+
