@@ -510,7 +510,6 @@ int load(SMFSettings_T *settings,int sock) {
 				_smtpd_string_reply(session->sock,"503 Error: nested MAIL command\r\n");
 			} else {
 				req_value = _get_req_value(req,10);
-				printf("REQVALUE [%s]\n",req_value);
 				smf_envelope_set_sender(session->envelope,req_value);
 				TRACE(TRACE_DEBUG,"session->envelope->sender: [%s]",session->envelope->sender->email);
 				free(req_value);

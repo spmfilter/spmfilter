@@ -32,7 +32,7 @@ int main (int argc, char const *argv[]) {
     printf("* testing smf_session_new()...\t\t\t\t");
     session = smf_session_new();
     assert(session);
-    if (strlen(smf_session_get_sid(session)) != 12) {
+    if (strlen(smf_session_get_id(session)) != 12) {
         printf("failed\n");
         return -1;
     }

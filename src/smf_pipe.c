@@ -122,7 +122,7 @@ int load(SMFSettings_T *settings,int sock) {
     start_process = clock();
 
     /* generate the queue file */
-    smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->sid);
+    smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     TRACE(TRACE_DEBUG,"using spool file: '%s'", session->message_file);
 
     /* open the spool file */
