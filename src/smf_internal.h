@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #include <unistd.h>
+#include <sys/times.h>
 
 #define READCBUF 512
 #define MAXLINE 512
@@ -44,6 +45,9 @@ ssize_t _readn(int fd, void *buf, size_t nbyte);
 ssize_t _writen(int fd, const void *buf, size_t nbyte);
 ssize_t _readline(int fd, void *buf, size_t nbyte, void **help);
 ssize_t _readcbuf(int fd, char *buf, readline_t *rl);
+
+struct tms _init_runtime_stats(void);
+void _print_runtime_stats(struct tms start_acct);
 
 #ifdef __cplusplus
 }
