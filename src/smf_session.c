@@ -53,7 +53,7 @@ SMFSession_T *smf_session_new(void) {
 
 /** Free SMFSession_T structure */
 void smf_session_free(SMFSession_T *session) {
-    TRACE(TRACE_DEBUG,"destroy session data");
+    STRACE(TRACE_DEBUG,session->id,"destroy session data");
     if (session->helo!=NULL)
         free(session->helo);
 

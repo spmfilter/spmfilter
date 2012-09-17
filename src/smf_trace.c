@@ -26,6 +26,7 @@
 #include "smf_settings.h"
 
 #define SYSLOGFORMAT "%s:[%s] %s(+%d): %s"
+#define SYSLOGFORMAT_SID "[%s] %s:[%s] %s(+%d): %s"
 
 #define min(x,y) ((x)<=(y)?(x):(y))
 
@@ -50,7 +51,7 @@ void configure_debug(int debug) {
 	debug_flag = debug;
 }
 
-void trace(SMFTrace_T level, const char *module, const char *function, int line, const char *formatstring, ...) {
+void trace(SMFTrace_T level, const char *module, const char *function, int line, const char *sid, const char *formatstring, ...) {
 	SMFTrace_T syslog_level;
 	va_list ap;
 	va_list cp;
@@ -109,9 +110,15 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 		message[w] = '\0';
 		
 		if ((level >= 128) && (debug_flag == 1)) 
-			syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
+			if (sid == NULL)
+				syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
+   			else 
+   				syslog(syslog_level, SYSLOGFORMAT_SID, sid, trace_to_text(level), module, function, line, message);
    		else if (level < 128)
-			syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
+			if (sid == NULL)
+				syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
+			else
+				syslog(syslog_level, SYSLOGFORMAT_SID, sid, trace_to_text(level), module, function, line, message);
 	}
 	free(message);
 }
