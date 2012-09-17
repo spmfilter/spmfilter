@@ -94,5 +94,15 @@ void smf_server_init(SMFSettings_T *settings) {
 }
 
 int smf_server_listen(SMFSettings_T *settings) {
+    int sd, reuseaddr, status;
+    struct addrinfo hints, *ai, *aptr;
 
+    memset(&hints,0,sizeof(hints));
+    hints.ai_flags = AI_PASSIVE;
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+//    if ((status == getaddrinfo(settings->bind_ip,servername,&hints,&ai)) == 0) {
+
+//    }
 }

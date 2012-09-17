@@ -215,6 +215,15 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 free((*settings)->pid_file);
 
             (*settings)->pid_file = strdup(val);
+        /** [global]bind_ip **/
+        } else if (strcmp(key,"bind_ip")==0) {
+            if ((*settings)->bind_ip!=NULL)
+                free((*settings)->bind_ip);
+
+            (*settings)->bind_ip = strdup(val);
+        /** [global]bind_port **/
+        } else if (strcmp(key,"bind_port")==0) {
+            (*settings)->bind_port = _get_integer(val);
         }
     }
 
@@ -390,6 +399,10 @@ SMFSettings_T *smf_settings_new(void) {
     settings->backend_connection = NULL;
     settings->tls_pass = NULL;
     settings->lib_dir = NULL;
+    settings->pid_file = NULL;
+    settings->bind_ip = NULL;
+    settings->bind_port = 10025;
+
     settings->smtp_codes = smf_dict_new();
     settings->sql_driver = NULL;
     settings->sql_name = NULL;
@@ -427,8 +440,6 @@ SMFSettings_T *smf_settings_new(void) {
     settings->ldap_connection = NULL;
     settings->ldap_port = 0;
     settings->active_lookup_host = NULL;
-
-    settings->pid_file = NULL;
     
     settings->groups = smf_dict_new();
         
@@ -450,6 +461,8 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->backend_connection != NULL) free(settings->backend_connection);
     if (settings->tls_pass != NULL) free(settings->tls_pass);
     if (settings->lib_dir != NULL) free(settings->lib_dir);
+    if (settings->pid_file != NULL) free(settings->pid_file);
+    if (settings->bind_ip != NULL) free(settings->bind_ip);
     smf_dict_free(settings->smtp_codes);
     if (settings->sql_driver) free(settings->sql_driver);
     if (settings->sql_name) free(settings->sql_name);
@@ -468,8 +481,6 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->ldap_scope != NULL) free(settings->ldap_scope);
     if (settings->ldap_user_query != NULL) free(settings->ldap_user_query);
     if (settings->active_lookup_host != NULL) free(settings->active_lookup_host);
-
-    if (settings->pid_file != NULL) free(settings->pid_file);
 
     smf_dict_free(settings->groups);
     free(settings);
@@ -668,6 +679,9 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->tls: [%d]", (*settings)->tls);
     TRACE(TRACE_DEBUG, "settings->tls_pass: [%s]", (*settings)->tls_pass);
     TRACE(TRACE_DEBUG, "settings->lib_dir: [%s]", (*settings)->lib_dir);
+    TRACE(TRACE_DEBUG, "settings->pid_file: [%s]", (*settings)->pid_file);
+    TRACE(TRACE_DEBUG, "settings->bind_ip: [%s]", (*settings)->bind_ip);
+    TRACE(TRACE_DEBUG, "settings->bind_port: [%d]", (*settings)->bind_port);
 
     TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
     TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
@@ -962,6 +976,31 @@ char *smf_settings_get_pid_file(SMFSettings_T *settings) {
     assert(settings);
     return settings->pid_file;
 }
+
+void smf_settings_set_bind_ip(SMFSettings_T *settings, char *ip) {
+    assert(settings);
+    assert(ip);
+
+    if (settings->bind_ip != NULL) free(settings->bind_ip);
+        
+    settings->bind_ip = strdup(ip);
+}
+
+char *smf_settings_get_bind_ip(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->bind_ip;
+}
+
+void smf_settings_set_bind_port(SMFSettings_T *settings, int port) {
+    assert(settings);
+    settings->bind_port = port;
+}
+
+int smf_settings_get_bind_port(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->bind_port;
+}
+
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {
     char *strcode = NULL;
