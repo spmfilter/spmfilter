@@ -209,9 +209,12 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 free((*settings)->lib_dir);
         
             (*settings)->lib_dir = strdup(val);
-        /** [global]daemon **/
-        } else if (strcmp(key,"daemon")==0) {
-            (*settings)->daemon = _get_boolean(val);
+        /** [global]pid_file **/
+        } else if (strcmp(key,"pid_file")==0) {
+            if ((*settings)->pid_file!=NULL)
+                free((*settings)->pid_file);
+
+            (*settings)->pid_file = strdup(val);
         }
     }
 
@@ -419,14 +422,16 @@ SMFSettings_T *smf_settings_new(void) {
     settings->add_header = 1;
     settings->max_size = 0;
     settings->tls = 0;
-    settings->daemon = 0;
     settings->sql_max_connections = 3;
     settings->sql_port = 0;
     settings->ldap_connection = NULL;
     settings->ldap_port = 0;
     settings->active_lookup_host = NULL;
-    settings->groups = smf_dict_new();
+
+    settings->pid_file = NULL;
     
+    settings->groups = smf_dict_new();
+        
     return settings;
 }
 
@@ -463,6 +468,8 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->ldap_scope != NULL) free(settings->ldap_scope);
     if (settings->ldap_user_query != NULL) free(settings->ldap_user_query);
     if (settings->active_lookup_host != NULL) free(settings->active_lookup_host);
+
+    if (settings->pid_file != NULL) free(settings->pid_file);
 
     smf_dict_free(settings->groups);
     free(settings);
@@ -661,13 +668,6 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->tls: [%d]", (*settings)->tls);
     TRACE(TRACE_DEBUG, "settings->tls_pass: [%s]", (*settings)->tls_pass);
     TRACE(TRACE_DEBUG, "settings->lib_dir: [%s]", (*settings)->lib_dir);
-    if ((*settings)->daemon == 1){
-        if (strcmp((*settings)->engine,"pipe")==0) {
-            TRACE(TRACE_ERR,"pipe engine can not be used in daemon mode");
-            return -1;
-        }
-    }
-    TRACE(TRACE_DEBUG, "settings->daemon: [%d]", (*settings)->daemon);
 
     TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
     TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
@@ -949,14 +949,18 @@ char *smf_settings_get_lib_dir(SMFSettings_T *settings) {
     return settings->lib_dir;
 }
 
-void smf_settings_set_daemon(SMFSettings_T *settings, int i) {
+void smf_settings_set_pid_file(SMFSettings_T *settings, char *pid_file) {
     assert(settings);
-    settings->daemon = i;
+    assert(pid_file);
+
+    if (settings->pid_file != NULL) free(settings->pid_file);
+        
+    settings->pid_file = strdup(pid_file);
 }
 
-int smf_settings_get_daemon(SMFSettings_T *settings) {
+char *smf_settings_get_pid_file(SMFSettings_T *settings) {
     assert(settings);
-    return settings->daemon;
+    return settings->pid_file;
 }
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {

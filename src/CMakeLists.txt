@@ -1,6 +1,7 @@
 set(SPMFILTER_SRC
 	main.c
 #	smf_daemon.c
+	smf_server.c
 )
 
 set(LIB_SMF_SRC

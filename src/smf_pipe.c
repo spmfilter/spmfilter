@@ -111,7 +111,7 @@ int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
     return(0);
 }
 
-int load(SMFSettings_T *settings,int sock) {
+int load(SMFSettings_T *settings) {
     struct tms start_acct;
     char buffer[BUF_SIZE];
     FILE *spool_file;
