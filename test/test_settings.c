@@ -221,7 +221,6 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
     
-   
     printf("* testing smf_settings_set_tls_pass()...\t\t");
     smf_settings_set_tls_pass(settings, test_string);
     printf("passed\n");
@@ -245,16 +244,38 @@ int main (int argc, char const *argv[]) {
     printf("passed\n");
 
     printf("* testing smf_settings_set_pid_file()...\t\t");
-    smf_settings_set_lib_dir(settings, test_pid_file);
+    smf_settings_set_pid_file(settings, test_pid_file);
     printf("passed\n");
 
     printf("* testing smf_settings_get_pid_file()...\t\t");
-    if(strcmp(smf_settings_get_lib_dir(settings),test_pid_file) != 0) {
+    if(strcmp(smf_settings_get_pid_file(settings),test_pid_file) != 0) {
         printf("failed\n");
         return -1;
     }
     printf("passed\n");
       
+    printf("* testing smf_settings_set_bind_ip()...\t\t\t");
+    smf_settings_set_bind_ip(settings, test_ip);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_bind_ip()...\t\t\t");
+    if(strcmp(smf_settings_get_bind_ip(settings),test_ip) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+    printf("* testing smf_settings_set_bind_port()...\t\t");
+    smf_settings_set_bind_port(settings, 10025);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_bind_port()...\t\t");
+    if(smf_settings_get_bind_port(settings) != 10025) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
     printf("* testing smf_settings_set_sql_driver()...\t\t");
     smf_settings_set_sql_driver(settings, test_sql_driver);
     printf("passed\n");
