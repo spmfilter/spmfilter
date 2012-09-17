@@ -65,7 +65,6 @@ typedef struct {
     unsigned long max_size; /**< maximal message size in bytes */
     SMFTlsOption_T tls; /**< enable/disable TLS */
     char *tls_pass; /**< password for ssl cert */
-    int daemon; /**< daemonize flag */
     char *lib_dir; /**< user defined directory path for shared libraries */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
@@ -93,6 +92,8 @@ typedef struct {
 
     char *active_lookup_host;   /** storage active lookup host */
     SMFDict_T *groups; /**< custom setting groups */
+
+    char *pid_file; /**< path to pid file */
 } SMFSettings_T;
 
 
@@ -376,24 +377,6 @@ void smf_settings_set_lib_dir(SMFSettings_T *settings, char *lib_dir);
  * @returns shared library folder
  */
 char *smf_settings_get_lib_dir(SMFSettings_T *settings);
-
-/*!
- * @fn void smf_settings_set_daemon(SMFSettings_T *settings, int i)
- * @brief Set daemon setting.
- *  Define whether spmfilter should run in 
- *  threaded daemon mode, or not.
- * @param settings a SMFSettings_T object
- * @param i daemon value
- */
-void smf_settings_set_daemon(SMFSettings_T *settings, int i);
-
-/*!
- * @fn int smf_settings_get_daemon(SMFSettings_T *settings)
- * @brief Get daemon setting
- * @params settings a SMFSettings_T object
- * @returns daemon value
- */
-int smf_settings_get_daemon(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
@@ -714,20 +697,35 @@ char *smf_settings_get_ldap_user_query(SMFSettings_T *settings);
 
 /*!
  * @fn char *smf_settings_set_active_lookup_host(SMFSettings_T *settings)
- * @brief Get current active lookup host
+ * @brief Set current active lookup host
  * @param settings a SMFSettings_T object
- * @returns char pointer with active lookup host
  */
 void smf_settings_set_active_lookup_host(SMFSettings_T *settings, char *host);
 
 /*!
  * @fn char *smf_settings_get_active_lookup_host(SMFSettings_T *settings)
- * @brief Set current active lookup host
+ * @brief Get current active lookup host
  * @param settings a SMFSettings_T object
  * @param host char pointer with hostname/IP 
  * @returns char pointer with active lookup host
  */
 char *smf_settings_get_active_lookup_host(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_pid_file(SMFSettings_T *settings, char *pid_file)
+ * @brief Set pid file
+ * @param settings a SMFSettings_T object
+ * @param pid_file char pointer with pid file path 
+ */
+void smf_settings_set_pid_file(SMFSettings_T *settings, char *pid_file);
+
+/*!
+ * @fn char *smf_settings_get_pid_file(SMFSettings_T *settings)
+ * @brief Get current active lookup host
+ * @param settings a SMFSettings_T object
+ * @returns char pointer with pid file path
+ */
+char *smf_settings_get_pid_file(SMFSettings_T *settings);
 
 /*!
  * @fn char *smf_settings_group_get(SMFSettingsGroup_T *group, char *group_name, char *key)

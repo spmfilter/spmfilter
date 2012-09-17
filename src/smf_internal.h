@@ -27,6 +27,7 @@ extern "C" {
 
 #define READCBUF 512
 #define MAXLINE 512
+#define BUFSIZE 512
 
 typedef struct {
     int count;

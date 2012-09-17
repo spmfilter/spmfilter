@@ -243,19 +243,18 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
     printf("passed\n");
-    
-    printf("* testing smf_settings_set_daemon()...\t\t\t");
-    smf_settings_set_daemon(settings, 1);
+
+    printf("* testing smf_settings_set_pid_file()...\t\t");
+    smf_settings_set_lib_dir(settings, test_pid_file);
     printf("passed\n");
 
-    printf("* testing smf_settings_get_daemon()...\t\t\t");
-    if (smf_settings_get_daemon(settings) != 1) {
+    printf("* testing smf_settings_get_pid_file()...\t\t");
+    if(strcmp(smf_settings_get_lib_dir(settings),test_pid_file) != 0) {
         printf("failed\n");
         return -1;
     }
     printf("passed\n");
-    
-   
+      
     printf("* testing smf_settings_set_sql_driver()...\t\t");
     smf_settings_set_sql_driver(settings, test_sql_driver);
     printf("passed\n");

@@ -44,6 +44,7 @@
 #include "smf_message_private.h"
 #include "smf_internal.h"
 #include "smf_dict.h"
+#include "smf_server.h"
 
 #define THIS_MODULE "smtpd"
 
@@ -154,7 +155,8 @@ void _smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
 }
 
 void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
-
+	ssize_t br, bw;
+	char buf[BUFSIZE];
     smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
         TRACE(TRACE_ERR,"got no spool file path");
@@ -164,7 +166,14 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     TRACE(TRACE_DEBUG,"using spool file: '%s'", session->message_file); 
     _smtpd_string_reply(session->sock,"354 End data with <CR><LF>.<CR><LF>\r\n");
 
-
+    while((br = _readn(session->sock,buf,BUFSIZE)) > 0) {
+    	if(br <= 0)
+       		break;
+    	else {
+        	buf[br] = '\0';                      // NEW
+        	printf("BUF [%s]\n", buf);
+    	}
+    }
 #if 0
     GIOChannel *in;
     GMimeStream *out;
@@ -411,7 +420,9 @@ int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
 
 #endif
 
-int load(SMFSettings_T *settings,int sock) {
+
+
+int load(SMFSettings_T *settings) {
     char *hostname = NULL;
     int br;
     void *rl = NULL;
@@ -424,15 +435,12 @@ int load(SMFSettings_T *settings,int sock) {
     struct tms start_acct;
 
     start_acct = _init_runtime_stats();
-    //GIOChannel *in;
-    //gchar *line;
-    //char *requested_size = NULL;
-    //const char *mail_from_addr = NULL;
-    //GRegex *re = NULL;
-    //GMatchInfo *match_info = NULL;
+ 
+    smf_server_init(settings);
 
-    session->sock = sock;
+    //session->sock = sock;
 
+#if 0
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
     _smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
@@ -573,169 +581,12 @@ int load(SMFSettings_T *settings,int sock) {
         }
     }
     free(rl);
-#if 0
-    session->envelope->num_rcpts = 0;
-    in = g_io_channel_unix_new(session->sock_in);
-    g_io_channel_set_encoding(in, NULL, NULL);
-    g_io_channel_set_close_on_unref(in,FALSE);
-    while (g_io_channel_read_line(in, &line, NULL, NULL, NULL) == G_IO_STATUS_NORMAL) {
-        g_strstrip(line);
-        TRACE(TRACE_DEBUG,"client smtp dialog: '%s'",line);
-        
-
-        } else if (g_ascii_strncasecmp(line, "mail from:", 10)==0) {
-            /* The MAIL command begins a mail transaction. Once started, 
-             * a mail transaction consists of a transaction beginning command, 
-             * one or more RCPT commands, and a DATA command, in that order. 
-             * A mail transaction may be aborted by the RSET (or a new EHLO) 
-             * command. There may be zero or more transactions in a session. 
-             * MAIL MUST NOT be sent if a mail transaction is already open, 
-             * e.g., it should be sent only if no mail transaction had been 
-             * started in the session, or if the previous one successfully 
-             * concluded with a successful DATA command, or if the previous 
-             * one was aborted with a RSET.
-             */
-            TRACE(TRACE_DEBUG,"SMTP: 'mail from' received");
-            if (state == ST_MAIL) {
-                /* we already got the mail command */
-                smtpd_string_reply(session->sock_out,"503 Error: nested MAIL command\r\n");
-            } else {
-                session->envelope->sender = g_slice_new(SMFEmailAddress_T);
-                re = g_regex_new(RE_MAIL_FROM, G_REGEX_CASELESS, 0, NULL);
-                g_regex_match(re, line, 0, &match_info);
-                if(g_match_info_matches(match_info)) {
-                    mail_from_addr = g_match_info_fetch(match_info, 1);
-                    if (mail_from_addr != NULL) {
-                        session->envelope->sender->addr = g_strdup(mail_from_addr);
-                        free((char *)mail_from_addr);
-                    }
-                    if (settings->max_size != 0 )
-                        requested_size = g_match_info_fetch(match_info, 2);
-                } else {
-                    smtpd_string_reply(session->sock_out,CODE_552);
-                    g_slice_free(SMFEmailAddress_T,session->envelope->sender);
-                    session->envelope->sender = NULL;
-                }
-                g_match_info_free(match_info);
-                g_regex_unref(re);
-
-                if (settings->max_size != 0) {
-                    if (requested_size != NULL) {
-                        unsigned long l;
-                        l = (unsigned long) strtol(requested_size,NULL,10);
-                        if (l > settings->max_size) {
-                            smtpd_string_reply(session->sock_out,"552 Message size limit exceeded\r\n");
-                            g_slice_free(SMFEmailAddress_T,session->envelope->sender);
-                            session->envelope->sender = NULL;
-                            continue;
-                        }
-                        free(requested_size);
-                    }
-                }
-
-                session->envelope->sender->lr = NULL;
-                if (session->envelope->sender->addr != NULL){
-                    TRACE(TRACE_DEBUG,"session->sender: %s",session->envelope->sender->addr);
-                    if (g_ascii_strcasecmp(session->envelope->sender->addr,"") == 0) {
-                        /* check for emtpy string */
-                        smtpd_string_reply(session->sock_out,"501 Syntax: MAIL FROM:<address>\r\n");
-                        g_slice_free(SMFEmailAddress_T,session->envelope->sender);
-                        session->envelope->sender = NULL;
-                    } else {
-                        if (settings->backend != NULL) {
-                                smf_lookup_check_user(session->envelope->sender);
-                                TRACE(TRACE_DEBUG,"[%s] is local [%d]", session->envelope->sender->addr,session->envelope->sender->is_local);
-                        } else 
-                            session->envelope->sender->lr = NULL;
-
-                        smtpd_code_reply(session->sock_out,250);
-                        state = ST_MAIL;
-                    }
-                } else {
-                    smtpd_string_reply(session->sock_out,"501 Syntax: MAIL FROM:<address>\r\n");
-                    g_slice_free(SMFEmailAddress_T,session->envelope->sender);
-                    session->envelope->sender = NULL;
-                }
-            }
-        } else if (g_ascii_strncasecmp(line, "rcpt to:", 8)==0) {
-            if ((state != ST_MAIL) && (state != ST_RCPT)) {
-                /* someone wants to break smtp rules... */
-                smtpd_string_reply(session->sock_out,"503 Error: need MAIL command\r\n");
-            } else {
-                TRACE(TRACE_DEBUG,"SMTP: 'rcpt to' received");
-
-                /* reallocate memory to make room for additional recipients */
-                session->envelope->rcpt = g_realloc(
-                    session->envelope->rcpt,
-                    sizeof(SMFEmailAddress_T) * (session->envelope->num_rcpts + 1)
-                );
-
-                /* allocate resources for the individual recipient */
-                session->envelope->rcpt[session->envelope->num_rcpts] = g_slice_new(SMFEmailAddress_T);
-                session->envelope->rcpt[session->envelope->num_rcpts]->addr = smf_core_get_substring("^RCPT TO:?\\W*(?:.*<)?([^>]*)(?:>)?", line, 1);
-                session->envelope->rcpt[session->envelope->num_rcpts]->lr = NULL;
-                if (session->envelope->rcpt[session->envelope->num_rcpts] != NULL) {
-                    if (strcmp(session->envelope->rcpt[session->envelope->num_rcpts]->addr,"") == 0) {
-                        /* empty rcpt to? */
-                        smtpd_string_reply(session->sock_out,"501 Syntax: RCPT TO:<address>\r\n");
-                        g_slice_free(SMFEmailAddress_T,session->envelope->rcpt[session->envelope->num_rcpts]);
-                    } else {
-                        TRACE(TRACE_DEBUG,"session->rcpt[%d]: %s",session->envelope->num_rcpts, session->envelope->rcpt[session->envelope->num_rcpts]->addr);
-                        if (settings->backend != NULL) {
-                            smf_lookup_check_user(session->envelope->rcpt[session->envelope->num_rcpts]);
-                            TRACE(TRACE_DEBUG,"[%s] is local [%d]", 
-                                    session->envelope->rcpt[session->envelope->num_rcpts]->addr,
-                                    session->envelope->rcpt[session->envelope->num_rcpts]->is_local);
-                        } else
-                            session->envelope->rcpt[session->envelope->num_rcpts]->lr = NULL;
-                        smtpd_code_reply(session->sock_out,250);
-                        session->envelope->num_rcpts++;
-                        state = ST_RCPT;
-                    }
-                } else {
-                    smtpd_string_reply(session->sock_out,"501 Syntax: RCPT TO:<address>\r\n");
-                    g_slice_free(SMFEmailAddress_T,session->envelope->rcpt[session->envelope->num_rcpts]);
-                }
-            }
-        } else if (g_ascii_strncasecmp(line,"data", 4)==0) {
-            if ((state != ST_RCPT) && (state != ST_MAIL)) {
-                /* someone wants to break smtp rules... */
-                smtpd_string_reply(session->sock_out,"503 Error: need RCPT command\r\n");
-            } else if ((state != ST_RCPT) && (state == ST_MAIL)) {
-                /* we got the mail command but no rcpt to */
-                smtpd_string_reply(session->sock_out,"554 Error: no valid recipients\r\n");
-            } else {
-                state = ST_DATA;
-                TRACE(TRACE_DEBUG,"SMTP: 'data' received");
-                process_data(session,settings);
-            }
-        } else if (g_ascii_strncasecmp(line,"rset", 4)==0) {
-            TRACE(TRACE_DEBUG,"SMTP: 'rset' received");
-            smf_session_free(session);
-            /* reinit session */
-            session = smf_session_new();
-            session->sock_in = sock_in;
-            session->sock_out = sock_out;
-            smtpd_code_reply(session->sock_out,250);
-            state = ST_INIT;
-        } else if (g_ascii_strncasecmp(line, "noop", 4)==0) {
-            TRACE(TRACE_DEBUG,"SMTP: 'noop' received");
-            smtpd_code_reply(session->sock_out,250);
-        } else if (g_ascii_strcasecmp(line,"")!=0){
-            TRACE(TRACE_DEBUG,"SMTP: wtf?!");
-            smtpd_code_reply(session->sock_out,502);
-        } else {
-            TRACE(TRACE_DEBUG,"SMTP: got empty line");
-            smtpd_string_reply(session->sock_out,"500 Error: bad syntax\r\n");
-        }
-        g_free(line);
-    } 
-    g_io_channel_unref(in);
-#endif 
 
     free(hostname);
+#endif
     smf_session_free(session);
 
     _print_runtime_stats(start_acct);
     return 0;
 }
+
