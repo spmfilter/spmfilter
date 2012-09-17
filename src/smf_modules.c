@@ -410,7 +410,7 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
     return(0);
 }
 
-int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
+int smf_modules_engine_load(SMFSettings_T *settings) {
     void *module = NULL;
     LoadEngine load_engine = NULL;
     char *engine_path = NULL;
@@ -438,7 +438,7 @@ int smf_modules_engine_load(SMFSettings_T *settings, int fd) {
         return -1;
     }
 
-    ret = load_engine(settings,fd);
+    ret = load_engine(settings);
 
     if (dlclose(module) != 0) {
         TRACE(TRACE_ERR,"failed to unload module [%s]",engine_path);

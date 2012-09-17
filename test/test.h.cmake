@@ -72,6 +72,7 @@ char test_response[] = "250 OK message accepted";
 
 char test_config_file[] = "test_settings";
 char test_queue_dir[] = ".";
+char test_pid_file[] = "/var/run/spmfilter.pid";
 char test_module[] = "clamav";
 char test_backend[] = "sql";
 char test_backend_conn[] = "failover";

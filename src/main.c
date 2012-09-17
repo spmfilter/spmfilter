@@ -127,10 +127,7 @@ int main(int argc, char *argv[]) {
         return -1; 
     }
 
-//    if (settings->daemon == 1)
-//        ret = smf_daemon_mainloop(settings);
-//    else
-        ret = smf_modules_engine_load(settings, STDIN_FILENO);
+    ret = smf_modules_engine_load(settings);
 
 #if 0
     if(settings->backend != NULL) {

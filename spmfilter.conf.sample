@@ -72,6 +72,8 @@ tls_enable=0
 
 tls_pass=
 
+pid_file = /var/run/spmfilter.pid
+
 [smtpd]
 # The fail code is used as response code for the 
 # sending MTA, if delivery to nexthop fails (default 451) 
