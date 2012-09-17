@@ -23,5 +23,4 @@
 void smf_server_init(SMFSettings_T *settings);
 int smf_server_listen(SMFSettings_T *settings);
 
-
 #endif  /* _SMF_SERVER_H */

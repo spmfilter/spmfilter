@@ -123,12 +123,12 @@ int load(SMFSettings_T *settings) {
 
     /* generate the queue file */
     smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
-    TRACE(TRACE_DEBUG,"using spool file: '%s'", session->message_file);
+    STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file);
 
     /* open the spool file */
     spool_file = fopen(session->message_file, "w");
     if(spool_file == NULL) {
-        TRACE(TRACE_ERR,"unable to open spool file: %s (%d)",strerror(errno), errno);
+        STRACE(TRACE_ERR,session->id,"unable to open spool file: %s (%d)",strerror(errno), errno);
         return(-1);
     }
 
@@ -137,7 +137,7 @@ int load(SMFSettings_T *settings) {
         char *content_to_write = malloc(sizeof(char) * BUF_SIZE);
 
         if(content_to_write == NULL) {
-            TRACE(TRACE_ERR, "Failed to reallocate memory for content");
+            STRACE(TRACE_ERR, session->id, "Failed to reallocate memory for content");
             fclose(spool_file);
             return(-1);
         }
@@ -151,7 +151,7 @@ int load(SMFSettings_T *settings) {
 
     fclose(spool_file);
     if(smf_message_from_file(&message,session->message_file,1) != 0) {
-        TRACE(TRACE_ERR, "smf_message_from_file() failed");
+        STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
         return(-1);
     }
 
@@ -172,7 +172,7 @@ int load(SMFSettings_T *settings) {
     }
     */
     
-    _print_runtime_stats(start_acct);
+    _print_runtime_stats(start_acct,session->id);
 
     return 0;
 }

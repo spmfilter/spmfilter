@@ -15,6 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +25,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <assert.h>
 
 #include "smf_settings.h"
 #include "smf_trace.h"
@@ -96,13 +99,45 @@ void smf_server_init(SMFSettings_T *settings) {
 int smf_server_listen(SMFSettings_T *settings) {
     int sd, reuseaddr, status;
     struct addrinfo hints, *ai, *aptr;
+    char *srvname = NULL;
+    int backlog = 32;
+
+    assert(settings);
 
     memset(&hints,0,sizeof(hints));
     hints.ai_flags = AI_PASSIVE;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-//    if ((status == getaddrinfo(settings->bind_ip,servername,&hints,&ai)) == 0) {
+    asprintf(&srvname,"%d",settings->bind_port);
+    if ((status == getaddrinfo(settings->bind_ip,srvname,&hints,&ai)) == 0) {
+        for (aptr = ai; aptr != NULL; aptr = aptr->ai_next) {
+            if ((sd = socket(aptr->ai_family,aptr->ai_socktype, aptr->ai_protocol)) < 0)
+                continue;
 
-//    }
+            reuseaddr = 1;
+            setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(int));
+
+            if (bind(sd,aptr->ai_addr,aptr->ai_addrlen) == 0) {
+                if (listen(sd, backlog) >= 0)
+                    break;
+            }
+            close(sd);
+        }
+
+        freeaddrinfo(ai);
+
+        if (aptr == NULL) {
+            TRACE(TRACE_ERR,"can't listen on port %s: %s", srvname, strerror(errno));
+            return -1;
+        }
+    } else {
+        TRACE(TRACE_ERR,"getaddrinfo failed: %s",gai_strerror(status));
+        return -1;
+    }
+    free(srvname);
+
+    return sd;
 }
+
+

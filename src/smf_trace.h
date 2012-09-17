@@ -38,8 +38,9 @@ typedef enum {
  * @param fmt format string for log message
  * @param ... format string arguments
  */
-#define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
-void trace(SMFTrace_T level, const char * module, const char * function, int line, const char *formatstring, ...);
+#define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, NULL, fmt)
+#define STRACE(level, sid, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, sid, fmt)
+void trace(SMFTrace_T level, const char * module, const char * function, int line, const char *sid, const char *formatstring, ...);
 
 void configure_debug(int debug);
 
