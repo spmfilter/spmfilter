@@ -48,7 +48,7 @@ ssize_t _readline(int fd, void *buf, size_t nbyte, void **help);
 ssize_t _readcbuf(int fd, char *buf, readline_t *rl);
 
 struct tms _init_runtime_stats(void);
-void _print_runtime_stats(struct tms start_acct);
+void _print_runtime_stats(struct tms start_acct, const char *sid);
 
 #ifdef __cplusplus
 }
