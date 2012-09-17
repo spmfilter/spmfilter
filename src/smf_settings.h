@@ -66,6 +66,9 @@ typedef struct {
     SMFTlsOption_T tls; /**< enable/disable TLS */
     char *tls_pass; /**< password for ssl cert */
     char *lib_dir; /**< user defined directory path for shared libraries */
+    char *pid_file; /**< path to pid file */
+    char *bind_ip; /**< ip to bind daemon */
+    int bind_port; /**< port to bind daemon */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
 
@@ -92,8 +95,6 @@ typedef struct {
 
     char *active_lookup_host;   /** storage active lookup host */
     SMFDict_T *groups; /**< custom setting groups */
-
-    char *pid_file; /**< path to pid file */
 } SMFSettings_T;
 
 
@@ -377,6 +378,54 @@ void smf_settings_set_lib_dir(SMFSettings_T *settings, char *lib_dir);
  * @returns shared library folder
  */
 char *smf_settings_get_lib_dir(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_pid_file(SMFSettings_T *settings, char *pid_file)
+ * @brief Set pid file
+ * @param settings a SMFSettings_T object
+ * @param pid_file char pointer with pid file path 
+ */
+void smf_settings_set_pid_file(SMFSettings_T *settings, char *pid_file);
+
+/*!
+ * @fn char *smf_settings_get_pid_file(SMFSettings_T *settings)
+ * @brief Get current pid file
+ * @param settings a SMFSettings_T object
+ * @returns char pointer with pid file path
+ */
+char *smf_settings_get_pid_file(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_bind_ip(SMFSettings_T *settings, char *ip)
+ * @brief Set bind ip 
+ * @param settings a SMFSettings_T object
+ * @param ip char pointer with ip 
+ */
+void smf_settings_set_bind_ip(SMFSettings_T *settings, char *ip);
+
+/*!
+ * @fn char *smf_settings_get_bind_ip(SMFSettings_T *settings)
+ * @brief Get current bind ip
+ * @param settings a SMFSettings_T object
+ * @returns char pointer with ip
+ */
+char *smf_settings_get_bind_ip(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_bind_port(SMFSettings_T *settings, int port)
+ * @brief Set bind port 
+ * @param settings a SMFSettings_T object
+ * @param port port number
+ */
+void smf_settings_set_bind_port(SMFSettings_T *settings, int port);
+
+/*!
+ * @fn int smf_settings_get_bind_port(SMFSettings_T *settings)
+ * @brief Get current bind port
+ * @param settings a SMFSettings_T object
+ * @returns port number
+ */
+int smf_settings_get_bind_port(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
@@ -710,22 +759,6 @@ void smf_settings_set_active_lookup_host(SMFSettings_T *settings, char *host);
  * @returns char pointer with active lookup host
  */
 char *smf_settings_get_active_lookup_host(SMFSettings_T *settings);
-
-/*!
- * @fn void smf_settings_set_pid_file(SMFSettings_T *settings, char *pid_file)
- * @brief Set pid file
- * @param settings a SMFSettings_T object
- * @param pid_file char pointer with pid file path 
- */
-void smf_settings_set_pid_file(SMFSettings_T *settings, char *pid_file);
-
-/*!
- * @fn char *smf_settings_get_pid_file(SMFSettings_T *settings)
- * @brief Get current active lookup host
- * @param settings a SMFSettings_T object
- * @returns char pointer with pid file path
- */
-char *smf_settings_get_pid_file(SMFSettings_T *settings);
 
 /*!
  * @fn char *smf_settings_group_get(SMFSettingsGroup_T *group, char *group_name, char *key)
