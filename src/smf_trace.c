@@ -22,11 +22,9 @@
 #include <math.h>
 #include <stdarg.h>
 
+#include "smf_core.h"
 #include "smf_trace.h"
 #include "smf_settings.h"
-
-#define SYSLOGFORMAT "%s:[%s] %s(+%d): %s"
-#define SYSLOGFORMAT_SID "[%s] %s:[%s] %s(+%d): %s"
 
 #define min(x,y) ((x)<=(y)?(x):(y))
 
@@ -57,7 +55,8 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 	va_list cp;
 	char *message = NULL;
 	size_t l, maxlen=1024;
-	
+	char *out = NULL;
+
 	/* Return now if we're not logging anything. */
 	if (! level)
 		return;
@@ -71,6 +70,11 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 	
 	if (message[l] == '\n')
 		message[l] = '\0';
+
+	if (sid != NULL)
+		asprintf(&out,"[%s] ",sid);
+	else
+		out = (char *)calloc(1,sizeof(char));
 
 	if (level) {
 		/* Convert our extended log levels (>128) to syslog levels */
@@ -109,16 +113,16 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 		size_t w = min(l,maxlen);
 		message[w] = '\0';
 		
+		smf_core_strcat_printf(&out,"%s:[%s]",trace_to_text(level), module);
+		if (debug_flag == 1) smf_core_strcat_printf(&out," %s(+%d)",function, line);
+
+		smf_core_strcat_printf(&out, " %s",message);
+
 		if ((level >= 128) && (debug_flag == 1)) 
-			if (sid == NULL)
-				syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
-   			else 
-   				syslog(syslog_level, SYSLOGFORMAT_SID, sid, trace_to_text(level), module, function, line, message);
+   			syslog(syslog_level,out);
    		else if (level < 128)
-			if (sid == NULL)
-				syslog(syslog_level, SYSLOGFORMAT, trace_to_text(level), module, function, line, message);
-			else
-				syslog(syslog_level, SYSLOGFORMAT_SID, sid, trace_to_text(level), module, function, line, message);
+			syslog(syslog_level, out);
 	}
+	free(out);
 	free(message);
 }

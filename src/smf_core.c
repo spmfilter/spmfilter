@@ -29,10 +29,7 @@
 #include <sys/time.h>
 #include <sys/param.h>
 
-#include <glib.h>
-
 #include "smf_core.h"
-#include "smf_trace.h"
 #include "smf_md5.h"
 
 #define GETTIMEOFDAY(t) gettimeofday(t,(struct timezone *) 0)
@@ -102,7 +99,6 @@ char **smf_core_strsplit(char *s, char *sep) {
 int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid) {
     asprintf(&(*tempname),"%s/%s.XXXXXX",queue_dir,sid);
     if(mkstemp(*tempname) == -1) {
-        TRACE(TRACE_ERR, "failed creating temporary file: %s (%d)",strerror(errno), errno);
         return -1;
     }
     return 0;   
