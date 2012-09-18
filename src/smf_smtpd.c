@@ -375,7 +375,7 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
 
                     if (strncasecmp(req, "ehlo", 4)==0) {
                         _smtpd_string_reply(session->sock,
-                            "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE\r\n",hostname);
+                            "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",hostname,settings->max_size);
                     } else {
                         _smtpd_string_reply(session->sock,"250 %s\r\n",hostname);
                     }
