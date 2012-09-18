@@ -71,6 +71,8 @@ typedef struct {
     int bind_port; /**< port to bind daemon */
     int listen_backlog; /**< listen queue backlog */
     int foreground; /**< run daemon in foreground */
+    char *user; /**< run daemon as user */
+    char *group; /** run daemon as group */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
 
@@ -460,6 +462,38 @@ void smf_settings_set_foreground(SMFSettings_T *settings, int foreground);
  * @returns foreground setting
  */
 int smf_settings_get_foreground(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_user(SMFSettings_T *settings, char *user)
+ * @brief Set effective user 
+ * @param settings a SMFSettings_T object
+ * @param user effective username
+ */
+void smf_settings_set_user(SMFSettings_T *settings, char *user);
+
+/*!
+ * @fn char *smf_settings_get_user(SMFSettings_T *settings)
+ * @brief Get effective user
+ * @param settings a SMFSettings_T object
+ * @returns char pointer with username
+ */
+char *smf_settings_get_user(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_group(SMFSettings_T *settings, char *group)
+ * @brief Set effective group
+ * @param settings a SMFSettings_T object
+ * @param user effective groupname
+ */
+void smf_settings_set_group(SMFSettings_T *settings, char *group);
+
+/*!
+ * @fn char *smf_settings_get_group(SMFSettings_T *settings)
+ * @brief Get effective group
+ * @param settings a SMFSettings_T object
+ * @returns char pointer with groupname
+ */
+char *smf_settings_get_group(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
