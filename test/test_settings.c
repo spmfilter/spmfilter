@@ -276,6 +276,17 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
 
+    printf("* testing smf_settings_set_listen_backlog()...\t\t");
+    smf_settings_set_listen_backlog(settings, 64);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_listen_backlog()...\t\t");
+    if(smf_settings_get_listen_backlog(settings) != 64) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
     printf("* testing smf_settings_set_sql_driver()...\t\t");
     smf_settings_set_sql_driver(settings, test_sql_driver);
     printf("passed\n");

@@ -69,6 +69,7 @@ typedef struct {
     char *pid_file; /**< path to pid file */
     char *bind_ip; /**< ip to bind daemon */
     int bind_port; /**< port to bind daemon */
+    int listen_backlog; /**< listen queue backlog */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
 
@@ -426,6 +427,22 @@ void smf_settings_set_bind_port(SMFSettings_T *settings, int port);
  * @returns port number
  */
 int smf_settings_get_bind_port(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_listen_backlog(SMFSettings_T *settings, int backlog)
+ * @brief Set listen backlog 
+ * @param settings a SMFSettings_T object
+ * @param backlog max. number of listen backlog queue
+ */
+void smf_settings_set_listen_backlog(SMFSettings_T *settings, int backlog);
+
+/*!
+ * @fn int smf_settings_get_listen_backlog(SMFSettings_T *settings)
+ * @brief Get listen backlog number
+ * @param settings a SMFSettings_T object
+ * @returns listen backlog number
+ */
+int smf_settings_get_listen_backlog(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
