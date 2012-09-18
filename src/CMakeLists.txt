@@ -12,7 +12,6 @@ set(LIB_SMF_SRC
 	smf_internal.c
 	smf_list.c
 #	smf_lookup.c
-	smf_lookup_result.c
 	smf_md5.c
 	smf_message.c
 	smf_modules.c
