@@ -26,6 +26,9 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <assert.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
 
 #include "smf_settings.h"
 #include "smf_trace.h"
@@ -38,6 +41,8 @@ void smf_server_init(SMFSettings_T *settings) {
     FILE *pidfile;
     int i, sigs[] = { SIGHUP, SIGINT, SIGQUIT, SIGTSTP, SIGTTIN, SIGTTOU };
     struct sigaction action;
+    struct passwd *pwd = NULL;
+    struct group *grp = NULL;
 
     /* switch to background */
     if (settings->foreground == 0) { 
@@ -86,6 +91,33 @@ void smf_server_init(SMFSettings_T *settings) {
 
         chdir(settings->queue_dir);
         umask(0);
+    }
+
+    /* switch user */
+    if ((settings->user != NULL) && (settings->group != NULL)) {
+        TRACE(TRACE_DEBUG,"switching to user %s:%s",settings->user,settings->group);
+        grp = getgrnam(settings->group);
+
+        if (grp == NULL) {
+            TRACE(TRACE_ERR, "could not find group %s", settings->group);
+            exit(EXIT_FAILURE);
+        }
+
+        pwd = getpwnam(settings->user);
+        if (pwd == NULL) {
+            TRACE(TRACE_ERR, "could not find user %s", settings->user);
+            exit(EXIT_FAILURE);
+        }
+
+        if (setgid(grp->gr_gid) != 0) {
+            TRACE(TRACE_ERR, "could not set gid to %s", settings->group);
+            exit(EXIT_FAILURE);
+        }
+
+        if (setuid(pwd->pw_uid) != 0) {
+            TRACE(TRACE_ERR, "could not set uid to %s", settings->user);
+            exit(EXIT_FAILURE);
+        }
     }
 
     if( settings->pid_file != NULL ) {
