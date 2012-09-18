@@ -17,9 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <glib.h>
 #include <db.h>
-#include <glib/gprintf.h>
 #include "../src/smf_lookup.h"
 
 #define TESTDB "/tmp/smf_test_db4.db"
@@ -46,21 +44,21 @@ int main (int argc, char const *argv[]) {
 
     /* first create a new berkeley database */
     if ((ret = db_create(&dbp, NULL, 0)) != 0) {
-        g_printf("db_create: %s\n", db_strerror(ret));
+        printf("db_create: %s\n", db_strerror(ret));
         return(-1);
     }
     /* set page- and cachesize */
     if ((ret = dbp->set_pagesize(dbp, 1024)) != 0) {
-        g_printf("db->open: %s\n", db_strerror(ret));
+        printf("db->open: %s\n", db_strerror(ret));
         return(-1);
     }
     if ((ret = dbp->set_cachesize(dbp, 0, 32 * 1024, 0)) != 0) {
-        g_printf("db->open: %s\n", db_strerror(ret));
+        printf("db->open: %s\n", db_strerror(ret));
         return(-1);
     }
     /* open the database */
     if((ret = dbp->open(dbp, NULL, TESTDB, NULL, DB_HASH, flags, 0)) != 0) {
-        g_printf("db->open: %s\n", db_strerror(ret));
+        printf("db->open: %s\n", db_strerror(ret));
         return(-1);
     }
     /* write to database, zero out the DBTs before using them */
@@ -72,7 +70,7 @@ int main (int argc, char const *argv[]) {
     data.size = strlen(value_str)+1; 
 
     if((ret = dbp->put(dbp, NULL, &key, &data, 0)) != 0) {
-        g_printf("db->put: %s\n", db_strerror(ret));
+        printf("db->put: %s\n", db_strerror(ret));
         return(-1);
     }
     /* close the database */
@@ -83,7 +81,7 @@ int main (int argc, char const *argv[]) {
     res_from_db = smf_lookup_db4_query(TESTDB, key_char);
     if(res_from_db != NULL) {
         if(strcmp(res_from_db,value_str) != 0) {
-            g_printf("received different value from db");
+            printf("received different value from db");
             remove_db();
             free(res_from_db);
             return(-1);
@@ -93,7 +91,7 @@ int main (int argc, char const *argv[]) {
             return(0);
         }
     } else {
-        g_printf("nothing received by smf_lookup_db4_query()");
+        printf("nothing received by smf_lookup_db4_query()");
         remove_db();
         free(res_from_db);
         return(-1);
