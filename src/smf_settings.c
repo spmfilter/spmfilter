@@ -227,6 +227,9 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         /** [global]listen_backlog **/
         } else if (strcmp(key,"listen_backlog")==0) {
             (*settings)->listen_backlog = _get_integer(val);
+        /** [global]foreground **/
+        } else if (strcmp(key,"foreground")==0) {
+            (*settings)->foreground = _get_boolean(val);
         }
     }
 
@@ -406,6 +409,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->bind_ip = NULL;
     settings->bind_port = 10025;
     settings->listen_backlog = 511;
+    settings->foreground = 0;
 
     settings->smtp_codes = smf_dict_new();
     settings->sql_driver = NULL;
@@ -687,6 +691,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->bind_ip: [%s]", (*settings)->bind_ip);
     TRACE(TRACE_DEBUG, "settings->bind_port: [%d]", (*settings)->bind_port);
     TRACE(TRACE_DEBUG, "settings->listen_backlog: [%d]", (*settings)->listen_backlog);
+    TRACE(TRACE_DEBUG, "settings->foreground: [%d]", (*settings)->foreground);
 
     TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
     TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
@@ -1014,6 +1019,16 @@ void smf_settings_set_listen_backlog(SMFSettings_T *settings, int backlog) {
 int smf_settings_get_listen_backlog(SMFSettings_T *settings) {
     assert(settings);
     return settings->listen_backlog;
+}
+
+void smf_settings_set_foreground(SMFSettings_T *settings, int foreground) {
+    assert(settings);
+    settings->foreground = foreground;
+}
+
+int smf_settings_get_foreground(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->foreground;
 }
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {

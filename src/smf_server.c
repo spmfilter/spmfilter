@@ -97,10 +97,10 @@ void smf_server_init(SMFSettings_T *settings) {
 }
 
 int smf_server_listen(SMFSettings_T *settings) {
-    int sd, reuseaddr, status;
+    int sd, reuseaddr;
+    int status = -1;
     struct addrinfo hints, *ai, *aptr;
     char *srvname = NULL;
-    int backlog = 32;
 
     assert(settings);
 
@@ -108,6 +108,8 @@ int smf_server_listen(SMFSettings_T *settings) {
     hints.ai_flags = AI_PASSIVE;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
+
+    TRACE(TRACE_INFO,"binding to %s:%d",settings->bind_ip,settings->bind_port);
 
     asprintf(&srvname,"%d",settings->bind_port);
     if ((status == getaddrinfo(settings->bind_ip,srvname,&hints,&ai)) == 0) {
@@ -119,7 +121,7 @@ int smf_server_listen(SMFSettings_T *settings) {
             setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(int));
 
             if (bind(sd,aptr->ai_addr,aptr->ai_addrlen) == 0) {
-                if (listen(sd, backlog) >= 0)
+                if (listen(sd, settings->listen_backlog) >= 0)
                     break;
             }
             close(sd);
