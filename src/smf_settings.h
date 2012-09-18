@@ -70,6 +70,7 @@ typedef struct {
     char *bind_ip; /**< ip to bind daemon */
     int bind_port; /**< port to bind daemon */
     int listen_backlog; /**< listen queue backlog */
+    int foreground; /**< run daemon in foreground */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
 
@@ -443,6 +444,22 @@ void smf_settings_set_listen_backlog(SMFSettings_T *settings, int backlog);
  * @returns listen backlog number
  */
 int smf_settings_get_listen_backlog(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_foreground(SMFSettings_T *settings, int foreground)
+ * @brief Set foreground config option
+ * @param settings a SMFSettings_T object
+ * @param foreground foreground config options (1 = true, 0 = false)
+ */
+void smf_settings_set_foreground(SMFSettings_T *settings, int foreground);
+
+/*!
+ * @fn int smf_settings_get_foreground(SMFSettings_T *settings)
+ * @brief Get foreground setting
+ * @param settings a SMFSettings_T object
+ * @returns foreground setting
+ */
+int smf_settings_get_foreground(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)

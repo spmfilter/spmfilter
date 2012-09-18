@@ -162,7 +162,6 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
        
-
     printf("* testing smf_settings_set_backend()...\t\t\t");
     smf_settings_set_backend(settings,test_backend);
     printf("passed\n");
@@ -173,7 +172,6 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
     printf("passed\n");
-
 
     printf("* testing smf_settings_set_backend_connection()...\t");
     smf_settings_set_backend_connection(settings, test_backend_conn);
@@ -186,7 +184,6 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
     
-    
     printf("* testing smf_settings_set_add_header()...\t\t");
     smf_settings_set_add_header(settings, 1);
     printf("passed\n");
@@ -197,7 +194,6 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
     printf("passed\n");
-    
     
     printf("* testing smf_settings_set_max_size()...\t\t");
     smf_settings_set_max_size(settings, 5000);
@@ -282,6 +278,17 @@ int main (int argc, char const *argv[]) {
 
     printf("* testing smf_settings_get_listen_backlog()...\t\t");
     if(smf_settings_get_listen_backlog(settings) != 64) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+    printf("* testing smf_settings_set_foreground()...\t\t");
+    smf_settings_set_foreground(settings, 1);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_foreground()...\t\t");
+    if(smf_settings_get_foreground(settings) != 1) {
         printf("failed\n");
         return -1;
     }
