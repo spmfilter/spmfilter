@@ -164,25 +164,57 @@ void _smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
 }
 
 void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
-	ssize_t br, bw;
-	char buf[BUFSIZE];
-    smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
+	ssize_t br;
+    char buf[MAXLINE];
+    void *rl = NULL;
+    FILE *spool_file;
+    SMFMessage_T *message = smf_message_new();
+
+	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
-        TRACE(TRACE_ERR,"got no spool file path");
+        STRACE(TRACE_ERR,session->id,"got no spool file path");
         _smtpd_code_reply(session->sock, 552,settings->smtp_codes);
         return;
     }
-    TRACE(TRACE_DEBUG,"using spool file: '%s'", session->message_file); 
+    
+    /* open the spool file */
+    spool_file = fopen(session->message_file, "w");
+    if(spool_file == NULL) {
+        STRACE(TRACE_ERR,session->id,"unable to open spool file: %s (%d)",strerror(errno), errno);
+        _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
+        return;
+    }
+
+    STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file); 
     _smtpd_string_reply(session->sock,"354 End data with <CR><LF>.<CR><LF>\r\n");
 
-    while((br = _readn(session->sock,buf,BUFSIZE)) > 0) {
-    	if(br <= 0)
-       		break;
-    	else {
-        	buf[br] = '\0';                      // NEW
-        	printf("BUF [%s]\n", buf);
-    	}
+    // TODO: max_size < message_size -> reject
+    while((br = _readline(session->sock,buf,MAXLINE,&rl)) > 0) {
+        if ((strncasecmp(buf,".\r\n",3)==0)||(strncasecmp(buf,".\n",2)==0)) break;
+        if (strncasecmp(buf,".",1)==0) _stuffing(buf);
+
+        if (fwrite(buf, sizeof(char), strlen(buf), spool_file)<=0) {
+            STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+            _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
+            fclose(spool_file);
+            return;
+        }
     }
+    fclose(spool_file);
+    
+    if(smf_message_from_file(&message,session->message_file,1) != 0) {
+        STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
+        _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
+        return;
+    }
+
+    session->envelope->message = message;
+
+    //load_modules(session,settings);
+
+    _smtpd_string_reply(session->sock, CODE_250_ACCEPTED);
+
+
 #if 0
     GIOChannel *in;
     GMimeStream *out;
@@ -615,7 +647,7 @@ int load(SMFSettings_T *settings) {
         exit(EXIT_FAILURE);
     }
 
-    if (settings->foreground == 0) smf_server_init(settings);
+    smf_server_init(settings);
 
     for (;;) {
         slen = sizeof(sa);
