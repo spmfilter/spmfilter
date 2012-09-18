@@ -18,7 +18,6 @@
 #ifndef _SMF_EMAIL_ADDRESS_H
 #define _SMF_EMAIL_ADDRESS_H
 
-#include <glib.h>
 #include <cmime.h>
 
 #include "spmfilter_config.h"
