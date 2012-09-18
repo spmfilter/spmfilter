@@ -91,6 +91,9 @@ char test_split_value1[] = "value1";
 char test_split_value2[] = "value2";
 char test_split_value3[] = "value3";
 
+char test_user[] = "nobody";
+char test_group[] = "users";
+
 #ifdef __cplusplus
 }
 #endif

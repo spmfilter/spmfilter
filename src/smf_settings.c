@@ -230,6 +230,18 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         /** [global]foreground **/
         } else if (strcmp(key,"foreground")==0) {
             (*settings)->foreground = _get_boolean(val);
+        /** [global]user **/
+        } else if (strcmp(key,"user")==0) {
+            if ((*settings)->user!=NULL)
+                free((*settings)->user);
+
+            (*settings)->user = strdup(val);
+        /** [global]group **/
+        } else if (strcmp(key,"group")==0) {
+            if ((*settings)->group!=NULL)
+                free((*settings)->group);
+
+            (*settings)->group = strdup(val);
         }
     }
 
@@ -410,6 +422,8 @@ SMFSettings_T *smf_settings_new(void) {
     settings->bind_port = 10025;
     settings->listen_backlog = 511;
     settings->foreground = 0;
+    settings->user = NULL;
+    settings->group = NULL;
 
     settings->smtp_codes = smf_dict_new();
     settings->sql_driver = NULL;
@@ -471,6 +485,9 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->lib_dir != NULL) free(settings->lib_dir);
     if (settings->pid_file != NULL) free(settings->pid_file);
     if (settings->bind_ip != NULL) free(settings->bind_ip);
+    if (settings->user != NULL) free(settings->user);
+    if (settings->group != NULL) free(settings->group);
+
     smf_dict_free(settings->smtp_codes);
     if (settings->sql_driver) free(settings->sql_driver);
     if (settings->sql_name) free(settings->sql_name);
@@ -692,6 +709,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->bind_port: [%d]", (*settings)->bind_port);
     TRACE(TRACE_DEBUG, "settings->listen_backlog: [%d]", (*settings)->listen_backlog);
     TRACE(TRACE_DEBUG, "settings->foreground: [%d]", (*settings)->foreground);
+    TRACE(TRACE_DEBUG, "settings->user: [%s]", (*settings)->user);
+    TRACE(TRACE_DEBUG, "settings->group: [%s]", (*settings)->group);
 
     TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
     TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
@@ -1029,6 +1048,34 @@ void smf_settings_set_foreground(SMFSettings_T *settings, int foreground) {
 int smf_settings_get_foreground(SMFSettings_T *settings) {
     assert(settings);
     return settings->foreground;
+}
+
+void smf_settings_set_user(SMFSettings_T *settings, char *user) {
+    assert(settings);   
+    assert(user);
+
+    if (settings->user != NULL) free(settings->user);
+    
+    settings->user = strdup(user);
+}
+
+char *smf_settings_get_user(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->user;
+}
+
+void smf_settings_set_group(SMFSettings_T *settings, char *group) {
+    assert(settings);   
+    assert(group);
+
+    if (settings->group != NULL) free(settings->group);
+    
+    settings->group = strdup(group);
+}
+
+char *smf_settings_get_group(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->group;
 }
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {
