@@ -22,40 +22,47 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 #include "../src/smf_list.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
+#include "../src/smf_internal.h"
 
 #define ENGINE "pipe"
 #define BUF_SIZE 1024
+#define QUEUE_DIR "/tmp"
 
 int main (int argc, char const *argv[]) {
     SMFSettings_T *settings = NULL;
     char *engine = ENGINE;
+    char *queue_dir = QUEUE_DIR;
+    int status;
 
     if((settings = smf_settings_new()) != NULL) {
         smf_settings_set_debug(settings, 1);
-
-        if (smf_settings_parse_config(&settings,"../../spmfilter/spmfilter.conf.sample") != 0)
+        if (smf_settings_parse_config(&settings,"../../../spmfilter/spmfilter.conf.sample") != 0)
             return(-1);
 
-        smf_settings_set_engine(settings,engine); 
-    
+        smf_settings_set_engine(settings,engine);
     } else {
         return -1;
     }
 
     smf_settings_set_engine(settings,engine);
-    printf("ENGINE:[%s]", smf_settings_get_engine(settings));
+    smf_settings_set_queue_dir(settings, queue_dir); 
+    
+    /* make sure none of the plugins is loaded, therefor we just 
+     * clear and recreate settings->modules
+     */
+    smf_list_free(settings->modules);
+    smf_list_new(&settings->modules, _string_list_destroy);
 
-    load(settings);
-
-    // load funktion aufrufen, settings übergeben
-    // ggf. noch ein queue ordner setzen
-    // smf_settings liste, dass keine plugins geladen
-    // system aufruf (z.b. cat sample | src/spmfilter )
-    // return wert 0 ok
-  
+    /* call load function */
+    if(load(settings) != 0) {
+        return -1;
+    }
+    
     return 0;
 }
