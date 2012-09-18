@@ -16,7 +16,6 @@
  */
 
 #include <assert.h>
-#include <glib.h>
 #include <cmime.h>
 
 #include "smf_list.h"
