@@ -600,6 +600,8 @@ int load(SMFSettings_T *settings) {
     struct sockaddr_storage sa;
     struct sigaction action;
 
+    TRACE(TRACE_INFO,"starting smtpd engine");
+
     if ((sd = smf_server_listen(settings)) < 0)
         exit(EXIT_FAILURE);
 
@@ -613,7 +615,7 @@ int load(SMFSettings_T *settings) {
         exit(EXIT_FAILURE);
     }
 
-    smf_server_init(settings);
+    if (settings->foreground == 0) smf_server_init(settings);
 
     for (;;) {
         slen = sizeof(sa);
