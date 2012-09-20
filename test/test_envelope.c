@@ -25,23 +25,17 @@
 
 int foreach_rc = -1;
 
-static void print_rcpt_func(SMFEmailAddress_T *ea, void *data) {
-    char *s = NULL;
-    s = smf_email_address_to_string(ea);
-    
-    if ((strcmp(s,test_addr) != 0) && 
-            (strcmp(s,test_addr2) != 0)) {
+static void print_rcpt_func(char *s, void *data) {
+    if (strcmp(s,test_email) != 0) {
         foreach_rc = -1;
     } else {
         foreach_rc = 0;
     }
-    free(s);
 }
 
 
 int main (int argc, char const *argv[]) {
     SMFEnvelope_T *env = NULL;
-    SMFEmailAddress_T *ea = NULL;
     SMFMessage_T *msg = NULL;
     char *s = NULL;
 
@@ -52,31 +46,21 @@ int main (int argc, char const *argv[]) {
     printf("passed\n");
 
     printf("* testing smf_envelope_set_sender()...\t\t\t");
-    smf_envelope_set_sender(env,test_addr);
+    smf_envelope_set_sender(env,test_email2);
     printf("passed\n");
 
-    printf("* testing smf_envelope_get_sender_string()...\t\t");
-    s = smf_envelope_get_sender_string(env);
-    if (strcmp(test_addr,s) != 0) {
+    printf("* testing smf_envelope_get_sender()...\t\t\t");
+    if (strcmp(test_email,smf_envelope_get_sender(env)) != 0) {
         printf("failed\n");
         return -1;
     } 
     free(s);
     printf("passed\n");
 
-    printf("* testing smf_envelope_get_sender()...\t\t\t");
-    ea = smf_envelope_get_sender(env);
-    if ((strcmp(test_name2,smf_email_address_get_name(ea))!=0) || (strcmp(test_email2,smf_email_address_get_email(ea))!=0)) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
-   
     printf("* testing smf_envelope_add_rcpt()...\t\t\t");
-    smf_envelope_add_rcpt(env,test_addr);
-    smf_envelope_add_rcpt(env,test_addr2);
+    smf_envelope_add_rcpt(env,test_email2);
 
-    if (env->recipients->size != 2) {
+    if (env->recipients->size != 1) {
         printf("failed\n");
         return -1;
     } else
