@@ -26,7 +26,48 @@
 #include "smf_modules.h"
 #include "smf_internal.h"
 
-#define THIS_MODULE "smf_modules"
+#define THIS_MODULE "modules"
+
+int smf_modules_engine_load(SMFSettings_T *settings) {
+    void *module = NULL;
+    LoadEngine load_engine = NULL;
+    char *engine_path = NULL;
+    char *error = NULL;
+    int ret;
+
+    /* check if engine module starts with lib */
+    if (settings->lib_dir != NULL)
+        engine_path = _build_module_path(settings->lib_dir, settings->engine);
+    else
+        engine_path = _build_module_path(LIB_DIR, settings->engine);
+
+    if ((module = dlopen(engine_path, RTLD_LAZY)) == NULL) {
+        TRACE(TRACE_ERR,"failed to load library [%s]: %s", engine_path,dlerror());
+        free(engine_path);
+        return -1;
+    }
+    dlerror();  
+
+    load_engine = dlsym(module,"load");
+    if ((error = dlerror()) != NULL)  {
+        TRACE(TRACE_ERR,"library error: %s", error);
+        free(error);
+        free(engine_path);
+        return -1;
+    }
+
+    ret = load_engine(settings);
+
+    if (dlclose(module) != 0) {
+        TRACE(TRACE_ERR,"failed to unload module [%s]",engine_path);
+    }
+
+    free(engine_path);
+
+    return ret;
+}
+
+/*=== BELOW IS NOT GLIB CLEAN ===*/
 
 /* initialize the processing queue */
 ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(int module_fail),
@@ -67,6 +108,151 @@ static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
     return(0);
 }
 
+int smf_modules_process(
+        ProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
+#if 0
+    int i;
+    int retval;
+    ModuleLoadFunction runner;
+    gchar *path;
+    char *curmod;
+    GModule *mod;
+    gpointer *sym;
+    GHashTable *modlist;
+    char *stf_filename = NULL;
+    FILE *stfh = NULL;
+    gchar *header = NULL;
+
+    /* initialize message file  and load processed modules */
+    stf_filename = smf_modules_stf_path(settings,session);
+    stfh = fopen(stf_filename, "a+");
+    if(stfh == NULL) {
+        TRACE(TRACE_ERR, "failed to open message state file => %s", stf_filename);
+
+        if(stf_filename != NULL)
+            free(stf_filename);
+
+        return(-1);
+    }
+    modlist = smf_modules_stf_processed_modules(stfh);
+
+// TODO: fix module loading
+
+    for(i=0;settings->modules[i] != NULL; i++) {
+        curmod = settings->modules[i];
+
+        /* check if the module is in our modlist, if yes, the module has
+         * already been processed and can be skipped */
+        if(g_hash_table_lookup(modlist, (gpointer *)curmod) != NULL) {
+            TRACE(TRACE_INFO, "skipping modules => %s", curmod);
+            continue;
+        }
+
+        path = (gchar *)smf_build_module_path(LIB_DIR, curmod);
+        if(path == NULL) {
+            TRACE(TRACE_DEBUG, "failed to build module path for %s", curmod);
+            return(-1);
+        }
+
+        TRACE(TRACE_DEBUG, "preparing to run module %s", curmod);
+
+        mod = g_module_open(path, G_MODULE_BIND_LAZY);
+        if (!mod) {
+            g_free(path);
+            TRACE(TRACE_ERR,"module failed to load : %s", g_module_error());
+
+            if(q->load_error(settings->module_fail) == 0)
+                return(-1);
+            else
+                continue;
+        }
+
+        if (settings->daemon == 1)
+            g_module_make_resident(mod);
+        
+        if (!g_module_symbol(mod, "load", (gpointer *)&sym)) {
+            TRACE(TRACE_ERR,"symbol load could not be foudn : %s", g_module_error());
+            g_free(path);
+            g_module_close(mod);
+
+            if(q->load_error(settings->module_fail) == 0)
+                return(-1);
+            else
+                continue;
+        }
+
+        /* cast spell and execute */
+        runner = (ModuleLoadFunction)sym;
+        retval = runner(session);
+
+        /* clean up */
+        g_free(path);
+        g_module_close(mod);
+        
+        if(retval != 0) {
+            retval = q->processing_error(retval, settings->module_fail, session->response_msg);
+            
+            if(retval == 0) {
+                TRACE(TRACE_ERR, "module %s failed, stopping processing!", curmod);
+                g_hash_table_destroy(modlist);
+                fclose(stfh);
+                free(stf_filename);
+
+                return(-1);
+            } else if(retval == 1) {
+                TRACE(TRACE_WARNING, "module %s stopped processing!", curmod);
+                g_hash_table_destroy(modlist);
+                fclose(stfh);
+                if(unlink(stf_filename) != 0)
+                    TRERR("Failed to unlink state file => %s", stf_filename);
+                free(stf_filename);
+                return(1);
+            } else if(retval == 2) {
+                TRACE(
+                    TRACE_DEBUG,
+                    "module %s stopped processing, turning to nexthop processing!",
+                    curmod
+                );
+                break;
+            }
+        } else {
+            TRACE(TRACE_DEBUG, "module %s finished successfully", curmod);
+            smf_modules_stf_write_entry(stfh, settings->modules[i]);
+        }
+    }
+
+    /* close file, cleanup modlist and remove state file */
+    TRACE(TRACE_DEBUG, "module processing finished successfully.");
+    fclose(stfh);
+    g_hash_table_destroy(modlist);
+
+    if(unlink(stf_filename) != 0) {
+        TRERR("Failed to unlink state file => %s", stf_filename);
+    }
+    free(stf_filename);
+
+    if (settings->add_header == 1) {
+        header = g_strdup_printf("processed %s",g_strjoinv(",",settings->modules));
+        // TODO: refactoring
+//      smf_session_header_append(session,"X-Spmfilter",header);
+    }
+
+    g_free(header);
+    if (smf_modules_flush_dirty(session) != 0)
+        TRACE(TRACE_ERR,"message flush failed");
+
+    /* queue is done, if we're still here check for next hop and
+     * deliver
+     */
+    if (settings->nexthop != NULL ) {
+        TRACE(TRACE_DEBUG, "will now deliver to nexthop %s", settings->nexthop);
+        return(smf_modules_deliver_nexthop(q, session));
+    }
+#endif
+    return(0);
+}
+
+#if 0
 /* load the list of processed modules from file */
 static GHashTable *smf_modules_stf_processed_modules(FILE *fh) {
     GHashTable *t;
@@ -220,149 +406,6 @@ int smf_modules_flush_dirty(SMFSession_T *session) {
     return 0;
 }
 
-int smf_modules_process(
-        ProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
-#if 0
-    int i;
-    int retval;
-    ModuleLoadFunction runner;
-    gchar *path;
-    char *curmod;
-    GModule *mod;
-    gpointer *sym;
-    GHashTable *modlist;
-    char *stf_filename = NULL;
-    FILE *stfh = NULL;
-    gchar *header = NULL;
-
-    /* initialize message file  and load processed modules */
-    stf_filename = smf_modules_stf_path(settings,session);
-    stfh = fopen(stf_filename, "a+");
-    if(stfh == NULL) {
-        TRACE(TRACE_ERR, "failed to open message state file => %s", stf_filename);
-
-        if(stf_filename != NULL)
-            free(stf_filename);
-
-        return(-1);
-    }
-    modlist = smf_modules_stf_processed_modules(stfh);
-
-// TODO: fix module loading
-
-    for(i=0;settings->modules[i] != NULL; i++) {
-        curmod = settings->modules[i];
-
-        /* check if the module is in our modlist, if yes, the module has
-         * already been processed and can be skipped */
-        if(g_hash_table_lookup(modlist, (gpointer *)curmod) != NULL) {
-            TRACE(TRACE_INFO, "skipping modules => %s", curmod);
-            continue;
-        }
-
-        path = (gchar *)smf_build_module_path(LIB_DIR, curmod);
-        if(path == NULL) {
-            TRACE(TRACE_DEBUG, "failed to build module path for %s", curmod);
-            return(-1);
-        }
-
-        TRACE(TRACE_DEBUG, "preparing to run module %s", curmod);
-
-        mod = g_module_open(path, G_MODULE_BIND_LAZY);
-        if (!mod) {
-            g_free(path);
-            TRACE(TRACE_ERR,"module failed to load : %s", g_module_error());
-
-            if(q->load_error(settings->module_fail) == 0)
-                return(-1);
-            else
-                continue;
-        }
-
-        if (settings->daemon == 1)
-            g_module_make_resident(mod);
-        
-        if (!g_module_symbol(mod, "load", (gpointer *)&sym)) {
-            TRACE(TRACE_ERR,"symbol load could not be foudn : %s", g_module_error());
-            g_free(path);
-            g_module_close(mod);
-
-            if(q->load_error(settings->module_fail) == 0)
-                return(-1);
-            else
-                continue;
-        }
-
-        /* cast spell and execute */
-        runner = (ModuleLoadFunction)sym;
-        retval = runner(session);
-
-        /* clean up */
-        g_free(path);
-        g_module_close(mod);
-        
-        if(retval != 0) {
-            retval = q->processing_error(retval, settings->module_fail, session->response_msg);
-            
-            if(retval == 0) {
-                TRACE(TRACE_ERR, "module %s failed, stopping processing!", curmod);
-                g_hash_table_destroy(modlist);
-                fclose(stfh);
-                free(stf_filename);
-
-                return(-1);
-            } else if(retval == 1) {
-                TRACE(TRACE_WARNING, "module %s stopped processing!", curmod);
-                g_hash_table_destroy(modlist);
-                fclose(stfh);
-                if(unlink(stf_filename) != 0)
-                    TRERR("Failed to unlink state file => %s", stf_filename);
-                free(stf_filename);
-                return(1);
-            } else if(retval == 2) {
-                TRACE(
-                    TRACE_DEBUG,
-                    "module %s stopped processing, turning to nexthop processing!",
-                    curmod
-                );
-                break;
-            }
-        } else {
-            TRACE(TRACE_DEBUG, "module %s finished successfully", curmod);
-            smf_modules_stf_write_entry(stfh, settings->modules[i]);
-        }
-    }
-
-    /* close file, cleanup modlist and remove state file */
-    TRACE(TRACE_DEBUG, "module processing finished successfully.");
-    fclose(stfh);
-    g_hash_table_destroy(modlist);
-
-    if(unlink(stf_filename) != 0) {
-        TRERR("Failed to unlink state file => %s", stf_filename);
-    }
-    free(stf_filename);
-
-    if (settings->add_header == 1) {
-        header = g_strdup_printf("processed %s",g_strjoinv(",",settings->modules));
-        // TODO: refactoring
-//      smf_session_header_append(session,"X-Spmfilter",header);
-    }
-
-    g_free(header);
-    if (smf_modules_flush_dirty(session) != 0)
-        TRACE(TRACE_ERR,"message flush failed");
-
-    /* queue is done, if we're still here check for next hop and
-     * deliver
-     */
-    if (settings->nexthop != NULL ) {
-        TRACE(TRACE_DEBUG, "will now deliver to nexthop %s", settings->nexthop);
-        return(smf_modules_deliver_nexthop(q, session));
-    }
-#endif
-    return(0);
-}
 
 int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 //  int i;
@@ -409,42 +452,4 @@ int smf_modules_deliver_nexthop(ProcessQueue_T *q,SMFSession_T *session) {
 //  smf_message_envelope_unref(envelope);
     return(0);
 }
-
-int smf_modules_engine_load(SMFSettings_T *settings) {
-    void *module = NULL;
-    LoadEngine load_engine = NULL;
-    char *engine_path = NULL;
-    char *error = NULL;
-    int ret;
-
-    /* check if engine module starts with lib */
-    if (settings->lib_dir != NULL)
-        engine_path = _build_module_path(settings->lib_dir, settings->engine);
-    else
-        engine_path = _build_module_path(LIB_DIR, settings->engine);
-
-    if ((module = dlopen(engine_path, RTLD_LAZY)) == NULL) {
-        TRACE(TRACE_ERR,"failed to load library [%s]: %s", engine_path,dlerror());
-        free(engine_path);
-        return -1;
-    }
-    dlerror();  
-
-    load_engine = dlsym(module,"load");
-    if ((error = dlerror()) != NULL)  {
-        TRACE(TRACE_ERR,"library error: %s", error);
-        free(error);
-        free(engine_path);
-        return -1;
-    }
-
-    ret = load_engine(settings);
-
-    if (dlclose(module) != 0) {
-        TRACE(TRACE_ERR,"failed to unload module [%s]",engine_path);
-    }
-
-    free(engine_path);
-
-    return ret;
-}
+#endif

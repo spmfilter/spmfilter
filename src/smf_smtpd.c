@@ -72,7 +72,125 @@ void _sig_handler(int sig) {
     return;
 }
 
+#if 0
+/* error handler used when building module queue
+ * return 1 if processing should continue, else 0
+ */
+static int _handle_q_error(void *args) {
+    SMFSettings_T *settings = smf_settings_get();
+    SMFSession_T *session = (SMFSession_T *)args;
+    switch (settings->module_fail) {
+        case 1: return(1);
+        case 2: smtpd_code_reply(session->sock_out,552);
+                return(0);
+        case 3: smtpd_code_reply(session->sock_out,451);
+                return(0);
+    }
 
+    return(0);
+}
+
+/* handle processing errors when running queue 
+ *
+ * return codes:
+ * -1 = Error in processing, spmfilter will send 4xx Error to MTA
+ * 0 = All ok, the next plugin will be started.
+ * 1 = Further processing will be stopped. Email is not going
+ *     to be delivered to nexthop!
+ * 2 = Further processing will be stopped, no other plugin will
+ *     be startet. spmfilter sends a 250 code
+ */
+static int _handle_q_processing_error(int retval, void *args) {
+    SMFSettings_T *settings = smf_settings_get();
+    SMFSession_T *session = (SMFSession_T *)args;
+
+    if (retval == -1) {
+        switch (settings->module_fail) {
+            case 1: return(1);
+            case 2: smtpd_code_reply(session->sock_out,552);
+                    return(0);
+            case 3: smtpd_code_reply(session->sock_out,451);
+                    return(0);
+        }
+    } else if(retval == 1) {
+        if (session->response_msg != NULL) {
+            char *smtp_response;
+            smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
+            smtpd_string_reply(session->sock_out,smtp_response);
+            free(smtp_response);
+        } else
+            smtpd_string_reply(session->sock_out,CODE_250_ACCEPTED);
+        return(1);
+    } else if(retval == 2) {
+        return(2);
+    } else {
+        if (session->response_msg != NULL) {
+            char *smtp_response;
+            smtp_response = g_strdup_printf("%d %s\r\n",retval,session->response_msg);
+            smtpd_string_reply(session->sock_out,smtp_response);
+            free(smtp_response);
+        } else
+            smtpd_code_reply(session->sock_out,retval);
+        return(1);
+    }
+
+    /* if none of the above matched, halt processing, this is just
+     * for safety purposes
+     */
+    TRACE(TRACE_DEBUG, "no conditional matched, will stop queue processing!");
+    return(0);
+}
+
+/* handle nexthop delivery error */
+static int _handle_nexthop_error(void *args) {
+    SMFSettings_T *settings = smf_settings_get();
+    SMFSession_T *session = (SMFSession_T *)args;
+    
+    smtpd_string_reply(session->sock_out,g_strdup_printf(
+        "%d %s\r\n",
+        settings->nexthop_fail_code,
+        settings->nexthop_fail_msg)
+    );
+
+    return(0);
+}
+
+int _load_modules(SMFSession_T *session, SMFSettings_T *settings) {
+    int ret;
+    ProcessQueue_T *q;
+
+    /* initialize the modules queue handler */
+    q = smf_modules_pqueue_init(
+        handle_q_error,
+        handle_q_processing_error,
+        handle_nexthop_error
+    );
+
+    if(q == NULL) {
+        return(-1);
+    }
+
+    /* now tun the process queue */
+    ret = smf_modules_process(q,session,settings);
+    free(q);
+
+    if(ret == -1) {
+        TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
+        return(-1);
+    } else if (ret == 1) {
+        return(0);
+    }
+
+    if (session->response_msg != NULL) {
+        char *smtp_response;
+        smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
+        smtpd_string_reply(session->sock_out,smtp_response);
+        free(smtp_response);
+    } else
+        smtpd_string_reply(session->sock_out,CODE_250_ACCEPTED);
+    return(0);
+}
+#endif 
 char *_get_req_value(char *req, int jmp) {
     char *p = NULL;
     char *r = NULL;
@@ -100,6 +218,78 @@ void _stuffing(char chain[]) {
         }
     }
     chain[j]='\0';
+}
+
+int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int to, int from, int date) {
+    FILE *new = NULL;
+    FILE *old = NULL;
+    char *tmpname = NULL;
+    size_t len;
+    char buf[BUFSIZE];
+    char *t1 = NULL;
+    char *t2 = NULL;
+
+
+    asprintf(&tmpname,"%s/XXXXXX",queue_dir);
+    if(mkstemp(tmpname) == -1) {
+        STRACE(TRACE_ERR,session->id,"failed to create temporary file: %s (%d)",strerror(errno),errno);
+        return -1;
+    }
+    
+    if((new = fopen(tmpname, "w"))==NULL) {
+        STRACE(TRACE_ERR,session->id,"unable to open temporary file: %s (%d)",strerror(errno), errno);
+        return -1;
+    }
+
+    if (mid==0) {
+        t1 = smf_message_generate_message_id();
+        asprintf(&t2,"Message-Id: %s\n",t1);
+        if (fputs(t2, new)<=0) {
+            STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+        free(t2);
+        free(t1);
+    }
+
+    if (from==0) {
+        asprintf(&t1,"From: %s\n",session->envelope);
+        if (fputs(t1, new)<=0) {
+            STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+        free(t1);
+    }
+
+    if (to==0) {
+        asprintf(&t1,"To: undisclosed-recipients:;\n");
+        if (fputs(t1, new)<=0) {
+            STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+        free(t1);
+    }
+
+/*
+    if((old = fopen(session->message_file, "r"))==NULL) {
+        STRACE(TRACE_ERR,session->id,"unable to open queue file: %s (%d)",strerror(errno), errno);
+        return -1;
+    }
+
+    while(!feof(old)) {
+        if ((len = fread(&buf,BUFSIZE,sizeof(char),old)) <= 0) {
+            STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+        if (fwrite(buf,sizeof(char),len,new) <= 0) {
+            STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+    }
+    fclose(old); */
+    fclose(new);
+
+    return 0;
 }
 
 /* smtp answer with format string as arg */
@@ -169,6 +359,10 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     void *rl = NULL;
     FILE *spool_file;
     SMFMessage_T *message = smf_message_new();
+    int found_mid = 0;
+    int found_to = 0;
+    int found_from = 0;
+    int found_date = 0;
 
 	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
@@ -178,7 +372,7 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     }
     
     /* open the spool file */
-    spool_file = fopen(session->message_file, "w");
+    spool_file = fopen(session->message_file, "w+");
     if(spool_file == NULL) {
         STRACE(TRACE_ERR,session->id,"unable to open spool file: %s (%d)",strerror(errno), errno);
         _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
@@ -193,131 +387,51 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         if ((strncasecmp(buf,".\r\n",3)==0)||(strncasecmp(buf,".\n",2)==0)) break;
         if (strncasecmp(buf,".",1)==0) _stuffing(buf);
 
+        if (strncasecmp(buf,"Message-Id:",11)==0) found_mid = 1;
+        if (strncasecmp(buf,"Date:",5)==0) found_date = 1;
+        if (strncasecmp(buf,"To:",3)==0) found_to = 1;
+        if (strncasecmp(buf,"From:",5)==0) found_from = 1;
+
         if (fwrite(buf, sizeof(char), strlen(buf), spool_file)<=0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
             _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
             fclose(spool_file);
             return;
         }
+        session->message_size += br;
     }
+
     fclose(spool_file);
+    if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0))
+        _append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date);
     
+
+    
+
+    
+    TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->message_size);
+
+/*
     if(smf_message_from_file(&message,session->message_file,1) != 0) {
         STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
         _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
         return;
     }
-
+*/
     session->envelope->message = message;
 
     //load_modules(session,settings);
 
     _smtpd_string_reply(session->sock, CODE_250_ACCEPTED);
 
-
-#if 0
-    GIOChannel *in;
-    GMimeStream *out;
-    gchar *line;
-    gsize length;
-    FILE *fd;
-    GMimeParser *parser;
-    GMimeMessage *message;
-    char *message_id;
-
-        
+    /*
     
-    
-    /* start receiving data */
-    in = g_io_channel_unix_new(session->sock_in);
-    g_io_channel_set_encoding(in, NULL, NULL);
-    g_io_channel_set_close_on_unref(in,FALSE);
-
-    if ((fd = fopen(session->message_file,"wb+")) == NULL) {
-        TRACE(TRACE_ERR,"failed to create spool file %s: [%d - %s]\n",
-                session->message_file,errno, strerror(errno));
-        smtpd_code_reply(session->sock_out,552);
-
-        return;
-    }
-    
-    out = g_mime_stream_file_new(fd);
-
-    while (g_io_channel_read_line(in, &line, &length, NULL, NULL) == G_IO_STATUS_NORMAL) {
-        if ((g_ascii_strcasecmp(line, ".\r\n")==0)||(g_ascii_strcasecmp(line, ".\n")==0)) break;
-        if (g_ascii_strncasecmp(line,".",1)==0) stuffing(line);
-        
-        if (g_mime_stream_write(out,line,length) == -1) {
-            smtpd_string_reply(session->sock_out,CODE_451);
-            g_object_unref(out);
-            g_io_channel_unref(in);
-            g_free(line);
-            if (g_remove(session->message_file) != 0)
-                TRACE(TRACE_ERR,"failed to remove queue file");
-            return;
-        }
-        session->msgbodysize+=length;
-        g_free(line);
-    }
-
-    g_io_channel_unref(in);
-    /* extract message headers */
-    g_mime_stream_flush(out);
-    g_mime_stream_seek(out,0,0);
-
-    parser = g_mime_parser_new_with_stream(out);
-    message = g_mime_parser_construct_message(parser);
-#ifdef HAVE_GMIME24
-    session->envelope->message->headers = (void *)g_mime_header_list_new();
-    g_mime_header_list_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->envelope->message->headers);
-#else
-    session->envelope=>headers = (void *)g_mime_header_new();
-    g_mime_header_foreach(GMIME_OBJECT(message)->headers, copy_header_func, session->envelope->message->headers);
-#endif
-    smf_message_extract_addresses(&session->envelope);
-    g_object_unref(parser);
-    g_object_unref(message);
-    g_object_unref(out);
-
-    if (session->envelope->message->message_from != NULL) {
-        if (session->envelope->message->message_from->addr == NULL) {
-            // TODO: refactoring for new datatypes
-//          smf_session_header_append(session,"From",g_strdup(session->envelope->sender->addr));
-            TRACE(TRACE_DEBUG,"adding [from] header to message");
-        }
-    }
-
-    if (session->envelope->message->message_to_num == 0) {
-        // TODO: refactoring for new datatypes
-//      smf_session_header_append(session,"To",g_strdup("undisclosed-recipients:;"));
-        TRACE(TRACE_DEBUG,"adding [to] header to message");
-    }
-
-#if 0
-    message_id = (char *)smf_session_header_get(session,"message-id");
-
-    if (message_id == NULL) {
-        message_id = smf_message_generate_message_id();
-        TRACE(TRACE_DEBUG,"no message id found, adding [%s]",message_id);
-        smf_session_header_append(session,"Message-ID",message_id);
-        // FIXME: if mid is added, the id is not flushed to message, check smf_modules_flush_dirty()
-        if (smf_modules_flush_dirty(session) != 0) {
-            TRACE(TRACE_ERR,"message flush failed");
-            smtpd_code_reply(session->sock_out,552);
-            return;
-        }
-    }
-#endif
-
-    TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->msgbodysize);
-
     load_modules(session,settings);
     
     if (g_remove(session->message_file) != 0)
         TRACE(TRACE_ERR,"failed to remove queue file");
     TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
-    return;
-#endif
+    */
 }
 
 void _smtpd_handle_client(SMFSettings_T *settings, int client) {
@@ -421,7 +535,7 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
                     _smtpd_string_reply(session->sock,"501 Syntax: MAIL FROM:<address>\r\n");
                 } else {
                     smf_envelope_set_sender(session->envelope,req_value);
-                    STRACE(TRACE_DEBUG,session->id,"session->envelope->sender: [%s]",session->envelope->sender->email);
+                    STRACE(TRACE_DEBUG,session->id,"session->envelope->sender: [%s]",session->envelope->sender);
                     _smtpd_code_reply(session->sock,250,settings->smtp_codes);
                     state = ST_MAIL;
                 }
@@ -502,123 +616,6 @@ static void copy_header_func(const char *name, const char *value, gpointer data)
 }
 
 
-/* error handler used when building module queue
- * return 1 if processing should continue, else 0
- */
-static int handle_q_error(void *args) {
-    SMFSettings_T *settings = smf_settings_get();
-    SMFSession_T *session = (SMFSession_T *)args;
-    switch (settings->module_fail) {
-        case 1: return(1);
-        case 2: smtpd_code_reply(session->sock_out,552);
-                return(0);
-        case 3: smtpd_code_reply(session->sock_out,451);
-                return(0);
-    }
-
-    return(0);
-}
-
-/* handle processing errors when running queue 
- *
- * return codes:
- * -1 = Error in processing, spmfilter will send 4xx Error to MTA
- * 0 = All ok, the next plugin will be started.
- * 1 = Further processing will be stopped. Email is not going
- *     to be delivered to nexthop!
- * 2 = Further processing will be stopped, no other plugin will
- *     be startet. spmfilter sends a 250 code
- */
-static int handle_q_processing_error(int retval, void *args) {
-    SMFSettings_T *settings = smf_settings_get();
-    SMFSession_T *session = (SMFSession_T *)args;
-
-    if (retval == -1) {
-        switch (settings->module_fail) {
-            case 1: return(1);
-            case 2: smtpd_code_reply(session->sock_out,552);
-                    return(0);
-            case 3: smtpd_code_reply(session->sock_out,451);
-                    return(0);
-        }
-    } else if(retval == 1) {
-        if (session->response_msg != NULL) {
-            char *smtp_response;
-            smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
-            smtpd_string_reply(session->sock_out,smtp_response);
-            free(smtp_response);
-        } else
-            smtpd_string_reply(session->sock_out,CODE_250_ACCEPTED);
-        return(1);
-    } else if(retval == 2) {
-        return(2);
-    } else {
-        if (session->response_msg != NULL) {
-            char *smtp_response;
-            smtp_response = g_strdup_printf("%d %s\r\n",retval,session->response_msg);
-            smtpd_string_reply(session->sock_out,smtp_response);
-            free(smtp_response);
-        } else
-            smtpd_code_reply(session->sock_out,retval);
-        return(1);
-    }
-
-    /* if none of the above matched, halt processing, this is just
-     * for safety purposes
-     */
-    TRACE(TRACE_DEBUG, "no conditional matched, will stop queue processing!");
-    return(0);
-}
-
-/* handle nexthop delivery error */
-static int handle_nexthop_error(void *args) {
-    SMFSettings_T *settings = smf_settings_get();
-    SMFSession_T *session = (SMFSession_T *)args;
-    
-    smtpd_string_reply(session->sock_out,g_strdup_printf(
-        "%d %s\r\n",
-        settings->nexthop_fail_code,
-        settings->nexthop_fail_msg)
-    );
-
-    return(0);
-}
-
-int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
-    int ret;
-    ProcessQueue_T *q;
-
-    /* initialize the modules queue handler */
-    q = smf_modules_pqueue_init(
-        handle_q_error,
-        handle_q_processing_error,
-        handle_nexthop_error
-    );
-
-    if(q == NULL) {
-        return(-1);
-    }
-
-    /* now tun the process queue */
-    ret = smf_modules_process(q,session,settings);
-    free(q);
-
-    if(ret == -1) {
-        TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
-        return(-1);
-    } else if (ret == 1) {
-        return(0);
-    }
-
-    if (session->response_msg != NULL) {
-        char *smtp_response;
-        smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
-        smtpd_string_reply(session->sock_out,smtp_response);
-        free(smtp_response);
-    } else
-        smtpd_string_reply(session->sock_out,CODE_250_ACCEPTED);
-    return(0);
-}
 
 
 
