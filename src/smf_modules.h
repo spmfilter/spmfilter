@@ -18,10 +18,6 @@
 #ifndef _SMF_MODULES_H
 #define _SMF_MODULES_H
 
-
-#include <glib.h>
-#include <glib/gstdio.h>
-
 #include "spmfilter_config.h"
 #include "smf_core.h"
 #include "smf_session.h"

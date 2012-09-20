@@ -28,7 +28,7 @@
  */
 typedef struct {
     SMFList_T *recipients; /**< envelope recipients */
-    SMFEmailAddress_T *sender; /**< envelope sender */
+    char *sender; /**< envelope sender */
     
     char *auth_user; /**< SMTP auth user, if needed */
     char *auth_pass; /**< SMTP auth password, if needed */
@@ -59,20 +59,12 @@ void smf_envelope_free(SMFEnvelope_T *envelope);
 void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender);
 
 /*!
- * @fn char *smf_envelope_get_sender_string(SMFEnvelope_T *envelope)
- * @brief Get envelope sender as string
- * @param envelope SMFEnvelope_T object
- * @returns envelope sender
- */
-char *smf_envelope_get_sender_string(SMFEnvelope_T *envelope);
-
-/*!
  * @fn SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope)
  * @brief Get envelope sender 
  * @param envelope SMFEnvelope_T object
- * @returns SMFEmailAddress_T object
+ * @returns envelope sender
  */
-SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope);
+char *smf_envelope_get_sender(SMFEnvelope_T *envelope);
 
 /*!
  * @fn int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt)
@@ -84,12 +76,12 @@ SMFEmailAddress_T *smf_envelope_get_sender(SMFEnvelope_T *envelope);
 int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt);
 
 /*!
- * @fn typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data)
+ * @fn typedef void (*SMFRcptForeachFunc) (char *addr, void *user_data)
  * @brief The function signature for a callback to smf_envelope_foreach_rcpt()
  * @param ea a SMFAddress_T object
  * @param user_data User-supplied callback data.
  */
-typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data);
+typedef void (*SMFRcptForeachFunc) (char *addr, void *user_data);
 
 /*!
  * @fn void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope, SMFRcptForeachFunc callback, void  *user_data)
@@ -99,7 +91,6 @@ typedef void (*SMFRcptForeachFunc) (SMFEmailAddress_T *ea, void *user_data);
  * @param user-supplied callback data
  */
 void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope, SMFRcptForeachFunc callback, void  *user_data);
-
 
 /*!
  * @fn void smf_envelope_set_auth_user(SMFEnvelope_T *envelope,char *auth_user)
