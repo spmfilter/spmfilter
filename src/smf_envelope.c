@@ -31,7 +31,7 @@ SMFEnvelope_T *smf_envelope_new(void) {
 
     envelope = (SMFEnvelope_T *)calloc((size_t)1, sizeof(SMFEnvelope_T));
     
-    if (smf_list_new(&envelope->recipients,_string_list_destroy)!=0) {
+    if (smf_list_new(&envelope->recipients,smf_internal_string_list_destroy)!=0) {
         free(envelope);
         return NULL;
     }
@@ -79,7 +79,7 @@ void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender) {
     if (envelope->sender != NULL)
         free(envelope->sender);
 
-    t = _strip_email_addr(sender);
+    t = smf_internal_strip_email_addr(sender);
     envelope->sender = strdup(t);
     free(t);
 }
@@ -95,9 +95,9 @@ int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt) {
     assert(envelope);
     assert(rcpt);
 
-    t = _strip_email_addr(rcpt);
+    t = smf_internal_strip_email_addr(rcpt);
     if (envelope->recipients == NULL) {
-        if (smf_list_new(&envelope->recipients,_string_list_destroy) != 0)
+        if (smf_list_new(&envelope->recipients,smf_internal_string_list_destroy) != 0)
             return -1;
     }
 

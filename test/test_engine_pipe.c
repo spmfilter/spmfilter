@@ -57,7 +57,7 @@ int main (int argc, char const *argv[]) {
      * clear and recreate settings->modules
      */
     smf_list_free(settings->modules);
-    smf_list_new(&settings->modules, _string_list_destroy);
+    smf_list_new(&settings->modules, smf_internal_string_list_destroy);
 
     /* call load function */
     if(load(settings) != 0) {
