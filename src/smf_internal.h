@@ -29,6 +29,10 @@ extern "C" {
 #define MAXLINE 512
 #define BUFSIZE 512
 
+#define CRLF "\r\n"
+#define LF "\n"
+#define CR "\r"
+
 typedef struct {
     int count;
     char *current;
@@ -49,6 +53,7 @@ ssize_t _readcbuf(int fd, char *buf, readline_t *rl);
 
 struct tms _init_runtime_stats(void);
 void _print_runtime_stats(struct tms start_acct, const char *sid);
+char *_determine_linebreak(const char *s);
 
 #ifdef __cplusplus
 }
