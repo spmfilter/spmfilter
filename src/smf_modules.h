@@ -18,41 +18,34 @@
 #ifndef _SMF_MODULES_H
 #define _SMF_MODULES_H
 
-#include "spmfilter_config.h"
-#include "smf_core.h"
 #include "smf_session.h"
 #include "smf_settings.h"
-#include "smf_message.h"
-#include "smf_message_private.h"
-#include "smf_trace.h"
-#include "smf_md5.h"
 
 typedef int (*ModuleLoadFunction)(SMFSession_T *session);
-typedef int (*LoadEngine) (SMFSettings_T *settings);
+typedef int (*LoadEngine)(SMFSettings_T *settings);
 
-struct process_queue_ {
-    int (*load_error)(int module_fail);
-    int (*processing_error)(int retval, int module_fail, char *response_msg);
-    int (*nexthop_error)(void *args);
-};
 
-typedef struct process_queue_  ProcessQueue_T;
+typedef struct {
+    int (*load_error)(SMFSettings_T *settings, SMFSession_T *session);
+    int (*processing_error)(SMFSettings_T *settings, SMFSession_T *session, int retval);
+    int (*nexthop_error)(SMFSettings_T *settings, SMFSession_T *session);
+} SMFProcessQueue_T;
 
 
 /** initialize the process queue */
-ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(int module_fail),
-    int (*processerr)(int retval, int module_fail, char *response_msg),
-    int (*nhoperr)(void *args));
+SMFProcessQueue_T *smf_modules_pqueue_init(
+    int (*loaderr)(SMFSettings_T *settings, SMFSession_T *session),
+    int (*processerr)(SMFSettings_T *settings, SMFSession_T *session, int retval),
+    int (*nhoperr)(SMFSettings_T *settings, SMFSession_T *session));
 
 /** load all modules and run them */
-int smf_modules_process(ProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings);
+int smf_modules_process(SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings);
 
 /** deliver a message to the nexthop */
-int smf_modules_deliver_nexthop(ProcessQueue_T *q, SMFSession_T *session);
+int smf_modules_deliver_nexthop(SMFProcessQueue_T *q, SMFSession_T *session);
 
 /** Flush modified message headers to queue file */
 int smf_modules_flush_dirty(SMFSession_T *session);
 
 int smf_modules_engine_load(SMFSettings_T *settings);
-#endif  /* _SMF_ODULES_H */
-
+#endif  /* _SMF_MODULES_H */
