@@ -119,7 +119,7 @@ int load(SMFSettings_T *settings) {
     SMFMessage_T *message = smf_message_new();
     SMFSession_T *session = smf_session_new();
 
-    start_acct = _init_runtime_stats();
+    start_acct = smf_internal_init_runtime_stats();
 
     /* generate the queue file */
     smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
@@ -172,7 +172,7 @@ int load(SMFSettings_T *settings) {
     }
     */
     
-    _print_runtime_stats(start_acct,session->id);
+    smf_internal_print_runtime_stats(start_acct,session->id);
 
     return 0;
 }

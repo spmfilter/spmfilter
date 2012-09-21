@@ -37,9 +37,9 @@ int smf_modules_engine_load(SMFSettings_T *settings) {
 
     /* check if engine module starts with lib */
     if (settings->lib_dir != NULL)
-        engine_path = _build_module_path(settings->lib_dir, settings->engine);
+        engine_path = smf_internal_build_module_path(settings->lib_dir, settings->engine);
     else
-        engine_path = _build_module_path(LIB_DIR, settings->engine);
+        engine_path = smf_internal_build_module_path(LIB_DIR, settings->engine);
 
     if ((module = dlopen(engine_path, RTLD_LAZY)) == NULL) {
         TRACE(TRACE_ERR,"failed to load library [%s]: %s", engine_path,dlerror());

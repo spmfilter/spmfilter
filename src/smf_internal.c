@@ -29,13 +29,13 @@
 #include "smf_internal.h"
 #include "smf_trace.h"
 
-void _string_list_destroy(void *data) {
+void smf_internal_string_list_destroy(void *data) {
     char *s = (char *)data;
     assert(data);
     free(s);
 }
 
-char *_build_module_path(const char *libdir, const char *modname) {
+char *smf_internal_build_module_path(const char *libdir, const char *modname) {
     char *path = NULL;
     char *t = NULL;
 
@@ -58,7 +58,7 @@ char *_build_module_path(const char *libdir, const char *modname) {
     return path;
 }
 
-char *_strip_email_addr(char *addr) {
+char *smf_internal_strip_email_addr(char *addr) {
     char *p1 = NULL;
     char *p2 = NULL;
     char *out = NULL;
@@ -85,7 +85,7 @@ char *_strip_email_addr(char *addr) {
     return out;
 }
 
-ssize_t _readn(int fd, void *buf, size_t nbyte) {
+ssize_t smf_internal_readn(int fd, void *buf, size_t nbyte) {
     size_t n;
     ssize_t br;
     char *p = buf;
@@ -103,7 +103,7 @@ ssize_t _readn(int fd, void *buf, size_t nbyte) {
     return nbyte;
 }
 
-ssize_t _writen(int fd, const void *buf, size_t nbyte) {
+ssize_t smf_internal_writen(int fd, const void *buf, size_t nbyte) {
     size_t n;
     ssize_t bw;
     const char *p = buf;
@@ -121,7 +121,7 @@ ssize_t _writen(int fd, const void *buf, size_t nbyte) {
     return nbyte;
 }
 
-ssize_t _readline(int fd, void *buf, size_t nbyte, void **help) {
+ssize_t smf_internal_readline(int fd, void *buf, size_t nbyte, void **help) {
     size_t n;
     ssize_t br;
     char c, *ptr = buf;
@@ -137,7 +137,7 @@ ssize_t _readline(int fd, void *buf, size_t nbyte, void **help) {
     }   
 
     for (n = 1; n < nbyte; n++) {
-        if ((br = _readcbuf(fd,&c,rl)) < 0)
+        if ((br = smf_internal_readcbuf(fd,&c,rl)) < 0)
             return -1;
 
         *ptr++ = c;
@@ -152,7 +152,7 @@ ssize_t _readline(int fd, void *buf, size_t nbyte, void **help) {
     return n;
 }
 
-ssize_t _readcbuf(int fd, char *buf, readline_t *rl) {
+ssize_t smf_internal_readcbuf(int fd, char *buf, readline_t *rl) {
     while(rl->count < 1) {
         if ((rl->count = read(fd, rl->buf, sizeof(rl->buf))) < 0) {
             if (errno == EINTR)
@@ -171,14 +171,14 @@ ssize_t _readcbuf(int fd, char *buf, readline_t *rl) {
     return 1;
 }
 
-struct tms _init_runtime_stats(void) {
+struct tms smf_internal_init_runtime_stats(void) {
     struct tms start_acct;
     times(&start_acct);
     
     return start_acct;
 }
 
-void _print_runtime_stats(struct tms start_acct, const char *sid) {
+void smf_internal_print_runtime_stats(struct tms start_acct, const char *sid) {
     struct tms end_acct;
 
     times(&end_acct);
@@ -192,7 +192,7 @@ void _print_runtime_stats(struct tms start_acct, const char *sid) {
     return;
 }
 
-char *_determine_linebreak(const char *s) {
+char *smf_internal_determine_linebreak(const char *s) {
     assert(s);
 
     if (strstr(s,CRLF)!=NULL)
