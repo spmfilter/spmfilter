@@ -23,14 +23,17 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <glib.h>
+#include <time.h>
 #include <sys/times.h>
 #include <gmodule.h>
 /*#include <glib/gstdio.h> */
 #include <signal.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
+#include <regex.h>
 
 #include "spmfilter_config.h"
 #include "smf_trace.h"
@@ -220,12 +223,13 @@ void _stuffing(char chain[]) {
     chain[j]='\0';
 }
 
-int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int to, int from, int date) {
+int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int to, int from, int date, int headers, char *nl) {
     FILE *new = NULL;
     FILE *old = NULL;
     char *tmpname = NULL;
     size_t len;
     char buf[BUFSIZE];
+    time_t currtime;  
     char *t1 = NULL;
     char *t2 = NULL;
 
@@ -243,7 +247,7 @@ int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int
 
     if (mid==0) {
         t1 = smf_message_generate_message_id();
-        asprintf(&t2,"Message-Id: %s\n",t1);
+        asprintf(&t2,"Message-Id: %s%s",t1,nl);
         if (fputs(t2, new)<=0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
             return -1;
@@ -252,8 +256,20 @@ int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int
         free(t1);
     }
 
+    if (date==0) {
+        time(&currtime);  
+        t1 = calloc(BUFSIZE,sizeof(char));                                                   
+        strftime(t1,BUFSIZE,"Date: %a, %d %b %Y %H:%M:%S %z (%Z)",localtime(&currtime));
+        smf_core_strcat_printf(&t1, "%s", nl);
+        if (fputs(t1, new)<=0) {
+            STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+        free(t1);
+    }
+
     if (from==0) {
-        asprintf(&t1,"From: %s\n",session->envelope);
+        asprintf(&t1,"From: %s%s",session->envelope->sender,nl);
         if (fputs(t1, new)<=0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
             return -1;
@@ -262,7 +278,7 @@ int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int
     }
 
     if (to==0) {
-        asprintf(&t1,"To: undisclosed-recipients:;\n");
+        asprintf(&t1,"To: undisclosed-recipients:;%s",nl);
         if (fputs(t1, new)<=0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
             return -1;
@@ -270,14 +286,22 @@ int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int
         free(t1);
     }
 
-/*
+    if (headers==0) {
+        asprintf(&t1,"%s",nl);
+        if (fputs(t1, new)<=0) {
+            STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+        free(t1);
+    }
+
     if((old = fopen(session->message_file, "r"))==NULL) {
         STRACE(TRACE_ERR,session->id,"unable to open queue file: %s (%d)",strerror(errno), errno);
         return -1;
     }
 
     while(!feof(old)) {
-        if ((len = fread(&buf,BUFSIZE,sizeof(char),old)) <= 0) {
+        if ((len = fread(&buf,sizeof(char),BUFSIZE,old)) <= 0) {
             STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
             return -1;
         }
@@ -286,9 +310,20 @@ int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int
             return -1;
         }
     }
-    fclose(old); */
+    fclose(old); 
     fclose(new);
 
+    if (unlink(session->message_file)!=0) {
+        STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
+        return -1;
+    }
+
+    if (rename(tmpname,session->message_file)!=0) {
+        STRACE(TRACE_ERR,session->id,"failed to rename queue file: %s (%d)",strerror(errno),errno);
+        return -1;
+    }
+
+    free(tmpname);
     return 0;
 }
 
@@ -363,6 +398,12 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     int found_to = 0;
     int found_from = 0;
     int found_date = 0;
+    int found_header = 0;
+    regex_t regex;
+    int reti;
+    char *nl = NULL;
+
+    reti = regcomp(&regex, "[A-Za-z0-9\._-]*:.*", 0);
 
 	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
@@ -392,6 +433,15 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         if (strncasecmp(buf,"To:",3)==0) found_to = 1;
         if (strncasecmp(buf,"From:",5)==0) found_from = 1;
 
+        if (nl == NULL) nl = _determine_linebreak(buf);
+
+        if (found_header == 0) {
+            reti = regexec(&regex, buf, 0, NULL, 0);
+            if(reti == 0){
+                found_header = 1;
+            }
+        }
+
         if (fwrite(buf, sizeof(char), strlen(buf), spool_file)<=0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
             _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
@@ -400,24 +450,19 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         }
         session->message_size += br;
     }
-
+    regfree(&regex);
     fclose(spool_file);
     if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0))
-        _append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date);
-    
-
-    
-
+        _append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
     
     TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->message_size);
 
-/*
     if(smf_message_from_file(&message,session->message_file,1) != 0) {
         STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
         _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
         return;
     }
-*/
+
     session->envelope->message = message;
 
     //load_modules(session,settings);
