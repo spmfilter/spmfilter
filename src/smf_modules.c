@@ -24,6 +24,7 @@
 #include <dlfcn.h>
 
 #include "smf_modules.h"
+#include "smf_trace.h"
 #include "smf_internal.h"
 
 #define THIS_MODULE "modules"
@@ -70,13 +71,12 @@ int smf_modules_engine_load(SMFSettings_T *settings) {
 /*=== BELOW IS NOT GLIB CLEAN ===*/
 
 /* initialize the processing queue */
-ProcessQueue_T *smf_modules_pqueue_init(int(*loaderr)(int module_fail),
-        int (*processerr)(int retval, int module_fail, char *response_msg),
-        int (*nhoperr)(void *args))
-{
-    ProcessQueue_T *q;
+SMFProcessQueue_T *smf_modules_pqueue_init(int (*loaderr)(SMFSettings_T *settings, SMFSession_T *session),
+        int (*processerr)(SMFSettings_T *settings, SMFSession_T *session, int retval),
+        int (*nhoperr)(SMFSettings_T *settings, SMFSession_T *session)) {
+    SMFProcessQueue_T *q;
 
-    q = (ProcessQueue_T *)calloc(1, sizeof(ProcessQueue_T));
+    q = (SMFProcessQueue_T *)calloc(1, sizeof(SMFProcessQueue_T));
     if(q == NULL) {
         TRACE(TRACE_ERR, "failed to allocate memory for process queue!");
         return(NULL);
@@ -109,7 +109,7 @@ static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
 }
 
 int smf_modules_process(
-        ProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
+        SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
 #if 0
     int i;
     int retval;

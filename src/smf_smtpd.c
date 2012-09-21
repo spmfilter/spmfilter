@@ -22,11 +22,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <errno.h>
-#include <glib.h>
 #include <time.h>
 #include <sys/times.h>
-#include <gmodule.h>
-/*#include <glib/gstdio.h> */
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -36,6 +33,7 @@
 #include <regex.h>
 
 #include "spmfilter_config.h"
+#include "smf_smtpd.h"
 #include "smf_trace.h"
 #include "smf_settings.h"
 #include "smf_modules.h"
@@ -52,58 +50,28 @@
 
 #define THIS_MODULE "smtpd"
 
-#define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
-#define CODE_250 "250 OK\r\n"
-#define CODE_250_ACCEPTED "250 OK message accepted\r\n"
-#define CODE_451 "451 Requested action aborted: local error in processing\r\n"
-#define CODE_502 "502 Command not implemented\r\n"
-#define CODE_552 "552 Requested action aborted: local error in processing\r\n"
-
-/* SMTP States */
-#define ST_INIT 0
-#define ST_HELO 1
-#define ST_XFWD 2
-#define ST_MAIL 3
-#define ST_RCPT 4
-#define ST_DATA 5
-#define ST_QUIT 6
-
 int daemon_exit = 0;
 
-void _sig_handler(int sig) {
+void smf_smtpd_sig_handler(int sig) {
     daemon_exit = 1;
     return;
 }
 
-#if 0
-/* error handler used when building module queue
- * return 1 if processing should continue, else 0
- */
-static int _handle_q_error(void *args) {
-    SMFSettings_T *settings = smf_settings_get();
-    SMFSession_T *session = (SMFSession_T *)args;
+static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session) {
     switch (settings->module_fail) {
         case 1: return(1);
-        case 2: smtpd_code_reply(session->sock_out,552);
+        case 2: smf_smtpd_code_reply(session->sock,552,settings->smtp_codes);
                 return(0);
-        case 3: smtpd_code_reply(session->sock_out,451);
+        case 3: smf_smtpd_code_reply(session->sock,451,settings->smtp_codes);
                 return(0);
     }
 
-    return(0);
+    return 0;
 }
 
-/* handle processing errors when running queue 
- *
- * return codes:
- * -1 = Error in processing, spmfilter will send 4xx Error to MTA
- * 0 = All ok, the next plugin will be started.
- * 1 = Further processing will be stopped. Email is not going
- *     to be delivered to nexthop!
- * 2 = Further processing will be stopped, no other plugin will
- *     be startet. spmfilter sends a 250 code
- */
-static int _handle_q_processing_error(int retval, void *args) {
+
+static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSession_T *session, int retval) {
+#if 0
     SMFSettings_T *settings = smf_settings_get();
     SMFSession_T *session = (SMFSession_T *)args;
 
@@ -141,32 +109,28 @@ static int _handle_q_processing_error(int retval, void *args) {
      * for safety purposes
      */
     TRACE(TRACE_DEBUG, "no conditional matched, will stop queue processing!");
+#endif
     return(0);
 }
 
 /* handle nexthop delivery error */
-static int _handle_nexthop_error(void *args) {
-    SMFSettings_T *settings = smf_settings_get();
-    SMFSession_T *session = (SMFSession_T *)args;
-    
-    smtpd_string_reply(session->sock_out,g_strdup_printf(
-        "%d %s\r\n",
-        settings->nexthop_fail_code,
-        settings->nexthop_fail_msg)
-    );
-
-    return(0);
+static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T *session) {
+    char *out = NULL;
+    asprintf(&out, "%d %s\r\n",settings->nexthop_fail_code,settings->nexthop_fail_msg);
+    smf_smtpd_string_reply(session->sock,out);
+    free(out);
+    return 0;
 }
 
-int _load_modules(SMFSession_T *session, SMFSettings_T *settings) {
+int smf_smtpd_load_modules(SMFSession_T *session, SMFSettings_T *settings) {
     int ret;
-    ProcessQueue_T *q;
+    SMFProcessQueue_T *q;
 
     /* initialize the modules queue handler */
     q = smf_modules_pqueue_init(
-        handle_q_error,
-        handle_q_processing_error,
-        handle_nexthop_error
+        smf_smtpd_handle_q_error,
+        smf_smtpd_handle_q_processing_error,
+        smf_smtpd_handle_nexthop_error
     );
 
     if(q == NULL) {
@@ -178,7 +142,7 @@ int _load_modules(SMFSession_T *session, SMFSettings_T *settings) {
     free(q);
 
     if(ret == -1) {
-        TRACE(TRACE_DEBUG, "smtp engine failed to process modules!");
+        STRACE(TRACE_DEBUG, session->id, "smtp engine failed to process modules!");
         return(-1);
     } else if (ret == 1) {
         return(0);
@@ -186,15 +150,15 @@ int _load_modules(SMFSession_T *session, SMFSettings_T *settings) {
 
     if (session->response_msg != NULL) {
         char *smtp_response;
-        smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
-        smtpd_string_reply(session->sock_out,smtp_response);
+        asprintf(&smtp_response,"250 %s\r\n",session->response_msg);
+        smf_smtpd_string_reply(session->sock,smtp_response);
         free(smtp_response);
     } else
-        smtpd_string_reply(session->sock_out,CODE_250_ACCEPTED);
+        smf_smtpd_string_reply(session->sock,CODE_250_ACCEPTED);
     return(0);
 }
-#endif 
-char *_get_req_value(char *req, int jmp) {
+
+char *smf_smtpd_get_req_value(char *req, int jmp) {
     char *p = NULL;
     char *r = NULL;
     assert(req);
@@ -210,7 +174,7 @@ char *_get_req_value(char *req, int jmp) {
 }
 
 /* dot-stuffing */
-void _stuffing(char chain[]) {
+void smf_smtpd_stuffing(char chain[]) {
     int i, j;
     int found = 0;
     for (i=0,j=0; chain[i] != '\0'; i++) {
@@ -223,7 +187,7 @@ void _stuffing(char chain[]) {
     chain[j]='\0';
 }
 
-int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int to, int from, int date, int headers, char *nl) {
+int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int to, int from, int date, int headers, char *nl) {
     FILE *new = NULL;
     FILE *old = NULL;
     char *tmpname = NULL;
@@ -328,7 +292,7 @@ int _append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int
 }
 
 /* smtp answer with format string as arg */
-void _smtpd_string_reply(int sock, const char *format, ...) {
+void smf_smtpd_string_reply(int sock, const char *format, ...) {
     ssize_t len = 0;
     char *out = NULL;
     va_list ap;
@@ -347,7 +311,7 @@ void _smtpd_string_reply(int sock, const char *format, ...) {
     va_end(ap);
 }
 
-void _smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
+void smf_smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
     char *code_msg = NULL;
     char *code_str = NULL;
     char *out = NULL;
@@ -388,7 +352,7 @@ void _smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
     free(out);
 }
 
-void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
+void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	ssize_t br;
     char buf[MAXLINE];
     void *rl = NULL;
@@ -408,7 +372,7 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
 	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
         STRACE(TRACE_ERR,session->id,"got no spool file path");
-        _smtpd_code_reply(session->sock, 552,settings->smtp_codes);
+        smf_smtpd_code_reply(session->sock, 552,settings->smtp_codes);
         return;
     }
     
@@ -416,17 +380,17 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     spool_file = fopen(session->message_file, "w+");
     if(spool_file == NULL) {
         STRACE(TRACE_ERR,session->id,"unable to open spool file: %s (%d)",strerror(errno), errno);
-        _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
+        smf_smtpd_code_reply(session->sock, 451, settings->smtp_codes);
         return;
     }
 
     STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file); 
-    _smtpd_string_reply(session->sock,"354 End data with <CR><LF>.<CR><LF>\r\n");
+    smf_smtpd_string_reply(session->sock,"354 End data with <CR><LF>.<CR><LF>\r\n");
 
     // TODO: max_size < message_size -> reject
     while((br = smf_internal_readline(session->sock,buf,MAXLINE,&rl)) > 0) {
         if ((strncasecmp(buf,".\r\n",3)==0)||(strncasecmp(buf,".\n",2)==0)) break;
-        if (strncasecmp(buf,".",1)==0) _stuffing(buf);
+        if (strncasecmp(buf,".",1)==0) smf_smtpd_stuffing(buf);
 
         if (strncasecmp(buf,"Message-Id:",11)==0) found_mid = 1;
         if (strncasecmp(buf,"Date:",5)==0) found_date = 1;
@@ -444,7 +408,7 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
 
         if (fwrite(buf, sizeof(char), strlen(buf), spool_file)<=0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
-            _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
+            smf_smtpd_code_reply(session->sock, 451, settings->smtp_codes);
             fclose(spool_file);
             return;
         }
@@ -453,21 +417,21 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     regfree(&regex);
     fclose(spool_file);
     if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0))
-        _append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
+        smf_smtpd_append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
     
     TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->message_size);
 
     if(smf_message_from_file(&message,session->message_file,1) != 0) {
         STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
-        _smtpd_code_reply(session->sock, 451, settings->smtp_codes);
+        smf_smtpd_code_reply(session->sock, 451, settings->smtp_codes);
         return;
     }
 
     session->envelope->message = message;
 
-    //load_modules(session,settings);
+    smf_smtpd_load_modules(session,settings);
 
-    _smtpd_string_reply(session->sock, CODE_250_ACCEPTED);
+//    smf_smtpd_string_reply(session->sock, CODE_250_ACCEPTED);
 
     /*
     
@@ -479,7 +443,7 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     */
 }
 
-void _smtpd_handle_client(SMFSettings_T *settings, int client) {
+void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
     char *hostname = NULL;
     int br;
     void *rl = NULL;
@@ -497,7 +461,7 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
 
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
-    _smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
+    smf_smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
 
     for (;;) {
         if ((br = smf_internal_readline(session->sock,req,MAXLINE,&rl)) < 1) 
@@ -507,7 +471,7 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
 
         if (strncasecmp(req,"quit",4)==0) {
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'quit' received"); 
-            _smtpd_code_reply(session->sock,221,settings->smtp_codes);
+            smf_smtpd_code_reply(session->sock,221,settings->smtp_codes);
             state = ST_QUIT;
             break;
         } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
@@ -524,24 +488,24 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
                 STRACE(TRACE_DEBUG,session->id,"session reset, helo/ehlo recieved not in init state");
             }
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'helo/ehlo' received");
-            req_value = _get_req_value(req,4);
+            req_value = smf_smtpd_get_req_value(req,4);
             smf_session_set_helo(session,req_value);
             if (strncmp(req_value,req,strlen(req_value)) != 0) {
                 if (strcmp(session->helo,"") == 0)  {
-                    _smtpd_string_reply(session->sock,"501 Syntax: HELO hostname\r\n");
+                    smf_smtpd_string_reply(session->sock,"501 Syntax: HELO hostname\r\n");
                 } else {
                     STRACE(TRACE_DEBUG,session->id,"session->helo: [%s]",smf_session_get_helo(session));
 
                     if (strncasecmp(req, "ehlo", 4)==0) {
-                        _smtpd_string_reply(session->sock,
+                        smf_smtpd_string_reply(session->sock,
                             "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",hostname,settings->max_size);
                     } else {
-                        _smtpd_string_reply(session->sock,"250 %s\r\n",hostname);
+                        smf_smtpd_string_reply(session->sock,"250 %s\r\n",hostname);
                     }
                     state = ST_HELO;
                 }
             } else {
-                _smtpd_string_reply(session->sock,"501 Syntax: HELO hostname\r\n");
+                smf_smtpd_string_reply(session->sock,"501 Syntax: HELO hostname\r\n");
             }
             free(req_value);
         } else if (strncasecmp(req,"xforward",8)==0) {
@@ -552,10 +516,10 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
                 smf_core_strstrip(++t);
                 smf_session_set_xforward_addr(session,t);
                 STRACE(TRACE_DEBUG,session->id,"session->xforward_addr: [%s]",smf_session_get_xforward_addr(session));
-                _smtpd_code_reply(session->sock,250,settings->smtp_codes);
+                smf_smtpd_code_reply(session->sock,250,settings->smtp_codes);
                 state = ST_XFWD;
             } else {
-                _smtpd_string_reply(session->sock,"501 Syntax: XFORWARD attribute=value...\r\n");
+                smf_smtpd_string_reply(session->sock,"501 Syntax: XFORWARD attribute=value...\r\n");
             }
         } else if (strncasecmp(req, "mail from:", 10)==0) {
             /* The MAIL command begins a mail transaction. Once started, 
@@ -572,16 +536,16 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'mail from' received");
             if (state == ST_MAIL) {
                 /* we already got the mail command */
-                _smtpd_string_reply(session->sock,"503 Error: nested MAIL command\r\n");
+                smf_smtpd_string_reply(session->sock,"503 Error: nested MAIL command\r\n");
             } else {
-                req_value = _get_req_value(req,10);
+                req_value = smf_smtpd_get_req_value(req,10);
                 if (strcmp(req_value,"") == 0) {
                     /* empty mail from? */
-                    _smtpd_string_reply(session->sock,"501 Syntax: MAIL FROM:<address>\r\n");
+                    smf_smtpd_string_reply(session->sock,"501 Syntax: MAIL FROM:<address>\r\n");
                 } else {
                     smf_envelope_set_sender(session->envelope,req_value);
                     STRACE(TRACE_DEBUG,session->id,"session->envelope->sender: [%s]",session->envelope->sender);
-                    _smtpd_code_reply(session->sock,250,settings->smtp_codes);
+                    smf_smtpd_code_reply(session->sock,250,settings->smtp_codes);
                     state = ST_MAIL;
                 }
                 free(req_value);
@@ -591,15 +555,15 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'rcpt to' received");
             if ((state != ST_MAIL) && (state != ST_RCPT)) {
                 /* someone wants to break smtp rules... */
-                _smtpd_string_reply(session->sock,"503 Error: need MAIL command\r\n");
+                smf_smtpd_string_reply(session->sock,"503 Error: need MAIL command\r\n");
             } else {
-                req_value = _get_req_value(req,8);
+                req_value = smf_smtpd_get_req_value(req,8);
                 if (strcmp(req_value,"") == 0) {
                     /* empty rcpt to? */
-                    _smtpd_string_reply(session->sock,"501 Syntax: RCPT TO:<address>\r\n");
+                    smf_smtpd_string_reply(session->sock,"501 Syntax: RCPT TO:<address>\r\n");
                 } else {
                     smf_envelope_add_rcpt(session->envelope, req_value);
-                    _smtpd_code_reply(session->sock,250,settings->smtp_codes);
+                    smf_smtpd_code_reply(session->sock,250,settings->smtp_codes);
                     elem = smf_list_tail(session->envelope->recipients);
                     STRACE(TRACE_DEBUG,session->id,"session->envelope->recipients: [%s]",((SMFEmailAddress_T*)smf_list_data(elem))->email);
                     state = ST_RCPT;
@@ -609,14 +573,14 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
         } else if (strncasecmp(req,"data", 4)==0) {
             if ((state != ST_RCPT) && (state != ST_MAIL)) {
                 /* someone wants to break smtp rules... */
-                _smtpd_string_reply(session->sock,"503 Error: need RCPT command\r\n");
+                smf_smtpd_string_reply(session->sock,"503 Error: need RCPT command\r\n");
             } else if ((state != ST_RCPT) && (state == ST_MAIL)) {
                 /* we got the mail command but no rcpt to */
-                _smtpd_string_reply(session->sock,"554 Error: no valid recipients\r\n");
+                smf_smtpd_string_reply(session->sock,"554 Error: no valid recipients\r\n");
             } else {
                 state = ST_DATA;
                 STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
-                _smtpd_process_data(session,settings);
+                smf_smtpd_process_data(session,settings);
             }
         } else if (strncasecmp(req,"rset", 4)==0) {
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'rset' received");
@@ -624,49 +588,22 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
             /* reinit session */
             session = smf_session_new();
             session->sock = client;
-            _smtpd_code_reply(session->sock,250,settings->smtp_codes);
+            smf_smtpd_code_reply(session->sock,250,settings->smtp_codes);
             state = ST_INIT;
         } else if (strncasecmp(req, "noop", 4)==0) {
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'noop' received");
-            _smtpd_code_reply(session->sock,250,settings->smtp_codes);
+            smf_smtpd_code_reply(session->sock,250,settings->smtp_codes);
         } else {
             STRACE(TRACE_DEBUG,session->id,"SMTP: got unknown command");
-            _smtpd_string_reply(session->sock,"502 Error: command not recognized\r\n");
+            smf_smtpd_string_reply(session->sock,"502 Error: command not recognized\r\n");
         }
     }
     free(rl);
-
     free(hostname);
     
     smf_internal_print_runtime_stats(start_acct,session->id);
     smf_session_free(session);
 }
-
-/*=== BELOW IS NOT GLIB CLEAN ===*/
-
-#if 0
-#define RE_MAIL_FROM "^MAIL FROM:?\\W*(?:.*<)?([^>]*)(?:>)?(?:\\W*SIZE=(\\d+))?"
-
-GPrivate* current_session_key = NULL; 
-
-/* copy headers from message object to own GMimeHeaderList */
-static void copy_header_func(const char *name, const char *value, gpointer data) {
-#ifdef HAVE_GMIME24
-    g_mime_header_list_append((GMimeHeaderList *)data,
-            g_strdup(name),g_strdup(value));
-#else
-    g_mime_header_add((GMimeHeader *)data,
-            g_strdup(name),g_strdup(value));
-#endif
-}
-
-
-
-
-
-#endif
-
-
 
 int load(SMFSettings_T *settings) {
     int sd, client;
@@ -679,7 +616,7 @@ int load(SMFSettings_T *settings) {
     if ((sd = smf_server_listen(settings)) < 0)
         exit(EXIT_FAILURE);
 
-    action.sa_handler = _sig_handler;
+    action.sa_handler = smf_smtpd_sig_handler;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
 
@@ -702,10 +639,9 @@ int load(SMFSettings_T *settings) {
             continue;
         }
 
-        _smtpd_handle_client(settings, client);
+        smf_smtpd_handle_client(settings, client);
         close(client);
     }
     
     return 0;
 }
-
