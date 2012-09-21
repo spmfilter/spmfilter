@@ -340,7 +340,7 @@ void _smtpd_string_reply(int sock, const char *format, ...) {
         return;
     }
 
-    if ((len = _writen(sock,out,strlen(out))) != strlen(out)) {
+    if ((len = smf_internal_writen(sock,out,strlen(out))) != strlen(out)) {
         TRACE(TRACE_WARNING, "unexpected size [%d], expected [%d] bytes",strlen(out),len);
     } 
     free(out);
@@ -382,7 +382,7 @@ void _smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
         }
     }
 
-    if ((len = _writen(sock,out,strlen(out))) != strlen(out)) {
+    if ((len = smf_internal_writen(sock,out,strlen(out))) != strlen(out)) {
         TRACE(TRACE_WARNING, "unexpected size [%d], expected [%d] bytes",strlen(out),len);
     } 
     free(out);
@@ -424,7 +424,7 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     _smtpd_string_reply(session->sock,"354 End data with <CR><LF>.<CR><LF>\r\n");
 
     // TODO: max_size < message_size -> reject
-    while((br = _readline(session->sock,buf,MAXLINE,&rl)) > 0) {
+    while((br = smf_internal_readline(session->sock,buf,MAXLINE,&rl)) > 0) {
         if ((strncasecmp(buf,".\r\n",3)==0)||(strncasecmp(buf,".\n",2)==0)) break;
         if (strncasecmp(buf,".",1)==0) _stuffing(buf);
 
@@ -433,7 +433,7 @@ void _smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         if (strncasecmp(buf,"To:",3)==0) found_to = 1;
         if (strncasecmp(buf,"From:",5)==0) found_from = 1;
 
-        if (nl == NULL) nl = _determine_linebreak(buf);
+        if (nl == NULL) nl = smf_internal_determine_linebreak(buf);
 
         if (found_header == 0) {
             reti = regexec(&regex, buf, 0, NULL, 0);
@@ -491,7 +491,7 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
     SMFListElem_T *elem = NULL;
     struct tms start_acct;
     
-    start_acct = _init_runtime_stats();
+    start_acct = smf_internal_init_runtime_stats();
 
     session->sock = client;
 
@@ -500,7 +500,7 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
     _smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
 
     for (;;) {
-        if ((br = _readline(session->sock,req,MAXLINE,&rl)) < 1) 
+        if ((br = smf_internal_readline(session->sock,req,MAXLINE,&rl)) < 1) 
             break; /* EOF or error */
 
         STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
@@ -638,7 +638,7 @@ void _smtpd_handle_client(SMFSettings_T *settings, int client) {
 
     free(hostname);
     
-    _print_runtime_stats(start_acct,session->id);
+    smf_internal_print_runtime_stats(start_acct,session->id);
     smf_session_free(session);
 }
 

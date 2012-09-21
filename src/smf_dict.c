@@ -208,7 +208,7 @@ SMFList_T *smf_dict_get_keys(SMFDict_T *dict) {
     SMFList_T *l = NULL;
     assert(dict);
 
-    if (smf_list_new(&l,_string_list_destroy)!=0) 
+    if (smf_list_new(&l,smf_internal_string_list_destroy)!=0) 
         return NULL;
 
     for (i=0 ; i<dict->size ; i++) {

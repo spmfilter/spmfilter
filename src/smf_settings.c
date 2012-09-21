@@ -141,7 +141,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 if (smf_list_free((*settings)->modules)!=0)
                     TRACE(TRACE_ERR,"failed to free modules list");
                 else 
-                    if (smf_list_new(&((*settings)->modules),_string_list_destroy)!=0)
+                    if (smf_list_new(&((*settings)->modules),smf_internal_string_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create modules list");
             }
             sl = smf_core_strsplit(val, ";");
@@ -266,7 +266,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 if (smf_list_free((*settings)->sql_host)!=0)
                     TRACE(TRACE_ERR,"failed to free host list");
                 else 
-                    if (smf_list_new(&((*settings)->sql_host),_string_list_destroy)!=0)
+                    if (smf_list_new(&((*settings)->sql_host),smf_internal_string_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create host list");
             }
             sl = smf_core_strsplit(val, ";");
@@ -324,7 +324,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 if (smf_list_free((*settings)->ldap_host)!=0)
                     TRACE(TRACE_ERR,"failed to free host list");
                 else 
-                    if (smf_list_new(&((*settings)->ldap_host),_string_list_destroy)!=0)
+                    if (smf_list_new(&((*settings)->ldap_host),smf_internal_string_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create host list");
             }
             sl = smf_core_strsplit(val, ";");
@@ -406,7 +406,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->config_file = NULL;
     settings->queue_dir = NULL;
     settings->engine = NULL;
-    if (smf_list_new(&settings->modules, _string_list_destroy) != 0) {
+    if (smf_list_new(&settings->modules, smf_internal_string_list_destroy) != 0) {
         TRACE(TRACE_ERR,"failed to allocate space for settings->modules");
         free(settings);
         return NULL;
@@ -428,7 +428,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->smtp_codes = smf_dict_new();
     settings->sql_driver = NULL;
     settings->sql_name = NULL;
-    if (smf_list_new(&settings->sql_host, _string_list_destroy) != 0) {
+    if (smf_list_new(&settings->sql_host, smf_internal_string_list_destroy) != 0) {
         TRACE(TRACE_ERR,"failed to allocate space for settings->sql_host");
         smf_list_free(settings->modules);
         free(settings);
@@ -439,7 +439,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->sql_user_query = NULL;
     settings->sql_encoding = NULL;
     settings->ldap_uri = NULL;
-    if (smf_list_new(&settings->ldap_host, _string_list_destroy) != 0) {
+    if (smf_list_new(&settings->ldap_host, smf_internal_string_list_destroy) != 0) {
         TRACE(TRACE_ERR,"failed to allocate space for settings->ldap_host");
         smf_list_free(settings->modules);
         smf_list_free(settings->sql_host);
@@ -1393,7 +1393,7 @@ SMFList_T *smf_settings_group_get_list(SMFSettings_T *settings, char *group_name
     assert(group_name);
     assert(key);
 
-    if (smf_list_new(&list,_string_list_destroy)!=0) 
+    if (smf_list_new(&list,smf_internal_string_list_destroy)!=0) 
         return NULL;
 
     asprintf(&tmp,"%s:%s",group_name,key);
