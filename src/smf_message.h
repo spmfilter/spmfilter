@@ -96,12 +96,12 @@ char *smf_message_get_sender_string(SMFMessage_T *message);
 void smf_message_set_message_id(SMFMessage_T *message, const char *message_id);
 
 /*!
- * @fn const char *smf_message_get_message_id(SMFMessage_T *message)
+ * @fn char *smf_message_get_message_id(SMFMessage_T *message)
  * @brief Get the Message-Id of a message
  * @param message SMFMessage_T object
  * @returns the message id
  */
-const char *smf_message_get_message_id(SMFMessage_T *message);
+char *smf_message_get_message_id(SMFMessage_T *message);
 
 /*!
  * @fn char *smf_message_generate_message_id(void)
