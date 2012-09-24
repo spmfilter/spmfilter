@@ -18,6 +18,10 @@
 #ifndef _SMF_MODULES_H
 #define _SMF_MODULES_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "smf_session.h"
 #include "smf_settings.h"
 
@@ -48,4 +52,9 @@ int smf_modules_deliver_nexthop(SMFProcessQueue_T *q, SMFSession_T *session);
 int smf_modules_flush_dirty(SMFSession_T *session);
 
 int smf_modules_engine_load(SMFSettings_T *settings);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif  /* _SMF_MODULES_H */

@@ -84,7 +84,7 @@ void smf_message_set_message_id(SMFMessage_T *message,const char *message_id) {
     cmime_message_set_message_id((CMimeMessage_T *)message,message_id);
 }
 
-const char *smf_message_get_message_id(SMFMessage_T *message) {
+char *smf_message_get_message_id(SMFMessage_T *message) {
     assert(message);
     return cmime_message_get_message_id((CMimeMessage_T *)message);
 }

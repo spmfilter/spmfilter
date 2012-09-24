@@ -15,6 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,8 +26,11 @@
 #include <dlfcn.h>
 
 #include "smf_modules.h"
+#include "smf_envelope.h"
+#include "smf_message.h"
 #include "smf_trace.h"
 #include "smf_internal.h"
+#include "smf_dict.h"
 
 #define THIS_MODULE "modules"
 
@@ -68,8 +73,6 @@ int smf_modules_engine_load(SMFSettings_T *settings) {
     return ret;
 }
 
-/*=== BELOW IS NOT GLIB CLEAN ===*/
-
 /* initialize the processing queue */
 SMFProcessQueue_T *smf_modules_pqueue_init(int (*loaderr)(SMFSettings_T *settings, SMFSession_T *session),
         int (*processerr)(SMFSettings_T *settings, SMFSession_T *session, int retval),
@@ -91,16 +94,51 @@ SMFProcessQueue_T *smf_modules_pqueue_init(int (*loaderr)(SMFSettings_T *setting
 /* build full filename to modules states dir */
 static char *smf_modules_stf_path(SMFSettings_T *settings, SMFSession_T *session) {
     char *hex = NULL;
-    char buf[1024];
+    char *mid = NULL;
+    char *buf = NULL;
+    SMFMessage_T *msg = NULL;
+    msg = smf_envelope_get_message(session->envelope);
 
-    /* build path to file*/
-    // TODO: refactoring for new datatypes
-    //hex = smf_core_md5sum(smf_session_header_get(session,"message-id"));
-    snprintf(buf, sizeof(buf), "%s/%s.modules", settings->queue_dir, hex);
+    mid = smf_message_get_message_id(msg);
+    hex = smf_core_md5sum(mid);
+    asprintf(&buf,"%s/%s.%s.modules", settings->queue_dir, session->id, hex);
     free(hex);
 
-    return(strdup(buf));
+    return(buf);
 }
+
+/* load the list of processed modules from file */
+static SMFDict_T *smf_modules_stf_processed_modules(FILE *fh) {
+    SMFDict_T *d;
+    char *buf = NULL;
+    size_t n;
+    char **parts = NULL;
+
+    d = smf_dict_new();
+    fseek(fh, 0, SEEK_SET); /* rewind the file */
+
+    while(getline(&buf,&n,fh) >= 0) {
+        parts = smf_core_strsplit(buf,":");
+        free(buf);
+    }
+    /*
+    while(fgets(buf, 128, fh) != NULL) {
+        parts = g_strsplit(g_strchomp(buf), ":",2);
+        
+        if(parts[0] != NULL) {
+            g_hash_table_insert(t,
+                (gpointer *)(g_strdup(parts[0])),
+                (gpointer *)(g_strdup(parts[1]))
+            );
+
+            g_strfreev(parts);
+        }
+    }
+    */
+    return d;
+}
+
+/*=== BELOW IS NOT GLIB CLEAN ===*/
 
 /* write an entry to the state file */
 static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
@@ -110,6 +148,30 @@ static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
 
 int smf_modules_process(
         SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
+    FILE *stfh = NULL;
+    char *stf_filename = NULL;
+    SMFDict_T *modlist;
+
+    /* initialize message file  and load processed modules */
+    stf_filename = smf_modules_stf_path(settings,session);
+    stfh = fopen(stf_filename, "a+");
+    if(stfh == NULL) {
+        STRACE(TRACE_ERR, session->id, "failed to open message state file %s: %s (%d)", stf_filename, strerror(errno),errno);
+
+        if(stf_filename != NULL)
+            free(stf_filename);
+
+        return -1;
+    }
+
+    modlist = smf_modules_stf_processed_modules(stfh);
+
+
+    /* close file, cleanup modlist and remove state file */
+    STRACE(TRACE_DEBUG, session->id,"module processing finished successfully.");
+    fclose(stfh);
+    smf_dict_free(modlist);
+
 #if 0
     int i;
     int retval;
@@ -120,21 +182,10 @@ int smf_modules_process(
     gpointer *sym;
     GHashTable *modlist;
     char *stf_filename = NULL;
-    FILE *stfh = NULL;
+    
     gchar *header = NULL;
 
-    /* initialize message file  and load processed modules */
-    stf_filename = smf_modules_stf_path(settings,session);
-    stfh = fopen(stf_filename, "a+");
-    if(stfh == NULL) {
-        TRACE(TRACE_ERR, "failed to open message state file => %s", stf_filename);
 
-        if(stf_filename != NULL)
-            free(stf_filename);
-
-        return(-1);
-    }
-    modlist = smf_modules_stf_processed_modules(stfh);
 
 // TODO: fix module loading
 
@@ -221,10 +272,7 @@ int smf_modules_process(
         }
     }
 
-    /* close file, cleanup modlist and remove state file */
-    TRACE(TRACE_DEBUG, "module processing finished successfully.");
-    fclose(stfh);
-    g_hash_table_destroy(modlist);
+    
 
     if(unlink(stf_filename) != 0) {
         TRERR("Failed to unlink state file => %s", stf_filename);
@@ -253,30 +301,7 @@ int smf_modules_process(
 }
 
 #if 0
-/* load the list of processed modules from file */
-static GHashTable *smf_modules_stf_processed_modules(FILE *fh) {
-    GHashTable *t;
-    char buf[128];
-    gchar **parts;
 
-    t = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
-    fseek(fh, 0, SEEK_SET); /* rewind the file */
-
-    while(fgets(buf, 128, fh) != NULL) {
-        parts = g_strsplit(g_strchomp(buf), ":",2);
-        
-        if(parts[0] != NULL) {
-            g_hash_table_insert(t,
-                (gpointer *)(g_strdup(parts[0])),
-                (gpointer *)(g_strdup(parts[1]))
-            );
-
-            g_strfreev(parts);
-        }
-    }
-
-    return(t);
-}
 
 /** Flush modified message headers to queue file */
 int smf_modules_flush_dirty(SMFSession_T *session) {
