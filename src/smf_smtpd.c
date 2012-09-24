@@ -69,47 +69,41 @@ static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *sessi
     return 0;
 }
 
-
 static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSession_T *session, int retval) {
-#if 0
-    SMFSettings_T *settings = smf_settings_get();
-    SMFSession_T *session = (SMFSession_T *)args;
-
     if (retval == -1) {
         switch (settings->module_fail) {
             case 1: return(1);
-            case 2: smtpd_code_reply(session->sock_out,552);
+            case 2: smf_smtpd_code_reply(session->sock,552,settings->smtp_codes);
                     return(0);
-            case 3: smtpd_code_reply(session->sock_out,451);
+            case 3: smf_smtpd_code_reply(session->sock,451,settings->smtp_codes);
                     return(0);
         }
     } else if(retval == 1) {
         if (session->response_msg != NULL) {
             char *smtp_response;
-            smtp_response = g_strdup_printf("250 %s\r\n",session->response_msg);
-            smtpd_string_reply(session->sock_out,smtp_response);
+            asprintf(&smtp_response, "250 %s\r\n",session->response_msg);
+            smf_smtpd_string_reply(session->sock,smtp_response);
             free(smtp_response);
         } else
-            smtpd_string_reply(session->sock_out,CODE_250_ACCEPTED);
+            smf_smtpd_string_reply(session->sock,CODE_250_ACCEPTED);
         return(1);
     } else if(retval == 2) {
         return(2);
     } else {
         if (session->response_msg != NULL) {
             char *smtp_response;
-            smtp_response = g_strdup_printf("%d %s\r\n",retval,session->response_msg);
-            smtpd_string_reply(session->sock_out,smtp_response);
+            asprintf(&smtp_response,"%d %s\r\n",retval,session->response_msg);
+            smf_smtpd_string_reply(session->sock,smtp_response);
             free(smtp_response);
         } else
-            smtpd_code_reply(session->sock_out,retval);
+            smf_smtpd_code_reply(session->sock,retval,settings->smtp_codes);
         return(1);
     }
 
     /* if none of the above matched, halt processing, this is just
      * for safety purposes
      */
-    TRACE(TRACE_DEBUG, "no conditional matched, will stop queue processing!");
-#endif
+    STRACE(TRACE_DEBUG, session->id, "no conditional matched, will stop queue processing!");
     return(0);
 }
 
@@ -431,16 +425,9 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
 
     smf_smtpd_load_modules(session,settings);
 
-//    smf_smtpd_string_reply(session->sock, CODE_250_ACCEPTED);
-
-    /*
-    
-    load_modules(session,settings);
-    
-    if (g_remove(session->message_file) != 0)
-        TRACE(TRACE_ERR,"failed to remove queue file");
-    TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
-    */
+    STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
+//    if (remove(session->message_file) != 0)
+//        STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
 }
 
 void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
@@ -565,7 +552,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
                     smf_envelope_add_rcpt(session->envelope, req_value);
                     smf_smtpd_code_reply(session->sock,250,settings->smtp_codes);
                     elem = smf_list_tail(session->envelope->recipients);
-                    STRACE(TRACE_DEBUG,session->id,"session->envelope->recipients: [%s]",((SMFEmailAddress_T*)smf_list_data(elem))->email);
+                    STRACE(TRACE_DEBUG,session->id,"session->envelope->recipients: [%s]",(char *)smf_list_data(elem));
                     state = ST_RCPT;
                 }
                 free(req_value);

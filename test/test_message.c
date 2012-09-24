@@ -293,7 +293,7 @@ int main (int argc, char const *argv[]) {
     printf("passed\n");
 
     printf("* testing smf_message_add_attachment()...\t\t\t");
-    s = g_strdup_printf("%s/redball.png",SAMPLES_DIR);
+    asprintf(&s,"%s/redball.png",SAMPLES_DIR);
     smf_message_add_attachment(msg,s);
 
     if (smf_message_get_part_count(msg) != 3) {
