@@ -49,16 +49,16 @@ set_property(TARGET smf PROPERTY PUBLIC_HEADER
 set_property(TARGET smf PROPERTY PRIVATE_HEADER
 	smf_core.h
 	smf_dict.h
+	smf_email_address.h
 	smf_envelope.h
-	smf_settings.h
-	smf_session.h
-	smf_trace.h
-	smf_message.h
-	smf_mime.h
+	smf_header.h
 	smf_list.h
 	smf_lookup.h
-	smf_header.h
+	smf_message.h
 	smf_part.h
+	smf_session.h
+	smf_settings.h
+	smf_trace.h
 )
 
 set_property(TARGET smf PROPERTY VERSION ${SMF_VERSION})
@@ -81,8 +81,8 @@ target_link_libraries(pipe ${COMMON_LIBS} smf)
 add_executable(spmfilter ${SPMFILTER_SRC})
 target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GTHREAD_LIBRARIES} smf)
 
-#install(TARGETS smf smtpd pipe spmfilter
-install(TARGETS smf spmfilter
+install(TARGETS smf smtpd pipe spmfilter
+#install(TARGETS smf spmfilter
 	RUNTIME DESTINATION sbin
 	LIBRARY DESTINATION ${LIBDIR}/spmfilter
 	PUBLIC_HEADER DESTINATION include/spmfilter
