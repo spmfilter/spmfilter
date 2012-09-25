@@ -20,6 +20,8 @@
 
 #include <smf/smf_core.h>
 #include <smf/smf_dict.h>
+#include <smf/smf_email_address.h>
+#include <smf/smf_envelope.h>
 #include <smf/smf_header.h>
 #include <smf/smf_list.h>
 #include <smf/smf_lookup.h>
