@@ -34,6 +34,28 @@
 
 #define THIS_MODULE "modules"
 
+void _header_destroy(void *data) {
+    SMFHeader_T *h = (SMFHeader_T *)data;
+    smf_header_free(h);
+}
+
+void *_copy_header(SMFListElem_T *elem) {
+    SMFHeader_T *o = (SMFHeader_T *)smf_list_data(elem);
+    SMFHeader_T *n = smf_header_new();
+    char *s = NULL;
+    int i;
+
+    s = smf_header_get_name(o);
+    smf_header_set_name(n, s);
+
+    for(i=0; i < smf_header_get_count(o); i++) {
+        s = smf_header_get_value(o, i);
+        smf_header_set_value(n, s, 0);
+    } 
+
+    return n;
+}
+
 int smf_modules_engine_load(SMFSettings_T *settings) {
     void *module = NULL;
     LoadEngine load_engine = NULL;
@@ -143,6 +165,8 @@ int smf_modules_process(
     FILE *stfh = NULL;
     char *stf_filename = NULL;
     SMFDict_T *modlist;
+    SMFMessage_T *msg = NULL;
+    SMFList_T *initial_headers = NULL;
     SMFListElem_T *elem = NULL;
     char *curmod;
     char *path;
@@ -160,6 +184,18 @@ int smf_modules_process(
             free(stf_filename);
 
         return -1;
+    }
+
+    if (smf_list_new(&initial_headers,_header_destroy) != 0) {
+        STRACE(TRACE_ERR,session->id, "failed to create header list");
+        return -1;
+    }
+
+    msg = smf_envelope_get_message(session->envelope);
+    elem = smf_list_head(msg->headers);
+    while(elem != NULL) {
+        _copy_header(elem);
+        elem = elem->next;
     }
 
     modlist = smf_modules_stf_processed_modules(stfh);
@@ -231,10 +267,14 @@ int smf_modules_process(
     fclose(stfh);
     smf_dict_free(modlist);
 
+
 //    if(unlink(stf_filename) != 0) {
 //        STRACE(TRACE_ERR,session->id,"failed to unlink state file [%s]: %s (%d)", stf_filename,strerror(errno),errno);
 //    }
     free(stf_filename);
+
+
+    smf_list_free(initial_headers);
 
 #if 0
     if (settings->add_header == 1) {
