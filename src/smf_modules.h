@@ -24,6 +24,7 @@ extern "C" {
 
 #include "smf_session.h"
 #include "smf_settings.h"
+#include "smf_list.h"
 
 typedef int (*ModuleLoadFunction)(SMFSession_T *session);
 typedef int (*LoadEngine)(SMFSettings_T *settings);
@@ -49,7 +50,7 @@ int smf_modules_process(SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings
 int smf_modules_deliver_nexthop(SMFProcessQueue_T *q, SMFSession_T *session);
 
 /** Flush modified message headers to queue file */
-int smf_modules_flush_dirty(SMFSession_T *session);
+int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers);
 
 int smf_modules_engine_load(SMFSettings_T *settings);
 
