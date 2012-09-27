@@ -133,6 +133,7 @@ void smf_list_map(SMFList_T *list, void(*func)(SMFListElem_T *elem,void *args), 
  * @param new out param to return the new list
  * @param func function to call for each element
  * @param args optional arguments for function pointer
+ * returns 0 on sucess or -1 in case of error
  */
 int smf_list_map_new(SMFList_T *list, SMFList_T **new, void *(*func)(SMFListElem_T *elem, void *args), void *args);
 

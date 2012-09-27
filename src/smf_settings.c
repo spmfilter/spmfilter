@@ -1400,7 +1400,6 @@ SMFList_T *smf_settings_group_get_list(SMFSettings_T *settings, char *group_name
     s = smf_dict_get(settings->groups,tmp);
     free(tmp);
 
-    printf("S: [%s]\n",s);
     sl = smf_core_strsplit(s, ";");
     p = sl;
     while(*p != NULL) {

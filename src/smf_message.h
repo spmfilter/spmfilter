@@ -129,6 +129,14 @@ int smf_message_set_header(SMFMessage_T *message, const char *header);
 SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header);
 
 /*!
+ * @fn SMFList_T *smf_message_get_headers(SMFMessage_T *message)
+ * @brief Get list with all headers
+ * @param message a SMFMessage_T object
+ * @returns a SMFList_T object, or NULL in case of error
+ */
+SMFList_T *smf_message_get_headers(SMFMessage_T *message);
+
+/*!
  * @fn int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFEmailAddressType_T t)
  * @brief Add a recipient of a chosen type to the message object.
  * @param message SMFMessage_T object
