@@ -172,7 +172,8 @@ int smf_modules_process(
     char *path;
     void *module = NULL;
     ModuleLoadFunction runner;
-    int ret;
+    int ret, mod_count;
+    char *header = NULL;
 
     /* initialize message file  and load processed modules */
     stf_filename = smf_modules_stf_path(settings,session);
@@ -194,10 +195,14 @@ int smf_modules_process(
     msg = smf_envelope_get_message(session->envelope);
     elem = smf_list_head(msg->headers);
     while(elem != NULL) {
-        _copy_header(elem);
+        smf_list_append(initial_headers,_copy_header(elem));
         elem = elem->next;
     }
 
+    if (settings->add_header == 1)
+        asprintf(&header,"X-Spmfilter: ");
+
+    mod_count = 0;
     modlist = smf_modules_stf_processed_modules(stfh);
     elem = smf_list_head(settings->modules);
     while(elem != NULL) {
@@ -260,6 +265,13 @@ int smf_modules_process(
             smf_modules_stf_write_entry(stfh, curmod);
         }
 
+        mod_count++;
+        if (settings->add_header == 1) {
+            if (mod_count == smf_list_size(settings->modules))
+                smf_core_strcat_printf(&header, "%s", curmod);
+            else
+                smf_core_strcat_printf(&header, "%s, ", curmod);
+        }
     }
 
     /* close file, cleanup modlist and remove state file */
@@ -274,19 +286,15 @@ int smf_modules_process(
     free(stf_filename);
 
 
-    smf_list_free(initial_headers);
-
-#if 0
+   
     if (settings->add_header == 1) {
-        header = g_strdup_printf("processed %s",g_strjoinv(",",settings->modules));
-        // TODO: refactoring
-//      smf_session_header_append(session,"X-Spmfilter",header);
+        smf_message_set_header(msg, header);
+        free(header); 
     }
-
-    g_free(header);
-    if (smf_modules_flush_dirty(session) != 0)
-        TRACE(TRACE_ERR,"message flush failed");
-
+    
+    if (smf_modules_flush_dirty(session,initial_headers) != 0)
+        STRACE(TRACE_ERR,session->id,"message flush failed");
+#if 0
     /* queue is done, if we're still here check for next hop and
      * deliver
      */
@@ -296,7 +304,45 @@ int smf_modules_process(
     }
 #endif 
 
+     smf_list_free(initial_headers);
+
     return 0;
+}
+
+
+/** Flush modified message headers to queue file */
+int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers) {
+    SMFHeader_T *h_init = NULL;
+    SMFHeader_T *h_msg = NULL;
+    SMFListElem_T *elem_init = NULL;
+    SMFListElem_T *elem_msg = NULL;
+    SMFMessage_T *msg = NULL;
+    int dirty = 0;
+
+    STRACE(TRACE_DEBUG,session->id,"flushing header information to filesystem");
+    
+    msg = smf_envelope_get_message(session->envelope);
+
+    elem_msg = smf_list_head(msg->headers);
+
+    while(elem_msg != NULL) {
+        h_msg = (SMFHeader_T *)smf_list_data(elem_msg);
+        printf("H: [%s]\n",h_msg->name);
+
+/*
+        elem_init = smf_list_head(initial_headers);
+        while (elem_init != NULL) {
+            h_init = (SMFHeader_T *)smf_list_data(elem_init);
+            if (strcmp(h_msg->name,h_init->name)==0) {
+
+                break;
+            }
+            elem_init = elem_init->next;
+        }
+*/
+        elem_msg = elem_msg->next;
+    }
+
 }
 
 /*=== BELOW IS NOT GLIB CLEAN ===*/
