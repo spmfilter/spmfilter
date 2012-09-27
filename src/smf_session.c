@@ -48,6 +48,7 @@ SMFSession_T *smf_session_new(void) {
 
     session->id[pos] = '\0';
     TRACE(TRACE_DEBUG,"session->id: [%s]\n",session->id);
+
     return session;
 }
 

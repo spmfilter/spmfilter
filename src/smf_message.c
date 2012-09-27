@@ -104,6 +104,13 @@ SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header) {
     return (SMFHeader_T *)cmime_message_get_header((CMimeMessage_T *)message,header);    
 }
 
+SMFList_T *smf_message_get_headers(SMFMessage_T *message) {
+    assert(message);
+
+    return (SMFList_T *)cmime_message_get_headers((CMimeMessage_T *)message);
+}
+
+
 /** Add a recipient of a chosen type to the message object. */
 int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFEmailAddressType_T t) {
     assert(message);
