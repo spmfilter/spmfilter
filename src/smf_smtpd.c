@@ -282,6 +282,7 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int
     }
 
     free(tmpname);
+
     return 0;
 }
 
@@ -410,8 +411,10 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     }
     regfree(&regex);
     fclose(spool_file);
-    if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0))
+  
+    if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0)) 
         smf_smtpd_append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
+    
     
     TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->message_size);
 
@@ -422,7 +425,6 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     }
 
     session->envelope->message = message;
-
     smf_smtpd_load_modules(session,settings);
 
     STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
