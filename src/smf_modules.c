@@ -293,7 +293,7 @@ int smf_modules_process(
         free(header); 
     }
     
-    if (smf_modules_flush_dirty(session,initial_headers) != 0)
+    if (smf_modules_flush_dirty(settings,session,initial_headers) != 0)
         STRACE(TRACE_ERR,session->id,"message flush failed");
 #if 0
     /* queue is done, if we're still here check for next hop and
@@ -312,7 +312,7 @@ int smf_modules_process(
 
 
 /** Flush modified message headers to queue file */
-int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers) {
+int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFList_T *initial_headers) {
     SMFHeader_T *h_init = NULL;
     SMFHeader_T *h_msg = NULL;
     SMFListElem_T *elem_init = NULL;
@@ -321,6 +321,11 @@ int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers) {
     int dirty = 0;
     int found = 0;
     int i = 0;
+    FILE *new = NULL;
+    FILE *old = NULL;
+    char *tmpname = NULL;
+    size_t len;
+    char buf[BUFSIZE];
 
     STRACE(TRACE_DEBUG,session->id,"flushing header information to filesystem");
     
@@ -335,8 +340,7 @@ int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers) {
         while(elem_msg != NULL) {
             h_msg = (SMFHeader_T *)smf_list_data(elem_msg);
             found = 0;
-            printf("H: [%s]\n",h_msg->name);
-
+            printf("H: [%s] [%s]\n",h_msg->name, smf_header_get_value(h_msg,0));
             elem_init = smf_list_head(initial_headers);
             while (elem_init != NULL) {
                 h_init = (SMFHeader_T *)smf_list_data(elem_init);
@@ -344,7 +348,6 @@ int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers) {
                 if (strcmp(h_msg->name,h_init->name)==0) {
                     found = 1;
                     /* lets check if the values are the same */
-                    printf("FOUND [%s] [%s] <-> [%s]\n",h_init->name,smf_header_get_value(h_msg,0),smf_header_get_value(h_init,0));
                     if (smf_header_get_count(h_msg) != smf_header_get_count(h_init)) {
                         dirty = 1;
                     } else {
@@ -366,7 +369,31 @@ int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers) {
             elem_msg = elem_msg->next;
         }   
     }
-    printf("DIRTY: [%d]\n",dirty);
+    
+    if (dirty == 1) {
+        asprintf(&tmpname,"%s/XXXXXX",settings->queue_dir);
+        if(mkstemp(tmpname) == -1) {
+            STRACE(TRACE_ERR,session->id,"failed to create temporary file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+    
+        if (smf_message_to_file(msg, tmpname) != 0) {
+            STRACE(TRACE_ERR,session->id,"unable to write temporary file [%s]",tmpname);
+            return -1;
+        }
+
+        if((new = fopen(tmpname, "a"))==NULL) {
+            STRACE(TRACE_ERR,session->id,"unable to open temporary file: %s (%d)",strerror(errno), errno);
+            return -1;
+        }
+
+        if((old = fopen(session->message_file, "r"))==NULL) {
+            STRACE(TRACE_ERR,session->id,"unable to open queue file: %s (%d)",strerror(errno), errno);
+            return -1;
+        }
+
+    }
+
 }
 
 /*=== BELOW IS NOT GLIB CLEAN ===*/
