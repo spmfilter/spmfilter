@@ -26,6 +26,7 @@
 #include <dlfcn.h>
 
 #include "smf_modules.h"
+#include "smf_header.h"
 #include "smf_envelope.h"
 #include "smf_message.h"
 #include "smf_trace.h"
@@ -318,6 +319,8 @@ int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers) {
     SMFListElem_T *elem_msg = NULL;
     SMFMessage_T *msg = NULL;
     int dirty = 0;
+    int found = 0;
+    int i = 0;
 
     STRACE(TRACE_DEBUG,session->id,"flushing header information to filesystem");
     
@@ -325,24 +328,45 @@ int smf_modules_flush_dirty(SMFSession_T *session, SMFList_T *initial_headers) {
 
     elem_msg = smf_list_head(msg->headers);
 
-    while(elem_msg != NULL) {
-        h_msg = (SMFHeader_T *)smf_list_data(elem_msg);
-        printf("H: [%s]\n",h_msg->name);
+    /* check if message headers have changed during session */
+    if (msg->headers->size != initial_headers->size) {
+        dirty = 1;
+    } else {
+        while(elem_msg != NULL) {
+            h_msg = (SMFHeader_T *)smf_list_data(elem_msg);
+            found = 0;
+            printf("H: [%s]\n",h_msg->name);
 
-/*
-        elem_init = smf_list_head(initial_headers);
-        while (elem_init != NULL) {
-            h_init = (SMFHeader_T *)smf_list_data(elem_init);
-            if (strcmp(h_msg->name,h_init->name)==0) {
+            elem_init = smf_list_head(initial_headers);
+            while (elem_init != NULL) {
+                h_init = (SMFHeader_T *)smf_list_data(elem_init);
+                /* ok, we found the header name in the initial list */
+                if (strcmp(h_msg->name,h_init->name)==0) {
+                    found = 1;
+                    /* lets check if the values are the same */
+                    printf("FOUND [%s] [%s] <-> [%s]\n",h_init->name,smf_header_get_value(h_msg,0),smf_header_get_value(h_init,0));
+                    if (smf_header_get_count(h_msg) != smf_header_get_count(h_init)) {
+                        dirty = 1;
+                    } else {
+                        for (i=0;i<smf_header_get_count(h_msg);i++) {
+                            if (strcmp(smf_header_get_value(h_msg,i),smf_header_get_value(h_init,i)) != 0) {
+                                dirty = 1;
+                            }
+                        }
+                    }   
+                    break;
+                }
+                elem_init = elem_init->next;
+            }
 
+            if (found == 0) {
+                dirty = 1;
                 break;
             }
-            elem_init = elem_init->next;
-        }
-*/
-        elem_msg = elem_msg->next;
+            elem_msg = elem_msg->next;
+        }   
     }
-
+    printf("DIRTY: [%d]\n",dirty);
 }
 
 /*=== BELOW IS NOT GLIB CLEAN ===*/
