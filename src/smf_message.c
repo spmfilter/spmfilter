@@ -110,6 +110,25 @@ SMFList_T *smf_message_get_headers(SMFMessage_T *message) {
     return (SMFList_T *)cmime_message_get_headers((CMimeMessage_T *)message);
 }
 
+int smf_message_remove_header(SMFMessage_T *message, const char *header_name) {
+    SMFListElem_T *elem = NULL;
+    SMFHeader_T *header = NULL;
+    void *tf = NULL;
+    int i = -1;
+
+    elem = smf_list_head(message->headers);
+    while(elem != NULL) {
+        header = (SMFHeader_T *)smf_list_data(elem);
+        if (strcasecmp(header->name,header_name) == 0) {
+            i = smf_list_remove(message->headers, elem, &tf);        
+            smf_header_free((SMFHeader_T *)tf);
+            break;
+        }
+        elem = elem->next;
+    }
+    
+    return i;
+}
 
 /** Add a recipient of a chosen type to the message object. */
 int smf_message_add_recipient(SMFMessage_T *message, const char *recipient, SMFEmailAddressType_T t) {

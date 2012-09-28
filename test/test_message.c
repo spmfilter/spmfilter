@@ -132,6 +132,13 @@ int main (int argc, char const *argv[]) {
     printf("passed\n");
     free(s);
 
+    printf("* testing smf_message_remove_header()...\t\t\t");
+    if (smf_message_remove_header(msg, test_header_name) != 0) {
+        printf("failed\n");
+        return -1;
+    } 
+    printf("passed\n");
+
     printf("* testing smf_message_add_reciepient()...\t\t\t");
     if (smf_message_add_recipient(msg, test_addr, SMF_EMAIL_ADDRESS_TYPE_TO) != 0) {
         printf("failed\n");
