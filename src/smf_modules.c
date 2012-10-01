@@ -325,7 +325,8 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     FILE *old = NULL;
     char *tmpname = NULL;
     size_t len;
-    char buf[BUFSIZE];
+    ssize_t read;
+    char *buf = NULL;
 
     STRACE(TRACE_DEBUG,session->id,"flushing header information to filesystem");
     
@@ -370,14 +371,16 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
         }   
     }
     
+    /* merge new headers with message content to new queue file */
     if (dirty == 1) {
+        found = 0;
         asprintf(&tmpname,"%s/XXXXXX",settings->queue_dir);
         if(mkstemp(tmpname) == -1) {
             STRACE(TRACE_ERR,session->id,"failed to create temporary file: %s (%d)",strerror(errno),errno);
             return -1;
         }
     
-        if (smf_message_to_file(msg, tmpname) != 0) {
+        if (smf_message_to_file(msg, tmpname) == -1) {
             STRACE(TRACE_ERR,session->id,"unable to write temporary file [%s]",tmpname);
             return -1;
         }
@@ -392,6 +395,49 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
             return -1;
         }
 
+        while(!feof(old)) {
+            if (found == 0) {
+                if ((read = getline(&buf,&len,old)) == -1) {
+                    STRACE(TRACE_ERR, session->id, "failed to read queue_file");
+                    return -1;
+                }
+
+                if ((strcmp(buf,LF)==0)||(strcmp(buf,CRLF)==0)) found = 1;
+                
+                continue;
+            } else {
+                if (buf != NULL) free(buf);
+                buf = (char *)calloc(BUFSIZE + 1,sizeof(char));
+                if ((read = fread(buf,sizeof(char),BUFSIZE,old)) <= 0) {
+                    STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
+                    return -1;
+                }      
+            }
+
+            if (read > 0) {
+                if (fwrite(buf,sizeof(char),read,new) <= 0) {
+                    STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+                    return -1;
+                }
+            }                
+        }
+        if (buf != NULL) free(buf);
+        
+        fclose(old); 
+        fclose(new);
+
+
+        if (unlink(session->message_file)!=0) {
+            STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+
+        if (rename(tmpname,session->message_file)!=0) {
+            STRACE(TRACE_ERR,session->id,"failed to rename queue file: %s (%d)",strerror(errno),errno);
+            return -1;
+        }
+
+        free(tmpname);
     }
 
 }
