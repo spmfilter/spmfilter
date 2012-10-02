@@ -17,7 +17,7 @@ set(LIB_SMF_SRC
 	smf_part.c
 	smf_session.c
 	smf_settings.c
-#	smf_smtp.c
+	smf_smtp.c
 	smf_trace.c
 	smf_email_address.c
 )
@@ -58,6 +58,7 @@ set_property(TARGET smf PROPERTY PRIVATE_HEADER
 	smf_part.h
 	smf_session.h
 	smf_settings.h
+	smf_smtp.h
 	smf_trace.h
 )
 
