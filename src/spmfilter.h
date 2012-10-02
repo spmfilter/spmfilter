@@ -29,6 +29,7 @@
 #include <smf/smf_part.h>
 #include <smf/smf_session.h>
 #include <smf/smf_settings.h>
+#include <smf/smf_smtp.h>
 #include <smf/smf_trace.h>
 
 #endif /* SPMFILTER_H */
