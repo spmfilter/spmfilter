@@ -25,6 +25,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <assert.h>
 #include <sys/types.h>
 #include <pwd.h>
@@ -36,13 +37,50 @@
 
 #define THIS_MODULE "server"
 
-void smf_server_init(SMFSettings_T *settings) {
+int daemon_exit = 0;
+
+void smf_server_sig_handler(int sig) {
+    pid_t pid;
+    
+    switch(sig) {
+        case SIGTERM:
+            daemon_exit = 1;
+            break;
+        case SIGCHLD:
+            while((pid = waitpid(-1, NULL, WNOHANG)) > 0)
+                ;
+            break;
+        default:
+            break;
+    }
+
+    return;
+}
+
+void smf_server_init(SMFSettings_T *settings, int sd) {
     pid_t pid;
     FILE *pidfile;
     int i, sigs[] = { SIGHUP, SIGINT, SIGQUIT, SIGTSTP, SIGTTIN, SIGTTOU };
-    struct sigaction action;
+    struct sigaction action_handler;
     struct passwd *pwd = NULL;
     struct group *grp = NULL;
+    struct sigaction action;
+
+    action_handler.sa_handler = smf_server_sig_handler;
+    sigemptyset(&action_handler.sa_mask);
+    action_handler.sa_flags = 0;
+
+    if (sigaction(SIGTERM, &action_handler, NULL) < 0) {
+        TRACE(TRACE_ERR,"sigaction (SIGTERM) failed: %s",strerror(errno));
+        close(sd);
+        exit(EXIT_FAILURE);
+    }
+
+    if (sigaction(SIGCHLD, &action_handler, NULL) < 0) {
+        TRACE(TRACE_ERR,"sigaction (SIGCHLD) failed: %s",strerror(errno));
+        close(sd);
+        exit(EXIT_FAILURE);
+    }
 
     /* switch to background */
     if (settings->foreground == 0) { 
@@ -177,4 +215,42 @@ int smf_server_listen(SMFSettings_T *settings) {
     return sd;
 }
 
+void smf_server_accept_handler(SMFSettings_T *settings, int sd, void (*handle_client_func)(SMFSettings_T *settings,int client)) {
+    int client, pid;
+    socklen_t slen;
+    struct sockaddr_storage sa;
+
+    /* process incoming connection in an infinite loop */
+    for (;;) {
+        slen = sizeof(sa);
+
+        /* accept new connection */
+        if ((client = accept(sd, (struct sockaddr *)&sa, &slen)) < 0) {
+            if (daemon_exit)
+                break;
+
+            if (errno != EINTR) {
+                TRACE(TRACE_ERR,"accept failed: %s",strerror(errno));
+            }
+            continue;
+        }
+
+        switch(pid = fork()) {
+            case -1: /* error */
+                TRACE(TRACE_ERR,"fork() failed: %s", strerror(errno));
+                break;
+            case 0: /* child handle client */
+                close(sd);
+                handle_client_func(settings,client);
+                close(client);
+                exit(EXIT_SUCCESS);
+                break;
+            default:
+                break;
+        }
+
+        close(client);
+    }
+
+}
 

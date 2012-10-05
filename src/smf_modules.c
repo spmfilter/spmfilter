@@ -32,6 +32,7 @@
 #include "smf_trace.h"
 #include "smf_internal.h"
 #include "smf_dict.h"
+#include "smf_smtp.h"
 
 #define THIS_MODULE "modules"
 
@@ -281,12 +282,10 @@ int smf_modules_process(
     smf_dict_free(modlist);
 
 
-//    if(unlink(stf_filename) != 0) {
-//        STRACE(TRACE_ERR,session->id,"failed to unlink state file [%s]: %s (%d)", stf_filename,strerror(errno),errno);
-//    }
+    if(unlink(stf_filename) != 0) {
+        STRACE(TRACE_ERR,session->id,"failed to unlink state file [%s]: %s (%d)", stf_filename,strerror(errno),errno);
+    }
     free(stf_filename);
-
-
    
     if (settings->add_header == 1) {
         smf_message_set_header(msg, header);
@@ -295,19 +294,18 @@ int smf_modules_process(
     
     if (smf_modules_flush_dirty(settings,session,initial_headers) != 0)
         STRACE(TRACE_ERR,session->id,"message flush failed");
-#if 0
+
     /* queue is done, if we're still here check for next hop and
      * deliver
      */
     if (settings->nexthop != NULL ) {
-        TRACE(TRACE_DEBUG, "will now deliver to nexthop %s", settings->nexthop);
-        return(smf_modules_deliver_nexthop(q, session));
-    }
-#endif 
+        STRACE(TRACE_DEBUG, session->id, "will now deliver to nexthop [%s]", settings->nexthop);
+        ret = smf_modules_deliver_nexthop(settings, q, session);
+    } 
 
      smf_list_free(initial_headers);
 
-    return 0;
+    return ret;
 }
 
 
@@ -341,7 +339,6 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
         while(elem_msg != NULL) {
             h_msg = (SMFHeader_T *)smf_list_data(elem_msg);
             found = 0;
-            printf("H: [%s] [%s]\n",h_msg->name, smf_header_get_value(h_msg,0));
             elem_init = smf_list_head(initial_headers);
             while (elem_init != NULL) {
                 h_init = (SMFHeader_T *)smf_list_data(elem_init);
@@ -426,7 +423,6 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
         fclose(old); 
         fclose(new);
 
-
         if (unlink(session->message_file)!=0) {
             STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
             return -1;
@@ -443,48 +439,28 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     return 0;
 }
 
-int smf_modules_deliver_nexthop(SMFProcessQueue_T *q,SMFSession_T *session) {
-//  int i;
-//  SMFMessageEnvelope_T *envelope;
-#if 0
-    SMFSettings_T *settings = smf_settings_get();
+int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, SMFSession_T *session) {
+    SMFEnvelope_T *env = smf_session_get_envelope(session);
+    SMFSmtpStatus_T *status = NULL;
 
-    envelope = smf_message_envelope_new();
-    if (session->envelope_from != NULL)
-        envelope->from = g_strdup(session->envelope_from->addr);
-    else if (session->message_from != NULL)
-        envelope->from = g_strdup(session->message_from->addr);
-    else
-        envelope->from = g_strdup("<>");
+    if (env->sender == NULL)
+        smf_envelope_set_sender(env, "<>");
 
-    if (session->envelope_to != NULL) {
-        /* copy recipients in place */
-        for (i = 0; i < session->envelope_to_num; i++) {
-            envelope = smf_message_envelope_add_rcpt(envelope,session->envelope_to[i]->addr);
-        }
-    } else if (session->message_to != NULL) {
-        /* copy recipients in place */
-        for (i = 0; i < session->message_to_num; i++) {
-            envelope = smf_message_envelope_add_rcpt(envelope,session->message_to[i]->addr);
-        }
-
-    } else {
-        /* hmm....i've no recipients */
-        TRACE(TRACE_ERR,"got no recipients");
+    if (env->recipients->size == 0) {
+        STRACE(TRACE_ERR,session->id,"got no recipients");
         return -1;
     }
 
-    session->message_file = g_strdup(session->queue_file);
-    envelope->nexthop = g_strdup(settings->nexthop);
+    if (env->nexthop == NULL)
+        smf_envelope_set_nexthop(env, settings->nexthop);
 
-    /* now deliver, if delivery fails, call error hook */
-    // TODO: check if corret nexthop is used!
-    if (smf_message_deliver(session->envelope) != 0) {
-        TRACE(TRACE_ERR,"delivery to %s failed!",settings->nexthop);
-        q->nexthop_error(session);
-        return(-1);
+    status = smf_smtp_deliver(env, settings->tls, session->message_file,session->id);
+    if (status->code != 250) {
+        STRACE(TRACE_ERR,session->id,"delivery to [%s] failed!",settings->nexthop);
+        STRACE(TRACE_ERR,session->id,"nexthop said: %d - %s", status->code,status->text);
+        q->nexthop_error(settings, session);
+        return -1;
     }
-#endif
-//  smf_message_envelope_unref(envelope);
-    return(0);
+
+    return 0;
 }
