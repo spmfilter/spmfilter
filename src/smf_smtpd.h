@@ -37,7 +37,6 @@
 #define ST_DATA 5
 #define ST_QUIT 6
 
-void smf_smtpd_sig_handler(int sig);
 static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session);
 static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSession_T *session, int retval);
 static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T *session);

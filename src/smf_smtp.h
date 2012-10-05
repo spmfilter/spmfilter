@@ -53,9 +53,10 @@ void smf_smtp_status_free(SMFSmtpStatus_T *status);
  * @param env a SMFEnvelope_T object
  * @param tls enable/disable TLS for connection
  * @param msg_file alternate message content
+ * @param sid optional session id for logging
  * @returns 0 on success or -1 in case of error
  */
-SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *msg_file); 
+SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *msg_file, char *sid); 
 
 #ifdef __cplusplus
 }

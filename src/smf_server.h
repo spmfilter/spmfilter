@@ -20,7 +20,14 @@
 
 #include "smf_settings.h"
 
-void smf_server_init(SMFSettings_T *settings);
+typedef void (*handle_client_func)(SMFSettings_T *settings,int client);
+
+void smf_server_sig_handler(int sig);
+void smf_server_init(SMFSettings_T *settings, int sd);
 int smf_server_listen(SMFSettings_T *settings);
+void smf_server_accept_handler(
+    SMFSettings_T *settings, 
+    int sd, 
+    void (*handle_client_func)(SMFSettings_T *settings,int client));
 
 #endif  /* _SMF_SERVER_H */

@@ -50,13 +50,6 @@
 
 #define THIS_MODULE "smtpd"
 
-int daemon_exit = 0;
-
-void smf_smtpd_sig_handler(int sig) {
-    daemon_exit = 1;
-    return;
-}
-
 static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session) {
     switch (settings->module_fail) {
         case 1: return(1);
@@ -136,7 +129,7 @@ int smf_smtpd_load_modules(SMFSession_T *session, SMFSettings_T *settings) {
     free(q);
 
     if(ret == -1) {
-        STRACE(TRACE_DEBUG, session->id, "smtp engine failed to process modules!");
+        STRACE(TRACE_DEBUG, session->id, "smtpd engine failed!");
         return(-1);
     } else if (ret == 1) {
         return(0);
@@ -428,8 +421,8 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     smf_smtpd_load_modules(session,settings);
 
     STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
-//    if (remove(session->message_file) != 0)
-//        STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
+    if (remove(session->message_file) != 0)
+        STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
 }
 
 void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
@@ -595,28 +588,19 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
 }
 
 int load(SMFSettings_T *settings) {
-    int sd, client;
-    socklen_t slen;
-    struct sockaddr_storage sa;
-    struct sigaction action;
+    int sd;
+//    int sd, client;
+//    socklen_t slen;
+//    struct sockaddr_storage sa;
 
     TRACE(TRACE_INFO,"starting smtpd engine");
 
     if ((sd = smf_server_listen(settings)) < 0)
         exit(EXIT_FAILURE);
 
-    action.sa_handler = smf_smtpd_sig_handler;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-
-    if (sigaction(SIGTERM, &action, NULL) < 0) {
-        TRACE(TRACE_ERR,"sigaction faield: %s",strerror(errno));
-        close(sd);
-        exit(EXIT_FAILURE);
-    }
-
-    smf_server_init(settings);
-
+    smf_server_init(settings,sd);
+    smf_server_accept_handler(settings,sd,smf_smtpd_handle_client);
+/*
     for (;;) {
         slen = sizeof(sa);
 
@@ -631,6 +615,6 @@ int load(SMFSettings_T *settings) {
         smf_smtpd_handle_client(settings, client);
         close(client);
     }
-    
+  */  
     return 0;
 }
