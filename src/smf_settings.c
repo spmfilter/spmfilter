@@ -197,12 +197,6 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
             /** check allowed values... */
             if (i==0 || i==1 || i==2)
                 (*settings)->tls = i;
-        /** [global]tls_pass **/
-        } else if (strcmp(key,"tls_pass")==0) {
-            if ((*settings)->tls_pass!=NULL)
-                free((*settings)->tls_pass);
-        
-            (*settings)->tls_pass = strdup(val);
         /** [global]lib_dir **/
         } else if (strcmp(key,"lib_dir")==0) {
             if ((*settings)->lib_dir!=NULL)
@@ -415,7 +409,6 @@ SMFSettings_T *smf_settings_new(void) {
     settings->nexthop_fail_msg = NULL;
     settings->backend = NULL;
     settings->backend_connection = NULL;
-    settings->tls_pass = NULL;
     settings->lib_dir = NULL;
     settings->pid_file = NULL;
     settings->bind_ip = NULL;
@@ -481,7 +474,6 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->nexthop_fail_msg != NULL) free(settings->nexthop_fail_msg);
     if (settings->backend != NULL) free(settings->backend);
     if (settings->backend_connection != NULL) free(settings->backend_connection);
-    if (settings->tls_pass != NULL) free(settings->tls_pass);
     if (settings->lib_dir != NULL) free(settings->lib_dir);
     if (settings->pid_file != NULL) free(settings->pid_file);
     if (settings->bind_ip != NULL) free(settings->bind_ip);
@@ -702,7 +694,6 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->add_header: [%d]", (*settings)->add_header);
     TRACE(TRACE_DEBUG, "settings->max_size: [%d]", (*settings)->max_size);
     TRACE(TRACE_DEBUG, "settings->tls: [%d]", (*settings)->tls);
-    TRACE(TRACE_DEBUG, "settings->tls_pass: [%s]", (*settings)->tls_pass);
     TRACE(TRACE_DEBUG, "settings->lib_dir: [%s]", (*settings)->lib_dir);
     TRACE(TRACE_DEBUG, "settings->pid_file: [%s]", (*settings)->pid_file);
     TRACE(TRACE_DEBUG, "settings->bind_ip: [%s]", (*settings)->bind_ip);
@@ -961,21 +952,6 @@ void smf_settings_set_tls(SMFSettings_T *settings, SMFTlsOption_T t) {
 SMFTlsOption_T smf_settings_get_tls(SMFSettings_T *settings) {
     assert(settings);
     return settings->tls;
-}
-
-
-void smf_settings_set_tls_pass(SMFSettings_T *settings, char *pass) {
-    assert(settings);
-    assert(pass);
-
-    if (settings->tls_pass != NULL) free(settings->tls_pass);
-        
-    settings->tls_pass = strdup(pass);
-}
-
-char *smf_settings_get_tls_pass(SMFSettings_T *settings) {
-    assert(settings);
-    return settings->tls_pass;
 }
 
 void smf_settings_set_lib_dir(SMFSettings_T *settings, char *lib_dir) {
