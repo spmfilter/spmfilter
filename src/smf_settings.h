@@ -64,7 +64,6 @@ typedef struct {
     int add_header; /**< add spmfilter processing header */
     unsigned long max_size; /**< maximal message size in bytes */
     SMFTlsOption_T tls; /**< enable/disable TLS */
-    char *tls_pass; /**< password for ssl cert */
     char *lib_dir; /**< user defined directory path for shared libraries */
     char *pid_file; /**< path to pid file */
     char *bind_ip; /**< ip to bind daemon */
@@ -350,22 +349,6 @@ void smf_settings_set_tls(SMFSettings_T *settings, SMFTlsOption_T t);
  * @returns a SMFTlsOption_T value
  */
 SMFTlsOption_T smf_settings_get_tls(SMFSettings_T *settings);
-
-/*!
- * @fn void smf_settings_set_tls_pass(SMFSettings_T *settings, char *pass)
- * @brief Set passphrase for SSL certificate, if needed.
- * @param settings a SMFSettings_T object
- * @param pass tls password
- */
-void smf_settings_set_tls_pass(SMFSettings_T *settings, char *pass);
-
-/*!
- * @fn char *smf_settings_get_tls_pass(SMFSettings_T *settings)
- * @brief Get tls_pass setting
- * @param settings a SMFSettings_T object
- * @returns tls password
- */
-char *smf_settings_get_tls_pass(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_lib_dir(SMFSettings_T *settings, char *lib_dir)

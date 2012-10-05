@@ -62,8 +62,8 @@ char test_header_value[] = "foobar";
 char test_header[] = "X-Foo: foobar";
 
 char test_path[] = "/tmp/test.eml";
-char test_auth_user[] = "testusername";
-char test_auth_pass[] = "testpassword";
+char test_auth_user[] = "test@localhost";
+char test_auth_pass[] = "test123";
 char test_nexthop[] = "localhost:2525";
 
 char test_helo[] = "foo.bar";
