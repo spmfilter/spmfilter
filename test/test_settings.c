@@ -217,17 +217,6 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
     
-    printf("* testing smf_settings_set_tls_pass()...\t\t");
-    smf_settings_set_tls_pass(settings, test_string);
-    printf("passed\n");
-
-    printf("* testing smf_settings_get_tls_pass()...\t\t");
-    if(strcmp(smf_settings_get_tls_pass(settings),test_string) != 0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
-    
     printf("* testing smf_settings_set_lib_dir()...\t\t\t");
     smf_settings_set_lib_dir(settings, test_queue_dir);
     printf("passed\n");

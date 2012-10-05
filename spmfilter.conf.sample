@@ -70,8 +70,6 @@ max_size=0
 # 2 = require STARTTLS
 tls_enable=0
 
-tls_pass=
-
 pid_file = /var/run/spmfilter.pid
 
 bind_ip = 127.0.0.1
