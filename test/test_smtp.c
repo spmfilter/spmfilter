@@ -59,7 +59,6 @@ int main (int argc, char const *argv[]) {
     smf_envelope_add_rcpt(env, test_email);
     
     status = smf_smtp_deliver(env, SMF_TLS_DISABLED, msg_file);
-    printf("[%d] [%s]\n",status->code,status->text);
     if (status->code == -1) {
         printf("failed\n");
         return -1;
@@ -75,7 +74,6 @@ int main (int argc, char const *argv[]) {
     }
     smf_envelope_set_message(env, msg);
     status = smf_smtp_deliver(env, SMF_TLS_DISABLED, NULL);
-    printf("[%d] [%s]\n",status->code,status->text);
     if (status->code == -1) {
         printf("failed\n");
         return -1;
@@ -83,10 +81,8 @@ int main (int argc, char const *argv[]) {
     printf("passed\n");
     smf_smtp_status_free(status);
 
-/*
     printf("* testing smf_smtp_deliver() with envelope and TLS...\t\t");
     status = smf_smtp_deliver(env, SMF_TLS_REQUIRED, NULL);
-    printf("[%d] [%s]\n",status->code,status->text);
     if (status->code == -1) {
         printf("failed\n");
         return -1;
@@ -94,12 +90,10 @@ int main (int argc, char const *argv[]) {
     printf("passed\n");
     smf_smtp_status_free(status);
 
-*/
     printf("* testing smf_smtp_deliver() with smtp auth...\t\t\t");
     smf_envelope_set_auth_user(env, test_auth_user);
     smf_envelope_set_auth_pass(env, test_auth_pass);
     status = smf_smtp_deliver(env, SMF_TLS_DISABLED, NULL);
-    printf("[%d] [%s]\n",status->code,status->text);
     if (status->code == -1) {
         printf("failed\n");
         return -1;
