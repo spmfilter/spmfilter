@@ -83,7 +83,6 @@ add_executable(spmfilter ${SPMFILTER_SRC})
 target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GTHREAD_LIBRARIES} smf)
 
 install(TARGETS smf smtpd pipe spmfilter
-#install(TARGETS smf spmfilter
 	RUNTIME DESTINATION sbin
 	LIBRARY DESTINATION ${LIBDIR}/spmfilter
 	PUBLIC_HEADER DESTINATION include/spmfilter

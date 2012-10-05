@@ -47,7 +47,7 @@ SMFProcessQueue_T *smf_modules_pqueue_init(
 int smf_modules_process(SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings);
 
 /** deliver a message to the nexthop */
-int smf_modules_deliver_nexthop(SMFProcessQueue_T *q, SMFSession_T *session);
+int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, SMFSession_T *session);
 
 /** Flush modified message headers to queue file */
 int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFList_T *initial_headers);
