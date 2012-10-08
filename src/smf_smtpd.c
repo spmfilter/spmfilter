@@ -599,7 +599,8 @@ int load(SMFSettings_T *settings) {
         exit(EXIT_FAILURE);
 
     smf_server_init(settings,sd);
-    smf_server_accept_handler(settings,sd,smf_smtpd_handle_client);
+    smf_server_prefork(settings,sd,smf_smtpd_handle_client);
+//    smf_server_accept_handler(settings,sd,smf_smtpd_handle_client);
 /*
     for (;;) {
         slen = sizeof(sa);
