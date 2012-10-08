@@ -305,6 +305,17 @@ int main (int argc, char const *argv[]) {
     } 
     printf("passed\n");
 
+    printf("* testing smf_settings_set_max_proc()...\t\t");
+    smf_settings_set_max_proc(settings, 30);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_max_proc()...\t\t");
+    if(smf_settings_get_max_proc(settings) != 30) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
     printf("* testing smf_settings_set_sql_driver()...\t\t");
     smf_settings_set_sql_driver(settings, test_sql_driver);
     printf("passed\n");
