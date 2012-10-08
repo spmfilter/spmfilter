@@ -37,18 +37,26 @@
 
 #define THIS_MODULE "server"
 
+int min_childs = 5;
+int max_childs = 25;
+int num_procs = 0;
 int daemon_exit = 0;
+int child[] = {};
 
 void smf_server_sig_handler(int sig) {
     pid_t pid;
-    
+    int i;
+
     switch(sig) {
         case SIGTERM:
             daemon_exit = 1;
             break;
         case SIGCHLD:
-            while((pid = waitpid(-1, NULL, WNOHANG)) > 0)
-                ;
+            while((pid = waitpid(-1, NULL, WNOHANG)) > 0) {
+                for (i=0; i < num_procs; i++)
+                    child[i] = 0; /* remove process id */
+            }
+                
             break;
         default:
             break;
@@ -167,6 +175,8 @@ void smf_server_init(SMFSettings_T *settings, int sd) {
             fclose(pidfile);
         }
     }
+
+    min_childs = smf_settings_get_min_childs(settings);
 }
 
 int smf_server_listen(SMFSettings_T *settings) {
@@ -215,10 +225,46 @@ int smf_server_listen(SMFSettings_T *settings) {
     return sd;
 }
 
+void smf_server_prefork(SMFSettings_T *settings,int sd,
+        void (*handle_client_func)(SMFSettings_T *settings,int client)) {
+    int i;
+    for (i = 0; i < min_childs; i++) {
+        switch(child[i] = fork()) {
+            case -1:
+                TRACE(TRACE_ERR,"fork() failed: %s",strerror(errno));
+                break;
+            case 0:
+                smf_server_accept_handler(settings,sd,handle_client_func);
+                exit(EXIT_SUCCESS); /* quit child process */
+                break;
+            default: /* parent process: go on with accept */
+                printf("NUM [%d]\n",++num_procs);
+                break;
+        }
+    }
+
+    close(sd);
+
+    for (;;) {
+        pause(); 
+        if (daemon_exit)
+            break;
+    }
+
+    for (i = 0; i < num_procs; i++)
+        if (child[i] > 0)
+            kill(child[i],SIGTERM);
+    while(wait(NULL) > 0)
+        ;
+
+    unlink(settings->pid_file);
+}
+
 void smf_server_accept_handler(SMFSettings_T *settings, int sd, void (*handle_client_func)(SMFSettings_T *settings,int client)) {
-    int client, pid;
+    int client;
     socklen_t slen;
     struct sockaddr_storage sa;
+
 
     /* process incoming connection in an infinite loop */
     for (;;) {
@@ -234,21 +280,7 @@ void smf_server_accept_handler(SMFSettings_T *settings, int sd, void (*handle_cl
             }
             continue;
         }
-
-        switch(pid = fork()) {
-            case -1: /* error */
-                TRACE(TRACE_ERR,"fork() failed: %s", strerror(errno));
-                break;
-            case 0: /* child handle client */
-                close(sd);
-                handle_client_func(settings,client);
-                close(client);
-                exit(EXIT_SUCCESS);
-                break;
-            default:
-                break;
-        }
-
+        handle_client_func(settings,client);
         close(client);
     }
 
