@@ -236,6 +236,9 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 free((*settings)->group);
 
             (*settings)->group = strdup(val);
+        /** [global]max_proc **/
+        } else if (strcmp(key,"max_proc")==0) {
+            (*settings)->max_proc = _get_integer(val);
         }
     }
 
@@ -417,6 +420,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->foreground = 0;
     settings->user = NULL;
     settings->group = NULL;
+    settings->max_proc = 0;
 
     settings->smtp_codes = smf_dict_new();
     settings->sql_driver = NULL;
@@ -1052,6 +1056,16 @@ void smf_settings_set_group(SMFSettings_T *settings, char *group) {
 char *smf_settings_get_group(SMFSettings_T *settings) {
     assert(settings);
     return settings->group;
+}
+
+void smf_settings_set_max_proc(SMFSettings_T *settings, int max_proc) {
+    assert(settings);
+    settings->max_proc = max_proc;
+}
+
+int smf_settings_get_max_proc(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->max_proc;
 }
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {

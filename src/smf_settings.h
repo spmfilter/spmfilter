@@ -72,6 +72,7 @@ typedef struct {
     int foreground; /**< run daemon in foreground */
     char *user; /**< run daemon as user */
     char *group; /** run daemon as group */
+    int max_proc; /** maximum number of allowd processes */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
 
@@ -477,6 +478,22 @@ void smf_settings_set_group(SMFSettings_T *settings, char *group);
  * @returns char pointer with groupname
  */
 char *smf_settings_get_group(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_max_proc(SMFSettings_T *settings, int max_proc)
+ * @brief Set the number of maximal allowed processes
+ * @param settings a SMFSettings_T object
+ * @param max_proc number of processes
+ */
+void smf_settings_set_max_proc(SMFSettings_T *settings, int max_proc);
+
+/*!
+ * @fn int smf_settings_get_max_proc(SMFSettings_T *settings);
+ * @brief Get number of maxmimal allowed processes
+ * @param settings a SMFSettings_T object
+ * @returns number of processes
+ */
+int smf_settings_get_max_proc(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
