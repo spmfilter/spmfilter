@@ -236,9 +236,12 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 free((*settings)->group);
 
             (*settings)->group = strdup(val);
-        /** [global]max_proc **/
-        } else if (strcmp(key,"max_proc")==0) {
-            (*settings)->max_proc = _get_integer(val);
+        /** [global]min_childs **/
+        } else if (strcmp(key,"min_childs")==0) {
+            (*settings)->min_childs = _get_integer(val);
+        /** [global]max_childs **/
+        } else if (strcmp(key,"max_childs")==0) {
+            (*settings)->max_childs = _get_integer(val);
         }
     }
 
@@ -420,7 +423,8 @@ SMFSettings_T *smf_settings_new(void) {
     settings->foreground = 0;
     settings->user = NULL;
     settings->group = NULL;
-    settings->max_proc = 0;
+    settings->min_childs = 2;
+    settings->max_childs = 10;
 
     settings->smtp_codes = smf_dict_new();
     settings->sql_driver = NULL;
@@ -706,6 +710,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->foreground: [%d]", (*settings)->foreground);
     TRACE(TRACE_DEBUG, "settings->user: [%s]", (*settings)->user);
     TRACE(TRACE_DEBUG, "settings->group: [%s]", (*settings)->group);
+    TRACE(TRACE_DEBUG, "settings->min_childs: [%d]", (*settings)->min_childs);
+    TRACE(TRACE_DEBUG, "settings->max_childs: [%d]", (*settings)->max_childs);
 
     TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
     TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
@@ -1058,14 +1064,24 @@ char *smf_settings_get_group(SMFSettings_T *settings) {
     return settings->group;
 }
 
-void smf_settings_set_max_proc(SMFSettings_T *settings, int max_proc) {
+void smf_settings_set_min_childs(SMFSettings_T *settings, int min_childs) {
     assert(settings);
-    settings->max_proc = max_proc;
+    settings->min_childs = min_childs;
 }
 
-int smf_settings_get_max_proc(SMFSettings_T *settings) {
+int smf_settings_get_min_childs(SMFSettings_T *settings) {
     assert(settings);
-    return settings->max_proc;
+    return settings->min_childs;
+}
+
+void smf_settings_set_max_childs(SMFSettings_T *settings, int max_childs) {
+    assert(settings);
+    settings->max_childs = max_childs;
+}
+
+int smf_settings_get_max_childs(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->max_childs;
 }
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {
