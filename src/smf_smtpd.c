@@ -439,6 +439,9 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
     
     start_acct = smf_internal_init_runtime_stats();
 
+    /* send signal to parent that we've got a new client */
+    kill(getppid(),SIGUSR1);
+
     session->sock = client;
 
     hostname = (char *)malloc(MAXHOSTNAMELEN);
@@ -583,8 +586,13 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
     free(rl);
     free(hostname);
     
+    /* client has finished */
+    kill(getppid(),SIGUSR2);
+
     smf_internal_print_runtime_stats(start_acct,session->id);
     smf_session_free(session);
+
+    exit(0);
 }
 
 int load(SMFSettings_T *settings) {
@@ -599,7 +607,7 @@ int load(SMFSettings_T *settings) {
         exit(EXIT_FAILURE);
 
     smf_server_init(settings,sd);
-    smf_server_prefork(settings,sd,smf_smtpd_handle_client);
+    smf_server_loop(settings,sd,smf_smtpd_handle_client);
 //    smf_server_accept_handler(settings,sd,smf_smtpd_handle_client);
 /*
     for (;;) {
