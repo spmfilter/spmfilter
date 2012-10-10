@@ -22,10 +22,13 @@
 
 typedef void (*handle_client_func)(SMFSettings_T *settings,int client);
 
+void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
 void smf_server_init(SMFSettings_T *settings, int sd);
 int smf_server_listen(SMFSettings_T *settings);
-void smf_server_prefork(SMFSettings_T *settings,int sd,
+void smf_server_fork(SMFSettings_T *settings,int sd,
+    void (*handle_client_func)(SMFSettings_T *settings,int client));
+void smf_server_loop(SMFSettings_T *settings,int sd,
     void (*handle_client_func)(SMFSettings_T *settings,int client));
 void smf_server_accept_handler(
     SMFSettings_T *settings, 
