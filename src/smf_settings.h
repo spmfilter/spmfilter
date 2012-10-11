@@ -74,6 +74,7 @@ typedef struct {
     char *group; /** run daemon as group */
     int min_childs; /** number of preforked processed */
     int max_childs; /** maximum number of allowed processes */
+    int spare_childs; /** number of spare childs */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
 
@@ -511,6 +512,22 @@ void smf_settings_set_max_childs(SMFSettings_T *settings, int max_childs);
  * @returns number of processes
  */
 int smf_settings_get_max_childs(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_spare_childs(SMFSettings_T *settings, int spare_childs)
+ * @brief Set the number of spare child processes
+ * @param settings a SMFSettings_T object
+ * @param spare_childs number of spare processes
+ */
+void smf_settings_set_spare_childs(SMFSettings_T *settings, int spare_childs);
+
+/*!
+ * @fn int smf_settings_get_spare_childs(SMFSettings_T *settings)
+ * @brief Get number of spare processes
+ * @param settings a SMFSettings_T object
+ * @returns number of spare processes
+ */
+int smf_settings_get_spare_childs(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
