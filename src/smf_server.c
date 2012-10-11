@@ -222,8 +222,17 @@ int smf_server_listen(SMFSettings_T *settings) {
 
 void smf_server_fork(SMFSettings_T *settings,int sd,
         void (*handle_client_func)(SMFSettings_T *settings,int client)) {
+    int pos = 0;
+    int i;
 
-    switch(child[num_procs] = fork()) {
+    for (pos=0; pos < settings->max_childs; pos++) {
+        if (child[pos] == 0) {
+            printf("NEUES CHILD BEI POS %d\n",pos);
+            break;
+        }
+    }
+
+    switch(child[pos] = fork()) {
         case -1:
             TRACE(TRACE_ERR,"fork() failed: %s",strerror(errno));
             break;
@@ -232,11 +241,15 @@ void smf_server_fork(SMFSettings_T *settings,int sd,
             exit(EXIT_SUCCESS); /* quit child process */
             break;
         default: /* parent process: go on with accept */
-            TRACE(TRACE_DEBUG,"forked child [%d]\n",child[num_procs]);
+            TRACE(TRACE_DEBUG,"forked child [%d]\n",child[pos]);
             break;
     }
 
-    printf("-- spare [%d] child[%d] => [%d]\n", num_spare, num_procs, child[num_procs]);
+    printf("-- spare [%d] child[%d] => [%d]\n", num_spare, num_procs, child[pos]);
+    printf("=================================\n");
+    for(i=0; i<settings->max_childs; i++) 
+        printf("- child[%d] = %d\n",i,child[i]);
+    printf("=================================\n");
     num_procs++;
 }
 
@@ -244,6 +257,11 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
         void (*handle_client_func)(SMFSettings_T *settings,int client)) {
     int i, status;
     pid_t pid;
+
+    for(i=0; i<settings->max_childs; i++) {
+        child[i] = 0;
+        printf("- child[%d] = %d\n",i,child[i]);
+    }
 
     /* prefork min. childs */
     for (i = 0; i < settings->min_childs; i++) {
@@ -256,22 +274,36 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
         printf("---------------------------------------\n");
         printf("PID [%d] STATUS [%d]\n",pid,status); 
         if (pid > 0) {
-            for (i=0; i < num_procs; i++) {
+            printf("CLOSE => \n");
+
+            for (i=0; i < settings->max_childs; i++) {
+                printf("-- search child[%d] = [%d]\n",i,child[i]);
                 if (pid == child[i]) {
                     child[i] = 0; /* remove process id */
                     num_procs--;
+                    printf("---- GEFUNDEN!\n");
+                    break;
                 }
             }
         }
 
         printf("PROCS [%d] CLIENTS [%d]\n",num_procs,num_clients);
+        printf("=================================\n");
+        for(i=0; i<settings->max_childs; i++) 
+            printf("- child[%d] = %d\n",i,child[i]);
+        printf("=================================\n");
         if (num_procs < settings->max_childs) {
+            //printf("UNTER MAX_CHILDS\n");
             /* minimal number of childs is not running */
-            if (num_procs < settings->min_childs) smf_server_fork(settings,sd,handle_client_func); 
-
+            if (num_procs < settings->min_childs) {
+                //printf("UNTER MIN_CHILDS\n");
+                smf_server_fork(settings,sd,handle_client_func); 
+            }
             /* clients == processes, we need new spare processes */
-            if (num_procs == num_clients) smf_server_fork(settings,sd,handle_client_func);
-
+            if (num_procs == num_clients) {
+                //printf("NUM_PROCS == NUM_CLIENTS\n");
+                smf_server_fork(settings,sd,handle_client_func);
+            }
         }
 
         if (daemon_exit)
@@ -279,7 +311,7 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
     }
     close(sd);
 
-    for (i = 0; i < num_procs; i++)
+    for (i = 0; i < settings->max_childs; i++)
         if (child[i] > 0)
             kill(child[i],SIGTERM);
     while(wait(NULL) > 0)
