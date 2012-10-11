@@ -388,6 +388,8 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         /** [smtpd]nexthop_fail_code **/
         } else if (strcmp(key, "nexthop_fail_code")==0) {
             (*settings)->nexthop_fail_code = _get_integer(val);
+        } else if (strcmp(key, "smtpd_timeout")==0) {
+            (*settings)->smtpd_timeout = _get_integer(val);
         /** smtp code **/
         } else {
             i = _get_integer(key);
@@ -431,6 +433,8 @@ SMFSettings_T *smf_settings_new(void) {
     settings->spare_childs = 2;
 
     settings->smtp_codes = smf_dict_new();
+    settings->smtpd_timeout = 300;
+
     settings->sql_driver = NULL;
     settings->sql_name = NULL;
     if (smf_list_new(&settings->sql_host, smf_internal_string_list_destroy) != 0) {
@@ -754,7 +758,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
 
     TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: [%d]", (*settings)->nexthop_fail_code);
     TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: [%s]", (*settings)->nexthop_fail_msg);
-    
+    TRACE(TRACE_DEBUG, "settings->smtpd_timeout: [%d]\n", (*settings)->smtpd_timeout);
+
     list = smf_dict_get_keys((*settings)->smtp_codes);
     elem = smf_list_head(list);
     while(elem != NULL) {
@@ -1124,6 +1129,16 @@ char *smf_settings_get_smtp_code(SMFSettings_T *settings, int code) {
     free(strcode);
 
     return p;
+}
+
+void smf_settings_set_smtpd_timeout(SMFSettings_T *settings, int timeout) {
+    assert(settings);
+    settings->smtpd_timeout = timeout;
+}
+
+int smf_settings_get_smtpd_timeout(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->smtpd_timeout;
 }
 
 void smf_settings_set_sql_driver(SMFSettings_T *settings, char *driver) {
