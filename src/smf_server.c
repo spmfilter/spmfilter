@@ -43,40 +43,20 @@ int daemon_exit = 0;
 int child[] = {};
 
 void smf_server_sig_handler(int sig) {
-//    pid_t pid;
-//    int i;
-
     /**
-     * - SIGUSR1 => new client opens connections
-     * - SIGUSR2 => client closes connection
+     * - SIGUSR1 => child got a new client
+     * - SIGUSR2 => child client closes connections
      */
 
     switch(sig) {
         case SIGTERM:
             daemon_exit = 1;
             break;
-#if 0
-        case SIGCHLD:
-            printf("SIGCHLD\n");
-            while((pid = waitpid(-1, NULL, WNOHANG)) > 0) {
-                printf("WAIT [%d]\n",pid);
-                for (i=0; i < num_procs; i++) {
-                    if (pid == child[i]) {
-                        child[i] = 0; /* remove process id */
-                        printf("REMOVE PROCESS [%d]\n",pid);
-                    }
-                }
-            }
-                
-            break;
-#endif
         case SIGUSR1:
             num_clients++;
-            printf("num_clients++: [%d]\n",num_clients);
             break;
         case SIGUSR2:
             num_clients--;
-            printf("num_clients--: [%d]\n",num_clients);
             break;
         default:
             break;
@@ -96,12 +76,6 @@ void smf_server_sig_init(void) {
         TRACE(TRACE_ERR,"sigaction (SIGTERM) failed: %s",strerror(errno));
         exit(EXIT_FAILURE);
     }
-#if 0
-    if (sigaction(SIGCHLD, &action, &old_action) < 0) {
-        TRACE(TRACE_ERR,"sigaction (SIGCHLD) failed: %s",strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-#endif
 
     if (sigaction(SIGUSR1, &action, &old_action) < 0) {
         TRACE(TRACE_ERR,"sigaction (SIGUSR1) failed: %s",strerror(errno));
@@ -249,7 +223,7 @@ int smf_server_listen(SMFSettings_T *settings) {
 void smf_server_fork(SMFSettings_T *settings,int sd,
         void (*handle_client_func)(SMFSettings_T *settings,int client)) {
 
-    switch(child[++num_procs] = fork()) {
+    switch(child[num_procs] = fork()) {
         case -1:
             TRACE(TRACE_ERR,"fork() failed: %s",strerror(errno));
             break;
@@ -258,11 +232,12 @@ void smf_server_fork(SMFSettings_T *settings,int sd,
             exit(EXIT_SUCCESS); /* quit child process */
             break;
         default: /* parent process: go on with accept */
-            printf("NUM [%d]\n",num_procs);
             TRACE(TRACE_DEBUG,"forked child [%d]\n",child[num_procs]);
             break;
     }
 
+    printf("-- child[%d] => [%d]\n", num_procs, child[num_procs]);
+    num_procs++;
 }
 
 void smf_server_loop(SMFSettings_T *settings,int sd,
@@ -276,28 +251,30 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
 
     for (;;) {
         pid = waitpid(-1, &status, 0);
+        printf("---------------------------------------\n");
         printf("PID [%d] STATUS [%d]\n",pid,status); 
         if (pid > 0) {
-            printf("Prozess [%d] hat sich beendet\n",pid); 
             for (i=0; i < num_procs; i++) {
                 if (pid == child[i]) {
                     child[i] = 0; /* remove process id */
-                    printf("REMOVE PROCESS [%d]\n",pid);
                     num_procs--;
-                    printf("NUM [%d]\n",num_procs);
                 }
             }
+        }
 
-            /*
+        printf("PROCS [%d] CLIENTS [%d]\n",num_procs,num_clients);
+        if (num_procs < settings->max_childs) {
+            /* minimal number of childs is not running */
             if (num_procs < settings->min_childs) {
-                smf_server_fork(settings,sd,handle_client_func);
-            }*/
-
-        } else {
-            if (num_procs < settings->max_childs) {
-                /* we need more processes, all used */
-                if (num_procs == num_clients) smf_server_fork(settings,sd,handle_client_func);
+                smf_server_fork(settings,sd,handle_client_func); 
             }
+
+            /* clients == processes, we need new spare processes */
+            if (num_procs == num_clients) {
+                smf_server_fork(settings,sd,handle_client_func);
+            }
+
+
         }
 
         if (daemon_exit)
@@ -319,7 +296,6 @@ void smf_server_accept_handler(SMFSettings_T *settings, int sd, void (*handle_cl
     int client;
     socklen_t slen;
     struct sockaddr_storage sa;
-
 
     /* process incoming connection in an infinite loop */
     for (;;) {
