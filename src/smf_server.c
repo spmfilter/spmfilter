@@ -265,15 +265,10 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
         printf("PROCS [%d] CLIENTS [%d]\n",num_procs,num_clients);
         if (num_procs < settings->max_childs) {
             /* minimal number of childs is not running */
-            if (num_procs < settings->min_childs) {
-                smf_server_fork(settings,sd,handle_client_func); 
-            }
+            if (num_procs < settings->min_childs) smf_server_fork(settings,sd,handle_client_func); 
 
             /* clients == processes, we need new spare processes */
-            if (num_procs == num_clients) {
-                smf_server_fork(settings,sd,handle_client_func);
-            }
-
+            if (num_procs == num_clients) smf_server_fork(settings,sd,handle_client_func);
 
         }
 

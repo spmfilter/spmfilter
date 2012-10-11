@@ -242,6 +242,9 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         /** [global]max_childs **/
         } else if (strcmp(key,"max_childs")==0) {
             (*settings)->max_childs = _get_integer(val);
+        /** [global]spare_childs **/
+        } else if (strcmp(key,"spare_childs")==0) {
+            (*settings)->spare_childs = _get_integer(val);
         }
     }
 
@@ -425,6 +428,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->group = NULL;
     settings->min_childs = 2;
     settings->max_childs = 10;
+    settings->spare_childs = 2;
 
     settings->smtp_codes = smf_dict_new();
     settings->sql_driver = NULL;
@@ -712,6 +716,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->group: [%s]", (*settings)->group);
     TRACE(TRACE_DEBUG, "settings->min_childs: [%d]", (*settings)->min_childs);
     TRACE(TRACE_DEBUG, "settings->max_childs: [%d]", (*settings)->max_childs);
+    TRACE(TRACE_DEBUG, "settings->spare_childs: [%d]", (*settings)->spare_childs);
 
     TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
     TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
@@ -1082,6 +1087,16 @@ void smf_settings_set_max_childs(SMFSettings_T *settings, int max_childs) {
 int smf_settings_get_max_childs(SMFSettings_T *settings) {
     assert(settings);
     return settings->max_childs;
+}
+
+void smf_settings_set_spare_childs(SMFSettings_T *settings, int spare_childs) {
+    assert(settings);
+    settings->spare_childs = spare_childs;
+}
+
+int smf_settings_get_spare_childs(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->spare_childs;
 }
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {
