@@ -97,7 +97,6 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
     printf("passed\n");
-    
 
     printf("* testing smf_settings_add_module()...\t\t\t");
     s = strdup(test_module);
@@ -322,6 +321,17 @@ int main (int argc, char const *argv[]) {
 
     printf("* testing smf_settings_get_max_childs()...\t\t");
     if(smf_settings_get_max_childs(settings) != 30) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+    printf("* testing smf_settings_set_spare_childs()...\t\t");
+    smf_settings_set_spare_childs(settings, 2);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_spare_childs()...\t\t");
+    if(smf_settings_get_spare_childs(settings) != 2) {
         printf("failed\n");
         return -1;
     }
