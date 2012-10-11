@@ -27,6 +27,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
@@ -49,6 +50,22 @@
 #include "smf_server.h"
 
 #define THIS_MODULE "smtpd"
+
+int client_sock = 0;
+
+void smf_smtpd_timeout_handler(int sig) {
+    char *hostname = NULL;
+    TRACE(TRACE_DEBUG,"session timeout exceeded");
+
+    hostname = (char *)malloc(MAXHOSTNAMELEN);
+    gethostname(hostname,MAXHOSTNAMELEN);
+    smf_smtpd_string_reply(client_sock,"421 %s Error: timeout exceeded\r\n",hostname);
+    free(hostname);
+
+    kill(getppid(),SIGUSR2);
+    exit(0);
+}
+
 
 static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session) {
     switch (settings->module_fail) {
@@ -436,6 +453,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
     SMFSession_T *session = smf_session_new();
     SMFListElem_T *elem = NULL;
     struct tms start_acct;
+    struct sigaction action;
     
     start_acct = smf_internal_init_runtime_stats();
 
@@ -443,10 +461,23 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
     kill(getppid(),SIGUSR1);
 
     session->sock = client;
+    client_sock = client;
 
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
     smf_smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
+
+
+    /* set timeout */
+    action.sa_handler = smf_smtpd_timeout_handler;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+
+    if (sigaction(SIGALRM, &action, NULL) < 0) {
+        TRACE(TRACE_ERR,"sigaction (SIGALRM) failed: %s",strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    alarm(settings->smtpd_timeout);
 
     for (;;) {
         if ((br = smf_internal_readline(session->sock,req,MAXLINE,&rl)) < 1) 
@@ -465,6 +496,8 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
              * clear all buffers and reset the state exactly as if a RSET
              * command had been issued.
              */
+            alarm(settings->smtpd_timeout);
+            
             if (state != ST_INIT) {
                 smf_session_free(session);
                 /* reinit session */
@@ -494,6 +527,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
             }
             free(req_value);
         } else if (strncasecmp(req,"xforward",8)==0) {
+            alarm(settings->smtpd_timeout);
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'xforward' received");
             t = strcasestr(req,"ADDR=");
             if (t != NULL) {
@@ -518,6 +552,8 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
              * concluded with a successful DATA command, or if the previous 
              * one was aborted with a RSET.
              */
+
+            alarm(settings->smtpd_timeout);
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'mail from' received");
             if (state == ST_MAIL) {
                 /* we already got the mail command */
@@ -537,6 +573,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
                 
             }
         } else if (strncasecmp(req, "rcpt to:", 8)==0) {
+            alarm(settings->smtpd_timeout);
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'rcpt to' received");
             if ((state != ST_MAIL) && (state != ST_RCPT)) {
                 /* someone wants to break smtp rules... */
@@ -556,6 +593,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
                 free(req_value);
             }
         } else if (strncasecmp(req,"data", 4)==0) {
+            alarm(settings->smtpd_timeout);
             if ((state != ST_RCPT) && (state != ST_MAIL)) {
                 /* someone wants to break smtp rules... */
                 smf_smtpd_string_reply(session->sock,"503 Error: need RCPT command\r\n");
@@ -568,6 +606,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
                 smf_smtpd_process_data(session,settings);
             }
         } else if (strncasecmp(req,"rset", 4)==0) {
+            alarm(settings->smtpd_timeout);
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'rset' received");
             smf_session_free(session);
             /* reinit session */
@@ -576,9 +615,11 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
             smf_smtpd_code_reply(session->sock,250,settings->smtp_codes);
             state = ST_INIT;
         } else if (strncasecmp(req, "noop", 4)==0) {
+            alarm(settings->smtpd_timeout);
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'noop' received");
             smf_smtpd_code_reply(session->sock,250,settings->smtp_codes);
         } else {
+            alarm(settings->smtpd_timeout);
             STRACE(TRACE_DEBUG,session->id,"SMTP: got unknown command");
             smf_smtpd_string_reply(session->sock,"502 Error: command not recognized\r\n");
         }
@@ -597,9 +638,6 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
 
 int load(SMFSettings_T *settings) {
     int sd;
-//    int sd, client;
-//    socklen_t slen;
-//    struct sockaddr_storage sa;
 
     TRACE(TRACE_INFO,"starting smtpd engine");
 
@@ -608,22 +646,6 @@ int load(SMFSettings_T *settings) {
 
     smf_server_init(settings,sd);
     smf_server_loop(settings,sd,smf_smtpd_handle_client);
-//    smf_server_accept_handler(settings,sd,smf_smtpd_handle_client);
-/*
-    for (;;) {
-        slen = sizeof(sa);
 
-        if ((client = accept(sd, (struct sockaddr *)&sa, &slen)) < 0) {
-            if (daemon_exit)
-                break;
-
-            TRACE(TRACE_ERR,"accept failed: %s",strerror(errno));
-            continue;
-        }
-
-        smf_smtpd_handle_client(settings, client);
-        close(client);
-    }
-  */  
     return 0;
 }
