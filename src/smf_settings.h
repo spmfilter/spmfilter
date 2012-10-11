@@ -67,16 +67,17 @@ typedef struct {
     char *lib_dir; /**< user defined directory path for shared libraries */
     char *pid_file; /**< path to pid file */
     char *bind_ip; /**< ip to bind daemon */
-    int bind_port; /**< port to bind daemon */
-    int listen_backlog; /**< listen queue backlog */
+    int bind_port; /**< port to bind daemon (default 10025) */
+    int listen_backlog; /**< listen queue backlog (default 511) */
     int foreground; /**< run daemon in foreground */
     char *user; /**< run daemon as user */
     char *group; /** run daemon as group */
-    int min_childs; /** number of preforked processed */
-    int max_childs; /** maximum number of allowed processes */
-    int spare_childs; /** number of spare childs */
+    int min_childs; /** number of preforked processed (default 2) */
+    int max_childs; /** maximum number of allowed processes (default 10) */
+    int spare_childs; /** number of spare childs (default 2) */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
+    int smtpd_timeout; /** time limit for receiving a remote SMTP client request (default 300s) */
 
     char *sql_driver; /**< sql driver name */
     char *sql_name; /**< sql database name */
@@ -547,6 +548,22 @@ int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg);
  * @returns smtp return message for given code
  */
 char *smf_settings_get_smtp_code(SMFSettings_T *settings, int code);
+
+/*!
+ * @fn void smf_settings_set_smtpd_timeout(SMFSettings_T *settings, int timeout)
+ * @brief Set time limit for receiving a remote SMTP client request
+ * @param settings a SMFSettings_T object
+ * @param timeout timeout limit in seconds
+ */
+void smf_settings_set_smtpd_timeout(SMFSettings_T *settings, int timeout);
+
+/*!
+ * @fn int smf_settings_get_smtpd_timeout(SMFSettings_T *settings)
+ * @brief Get time limit for receiving a remote SMTP client request
+ * @param settings a SMFSettings_T object
+ * @returns timeout smtpd timeout in seconds
+ */
+int smf_settings_get_smtpd_timeout(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_sql_driver(SMFSettings_T *settings, char *driver)

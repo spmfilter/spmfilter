@@ -337,6 +337,17 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
 
+    printf("* testing smf_settings_set_smtpd_timeout()...\t\t");
+    smf_settings_set_smtpd_timeout(settings, 300);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_smtpd_timeout()...\t\t");
+    if(smf_settings_get_smtpd_timeout(settings) != 300) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
     printf("* testing smf_settings_set_sql_driver()...\t\t");
     smf_settings_set_sql_driver(settings, test_sql_driver);
     printf("passed\n");
