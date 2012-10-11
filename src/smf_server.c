@@ -39,6 +39,7 @@
 
 int num_procs = 0;
 int num_clients = 0;
+int num_spare = 0;
 int daemon_exit = 0;
 int child[] = {};
 
@@ -47,7 +48,6 @@ void smf_server_sig_handler(int sig) {
      * - SIGUSR1 => child got a new client
      * - SIGUSR2 => child client closes connections
      */
-
     switch(sig) {
         case SIGTERM:
             daemon_exit = 1;
@@ -236,7 +236,7 @@ void smf_server_fork(SMFSettings_T *settings,int sd,
             break;
     }
 
-    printf("-- child[%d] => [%d]\n", num_procs, child[num_procs]);
+    printf("-- spare [%d] child[%d] => [%d]\n", num_spare, num_procs, child[num_procs]);
     num_procs++;
 }
 
@@ -246,8 +246,10 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
     pid_t pid;
 
     /* prefork min. childs */
-    for (i = 0; i < settings->min_childs; i++)
+    for (i = 0; i < settings->min_childs; i++) {
+        num_spare++;
         smf_server_fork(settings,sd,handle_client_func);
+    }
 
     for (;;) {
         pid = waitpid(-1, &status, 0);
@@ -275,7 +277,6 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
         if (daemon_exit)
             break;
     }
-
     close(sd);
 
     for (i = 0; i < num_procs; i++)
