@@ -16,7 +16,7 @@
  */
 
 #include <assert.h>
-#include <time.h>
+#include <sys/time.h>
 
 #include "smf_envelope.h"
 #include "smf_trace.h"
@@ -30,7 +30,8 @@ SMFSession_T *smf_session_new(void) {
     SMFSession_T *session;
     int i;
     int pos = 0;
-
+    struct timeval t1;
+    
     TRACE(TRACE_DEBUG,"initialize session data");
     session = (SMFSession_T *)calloc((size_t)1, sizeof(SMFSession_T));
     session->helo = NULL;
@@ -41,7 +42,9 @@ SMFSession_T *smf_session_new(void) {
     session->envelope = smf_envelope_new();
 
     /* generate session id */
-    srandom(time(NULL));
+    gettimeofday(&t1, NULL);
+
+    srandom(t1.tv_usec * t1.tv_sec);
     session->id = (char *)calloc(13,sizeof(char));
     for(i=0; i < 12; i++)
         session->id[pos++] = chars[random() % 36];
