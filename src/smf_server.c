@@ -224,10 +224,9 @@ int smf_server_listen(SMFSettings_T *settings) {
 void smf_server_fork(SMFSettings_T *settings,int sd,
         void (*handle_client_func)(SMFSettings_T *settings,int client)) {
     int pos = 0;
-    int i;
+
     for (pos=0; pos < settings->max_childs; pos++) {
         if (child[pos] == 0) {
-            //printf("NEUES CHILD BEI POS %d\n",pos);
             break;
         }
     }
@@ -246,12 +245,6 @@ void smf_server_fork(SMFSettings_T *settings,int sd,
             TRACE(TRACE_DEBUG,"forked child [%d]\n",child[pos]);
             break;
     }
-
-    //printf("-- spare [%d] child[%d] => [%d]\n", num_spare, num_procs, child[pos]);
-    //printf("=================================\n");
-    //for(i=0; i<settings->max_childs; i++) 
-    //    printf("- child[%d] = %d\n",i,child[i]);
-    //printf("=================================\n");
     num_procs++;
 }
 
@@ -271,29 +264,17 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
 
     for (;;) {
         pid = waitpid(-1, &status, 0);
-        //printf("---------------------------------------\n");
-        //printf("PID [%d] STATUS [%d]\n",pid,status); 
         if (pid > 0) {
-            //printf("CLOSE => \n");
 
             for (i=0; i < settings->max_childs; i++) {
-                //printf("-- search child[%d] = [%d]\n",i,child[i]);
                 if (pid == child[i]) {
                     child[i] = 0; /* remove process id */
                     num_procs--;
-                    //printf("---- GEFUNDEN!\n");
                     break;
                 }
             }
         }
 
-#if 0
-        printf("PROCS [%d] CLIENTS [%d]\n",num_procs,num_clients);
-        printf("=================================\n");
-        for(i=0; i<settings->max_childs; i++) 
-            printf("- child[%d] = %d\n",i,child[i]);
-        printf("=================================\n");
-#endif
         if (num_procs < settings->max_childs) {
             /* minimal number of childs is not running */
             while (num_spare < settings->spare_childs) {
