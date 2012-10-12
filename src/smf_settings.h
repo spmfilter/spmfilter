@@ -72,7 +72,6 @@ typedef struct {
     int foreground; /**< run daemon in foreground */
     char *user; /**< run daemon as user */
     char *group; /** run daemon as group */
-    int min_childs; /** number of preforked processed (default 2) */
     int max_childs; /** maximum number of allowed processes (default 10) */
     int spare_childs; /** number of spare childs (default 2) */
 
@@ -481,22 +480,6 @@ void smf_settings_set_group(SMFSettings_T *settings, char *group);
  * @returns char pointer with groupname
  */
 char *smf_settings_get_group(SMFSettings_T *settings);
-
-/*!
- * @fn void smf_settings_set_min_childs(SMFSettings_T *settings, int min_childs)
- * @brief Set the number of preforked processes
- * @param settings a SMFSettings_T object
- * @param min_childs number of processes
- */
-void smf_settings_set_min_childs(SMFSettings_T *settings, int min_childs);
-
-/*!
- * @fn int smf_settings_get_min_childs(SMFSettings_T *settings)
- * @brief Get number preforked processes
- * @param settings a SMFSettings_T object
- * @returns number of processes
- */
-int smf_settings_get_min_childs(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_max_childs(SMFSettings_T *settings, int max_childs)
