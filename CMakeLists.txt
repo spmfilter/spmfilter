@@ -34,18 +34,6 @@ if(ESMTP_FOUND)
     link_directories(${ESMTP_LIBRARY_DIR})
 endif(ESMTP_FOUND)
 
-pkg_search_module(GLIB2 glib-2.0>=2.14)
-if(GLIB2_FOUND)
-    include_directories(${GLIB2_INCLUDE_DIRS})
-    link_directories(${GLIB2_LIBRARY_DIRS})
-endif(GLIB2_FOUND)
-
-pkg_search_module(GMODULE REQUIRED gmodule-2.0)
-if(GMODULE_FOUND)
-    include_directories(${GMODULE_INCLUDE_DIRS})
-    link_directories(${GMODULE_LIBRARY_DIRS})
-endif(GMODULE_FOUND)
-
 pkg_search_module(LIBCMIME REQUIRED libcmime)
 if(LIBCMIME_FOUND)
     include_directories(${LIBCMIME_INCLUDE_DIRS})

@@ -1,4 +1,4 @@
-list(APPEND COMMON_LIBS ${GLIB2_LIBRARIES})
+list(APPEND COMMON_LIBS)
 
 add_executable(test_settings test_settings.c)
 target_link_libraries(test_settings smf ${COMMON_LIBS})
