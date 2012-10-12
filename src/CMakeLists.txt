@@ -22,7 +22,7 @@ set(LIB_SMF_SRC
 	smf_email_address.c
 )
 
-set(COMMON_LIBS m esmtp dl ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${LIBCMIME_LIBRARIES})
+set(COMMON_LIBS m esmtp dl ${LIBCMIME_LIBRARIES})
 
 if(HAVE_ZDB)
 	list(APPEND COMMON_LIBS zdb)
@@ -80,7 +80,7 @@ set_property(TARGET pipe PROPERTY LINK_FLAGS ${_link_flags})
 target_link_libraries(pipe ${COMMON_LIBS} smf)
 
 add_executable(spmfilter ${SPMFILTER_SRC})
-target_link_libraries(spmfilter ${GLIB2_LIBRARIES} ${GMODULE_LIBRARIES} ${GTHREAD_LIBRARIES} smf)
+target_link_libraries(spmfilter smf)
 
 install(TARGETS smf smtpd pipe spmfilter
 	RUNTIME DESTINATION sbin
