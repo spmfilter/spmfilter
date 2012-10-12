@@ -146,7 +146,7 @@ static SMFDict_T *smf_modules_stf_processed_modules(FILE *fh) {
         smf_dict_set(d, parts[0], parts[1]);
         free(buf);
     }
-
+    free(buf);
     if (parts != NULL) {
         free(parts[0]);
         free(parts[1]);
@@ -461,6 +461,8 @@ int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, S
         q->nexthop_error(settings, session);
         return -1;
     }
+
+    smf_smtp_status_free(status);
 
     return 0;
 }
