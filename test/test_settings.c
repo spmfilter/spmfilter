@@ -304,17 +304,6 @@ int main (int argc, char const *argv[]) {
     } 
     printf("passed\n");
 
-    printf("* testing smf_settings_set_min_childs()...\t\t");
-    smf_settings_set_min_childs(settings, 15);
-    printf("passed\n");
-
-    printf("* testing smf_settings_get_min_childs()...\t\t");
-    if(smf_settings_get_min_childs(settings) != 15) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
-
     printf("* testing smf_settings_set_max_childs()...\t\t");
     smf_settings_set_max_childs(settings, 30);
     printf("passed\n");
