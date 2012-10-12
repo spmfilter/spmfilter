@@ -37,6 +37,7 @@
 #include "smf_smtpd.h"
 #include "smf_trace.h"
 #include "smf_settings.h"
+#include "smf_settings_private.h"
 #include "smf_modules.h"
 #include "smf_session.h"
 #include "smf_session_private.h"
@@ -419,6 +420,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         }
         session->message_size += br;
     }
+    if (rl !=NULL) free(rl);
     regfree(&regex);
     fclose(spool_file);
   
@@ -632,7 +634,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
 
     smf_internal_print_runtime_stats(start_acct,session->id);
     smf_session_free(session);
-
+    smf_settings_free(settings);
     exit(0);
 }
 
