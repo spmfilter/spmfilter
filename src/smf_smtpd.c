@@ -373,7 +373,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     int reti;
     char *nl = NULL;
 
-    reti = regcomp(&regex, "[A-Za-z0-9\._-]*:.*", 0);
+    reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
 
 	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {

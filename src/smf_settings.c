@@ -118,6 +118,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
     char **sl = NULL;
     char **p = NULL;
     char *s = NULL;
+    char *tmp = NULL;
     int i;
 
     if (val==NULL || strlen(val) == 0)
@@ -243,10 +244,8 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         } else if (strcmp(key,"spare_childs")==0) {
             (*settings)->spare_childs = _get_integer(val);
         }
-    }
-
     /** sql section **/
-    if (strcmp(section,"sql")==0) {
+    } else if (strcmp(section,"sql")==0) {
         /** [sql]driver **/
         if (strcmp(key,"driver")==0) {
             if ((*settings)->sql_driver != NULL)
@@ -308,10 +307,8 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         } else if (strcmp(key,"port")==0) {
             (*settings)->sql_port = _get_integer(val);
         }
-    }
-
     /** ldap section **/
-    if (strcmp(section,"ldap")==0) {
+    } else if (strcmp(section,"ldap")==0) {
         /** [ldap]uri **/
         if (strcmp(key, "uri")==0) {
             if ((*settings)->ldap_uri != NULL)
@@ -372,10 +369,8 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         } else if (strcmp(key,"referrals")==0) {
             (*settings)->ldap_referrals = _get_boolean(val);
         }
-    }
-
     /** smtpd section **/
-    if (strcmp(section,"smtpd")==0) {
+    } else if (strcmp(section,"smtpd")==0) {
         /** [smtpd]nexthop_fail_msg **/
         if (strcmp(key, "nexthop_fail_msg")==0) {
             if ((*settings)->nexthop_fail_msg != NULL)
@@ -394,6 +389,10 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 smf_dict_set((*settings)->smtp_codes,key,val);
             }
         }
+    /** custom sections */
+    } else {
+        asprintf(&tmp,"%s:%s",section,key);
+        smf_dict_set((*settings)->groups,tmp,val);
     }
 
 }

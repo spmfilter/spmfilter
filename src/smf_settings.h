@@ -71,12 +71,12 @@ typedef struct {
     int listen_backlog; /**< listen queue backlog (default 511) */
     int foreground; /**< run daemon in foreground */
     char *user; /**< run daemon as user */
-    char *group; /** run daemon as group */
-    int max_childs; /** maximum number of allowed processes (default 10) */
-    int spare_childs; /** number of spare childs (default 2) */
+    char *group; /**< run daemon as group */
+    int max_childs; /**< maximum number of allowed processes (default 10) */
+    int spare_childs; /**< number of spare childs (default 2) */
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
-    int smtpd_timeout; /** time limit for receiving a remote SMTP client request (default 300s) */
+    int smtpd_timeout; /**< time limit for receiving a remote SMTP client request (default 300s) */
 
     char *sql_driver; /**< sql driver name */
     char *sql_name; /**< sql database name */
@@ -97,9 +97,10 @@ typedef struct {
     int ldap_referrals; /**< ldap referrals flag */
     char *ldap_scope; /**< ldap search scope */
     char *ldap_user_query; /**< ldap user query */
-    void *ldap_connection; /** ldap connection handle LDAP *ld = NULL */
-
+    
+    void *ldap_connection; /**< ldap connection handle LDAP *ld = NULL */
     char *active_lookup_host;   /** storage active lookup host */
+                               
     SMFDict_T *groups; /**< custom setting groups */
 } SMFSettings_T;
 
@@ -863,7 +864,7 @@ void smf_settings_set_active_lookup_host(SMFSettings_T *settings, char *host);
 char *smf_settings_get_active_lookup_host(SMFSettings_T *settings);
 
 /*!
- * @fn char *smf_settings_group_get(SMFSettingsGroup_T *group, char *group_name, char *key)
+ * @fn char *smf_settings_group_get(SMFSettings_T *settings, char *group_name, char *key)
  * @brief Returns the raw value associated with key under the selected group.
  * @param group a SMFSettings_T object
  * @param group_name name of the settings section
