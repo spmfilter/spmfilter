@@ -44,6 +44,10 @@ add_executable(test_smtp test_smtp.c)
 target_link_libraries(test_smtp smf ${COMMON_LIBS})
 ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_smtp)
 
+add_executable(test_internal test_internal.c)
+target_link_libraries(test_internal smf ${COMMON_LIBS})
+ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_internal)
+
 add_executable(test_engine_pipe test_engine_pipe.c)
 target_link_libraries(test_engine_pipe smf pipe ${COMMON_LIBS})
 #ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_engine_pipe)
@@ -54,9 +58,9 @@ target_link_libraries(test_core smf ${COMMON_LIBS})
 ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
 
 if(HAVE_DB4)
-	add_executable(test_db4 test_db4.c)
-	target_link_libraries(test_db4 smf ${COMMON_LIBS} db)
-	ADD_TEST(DB4 ${EXECUTABLE_OUTPUT_PATH}/test_db4)
+	add_executable(test_lookup_db4 test_lookup_db4.c)
+	target_link_libraries(test_lookup_db4 smf ${COMMON_LIBS} db)
+	ADD_TEST(DB4 ${EXECUTABLE_OUTPUT_PATH}/test_lookup_db4)
 endif(HAVE_DB4)
 
 if(HAVE_LDAP)

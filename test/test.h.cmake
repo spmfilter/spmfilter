@@ -94,6 +94,15 @@ char test_split_value3[] = "value3";
 char test_user[] = "nobody";
 char test_group[] = "users";
 
+char test_internal_libdir[] = "/tmp";
+char test_internal_modname[] = "testmod";
+char test_internal_build_module_path_res[] = "/tmp/libtestmod.so";
+char test_internal_strip_email_addr[] = "<user@example.org>";
+char test_internal_strip_email_addr_res[] = "user@example.org";
+char test_internal_determine_linebreak_CRLF[] = "this is another test string\r\n";
+char test_internal_determine_linebreak_CR[] = "this is another test string\r";
+char test_internal_determine_linebreak_LF[] = "this is another test string\n";
+
 #ifdef __cplusplus
 }
 #endif
