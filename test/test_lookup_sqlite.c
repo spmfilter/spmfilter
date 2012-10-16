@@ -20,6 +20,7 @@
 #include <string.h>
 #include <db.h>
 #include <assert.h>
+#include "test.h"
 #include "../src/smf_lookup.h"
 #include "../src/smf_lookup_private.h"
 #include "../src/smf_settings.h"
@@ -28,7 +29,7 @@
 #include "../src/smf_internal.h"
 
 #define SQL_DRIVER  "sqlite"
-#define SQL_NAME    "/home/werner/SPMFILTER/spmfilter/test/samples/test_lookup_sqlite.db"
+#define SQL_SQLITE_DB "test_lookup_sqlite.db"
 #define SQL_QUERY   "select data from test_lookup_sqlite"
 #define SQL_QUERY_RESULT_STRING "LoremIpsumDolorSitAmet"
 #define SQL_BACKEND_CONN "failover"
@@ -38,7 +39,7 @@ int main (int argc, char const *argv[]) {
 	
 	char *sql_driver = SQL_DRIVER;
 	char *sql_query = SQL_QUERY;
-	char *sql_name = SQL_NAME;
+	char *sql_name = NULL;
 	char *sql_backend_conn = SQL_BACKEND_CONN;
    
 	SMFList_T *result = NULL;
@@ -46,6 +47,7 @@ int main (int argc, char const *argv[]) {
 	SMFSettings_T *settings = smf_settings_new();
 	SMFDict_T *d = NULL;
 
+	asprintf(&sql_name, "%s/%s", SAMPLES_DIR, SQL_SQLITE_DB);
 	smf_settings_set_sql_driver(settings, sql_driver);
 	smf_settings_set_sql_name(settings, sql_name);
 	smf_settings_set_backend_connection(settings, sql_backend_conn);
@@ -69,7 +71,10 @@ int main (int argc, char const *argv[]) {
 	} else {
 		printf("unable to establish database connection\n");
 	}
-	
+
+	if(sql_name != NULL)
+		free(sql_name);
+
 	smf_settings_free(settings);
 	return 0;
 }
