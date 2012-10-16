@@ -41,6 +41,7 @@
 #define THIS_MODULE "pipe"
 #define BUF_SIZE 1024
 
+
 #if 0
 /* error handler used when building module queue
  * return 1 if processing should continue, else 0
@@ -116,7 +117,6 @@ int load(SMFSettings_T *settings) {
     struct tms start_acct;
     char buffer[BUF_SIZE];
     FILE *spool_file;
-    struct stat st;
     SMFMessage_T *message = smf_message_new();
     SMFSession_T *session = smf_session_new();
 

@@ -30,15 +30,18 @@
 #include "../src/smf_settings_private.h"
 #include "../src/smf_internal.h"
 
+
 #define ENGINE "pipe"
 #define BUF_SIZE 1024
 #define QUEUE_DIR "/tmp"
+
+int load(SMFSettings_T *settings);
+
 
 int main (int argc, char const *argv[]) {
     SMFSettings_T *settings = NULL;
     char *engine = ENGINE;
     char *queue_dir = QUEUE_DIR;
-    int status;
 
     if((settings = smf_settings_new()) != NULL) {
         smf_settings_set_debug(settings, 1);
