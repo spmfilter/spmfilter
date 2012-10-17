@@ -463,8 +463,9 @@ SMFSettings_T *smf_settings_new(void) {
     settings->tls = 0;
     settings->sql_max_connections = 3;
     settings->sql_port = 0;
-    settings->ldap_connection = NULL;
     settings->ldap_port = 0;
+    
+    settings->lookup_connection = NULL;
     settings->active_lookup_host = NULL;
     
     settings->groups = smf_dict_new();
@@ -508,6 +509,8 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->ldap_base != NULL) free(settings->ldap_base);
     if (settings->ldap_scope != NULL) free(settings->ldap_scope);
     if (settings->ldap_user_query != NULL) free(settings->ldap_user_query);
+    
+    
     if (settings->active_lookup_host != NULL) free(settings->active_lookup_host);
 
     smf_dict_free(settings->groups);
