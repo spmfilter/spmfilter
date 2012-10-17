@@ -273,7 +273,7 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
 
     if(settings->ldap_base == NULL) {
         TRERR("settings->ldap_base is NULL, aborted");
-        return -1;
+        return NULL;
     }
 
     LDAP *c = ldap_con_get(settings);
