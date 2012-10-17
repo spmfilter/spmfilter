@@ -541,17 +541,6 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
 
-    printf("* testing smf_settings_set_active_lookup_host()...\t");
-    smf_settings_set_active_lookup_host(settings, test_ip);
-    printf("passed\n");
-
-    printf("* testing smf_settings_get_active_lookup_host()...\t");
-    if (strcmp(smf_settings_get_active_lookup_host(settings),test_ip) != 0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
-
     printf("* testing smf_settings_free()...\t\t\t");
     smf_settings_free(settings);
     printf("passed\n");

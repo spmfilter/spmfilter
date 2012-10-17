@@ -18,73 +18,19 @@
 #ifndef _SMF_LOOKUP_PRIVATE_H
 #define	_SMF_LOOKUP_PRIVATE_H
 
-#include "smf_session.h"
 
+#include "smf_settings.h"
+#include "smf_email_address.h"
 
-/** Check if given user is local
- *
- * \param user a SMFEmailAddress_T object
- */
+char *smf_lookup_ldap_get_uri(SMFSettings_T *settings, char *host);
+char *smf_lookup_ldap_get_rand_host(SMFSettings_T *settings);
+int smf_lookup_ldap_bind(SMFSettings_T *settings);
+void smf_lookup_ldap_init_ld(SMFSettings_T **settings,char *uri);
+
 void smf_lookup_check_user(SMFEmailAddress_T *user);
-
-/*!
- * @fn void smf_lookup_ldap_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user)
- * @brief check if given user exists in ldap directory
- * @param ldap_uri Pointer to ldap_uri
- * @param SMFEmailAddress_T Pointer
- * @param SMFSettings_T Pointer
- */
 void smf_lookup_ldap_check_user(char *ldap_uri, SMFEmailAddress_T *user,SMFSettings_T *settings);
-
-/*!
- * @fn void smf_lookup_sql_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user)
- * @brief check if given user exists in ldap directory
- * @param ldap_uri Pointer to ldap_uri
- * @param SMFSettings_T Pointer
- * @param SMFEmailAddress_T Pointer
- */
 void smf_lookup_sql_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user);
-
-/*!
- * @fn int ldap_get_scope(SMFSettings_T *settings)
- * @brief function to get ldap_scope 
- * @param SMFSettings_T Pointer
- * @returns ldap_scope
- */
 int ldap_get_scope(SMFSettings_T *settings);
-
-/*!
- * @fn char *ldap_get_uri(char *ldap_host, char *ldap_port);
- * @brief function to get ldap_uri
- * @param ldap_host LDAP-Host
- * @param ldap_port LDAP-Port
- * @returns ldap_uri
- */
-char *ldap_get_uri(char *ldap_host, int ldap_port);
-
-/*!
- * @fn char *ldap_get_rand_host(SMFSettings_T *settings);
- * @brief function to get random ldap host
- * @param SMFSettings_T Pointer
- * @returns random ldap host
- */
-char *ldap_get_rand_host(SMFSettings_T *settings);
-
-/*!
- * @fn int smf_ldap_bind(SMFSettings_T *settings);
- * @brief function to get random ldap host
- * @param SMFSettings_T Pointer
- * @returns random ldap host
- */
-int smf_ldap_bind(SMFSettings_T *settings);
-
-/*!
- * @fn int smf_ldap_bind(char *uri, SMFSettings_T *settings);
- * @brief Try to get a failover connection to other server
- * @param SMFSettings_T Pointer
- * @returns 0 on success or -1 in case of error
- */
-int ldap_failover_connect(SMFSettings_T *settings);
 
 
 

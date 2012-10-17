@@ -6,7 +6,7 @@
  * License as published by the Free Software Foundation; either
  * version 3 of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,+
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
@@ -33,7 +33,160 @@
 #include "smf_core.h"
 #include "smf_session.h"
 
-#define THIS_MODULE "ldap_lookup"
+#define THIS_MODULE "lookup_ldap"
+
+char *smf_lookup_ldap_get_rand_host(SMFSettings_T *settings) {
+    assert(settings);
+    int random;
+    SMFListElem_T *e = NULL;
+    int count = 0;
+
+    TRACE(TRACE_DEBUG,"trying to get random ldap server");
+    srand(time(NULL));
+    random = rand() % smf_list_size(settings->ldap_host);
+    e = smf_list_head(settings->ldap_host);
+
+    while(e != NULL) {     
+        count++;
+        if(count != random) {
+            return (char *)smf_list_data(e);
+        }
+        e = e->next;
+    }
+    return NULL;
+}
+
+char *smf_lookup_ldap_get_uri(SMFSettings_T *settings, char *host) {
+    char *uri = NULL;
+    char *s = NULL;
+
+    assert(settings);
+
+    if (host != NULL) {
+        asprintf(&uri,"ldap://%s:%d",host,settings->ldap_port);
+        return uri;
+    }
+
+    if(settings->ldap_uri) {
+        uri = strdup(settings->ldap_uri);
+    } else {
+        if (strcasecmp(settings->backend_connection,"balance") == 0) {
+            s = smf_lookup_ldap_get_rand_host(settings);
+        } else {
+            SMFListElem_T *e = NULL;
+            e = smf_list_head(settings->ldap_host);
+            s = (char *)smf_list_data(e);
+        }
+        
+        asprintf(&uri,"ldap://%s:%d",s,settings->ldap_port);
+    }
+
+    return uri;
+}
+
+void smf_lookup_ldap_init_ld(SMFSettings_T **settings,char *uri) {
+    int version;
+    LDAP *ld = NULL;
+    
+    if ((*settings)->lookup_connection != NULL)
+        ldap_unbind_ext_s((LDAP *)(*settings)->lookup_connection,NULL,NULL);
+
+    if (ldap_initialize(&ld, uri) != LDAP_SUCCESS) {
+        TRACE(TRACE_ERR, "ldap_initialize() failed");
+        (*settings)->lookup_connection = NULL;
+    } else 
+        (*settings)->lookup_connection = ld;
+
+    version = LDAP_VERSION3;
+    ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &version);
+    
+    if ((*settings)->ldap_referrals == 1) {
+        ldap_set_option(ld, LDAP_OPT_REFERRALS, (void *)LDAP_OPT_ON);
+        TRACE(TRACE_LOOKUP, "set ldap referrals to on");
+    } else {
+        ldap_set_option(ld, LDAP_OPT_REFERRALS, (void *)LDAP_OPT_OFF);
+        TRACE(TRACE_LOOKUP, "set ldap referrals to off");
+    }
+}
+
+int smf_lookup_ldap_connect(SMFSettings_T *settings)  {  
+    int ret = -1;
+    char *uri = NULL;
+    char *host = NULL;
+    SMFListElem_T *elem;
+
+    assert(settings);
+
+    if(settings->backend_connection == NULL) {
+        TRERR("settings->backend_connection is NULL, aborted");
+        return ret;
+    }
+
+    uri = smf_lookup_ldap_get_uri(settings,NULL);
+    smf_lookup_ldap_init_ld(&settings,uri);
+
+    if ((ret = smf_lookup_ldap_bind(settings))!=0) {
+        /* check failover connections */
+        elem = smf_list_head(settings->ldap_host);
+        while(elem != NULL) {
+            /* free failed connection stuff */
+            if (uri != NULL) free(uri);
+
+            /* build connection for next server */
+            host = (char *)smf_list_data(elem);
+            uri = smf_lookup_ldap_get_uri(settings, host);
+            
+            smf_lookup_ldap_init_ld(&settings,uri);
+            if ((ret = smf_lookup_ldap_bind(settings))==0) 
+                break;
+            elem = elem->next;
+        }
+    }
+
+    if (ret == 0) {
+        TRACE(TRACE_LOOKUP,"successfully bound to [%s]\n",uri);
+    } else {
+        TRACE(TRACE_LOOKUP,"failed to bind to [%s]\n",uri);
+    }
+
+    free(uri);
+
+    return ret;
+}
+
+int smf_lookup_ldap_bind(SMFSettings_T *settings) {
+    int err;
+    struct berval *cred;
+    LDAP *ld = (LDAP *)settings->lookup_connection;
+    assert(ld);
+
+    assert(settings);
+
+    if(settings->ldap_base == NULL) {
+        TRERR("settings->ldap_bindpw is NULL, aborted");
+        return -1;
+    }
+    if(settings->ldap_binddn == NULL) {
+        TRERR("settings->ldap_binddn is NULL, aborted");
+        return -1;
+    }
+
+    cred = malloc(sizeof(struct berval));
+    cred->bv_len = strlen(settings->ldap_bindpw);
+    cred->bv_val = settings->ldap_bindpw;
+
+    if ((err = ldap_sasl_bind_s(ld,settings->ldap_binddn,LDAP_SASL_SIMPLE,cred,NULL,NULL,NULL))) {
+        TRACE(TRACE_ERR,"ldap bind failed: [%s]\n",ldap_err2string(err));
+        printf("ldap bind failed: [%s]\n",ldap_err2string(err));
+        free(cred);
+        return -1;
+    }
+
+    free(cred);
+    
+    return 0;
+}
+
 
 
 void _ldap_result_list_destroy(void *data) {
@@ -56,175 +209,8 @@ int ldap_get_scope(SMFSettings_T *settings) {
 
 
 
-char *ldap_get_uri(char *ldap_host, int ldap_port) {
-    assert(ldap_host);
-    assert(ldap_port);
-
-    char *uri;
-    asprintf(&uri,"ldap://%s:%d",ldap_host,ldap_port);
-    return uri;
-}
 
 
-int smf_lookup_ldap_connect(SMFSettings_T *settings)  {  
-    assert(settings);
-    int ret;
-    int version;
-    char *uri = NULL;
-    char *host = NULL;
-    LDAP *ld = NULL;
-
-    if(settings->backend_connection == NULL) {
-        TRERR("settings->backend_connection is NULL, aborted");
-        return -1;
-    }
-
-    if(settings->ldap_uri) {
-        if ((ret = ldap_initialize(&ld, settings->ldap_uri) != LDAP_SUCCESS)) 
-             TRACE(TRACE_ERR, "ldap_initialize() returned [%d]", ret);
-     } else {
-        if (strcasecmp(settings->backend_connection,"balance") == 0) {
-            host = ldap_get_rand_host(settings);
-        } else {
-            SMFListElem_T *e = NULL;
-            e = smf_list_head(settings->ldap_host);
-            host = strdup((char *)smf_list_data(e));
-            smf_settings_set_active_lookup_host(settings, (char *)smf_list_data(e));
-        }
-        uri = ldap_get_uri(host,389);
-        free(host);
-        settings->ldap_uri = strdup(uri);
-
-        if ((ret = ldap_initialize(&ld, settings->ldap_uri) != LDAP_SUCCESS)) { 
-             TRACE(TRACE_ERR, "ldap_initialize() returned [%d]", ret);
-        }
-     }    
-
-    version = LDAP_VERSION3;
-    ldap_set_option(ld, LDAP_OPT_PROTOCOL_VERSION, &version);
-    
-    if (settings->ldap_referrals == 1) {
-        ldap_set_option(ld, LDAP_OPT_REFERRALS, (void *)LDAP_OPT_ON);
-        TRACE(TRACE_LOOKUP, "set ldap referrals to on");
-    } else {
-        ldap_set_option(ld, LDAP_OPT_REFERRALS, (void *)LDAP_OPT_OFF);
-        TRACE(TRACE_LOOKUP, "set ldap referrals to off");
-    }
-
-    settings->ldap_connection = ld;
-
-    if (smf_ldap_bind(settings) != 0) { 
-        if (ldap_failover_connect(settings) != 0) {
-            TRERR("failover connection failed");
-            return -1;
-        }
-    }
-
-    if(uri != NULL) {
-        free(uri);
-    }
-
-    return 0;
-
-}
-
-
-char *ldap_get_rand_host(SMFSettings_T *settings) {
- assert(settings);
-    int random;
-    SMFListElem_T *e = NULL;
-    int count = 0;
-
-    TRACE(TRACE_DEBUG,"trying to get random ldap server");
-    srand(time(NULL));
-    random = rand() % smf_list_size(settings->ldap_host);
-    e = smf_list_head(settings->ldap_host);
-
-    while(e != NULL) {     
-        count++;
-        if(count != random) {
-            return (char *)smf_list_data(e);
-        }
-        e = e->next;
-    }
-    return NULL;
-}
-
-
-
-int smf_ldap_bind(SMFSettings_T *settings) {
-    assert(settings);
-    
-    int err;
-    struct berval *cred;
-    LDAP *ld = (LDAP *)settings->ldap_connection;
-
-    if(settings->ldap_base == NULL) {
-        TRERR("settings->ldap_bindpw is NULL, aborted");
-        return -1;
-    }
-    if(settings->ldap_binddn == NULL) {
-        TRERR("settings->ldap_binddn is NULL, aborted");
-        return -1;
-    }
-    if(settings->ldap_uri == NULL) {
-        TRERR("settings->ldap_uri is NULL, aborted");
-        return -1;
-    }
-
-    cred = malloc(sizeof(struct berval));
-    cred->bv_len = strlen(settings->ldap_bindpw);
-    cred->bv_val = settings->ldap_bindpw;
-
-
-    if ((err = ldap_sasl_bind_s(ld,settings->ldap_binddn,LDAP_SASL_SIMPLE,cred,NULL,NULL,NULL))) {
-        TRACE(TRACE_ERR, "ldap_sasl_bind_s on host [%s] failed: %s", settings->ldap_uri, ldap_err2string(err));
-        free(cred);
-        return -1;
-    }
-
-    TRACE(TRACE_LOOKUP, "successfully bound to host [%s]", settings->ldap_uri);
-    free(cred);
-    
-    return 0;
-    
-}
-
-
-int ldap_failover_connect(SMFSettings_T *settings) {
-
-    assert(settings);
-    char *uri=NULL;
-    SMFList_T *l = NULL;
-    SMFListElem_T *e = NULL;
-    
-    l = smf_settings_get_ldap_hosts(settings);
-    e = smf_list_head(l);
-
-    while(e != NULL) {
-        if(strcasecmp(smf_settings_get_active_lookup_host(settings), 
-        (char *)smf_list_data(e)) != 0) {
-
-            uri = ldap_get_uri((char *)smf_list_data(e), 389);
-            smf_settings_set_active_lookup_host(settings, (char *)smf_list_data(e));
-            free(settings->ldap_uri);
-            settings->ldap_uri = strdup(uri);
-            
-            if(uri != NULL)
-                free(uri);
-        }
-        e = e->next;
-    }
-
-    smf_lookup_ldap_disconnect(settings);
-    smf_lookup_ldap_connect(settings);
-
-    if (smf_ldap_bind(settings) != 0) { 
-        return -1;
-    } else {
-        return 0;
-    }
-}
 
 /*!
  * @fn LDAP *ldap_con_get(char *ldap_uri, SMFSettings_T *settings)
@@ -235,7 +221,7 @@ int ldap_failover_connect(SMFSettings_T *settings) {
  */
 LDAP *ldap_con_get(SMFSettings_T *settings) {
     assert(settings);
-    LDAP *ld = (LDAP *)settings->ldap_connection;
+    LDAP *ld = (LDAP *)settings->lookup_connection;
     if (!ld) {
         smf_lookup_ldap_connect(settings);
     }
