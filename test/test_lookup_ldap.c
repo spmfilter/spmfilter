@@ -76,7 +76,6 @@
 
 
 int main (int argc, char const *argv[]) {
-
     int scope_retval;
     int ldap_connect_retval;
     char *conn_type = LDAP_CONN_TYPE;
@@ -90,6 +89,40 @@ int main (int argc, char const *argv[]) {
     SMFSettings_T *settings = smf_settings_new();
     SMFDict_T *d = NULL;
 
+    printf("Start smf_lookup_ldap tests...\n");
+    printf("============================================\n");
+    printf("This tests can only run successfull if there\n\ 
+is a local ldap server available with\n\
+the following scheme installed:\n\n");
+    printf("dn: dc=example,dc=com\n\
+dc: example\n\
+objectClass: top\n\
+objectClass: domain\n\
+\n\
+dn: ou=People,dc=example,dc=com\n\
+ou: People\n\
+objectClass: top\n\
+objectClass: organizationalUnit\n\
+\n\
+dn: ou=Group,dc=example,dc=com\n\
+ou: Group\n\
+objectClass: top\n\
+objectClass: organizationalUnit\n\
+\n\
+dn: uid=test2,ou=People,dc=example,dc=com\n\
+uid: test2\n\
+cn: Test User\n\
+objectClass: account\n\
+objectClass: posixAccount\n\
+objectClass: top\n\
+userPassword: {SSHA}DHiQoi+pqOQXFP28g+NIyQmagm1xxjNr\n\
+loginShell: /bin/bash\n\
+uidNumber: 500\n\
+gidNumber: 500\n\
+homeDirectory: /home/test2\n");
+    printf("============================================\n");
+
+
     smf_settings_add_ldap_host(settings, host1);
     smf_settings_add_ldap_host(settings, host2);
     smf_settings_set_ldap_scope(settings, "subtree");
@@ -99,13 +132,21 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_ldap_base(settings, LDAP_BASE);
     smf_settings_set_ldap_referrals(settings, 0);
    
+    printf("* testing smf_lookup_ldap_connect()...\t\t\t\t");
+    if(smf_lookup_ldap_connect(settings) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+#if 0
+
     if(smf_lookup_ldap_connect(settings) == 0) {
         result = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);    
         e = smf_list_head(result);
 
         while(e != NULL) {
             d = (SMFDict_T *)smf_list_data(e);
-            //printf("[%s]",smf_dict_get(d,"uidNumber"));
             assert(strcmp(smf_dict_get(d,"uidNumber"),LDAP_QUERY_STRING_RESULT)==0);
             e = e->next;
         }
@@ -115,7 +156,7 @@ int main (int argc, char const *argv[]) {
     } else {
         printf("unable to establish ldap connection");
     }
-   
+#endif 
     smf_settings_free(settings);
     
     return 0;
