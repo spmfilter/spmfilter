@@ -19,11 +19,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <db.h>
-#include <assert.h>
+
 #include "../src/smf_lookup.h"
 #include "../src/smf_lookup_private.h"
 #include "../src/smf_settings_private.h"
-
+#include "../src/smf_list.h"
+#include "../src/smf_internal.h"
 
 /*
  * this tests can only run successfull if there is a local ldap server available with the following
@@ -64,7 +65,7 @@
  */
 
 #define LDAP_HOST_1 "localhost"
-#define LDAP_HOST_2 "localhost"
+#define LDAP_HOST_2 "notexisting.example.com"
 #define LDAP_PORT 389
 #define LDAP_BIND_DN "uid=test,ou=People,dc=example,dc=com"
 #define LDAP_PSW "test"
@@ -120,9 +121,8 @@ gidNumber: 500\n\
 homeDirectory: /home/test\n");
     printf("==================================================\n");
 
-
     smf_settings_add_ldap_host(settings, host1);
-    smf_settings_add_ldap_host(settings, host2);
+    smf_settings_set_ldap_port(settings, 389);
     smf_settings_set_ldap_scope(settings, "subtree");
     smf_settings_set_backend_connection(settings, conn_type); 
     smf_settings_set_ldap_bindpw(settings, pw); 
@@ -152,6 +152,21 @@ homeDirectory: /home/test\n");
     printf("* testing smf_lookup_ldap_disconnect()...\t\t\t");
     smf_lookup_ldap_disconnect(settings);
     printf("passed\n");
+
+    printf("* testing smf_lookup_ldap_connect() failover...\t\t\t");
+    smf_list_free(settings->ldap_host);
+    smf_list_new(&settings->ldap_host, smf_internal_string_list_destroy);
+    host1 = strdup(LDAP_HOST_1);
+    smf_settings_add_ldap_host(settings, host2);
+    smf_settings_add_ldap_host(settings, host1);
+
+    if(smf_lookup_ldap_connect(settings) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    smf_lookup_ldap_disconnect(settings);
+    printf("passed\n");
+
 
     smf_settings_free(settings);
     
