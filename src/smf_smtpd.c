@@ -431,7 +431,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     
     TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->message_size);
 
-    if (session->message_size > smf_settings_get_max_size(settings)) {
+    if ((session->message_size > smf_settings_get_max_size(settings))&&(smf_settings_get_max_size(settings) != 0)) {
         STRACE(TRACE_DEBUG,session->id,"max message size limit exceeded"); 
         smf_smtpd_string_reply(session->sock,"552 message size exceeds fixed maximium message size\r\n");
     } else {
