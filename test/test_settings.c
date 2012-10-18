@@ -541,12 +541,12 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
 
-    printf("* testing smf_settings_set_active_lookup_host()...\t");
-    smf_settings_set_active_lookup_host(settings, test_ip);
+    printf("* testing smf_settings_set_lookup_persistent()...\t");
+    smf_settings_set_lookup_persistent(settings, 1);
     printf("passed\n");
 
-    printf("* testing smf_settings_get_active_lookup_host()...\t");
-    if (strcmp(smf_settings_get_active_lookup_host(settings),test_ip) != 0) {
+    printf("* testing smf_settings_get_lookup_persistent()...\t");
+    if (smf_settings_get_lookup_persistent(settings) != 1) {
         printf("failed\n");
         return -1;
     }

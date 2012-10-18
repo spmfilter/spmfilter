@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,7 +15,6 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -72,37 +71,6 @@ int smf_lookup_disconnect(void) {
 	}
 
 	return 0;
-}
-
-/** Check if given user is local */
-void smf_lookup_check_user(SMFEmailAddress_T *user) {
-	int i;
-	SMFSettings_T *settings = smf_settings_get();
-
-	for (i=0; settings->backend[i] != NULL; i++) {
-#ifdef HAVE_ZDB
-		if(g_ascii_strcasecmp(settings->backend[i],"sql") == 0) {
-			if (settings->sql_user_query != NULL) {
-				smf_lookup_sql_check_user(user);
-			}
-		}
-#endif
-
-#ifdef HAVE_LDAP
-		if (g_ascii_strcasecmp(settings->backend[i],"ldap") == 0) {
-			if (settings->ldap_user_query != NULL) {
-				// aufruf noch falsch
-				smf_lookup_ldap_check_user(user);
-			}
-		}
-#endif
-	}
-
-	if (user->lr != NULL) {
-		if (user->lr->len != 0)
-			user->is_local = 1;
-	} else
-		user->is_local = 0;
 }
 
 /** Query lookup backend. */

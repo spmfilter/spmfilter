@@ -243,6 +243,9 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         /** [global]spare_childs **/
         } else if (strcmp(key,"spare_childs")==0) {
             (*settings)->spare_childs = _get_integer(val);
+        /** [global]lookup_persistent **/
+        } else if (strcmp(key,"lookup_persistent")==0) {
+            (*settings)->lookup_persistent = _get_boolean(val);
         }
     /** sql section **/
     } else if (strcmp(section,"sql")==0) {
@@ -426,6 +429,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->group = NULL;
     settings->max_childs = 10;
     settings->spare_childs = 2;
+    settings->lookup_persistent = 0;
 
     settings->smtp_codes = smf_dict_new();
     settings->smtpd_timeout = 300;
@@ -463,8 +467,9 @@ SMFSettings_T *smf_settings_new(void) {
     settings->tls = 0;
     settings->sql_max_connections = 3;
     settings->sql_port = 0;
-    settings->ldap_connection = NULL;
     settings->ldap_port = 0;
+    
+    settings->lookup_connection = NULL;
     settings->active_lookup_host = NULL;
     
     settings->groups = smf_dict_new();
@@ -508,6 +513,8 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->ldap_base != NULL) free(settings->ldap_base);
     if (settings->ldap_scope != NULL) free(settings->ldap_scope);
     if (settings->ldap_user_query != NULL) free(settings->ldap_user_query);
+    
+    
     if (settings->active_lookup_host != NULL) free(settings->active_lookup_host);
 
     smf_dict_free(settings->groups);
@@ -1355,6 +1362,16 @@ void smf_settings_set_ldap_user_query(SMFSettings_T *settings, char *query) {
 char *smf_settings_get_ldap_user_query(SMFSettings_T *settings) {
     assert(settings);
     return settings->ldap_user_query;
+}
+
+void smf_settings_set_lookup_persistent(SMFSettings_T *settings, int persistent) {
+    assert(settings);
+    settings->lookup_persistent = persistent;
+}
+
+int smf_settings_get_lookup_persistent(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->lookup_persistent;
 }
 
 char *smf_settings_group_get(SMFSettings_T *settings, char *group_name, char *key) {
