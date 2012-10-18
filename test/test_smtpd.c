@@ -52,16 +52,14 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_foreground(settings, 1);
     smf_settings_set_spare_childs(settings, 0);
     smf_settings_set_max_childs(settings,1);
-    smf_settings_set_user(settings, "nobody");
-    smf_settings_set_group(settings, "nobody");
 
+    printf("Start smf_smtpd tests...\n");
+    printf("* forking up smtpd()...\t\t\t");
     switch(pid = fork()) {
         case -1:
             printf("fork() failed: %s\n",strerror(errno));
             break;
         case 0:
-            printf("Start smf_smtpd tests...\n");
-            printf("* forking up smtpd()...\t\t\t");
             if(load(settings) != 0) {
                 return -1;
             }
