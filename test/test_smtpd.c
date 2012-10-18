@@ -43,6 +43,7 @@ int load(SMFSettings_T *settings);
 
 int main (int argc, char const *argv[]) {
     char *msg_file = NULL;
+    char *queue_dir = NULL;
     SMFSmtpStatus_T *status = NULL;
     SMFSettings_T *settings = smf_settings_new();
     SMFEnvelope_T *env = smf_envelope_new();
@@ -54,8 +55,9 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_spare_childs(settings, 0);
     smf_settings_set_max_childs(settings,1);
     smf_settings_set_debug(settings,1);
-    smf_settings_set_queue_dir(settings, "/home/werner/spmfilter_queue_dir");
-
+    asprintf(&queue_dir, "%s/queue_dir",SAMPLES_DIR);
+    smf_settings_set_queue_dir(settings, queue_dir);
+    free(queue_dir);
 
     printf("Start smf_smtpd tests...\n");
     printf("* forking up smtpd()...\t\t\t");
@@ -71,6 +73,7 @@ int main (int argc, char const *argv[]) {
             break;
 
         default:
+            sleep(10);
             printf("* sending test message ...\t\t");
             asprintf(&msg_file, "%s/m0001.txt",SAMPLES_DIR);
 
@@ -93,6 +96,7 @@ int main (int argc, char const *argv[]) {
 
     if(msg_file != NULL)
         free(msg_file);
+        
     
     smf_settings_free(settings);
     smf_envelope_free(env);
