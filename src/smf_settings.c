@@ -470,7 +470,6 @@ SMFSettings_T *smf_settings_new(void) {
     settings->ldap_port = 0;
     
     settings->lookup_connection = NULL;
-    settings->active_lookup_host = NULL;
     
     settings->groups = smf_dict_new();
         
@@ -513,9 +512,6 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->ldap_base != NULL) free(settings->ldap_base);
     if (settings->ldap_scope != NULL) free(settings->ldap_scope);
     if (settings->ldap_user_query != NULL) free(settings->ldap_user_query);
-    
-    
-    if (settings->active_lookup_host != NULL) free(settings->active_lookup_host);
 
     smf_dict_free(settings->groups);
     free(settings);
@@ -1447,18 +1443,4 @@ SMFList_T *smf_settings_group_get_list(SMFSettings_T *settings, char *group_name
     free(sl);
 
     return list;
-}
-
-void smf_settings_set_active_lookup_host(SMFSettings_T *settings, char *host) {
-    assert(settings);
-    assert(host);
-
-    if (settings->active_lookup_host != NULL) free(settings->active_lookup_host);
-    
-    settings->active_lookup_host = strdup(host);
-} 
-
-char *smf_settings_get_active_lookup_host(SMFSettings_T *settings) {
-    assert(settings);
-    return settings->active_lookup_host;
 }
