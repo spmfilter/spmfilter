@@ -216,6 +216,7 @@ int smf_server_listen(SMFSettings_T *settings) {
         TRACE(TRACE_ERR,"getaddrinfo failed: %s",gai_strerror(status));
         return -1;
     }
+
     free(srvname);
 
     return sd;
@@ -256,10 +257,14 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
     for(i=0; i<settings->max_childs; i++)
         child[i] = 0;
 
-    /* prefork min. childs */
-    for (i = 0; i < settings->spare_childs; i++) {
-        num_spare++;
+    /* prefork min. 1 child(s) */
+    if(settings->spare_childs == 0) {
         smf_server_fork(settings,sd,handle_client_func);
+    } else {
+        for (i = 0; i < settings->spare_childs; i++) {
+            num_spare++;
+            smf_server_fork(settings,sd,handle_client_func);
+        }
     }
 
     for (;;) {
