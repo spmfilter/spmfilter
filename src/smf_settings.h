@@ -106,10 +106,6 @@ typedef struct {
     SMFConnectionType_T lookup_connection_type; /**< lookup connection type */
     int lookup_persistent; /**< is the lookup connection persistent? */
     void *lookup_connection; /**< ldap or sql connection */
-    
-
-
-    char *active_lookup_host;   /** storage active lookup host */
                                
     SMFDict_T *groups; /**< custom setting groups */
 } SMFSettings_T;
