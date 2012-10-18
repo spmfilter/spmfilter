@@ -104,6 +104,7 @@ typedef struct {
     char *ldap_user_query; /**< ldap user query */
     
     SMFConnectionType_T lookup_connection_type; /**< lookup connection type */
+    int lookup_persistent; /**< is the lookup connection persistent? */
     void *lookup_connection; /**< ldap or sql connection */
     
 
@@ -855,6 +856,22 @@ void smf_settings_set_ldap_user_query(SMFSettings_T *settings, char *query);
  * @returns ldap user_query
  */
 char *smf_settings_get_ldap_user_query(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_lookup_persistent(SMFSettings_T *settings, int persistent)
+ * @brief Set lookup connection persistent
+ * @param settings a SMFSettings_T object
+ * @param persistent value as integer, 1 if true, 0 if false
+ */
+void smf_settings_set_lookup_persistent(SMFSettings_T *settings, int persistent);
+
+/*!
+ * @fn int smf_settings_get_lookup_persistent(SMFSettings_T *settings)
+ * @brief Get the lookup persistent value
+ * @param settings a SMFSettings_T object
+ * @returns persistent value as integer, 1 if true, 0 if false
+ */
+int mf_settings_get_lookup_persistent(SMFSettings_T *settings);
 
 /*!
  * @fn char *smf_settings_group_get(SMFSettings_T *settings, char *group_name, char *key)

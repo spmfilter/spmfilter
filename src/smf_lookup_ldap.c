@@ -30,6 +30,7 @@
 #include "smf_settings.h"
 #include "smf_lookup.h"
 #include "smf_lookup_private.h"
+#include "smf_internal.h"
 #include "smf_core.h"
 #include "smf_session.h"
 
@@ -177,7 +178,6 @@ int smf_lookup_ldap_bind(SMFSettings_T *settings) {
 
     if ((err = ldap_sasl_bind_s(ld,settings->ldap_binddn,LDAP_SASL_SIMPLE,cred,NULL,NULL,NULL))) {
         TRACE(TRACE_ERR,"ldap bind failed: [%s]\n",ldap_err2string(err));
-        printf("ldap bind failed: [%s]\n",ldap_err2string(err));
         free(cred);
         return -1;
     }
@@ -187,15 +187,19 @@ int smf_lookup_ldap_bind(SMFSettings_T *settings) {
     return 0;
 }
 
-
-
-void _ldap_result_list_destroy(void *data) {
-    assert(data);
-    smf_dict_free((SMFDict_T *)data);
-}
+void smf_lookup_ldap_disconnect(SMFSettings_T *settings) {
+    LDAP *ld = NULL;
+    assert(settings);
     
+    ld = (LDAP *)settings->lookup_connection;
+    if (ld != NULL) {
+        ldap_unbind_ext_s(ld,NULL,NULL);
+        TRACE(TRACE_LOOKUP, "successfully bound ldap connection");
+    }
+}
 
-int ldap_get_scope(SMFSettings_T *settings) {
+
+int smf_lookup_ldap_get_scope(SMFSettings_T *settings) {
     assert(settings);
     if (strcasecmp(settings->ldap_scope,"subtree") == 0)
         return LDAP_SCOPE_SUBTREE;
@@ -207,45 +211,28 @@ int ldap_get_scope(SMFSettings_T *settings) {
         return LDAP_SCOPE_SUBTREE;
 }
 
-
-
-
-
-
-/*!
- * @fn LDAP *ldap_con_get(char *ldap_uri, SMFSettings_T *settings)
- * @brief get active LDAP connection, if no connection is available reconnect to LDAP server
- * @param ldap_uri Pointer to ldap_uri
- * @param settings Pointer to SMFSettings_T 
- * @returns Pointer to LDAP connection
- */
-LDAP *ldap_con_get(SMFSettings_T *settings) {
+LDAP *smf_lookup_ldap_get_connection(SMFSettings_T *settings) {
     assert(settings);
-    LDAP *ld = (LDAP *)settings->lookup_connection;
-    if (!ld) {
-        smf_lookup_ldap_connect(settings);
+    LDAP *ld = NULL;
+    ld = (LDAP *)settings->lookup_connection;
+
+    if (ld == NULL) {
+        if (smf_lookup_ldap_connect(settings) != 0) {
+            TRACE(TRACE_LOOKUP,"failed to get ldap connection");
+            return NULL;
+        }
+        ld = (LDAP *)settings->lookup_connection;
     }
+
     return ld;
 }
-
-
-
-void smf_lookup_ldap_disconnect(SMFSettings_T *settings) {
-    assert(settings);
-    
-    LDAP *c = ldap_con_get(settings);
-    if (c != NULL) {
-        ldap_unbind_ext_s(c,NULL,NULL);
-        TRACE(TRACE_LOOKUP, "unbind ldap server");
-    }
-}
-
 
 
 SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
     va_list ap, cp;
     int i,value_count;
 
+    LDAP *c = NULL;
     LDAPMessage *msg = NULL;
     LDAPMessage *entry = NULL;
   
@@ -262,12 +249,16 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
         return NULL;
     }
 
-    LDAP *c = ldap_con_get(settings);
+    c = smf_lookup_ldap_get_connection(settings);
+    if (c == NULL) {
+        TRACE(TRACE_ERR,"no active connection availbable");
+        return NULL;
+    }
 
-    if (smf_list_new(&result,_ldap_result_list_destroy)!=0) {
+
+    if (smf_list_new(&result,smf_internal_dict_list_destroy)!=0) {
         return NULL;
     } else {
-
         va_start(ap, q);
         va_copy(cp, ap);
         query = (char *)malloc(strlen(q) + 1);
@@ -281,7 +272,7 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
         TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
         TRACE(TRACE_DEBUG,"[%p] [%s]",c,query);
 
-        if (ldap_search_ext_s(c,settings->ldap_base,ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
+        if (ldap_search_ext_s(c,settings->ldap_base,smf_lookup_ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
             TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);
 
         if(ldap_count_entries(c,msg) <= 0) {
@@ -293,7 +284,6 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
         }
 
         for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
-
             char *attr = NULL;
             SMFDict_T *d = smf_dict_new();
 
@@ -334,13 +324,3 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
     return result;   
 }
 
-
-/*
-void smf_lookup_ldap_check_user(char *ldap_uri, SMFEmailAddress_T *user, SMFSettings_T *settings) {
-    char *query;
-    smf_core_expand_string(settings->ldap_user_query,user->addr,&query);
-    user->lr = NULL;
-    user->lr = smf_lookup_ldap_query(ldap_uri, query, settings);
-    free(query);
-}
-*/

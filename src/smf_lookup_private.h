@@ -18,21 +18,27 @@
 #ifndef _SMF_LOOKUP_PRIVATE_H
 #define	_SMF_LOOKUP_PRIVATE_H
 
+#ifdef HAVE_LDAP
+#include <ldap.h>
+#endif
 
 #include "smf_settings.h"
 #include "smf_email_address.h"
 
+
+#ifdef HAVE_LDAP
 char *smf_lookup_ldap_get_uri(SMFSettings_T *settings, char *host);
 char *smf_lookup_ldap_get_rand_host(SMFSettings_T *settings);
 int smf_lookup_ldap_bind(SMFSettings_T *settings);
 void smf_lookup_ldap_init_ld(SMFSettings_T **settings,char *uri);
+int smf_lookup_ldap_get_scope(SMFSettings_T *settings);
+LDAP *smf_lookup_ldap_get_connection(SMFSettings_T *settings);
+#endif
 
+/*
 void smf_lookup_check_user(SMFEmailAddress_T *user);
 void smf_lookup_ldap_check_user(char *ldap_uri, SMFEmailAddress_T *user,SMFSettings_T *settings);
 void smf_lookup_sql_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user);
-int ldap_get_scope(SMFSettings_T *settings);
-
-
-
+*/
 #endif	/* _SMF_LOOKUP_PRIVATE_H */
 

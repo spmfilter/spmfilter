@@ -47,8 +47,8 @@
  objectClass: organizationalUnit
 
  //user2.ldif
- dn: uid=test2,ou=People,dc=example,dc=com
- uid: test2
+ dn: uid=test,ou=People,dc=example,dc=com
+ uid: test
  cn: Test User
  objectClass: account
  objectClass: posixAccount
@@ -57,7 +57,7 @@
  loginShell: /bin/bash
  uidNumber: 500
  gidNumber: 500
- homeDirectory: /home/test2
+ homeDirectory: /home/test
 
  * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/base.ldif -W
  * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/user2.ldif -W
@@ -66,18 +66,16 @@
 #define LDAP_HOST_1 "localhost"
 #define LDAP_HOST_2 "localhost"
 #define LDAP_PORT 389
-#define LDAP_BIND_DN "uid=test2,ou=People,dc=example,dc=com"
+#define LDAP_BIND_DN "uid=test,ou=People,dc=example,dc=com"
 #define LDAP_PSW "test"
-#define LDAP_BASE "uid=test2,ou=People,dc=example,dc=com"
+#define LDAP_BASE "uid=test,ou=People,dc=example,dc=com"
 #define LDAP_SCOPE "subtree"
-#define LDAP_QUERY_STRING "(uid=test2)"
+#define LDAP_QUERY_STRING "(uid=test)"
 #define LDAP_QUERY_STRING_RESULT "500"
 #define LDAP_CONN_TYPE "failover"
 
 
 int main (int argc, char const *argv[]) {
-    int scope_retval;
-    int ldap_connect_retval;
     char *conn_type = LDAP_CONN_TYPE;
     char *pw = LDAP_PSW;
     char *bind_dn = LDAP_BIND_DN;
@@ -90,8 +88,8 @@ int main (int argc, char const *argv[]) {
     SMFDict_T *d = NULL;
 
     printf("Start smf_lookup_ldap tests...\n");
-    printf("============================================\n");
-    printf("This tests can only run successfull if there\n\ 
+    printf("==================================================\n");
+    printf("This tests can only run successfull if there\n\
 is a local ldap server available with\n\
 the following scheme installed:\n\n");
     printf("dn: dc=example,dc=com\n\
@@ -109,8 +107,8 @@ ou: Group\n\
 objectClass: top\n\
 objectClass: organizationalUnit\n\
 \n\
-dn: uid=test2,ou=People,dc=example,dc=com\n\
-uid: test2\n\
+dn: uid=test,ou=People,dc=example,dc=com\n\
+uid: test\n\
 cn: Test User\n\
 objectClass: account\n\
 objectClass: posixAccount\n\
@@ -119,8 +117,8 @@ userPassword: {SSHA}DHiQoi+pqOQXFP28g+NIyQmagm1xxjNr\n\
 loginShell: /bin/bash\n\
 uidNumber: 500\n\
 gidNumber: 500\n\
-homeDirectory: /home/test2\n");
-    printf("============================================\n");
+homeDirectory: /home/test\n");
+    printf("==================================================\n");
 
 
     smf_settings_add_ldap_host(settings, host1);
@@ -139,24 +137,22 @@ homeDirectory: /home/test2\n");
     }
     printf("passed\n");
 
-#if 0
-
-    if(smf_lookup_ldap_connect(settings) == 0) {
-        result = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);    
-        e = smf_list_head(result);
-
-        while(e != NULL) {
-            d = (SMFDict_T *)smf_list_data(e);
-            assert(strcmp(smf_dict_get(d,"uidNumber"),LDAP_QUERY_STRING_RESULT)==0);
-            e = e->next;
-        }
-
-        smf_list_free(result);
-        smf_lookup_ldap_disconnect(settings);
-    } else {
-        printf("unable to establish ldap connection");
+    printf("* testing smf_lookup_ldap_query()...\t\t\t\t");
+    result = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);    
+    e = smf_list_head(result);
+    d = (SMFDict_T *)smf_list_data(e);
+    if (strcmp(smf_dict_get(d,"uidNumber"),"500")!=0) {
+        printf("failed\n");
+        return -1;
     }
-#endif 
+
+    smf_list_free(result);
+    printf("passed\n");
+
+    printf("* testing smf_lookup_ldap_disconnect()...\t\t\t");
+    smf_lookup_ldap_disconnect(settings);
+    printf("passed\n");
+
     smf_settings_free(settings);
     
     return 0;
