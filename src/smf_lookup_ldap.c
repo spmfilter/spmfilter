@@ -93,8 +93,10 @@ void smf_lookup_ldap_init_ld(SMFSettings_T **settings,char *uri) {
         ldap_unbind_ext_s((LDAP *)(*settings)->lookup_connection,NULL,NULL);
 
     if (ldap_initialize(&ld, uri) != LDAP_SUCCESS) {
+        printf("FAILED?\n");
         TRACE(TRACE_ERR, "ldap_initialize() failed");
         (*settings)->lookup_connection = NULL;
+        return;
     } else 
         (*settings)->lookup_connection = ld;
 
@@ -127,6 +129,7 @@ int smf_lookup_ldap_connect(SMFSettings_T *settings)  {
     smf_lookup_ldap_init_ld(&settings,uri);
 
     if ((ret = smf_lookup_ldap_bind(settings))!=0) {
+        TRACE(TRACE_ERR,"ldap connection to [%s] failed\n",uri);
         /* check failover connections */
         elem = smf_list_head(settings->ldap_host);
         while(elem != NULL) {
@@ -136,7 +139,7 @@ int smf_lookup_ldap_connect(SMFSettings_T *settings)  {
             /* build connection for next server */
             host = (char *)smf_list_data(elem);
             uri = smf_lookup_ldap_get_uri(settings, host);
-            
+            TRACE(TRACE_DEBUG,"trying new conenction to [%s]\n",uri);
             smf_lookup_ldap_init_ld(&settings,uri);
             if ((ret = smf_lookup_ldap_bind(settings))==0) 
                 break;
@@ -195,6 +198,7 @@ void smf_lookup_ldap_disconnect(SMFSettings_T *settings) {
     if (ld != NULL) {
         ldap_unbind_ext_s(ld,NULL,NULL);
         TRACE(TRACE_LOOKUP, "successfully bound ldap connection");
+        settings->lookup_connection = NULL;
     }
 }
 
