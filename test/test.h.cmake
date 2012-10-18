@@ -46,10 +46,10 @@ Nullam dictum felis eu pede mollis pretium.";
 
 char test_name[] = "John Doe";
 char test_name2[] = "John Doe ";
-char test_email[] = "foo@bar.com";
-char test_email2[] = "<foo@bar.com>";
-char test_addr[] = "John Doe <foo@bar.com>";
-char test_addr2[] = "Jane Doe <jane@example.com>";
+char test_email[] = "user@example.org";
+char test_email2[] = "<user@example.org>";
+char test_addr[] = "John Doe <user@example.org>";
+char test_addr2[] = "Jane Doe <user@example.org>";
 char test_string[] = "Test string";
 char test_string_strip[] = " Test string ";
 char test_string_lower[] = "test string";

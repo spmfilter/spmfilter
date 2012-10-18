@@ -48,6 +48,10 @@ add_executable(test_internal test_internal.c)
 target_link_libraries(test_internal smf ${COMMON_LIBS})
 ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_internal)
 
+add_executable(test_smtpd test_smtpd.c ../src/smf_server.c)
+target_link_libraries(test_smtpd smf smtpd ${COMMON_LIBS})
+ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_smtpd)
+
 add_executable(test_engine_pipe test_engine_pipe.c)
 target_link_libraries(test_engine_pipe smf pipe ${COMMON_LIBS})
 #ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_engine_pipe)
