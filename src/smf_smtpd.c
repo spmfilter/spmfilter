@@ -382,6 +382,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         return;
     }
     
+    smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     /* open the spool file */
     spool_file = fopen(session->message_file, "w+");
     if(spool_file == NULL) {
@@ -643,8 +644,9 @@ int load(SMFSettings_T *settings) {
 
     TRACE(TRACE_INFO,"starting smtpd engine");
 
-    if ((sd = smf_server_listen(settings)) < 0)
+    if ((sd = smf_server_listen(settings)) < 0) {
         exit(EXIT_FAILURE);
+    }
 
     smf_server_init(settings,sd);
     smf_server_loop(settings,sd,smf_smtpd_handle_client);
