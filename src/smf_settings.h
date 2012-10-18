@@ -37,6 +37,11 @@ typedef enum {
     SMF_TLS_REQUIRED /**< TLS is enabled and required */
 } SMFTlsOption_T;
 
+typedef enum {
+    SMF_SQL_CONN, /**< SQL connection */
+    SMF_LDAP_CONN /**< LDAP connection */
+} SMFConnectionType_T;
+
 /*!
  * @struct SMFSettings_T smf_settings.h
  * @brief Holds spmfilter runtime configuration 
@@ -98,7 +103,12 @@ typedef struct {
     char *ldap_scope; /**< ldap search scope */
     char *ldap_user_query; /**< ldap user query */
     
-    void *ldap_connection; /**< ldap connection handle LDAP *ld = NULL */
+    SMFConnectionType_T lookup_connection_type; /**< lookup connection type */
+    int lookup_persistent; /**< is the lookup connection persistent? */
+    void *lookup_connection; /**< ldap or sql connection */
+    
+
+
     char *active_lookup_host;   /** storage active lookup host */
                                
     SMFDict_T *groups; /**< custom setting groups */
@@ -848,20 +858,20 @@ void smf_settings_set_ldap_user_query(SMFSettings_T *settings, char *query);
 char *smf_settings_get_ldap_user_query(SMFSettings_T *settings);
 
 /*!
- * @fn char *smf_settings_set_active_lookup_host(SMFSettings_T *settings)
- * @brief Set current active lookup host
+ * @fn void smf_settings_set_lookup_persistent(SMFSettings_T *settings, int persistent)
+ * @brief Set lookup connection persistent
  * @param settings a SMFSettings_T object
+ * @param persistent value as integer, 1 if true, 0 if false
  */
-void smf_settings_set_active_lookup_host(SMFSettings_T *settings, char *host);
+void smf_settings_set_lookup_persistent(SMFSettings_T *settings, int persistent);
 
 /*!
- * @fn char *smf_settings_get_active_lookup_host(SMFSettings_T *settings)
- * @brief Get current active lookup host
+ * @fn int smf_settings_get_lookup_persistent(SMFSettings_T *settings)
+ * @brief Get the lookup persistent value
  * @param settings a SMFSettings_T object
- * @param host char pointer with hostname/IP 
- * @returns char pointer with active lookup host
+ * @returns persistent value as integer, 1 if true, 0 if false
  */
-char *smf_settings_get_active_lookup_host(SMFSettings_T *settings);
+int mf_settings_get_lookup_persistent(SMFSettings_T *settings);
 
 /*!
  * @fn char *smf_settings_group_get(SMFSettings_T *settings, char *group_name, char *key)

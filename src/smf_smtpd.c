@@ -431,14 +431,19 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     
     TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->message_size);
 
-    if(smf_message_from_file(&message,session->message_file,1) != 0) {
-        STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
-        smf_smtpd_code_reply(session->sock, 451, settings->smtp_codes);
-        return;
-    }
+    if (session->message_size > smf_settings_get_max_size(settings)) {
+        STRACE(TRACE_DEBUG,session->id,"max message size limit exceeded"); 
+        smf_smtpd_string_reply(session->sock,"552 message size exceeds fixed maximium message size\r\n");
+    } else {
+        if(smf_message_from_file(&message,session->message_file,1) != 0) {
+            STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
+            smf_smtpd_code_reply(session->sock, 451, settings->smtp_codes);
+            return;
+        }
 
-    session->envelope->message = message;
-    smf_smtpd_load_modules(session,settings);
+        session->envelope->message = message;
+        smf_smtpd_load_modules(session,settings);
+    }
 
     STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
     if (remove(session->message_file) != 0)
