@@ -49,7 +49,7 @@ int main (int argc, char const *argv[]) {
     SMFEnvelope_T *env = smf_envelope_new();
     pid_t pid;
 
-    smf_settings_set_pid_file(settings, "/tmp/smf_test_smtpd.pid");
+    smf_settings_set_pid_file(settings, "/home/werner/smf_test_smtpd.pid");
     smf_settings_set_bind_ip(settings, "127.0.0.1");
     smf_settings_set_foreground(settings, 1);
     smf_settings_set_spare_childs(settings, 0);
