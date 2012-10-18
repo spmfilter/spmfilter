@@ -31,7 +31,6 @@ int remove_db(void) {
 }
 
 int main (int argc, char const *argv[]) {
-    
     DB *dbp;
     DBT key, data;
     u_int32_t flags;  
@@ -41,6 +40,8 @@ int main (int argc, char const *argv[]) {
     char *value_str = "this is a test";
     char *key_char = "2323";
     char *res_from_db = NULL;
+
+    printf("Start smf_lookup_db4 tests...\n");
 
     /* first create a new berkeley database */
     if ((ret = db_create(&dbp, NULL, 0)) != 0) {
@@ -77,25 +78,25 @@ int main (int argc, char const *argv[]) {
     if (dbp != NULL)
         dbp->close(dbp, 0); 
 
+    printf("* testing smf_lookup_db4_query()...\t\t\t");
     /* read out database with spmfilter function and compare the values */ 
     res_from_db = smf_lookup_db4_query(TESTDB, key_char);
     if(res_from_db != NULL) {
         if(strcmp(res_from_db,value_str) != 0) {
-            printf("received different value from db");
             remove_db();
             free(res_from_db);
+            printf("failed\n");
             return(-1);
-        } else {
-            remove_db();
-            free(res_from_db);
-            return(0);
         }
     } else {
-        printf("nothing received by smf_lookup_db4_query()");
         remove_db();
         free(res_from_db);
+        printf("failed\n");
         return(-1);
     }
+    remove_db();
+    free(res_from_db);
+    printf("passed\n");
 
     return(0);
 }
