@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pwd.h>
+#include <unistd.h>
 
 
 #include "test.h"
@@ -52,9 +53,13 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_foreground(settings, 1);
     smf_settings_set_spare_childs(settings, 0);
     smf_settings_set_max_childs(settings,1);
+    smf_settings_set_debug(settings,1);
+    smf_settings_set_queue_dir(settings, "/home/werner/spmfilter_queue_dir");
+
 
     printf("Start smf_smtpd tests...\n");
     printf("* forking up smtpd()...\t\t\t");
+    
     switch(pid = fork()) {
         case -1:
             printf("fork() failed: %s\n",strerror(errno));
@@ -68,13 +73,14 @@ int main (int argc, char const *argv[]) {
         default:
             printf("* sending test message ...\t\t");
             asprintf(&msg_file, "%s/m0001.txt",SAMPLES_DIR);
-            
-            smf_envelope_set_nexthop(env, "localhost:25");
+
+            smf_envelope_set_nexthop(env, "127.0.0.1:10025");
             smf_envelope_set_sender(env, test_email);
             smf_envelope_add_rcpt(env, test_email);
             status = smf_smtp_deliver(env, SMF_TLS_DISABLED, msg_file, NULL);
             
             if (status->code == -1) {
+                kill(pid,SIGTERM);
                 printf("failed\n");
                 return -1;
             }
