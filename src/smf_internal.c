@@ -28,6 +28,7 @@
 
 #include "smf_internal.h"
 #include "smf_trace.h"
+#include "smf_dict.h"
 
 void smf_internal_string_list_destroy(void *data) {
     char *s = (char *)data;
@@ -35,6 +36,11 @@ void smf_internal_string_list_destroy(void *data) {
     free(s);
 }
 
+void smf_internal_dict_list_destroy(void *data) {
+    assert(data);
+    smf_dict_free((SMFDict_T *)data);
+}
+   
 char *smf_internal_build_module_path(const char *libdir, const char *modname) {
     char *path = NULL;
     char *t = NULL;

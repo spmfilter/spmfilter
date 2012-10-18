@@ -39,6 +39,7 @@ typedef struct {
 } readline_t;
 
 void smf_internal_string_list_destroy(void *data);
+void smf_internal_dict_list_destroy(void *data);
 char *smf_internal_build_module_path(const char *libdir, const char *modname);
 
 /* removes leading < and trailing > 

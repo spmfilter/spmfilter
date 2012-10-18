@@ -47,17 +47,17 @@ char *smf_lookup_db4_query(char *database, char *key) {
     }
 
     /* open db */
-    #if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR < 1
+#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR < 1
     if ((ret = dbp->open(dbp, database, NULL, DB_HASH, DB_RDONLY, 0)) != 0) {
         TRACE(TRACE_ERR, "DB: %s",db_strerror(ret));
         return NULL;
     }
-    #else
+#else
     if ((ret = dbp->open(dbp, NULL, database, NULL, DB_HASH, DB_RDONLY, 0)) != 0) {
         TRACE(TRACE_ERR,"DB: %s",db_strerror(ret));
         return NULL;
     }
-    #endif
+#endif
 
     memset(&db_key, 0, sizeof(DBT));
     memset(&db_value, 0, sizeof(DBT));
