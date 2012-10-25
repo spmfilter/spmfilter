@@ -15,6 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -36,7 +38,7 @@
 
 
 int main (int argc, char const *argv[]) {
-	
+#if 0	
 	char *sql_driver = SQL_DRIVER;
 	char *sql_query = SQL_QUERY;
 	char *sql_name = NULL;
@@ -76,5 +78,6 @@ int main (int argc, char const *argv[]) {
 		free(sql_name);
 
 	smf_settings_free(settings);
+#endif
 	return 0;
 }

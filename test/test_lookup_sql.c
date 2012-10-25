@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Werner Detter and SpaceNet AG
+ * Copyright (C) 2009-2012 Werner Detter and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,7 +29,7 @@
 
 
 /*
-crate database test_lookup_sql_table
+create database test_lookup_sql
 grant all on test_lookup_sql.* to 'test_lookup_sql'@'localhost' IDENTIFIED BY 'MndDksjs'; 
 
 DROP TABLE IF EXISTS `test_lookup_sql_table`;
@@ -55,7 +55,6 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 
 
 int main (int argc, char const *argv[]) {
-	
 	char *sql_driver = SQL_DRIVER;
 	char *sql_user = SQL_USER;
 	char *sql_pass = SQL_PASS;
@@ -70,6 +69,23 @@ int main (int argc, char const *argv[]) {
 	SMFSettings_T *settings = smf_settings_new();
 	SMFDict_T *d = NULL;
 
+	printf("Start smf_lookup_sql tests...\n");
+    printf("==================================================\n");
+    printf("This tests expects a running MySQL Server at localhost\n\
+with following scheme:\n\n\
+create database test_lookup_sql;\n\
+grant all on test_lookup_sql.* to 'test_lookup_sql'@'localhost' IDENTIFIED BY 'MndDksjs'; \n\
+\n\
+DROP TABLE IF EXISTS `test_lookup_sql_table`;\n\
+CREATE TABLE `test_lookup_sql_table` (\n\
+  `id` int(11) NOT NULL AUTO_INCREMENT,\n\
+  `data` varchar(100) DEFAULT NULL,\n\
+  PRIMARY KEY (`id`)\n\
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;\n\
+\n\
+INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
+==================================================\n");
+
 	smf_settings_add_sql_host(settings, host1);
 	smf_settings_add_sql_host(settings, host2);
 	smf_settings_set_sql_driver(settings, sql_driver);
@@ -80,7 +96,16 @@ int main (int argc, char const *argv[]) {
 	smf_settings_set_sql_max_connections(settings, 5);
 	smf_settings_set_sql_user_query(settings, sql_query);
 	smf_settings_set_backend_connection(settings, sql_backend_conn);
+	smf_settings_set_debug(settings,1);
 
+	printf("* testing smf_lookup_sql_connect()...\t\t\t\t");
+    if(smf_lookup_sql_connect(settings) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+#if 0
 	if(smf_lookup_sql_connect(settings) == 0) {
 		result = smf_lookup_sql_query(settings,sql_query);
 
@@ -97,7 +122,7 @@ int main (int argc, char const *argv[]) {
 	} else {
 		printf("unable to establish database connection\n");
 	}
-	
+#endif
 	smf_settings_free(settings);
 
 	return 0;
