@@ -39,40 +39,16 @@ char *smf_lookup_db4_query(char *database, char *key);
  * @fn *smpf_lookup_sql_connect (SMFSettings_T *settings);
  * @brief connect to sql server
  * @param settings Pointer to SMFSettings_T 
- * \returns 0 on success or -1 in case of error
+ * @returns 0 on success or -1 in case of error
  */
 int smf_lookup_sql_connect(SMFSettings_T *settings);
 
 /*!
- * @fn *sql_get_dsn(SMFSettings_T *settings, char *host)
- * @brief Get DSN
- * @param settings Pointer to SMFSettings_T 
- * @param host Host to be used in DSN
- * \returns DSN on success or NULL in case of error
+ * @fn void smf_lookup_sql_disconnect(SMFSettings_T *settings);
+ * @brief disconnect from sql server
+ * @param settings a SMFSettings_T object
  */
-char *sql_get_dsn(SMFSettings_T *settings, char *host);
-
-/*!
- * @fn *smpf_lookup_sql_connect_fallback (SMFSettings_T *settings);
- * @brief fallback_connect to sql server
- * @param settings Pointer to SMFSettings_T 
- * \returns 0 on success or -1 in case of error
- */
-int smf_lookup_sql_connect_fallback(SMFSettings_T *settings);
-
-/*!
- * @fn *sql_get_rand_host (SMFSettings_T *settings);
- * @brief return random sql backend server
- * @param settings Pointer to SMFSettings_T 
- * \returns hostname/ip of sql server, else NULL 
- */
-char *sql_get_rand_host(SMFSettings_T *settings);
-
-/*!
- * @fn *smpf_lookup_sql_disconnect (void);
- * @brief disconnect to sql server
- */
- void smf_lookup_sql_disconnect(void);
+void smf_lookup_sql_disconnect(SMFSettings_T *settings);
 
 /*!
  * @fn *smf_lookup_sql_query (const char *q, ...);
