@@ -83,7 +83,7 @@ int main (int argc, char const *argv[]) {
         return -1;
     }
 
-    if (strcmp("<foo@bar.com>",smf_email_address_get_email(ea)) != 0) {
+    if (strcmp("<user@example.org>",smf_email_address_get_email(ea)) != 0) {
         printf("failed\n");
         return -1;
     } 
