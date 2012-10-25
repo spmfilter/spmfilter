@@ -22,6 +22,13 @@
 #include <ldap.h>
 #endif
 
+#ifdef HAVE_ZDB
+#include <URL.h>
+#include <ResultSet.h>
+#include <PreparedStatement.h>
+#include <Connection.h>
+#endif
+
 #include "smf_settings.h"
 #include "smf_email_address.h"
 
@@ -35,10 +42,13 @@ int smf_lookup_ldap_get_scope(SMFSettings_T *settings);
 LDAP *smf_lookup_ldap_get_connection(SMFSettings_T *settings);
 #endif
 
-/*
-void smf_lookup_check_user(SMFEmailAddress_T *user);
-void smf_lookup_ldap_check_user(char *ldap_uri, SMFEmailAddress_T *user,SMFSettings_T *settings);
-void smf_lookup_sql_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user);
-*/
+#ifdef HAVE_ZDB
+char *smf_lookup_sql_get_rand_host(SMFSettings_T *settings);
+char *smf_lookup_sql_get_dsn(SMFSettings_T *settings, char *host);
+int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn);
+void smf_lookup_sql_con_close(Connection_T c);
+#endif
+
+
 #endif	/* _SMF_LOOKUP_PRIVATE_H */
 

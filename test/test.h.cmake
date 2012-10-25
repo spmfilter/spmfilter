@@ -80,7 +80,7 @@ char test_sql_driver[] = "mysql";
 char test_sql_name[] = "maildb";
 char test_sql_query[] = "select * from test";
 char test_sql_expand_query[] = "SELECT * FROM users WHERE email='%s'";
-char test_sql_expand_query_out[] = "SELECT * FROM users WHERE email='foo@bar.com'";
+char test_sql_expand_query_out[] = "SELECT * FROM users WHERE email='user@example.org'";
 char test_encoding[] = "UTF-8";
 char test_ldap_base[] = "dc=example,dc=com";
 char test_ldap_scope[] = "subtree";

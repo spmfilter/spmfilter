@@ -867,7 +867,7 @@ void smf_settings_set_lookup_persistent(SMFSettings_T *settings, int persistent)
  * @param settings a SMFSettings_T object
  * @returns persistent value as integer, 1 if true, 0 if false
  */
-int mf_settings_get_lookup_persistent(SMFSettings_T *settings);
+int smf_settings_get_lookup_persistent(SMFSettings_T *settings);
 
 /*!
  * @fn char *smf_settings_group_get(SMFSettings_T *settings, char *group_name, char *key)

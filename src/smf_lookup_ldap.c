@@ -324,6 +324,10 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
     ldap_msgfree(msg);
     ldap_msgfree(entry);
     free(query);
+
+    if (smf_settings_get_lookup_persistent(settings) != 1)
+        smf_lookup_ldap_disconnect(settings);
+
     return result;   
 }
 
