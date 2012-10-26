@@ -40,7 +40,7 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 */
 
 #define SQL_HOST1   "127.0.0.1"
-#define SQL_HOST2   "localhost"
+#define SQL_HOST2   "192.168.0.99"
 #define SQL_DRIVER  "mysql"
 #define SQL_USER    "test_lookup_sql"
 #define SQL_PASS    "MndDksjs"
@@ -97,7 +97,6 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
 ==================================================\n");
 
 	smf_settings_add_sql_host(settings, host1);
-	smf_settings_add_sql_host(settings, host2);
 	smf_settings_set_sql_driver(settings, SQL_DRIVER);
 	smf_settings_set_sql_port(settings, SQL_PORT);
 	smf_settings_set_sql_user(settings, SQL_USER);
@@ -137,6 +136,20 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
         printf("failed\b");
         return -1;
     }
+
+    printf("* testing smf_lookup_sql_connect() failover...\t\t\t");
+    smf_list_free(settings->sql_host);
+    smf_list_new(&settings->sql_host, smf_internal_string_list_destroy);
+    host1 = strdup(SQL_HOST1);
+    smf_settings_add_sql_host(settings, host2);
+    smf_settings_add_sql_host(settings, host1);
+
+    if(smf_lookup_sql_connect(settings) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    smf_lookup_sql_disconnect(settings);
+    printf("passed\n");
 
 	smf_settings_free(settings);
 
