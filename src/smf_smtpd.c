@@ -42,8 +42,6 @@
 #include "smf_session.h"
 #include "smf_session_private.h"
 #include "smf_core.h"
-#include "smf_lookup.h"
-#include "smf_lookup_private.h"
 #include "smf_message.h"
 #include "smf_message_private.h"
 #include "smf_internal.h"
