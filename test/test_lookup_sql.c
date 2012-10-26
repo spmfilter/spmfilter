@@ -18,15 +18,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <db.h>
-#include <assert.h>
 #include "../src/smf_lookup.h"
 #include "../src/smf_lookup_sql.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
 #include "../src/smf_dict.h"
 #include "../src/smf_internal.h"
-
 
 /*
 create database test_lookup_sql
@@ -54,21 +51,33 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 #define SQL_QUERY_RESULT_STRING "LoremIpsumDolorSitAmet"
 
 
+int test_query(SMFSettings_T *settings) {
+    SMFList_T *result = NULL;
+    SMFListElem_T *e = NULL;
+    SMFDict_T *d = NULL;
+    int found = 0;
+
+    result = smf_lookup_sql_query(settings,SQL_QUERY);
+    e = smf_list_head(result);
+    while(e != NULL) {
+        d = (SMFDict_T *)smf_list_data(e);
+        if (strcmp(smf_dict_get(d,"data"),SQL_QUERY_RESULT_STRING)==0) {
+            found = 1;
+            break;
+        }
+        e = e->next;
+    }
+    smf_list_free(result);
+
+    return found;
+}
+
 int main (int argc, char const *argv[]) {
-	char *sql_driver = SQL_DRIVER;
-	char *sql_user = SQL_USER;
-	char *sql_pass = SQL_PASS;
-	char *sql_query = SQL_QUERY;
-	char *sql_name = SQL_NAME;
-	char *sql_backend_conn = SQL_BACKEND_CONN;
 	char *host1 = strdup(SQL_HOST1);
 	char *host2 = strdup(SQL_HOST2);
-    int found = 0;
    
-	SMFList_T *result = NULL;
-	SMFListElem_T *e = NULL;
 	SMFSettings_T *settings = smf_settings_new();
-	SMFDict_T *d = NULL;
+	
 
 	printf("Start smf_lookup_sql tests...\n");
     printf("==================================================\n");
@@ -89,15 +98,16 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
 
 	smf_settings_add_sql_host(settings, host1);
 	smf_settings_add_sql_host(settings, host2);
-	smf_settings_set_sql_driver(settings, sql_driver);
+	smf_settings_set_sql_driver(settings, SQL_DRIVER);
 	smf_settings_set_sql_port(settings, SQL_PORT);
-	smf_settings_set_sql_user(settings, sql_user);
-	smf_settings_set_sql_pass(settings, sql_pass);
-	smf_settings_set_sql_name(settings, sql_name);
+	smf_settings_set_sql_user(settings, SQL_USER);
+	smf_settings_set_sql_pass(settings, SQL_PASS);
+	smf_settings_set_sql_name(settings, SQL_NAME);
 	smf_settings_set_sql_max_connections(settings, 5);
-	smf_settings_set_sql_user_query(settings, sql_query);
-	smf_settings_set_backend_connection(settings, sql_backend_conn);
+	smf_settings_set_sql_user_query(settings, SQL_QUERY);
+	smf_settings_set_backend_connection(settings, SQL_BACKEND_CONN);
 	smf_settings_set_debug(settings,1);
+    smf_settings_set_lookup_persistent(settings, 1);
 
 	printf("* testing smf_lookup_sql_connect()...\t\t\t\t");
     if(smf_lookup_sql_connect(settings) != 0) {
@@ -107,21 +117,8 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
     printf("passed\n");
 
     printf("* testing smf_lookup_sql_query()...\t\t\t\t");
-    result = smf_lookup_sql_query(settings,sql_query);
-    e = smf_list_head(result);
-    while(e != NULL) {
-        d = (SMFDict_T *)smf_list_data(e);
-        if (strcmp(smf_dict_get(d,"data"),SQL_QUERY_RESULT_STRING)==0) {
-            found = 1;
-            break;
-        }
-        e = e->next;
-	}
-	smf_list_free(result);
-
-    if (found == 1) { 
+    if (test_query(settings)==1) { 
         printf("passed\n");
-        found = 0;   
     } else {
         printf("failed\b");
         return -1;
@@ -131,6 +128,15 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
     smf_lookup_sql_disconnect(settings);
     printf("passed\n");
 
+    smf_settings_set_lookup_persistent(settings, 0);
+
+    printf("* testing smf_lookup_sql_query() without existing connection...\t");
+    if (test_query(settings)==1) { 
+        printf("passed\n");
+    } else {
+        printf("failed\b");
+        return -1;
+    }
 
 	smf_settings_free(settings);
 
