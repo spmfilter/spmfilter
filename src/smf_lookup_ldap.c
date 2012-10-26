@@ -29,7 +29,7 @@
 #include "smf_trace.h"
 #include "smf_settings.h"
 #include "smf_lookup.h"
-#include "smf_lookup_private.h"
+#include "smf_lookup_ldap.h"
 #include "smf_internal.h"
 #include "smf_core.h"
 #include "smf_session.h"

@@ -21,25 +21,19 @@
 #include <unistd.h>
 #include <time.h>
 #include <assert.h>
-#include <URL.h>
-#include <ResultSet.h>
-#include <PreparedStatement.h>
-#include <Connection.h>
-#include <ConnectionPool.h>
-#include <SQLException.h>
-#include <Exception.h>
+#include <zdb.h>
 
 #include "smf_settings.h"
 #include "smf_trace.h"
 #include "smf_lookup.h"
-#include "smf_lookup_private.h"
+#include "smf_lookup_sql.h"
 #include "smf_core.h"
 #include "smf_dict.h"
 #include "smf_list.h"
+#include "smf_internal.h"
 
 #define THIS_MODULE "lookup_sql"
 #define FIELDSIZE 1024
-
 
 char *smf_lookup_sql_get_rand_host(SMFSettings_T *settings) {
     int random;
@@ -137,45 +131,48 @@ char *smf_lookup_sql_get_dsn(SMFSettings_T *settings, char *host) {
 }
 
 int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn) {
-    URL_T url = NULL;
     int sweep_interval = 60;
-    Connection_T con = NULL;
-    ConnectionPool_T sql_pool = (ConnectionPool_T)settings->lookup_connection;
+    Connection_T c = NULL;
+    SMFSQLConnection_T *con = NULL;
 
     assert(settings);
     assert(dsn); 
 
-    url = URL_new(dsn);
-
-    if (!(sql_pool = ConnectionPool_new(url))) {
+    con = malloc(sizeof(SMFSQLConnection_T));
+    con->pool = NULL;
+    con->url = URL_new(dsn);
+    
+    if (!(con->pool = ConnectionPool_new(con->url))) {
         TRACE(TRACE_ERR,"error creating database connection pool");
         return -1;
     }
     
 
     if (settings->sql_max_connections > 0) {
-        if (settings->sql_max_connections < (unsigned int)ConnectionPool_getInitialConnections(sql_pool))
-            ConnectionPool_setInitialConnections(sql_pool, settings->sql_max_connections);
-        ConnectionPool_setMaxConnections(sql_pool, settings->sql_max_connections);
+        if (settings->sql_max_connections < (unsigned int)ConnectionPool_getInitialConnections(con->pool))
+            ConnectionPool_setInitialConnections(con->pool, settings->sql_max_connections);
+        ConnectionPool_setMaxConnections(con->pool, settings->sql_max_connections);
         TRACE(TRACE_LOOKUP,"database connection pool created with maximum connections of [%d]",settings->sql_max_connections);
     }
 
-    ConnectionPool_setReaper(sql_pool, sweep_interval);
+    ConnectionPool_setReaper(con->pool, sweep_interval);
 
     TRACE(TRACE_LOOKUP, "run a database connection reaper thread every [%d] seconds", sweep_interval);
 
-    ConnectionPool_start(sql_pool);
+    ConnectionPool_start(con->pool);
 
     TRACE(TRACE_LOOKUP, "database connection pool started with [%d] connections, max [%d]",
-            ConnectionPool_getInitialConnections(sql_pool), ConnectionPool_getMaxConnections(sql_pool));
+            ConnectionPool_getInitialConnections(con->pool), ConnectionPool_getMaxConnections(con->pool));
 
-    if (!(con = ConnectionPool_getConnection(sql_pool))) {
+    if (!(c = ConnectionPool_getConnection(con->pool))) {
         TRACE(TRACE_ERR, "error getting a database connection from the pool");
 
         return -1;
     }
-    smf_lookup_sql_con_close(con);
-    URL_free(&url);
+    smf_lookup_sql_con_close(c);
+    
+    settings->lookup_connection = (void *)con;
+
     return 0;
 }
 
@@ -217,66 +214,53 @@ int smf_lookup_sql_connect(SMFSettings_T *settings) {
 }
 
 void smf_lookup_sql_disconnect(SMFSettings_T *settings) {
-    ConnectionPool_T sql_pool = NULL;
+    SMFSQLConnection_T *con = NULL;
     assert(settings);
 
-    sql_pool = (ConnectionPool_T)settings->lookup_connection;
+    if (settings->lookup_connection != NULL)
+        con = (SMFSQLConnection_T *)settings->lookup_connection;
+
 
     TRACE(TRACE_LOOKUP,"closing database connection");
-    ConnectionPool_stop(sql_pool);
-    ConnectionPool_free(&sql_pool);
+    ConnectionPool_stop(con->pool);
+    ConnectionPool_free(&con->pool);
+    URL_free(&con->url);
+    free(con);
+    settings->lookup_connection = NULL;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#if 0
-
- /*!
- * @fn sql_con_get(void)
- * @brief Get open connection from connection pool
- * @returns Connection c, if found
- */
-Connection_T sql_con_get(void) {
+Connection_T smf_lookup_sql_get_connection(ConnectionPool_T pool) {
     int i=0, k=0; 
     Connection_T c;
     while (i++<30) {
-        c = ConnectionPool_getConnection(sql_pool);
-        if (c) break;
+        c = ConnectionPool_getConnection(pool);
+        
+        if (c) {
+            if(Connection_ping(c) == 1) break;
+            else Connection_close(c);
+        }
         if((int)(i % 5)==0) {
             TRACE(TRACE_WARNING, "Thread is having trouble obtaining a database connection. Try [%d]", i);
-            k = ConnectionPool_reapConnections(sql_pool);
+            k = ConnectionPool_reapConnections(pool);
             TRACE(TRACE_LOOKUP, "Database reaper closed [%d] stale connections", k);
         }
         sleep(1);
     }
     if (! c) {
         TRACE(TRACE_ERR,"[%p] can't get a database connection from the pool! max [%d] size [%d] active [%d]", 
-            sql_pool,
-            ConnectionPool_getMaxConnections(sql_pool),
-            ConnectionPool_size(sql_pool),
-            ConnectionPool_active(sql_pool));
+            pool,
+            ConnectionPool_getMaxConnections(pool),
+            ConnectionPool_size(pool),
+            ConnectionPool_active(pool));
     }
 
     assert(c);
-    TRACE(TRACE_LOOKUP,"[%p] connection from pool", c);
+    TRACE(TRACE_LOOKUP,"[%p] got connection from pool", c);
     return c;
 }
 
-
 SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {  
+    SMFSQLConnection_T *con;
     Connection_T c; 
     ResultSet_T r;
     SMFList_T *result;
@@ -291,24 +275,26 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {
     va_end(cp);
     smf_core_strstrip(query);
 
-    if (strlen(query) == 0)
-        return NULL;
+    if (strlen(query) == 0) return NULL;
 
-    if (smf_list_new(&result,_sql_result_list_destroy)!=0) {
-    return NULL;
- } else {
-    c = sql_con_get();
+    /* active connection? */
+    if (settings->lookup_connection == NULL)
+        if(smf_lookup_sql_connect(settings) != 0) return NULL;
+
+    con = (SMFSQLConnection_T *)settings->lookup_connection;
+    if (con->pool == NULL)
+        if (smf_lookup_sql_connect(settings) != 0) return NULL;
+    
+    if (smf_list_new(&result,smf_internal_dict_list_destroy)!=0) {
+        return NULL;
+    } else {
+        c = smf_lookup_sql_get_connection(con->pool);
         TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-        
-        if(Connection_ping(c) == 0) {
-            smf_lookup_sql_connect_fallback(settings);
-            c = sql_con_get();
-        }
 
         TRY
             r = Connection_executeQuery(c, query,NULL);
         CATCH(SQLException)
-            TRACE(TRACE_ERR,"got SQLException");
+            TRACE(TRACE_ERR,"SQL error: %s\n", Connection_getLastError(c)); 
             return NULL;
         END_TRY;
         
@@ -320,36 +306,19 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {
                 char *c = (char *)ResultSet_getColumnName(r,i); 
                 char *col_name = NULL;
                 col_name = strdup(c);
-                int col_size = ResultSet_getColumnSize(r,i);
                 const void *data = ResultSet_getBlob(r, i, &blob_size);
 
                 smf_dict_set(d,col_name,data);
                 free(col_name);
             }
             
-            if (smf_list_append(result,d) != 0)
-                                return NULL;
+            if (smf_list_append(result,d) != 0) return NULL;
         }
 
         TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->size);
- }
+    }
 
- free(query);
- sql_con_close(c);
- return result;
+    free(query);
+    smf_lookup_sql_con_close(c);
+    return result;
 }
-
-/** Check if given user exists in database
- *
- * \param user a SMFEmailAddress_T object
- */
-void smf_lookup_sql_check_user(SMFSettings_T *settings, SMFEmailAddress_T *user) {
-//  SMFSettings_T *settings = smf_settings_get();
-char *query;
-
-    smf_core_expand_string(settings->sql_user_query,user->email,&query);
-//  user->user_data = NULL;
-//  user->user_data = smf_lookup_sql_query(query);
-free(query);
-}
-#endif

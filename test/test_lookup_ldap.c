@@ -21,7 +21,7 @@
 #include <db.h>
 
 #include "../src/smf_lookup.h"
-#include "../src/smf_lookup_private.h"
+#include "../src/smf_lookup_ldap.h"
 #include "../src/smf_settings_private.h"
 #include "../src/smf_list.h"
 #include "../src/smf_internal.h"

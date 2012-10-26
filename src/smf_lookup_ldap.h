@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,25 +15,12 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _SMF_LOOKUP_PRIVATE_H
-#define	_SMF_LOOKUP_PRIVATE_H
+#ifndef _SMF_LOOKUP_LDAP_H
+#define	_SMF_LOOKUP_LDAP_H
 
 #ifdef HAVE_LDAP
 #include <ldap.h>
-#endif
 
-#ifdef HAVE_ZDB
-#include <URL.h>
-#include <ResultSet.h>
-#include <PreparedStatement.h>
-#include <Connection.h>
-#endif
-
-#include "smf_settings.h"
-#include "smf_email_address.h"
-
-
-#ifdef HAVE_LDAP
 char *smf_lookup_ldap_get_uri(SMFSettings_T *settings, char *host);
 char *smf_lookup_ldap_get_rand_host(SMFSettings_T *settings);
 int smf_lookup_ldap_bind(SMFSettings_T *settings);
@@ -42,13 +29,4 @@ int smf_lookup_ldap_get_scope(SMFSettings_T *settings);
 LDAP *smf_lookup_ldap_get_connection(SMFSettings_T *settings);
 #endif
 
-#ifdef HAVE_ZDB
-char *smf_lookup_sql_get_rand_host(SMFSettings_T *settings);
-char *smf_lookup_sql_get_dsn(SMFSettings_T *settings, char *host);
-int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn);
-void smf_lookup_sql_con_close(Connection_T c);
-#endif
-
-
-#endif	/* _SMF_LOOKUP_PRIVATE_H */
-
+#endif	/* _SMF_LOOKUP_LDAP_H */
