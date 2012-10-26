@@ -217,16 +217,16 @@ void smf_lookup_sql_disconnect(SMFSettings_T *settings) {
     SMFSQLConnection_T *con = NULL;
     assert(settings);
 
-    if (settings->lookup_connection != NULL)
+    if (settings->lookup_connection != NULL) {
         con = (SMFSQLConnection_T *)settings->lookup_connection;
 
-
-    TRACE(TRACE_LOOKUP,"closing database connection");
-    ConnectionPool_stop(con->pool);
-    ConnectionPool_free(&con->pool);
-    URL_free(&con->url);
-    free(con);
-    settings->lookup_connection = NULL;
+        TRACE(TRACE_LOOKUP,"closing database connection");
+        ConnectionPool_stop(con->pool);
+        ConnectionPool_free(&con->pool);
+        URL_free(&con->url);
+        free(con);
+        settings->lookup_connection = NULL;
+    }
 }
 
 Connection_T smf_lookup_sql_get_connection(ConnectionPool_T pool) {
@@ -320,5 +320,10 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {
 
     free(query);
     smf_lookup_sql_con_close(c);
+
+    /* if not persistent, close connection */
+    if (settings->lookup_persistent != 1)
+        smf_lookup_sql_disconnect(settings);
+
     return result;
 }
