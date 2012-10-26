@@ -31,6 +31,7 @@ char *smf_lookup_sql_get_dsn(SMFSettings_T *settings, char *host);
 int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn);
 void smf_lookup_sql_con_close(Connection_T c);
 Connection_T smf_lookup_sql_get_connection(ConnectionPool_T pool);
+void smf_lookup_sql_abort_handler(const char *error);
 #endif
 
 #endif  /* _SMF_LOOKUP_SQL_H */
