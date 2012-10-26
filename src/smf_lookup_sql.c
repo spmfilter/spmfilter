@@ -15,6 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -33,7 +35,10 @@
 #include "smf_internal.h"
 
 #define THIS_MODULE "lookup_sql"
-#define FIELDSIZE 1024
+
+void smf_lookup_sql_abort_handler(const char *error) {
+    TRACE(TRACE_ERR, "%s", error);
+}
 
 char *smf_lookup_sql_get_rand_host(SMFSettings_T *settings) {
     int random;
@@ -44,10 +49,8 @@ char *smf_lookup_sql_get_rand_host(SMFSettings_T *settings) {
 
     TRACE(TRACE_DEBUG,"trying to get random sql server");
     srand(time(NULL));
-    printf("SIZE: [%d]\n",smf_list_size(settings->sql_host));
     random = rand() % smf_list_size(settings->sql_host);
     e = smf_list_head(settings->sql_host);
-    printf("RAND: [%d]\n",random);
     while(e != NULL) {     
         count++;
         if(count != random) 
@@ -100,12 +103,9 @@ char *smf_lookup_sql_get_dsn(SMFSettings_T *settings, char *host) {
             /* expand ~ in db name to HOME env variable */
             if ((strlen(settings->sql_name) > 0 ) && (settings->sql_name[0] == '~')) {
                 char *homedir;
-                char *db = NULL;
                 if ((homedir = getenv ("HOME")) == NULL)
                     TRACE(TRACE_ERR,"can't expand ~ in db name");
-                snprintf(db, FIELDSIZE, "%s%s", homedir, &(settings->sql_name[1]));
-                settings->sql_name = strdup(db);
-                free(db);
+                asprintf(&settings->sql_name,"%s%s", homedir, &(settings->sql_name[1]));
             }
 
             smf_core_strcat_printf(&sdsn, "%s", settings->sql_name);
@@ -141,13 +141,15 @@ int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn) {
     con = malloc(sizeof(SMFSQLConnection_T));
     con->pool = NULL;
     con->url = URL_new(dsn);
-    
+    if (settings->lookup_connection != NULL) smf_lookup_sql_disconnect(settings);
+
+    settings->lookup_connection = (void *)con;
+
     if (!(con->pool = ConnectionPool_new(con->url))) {
         TRACE(TRACE_ERR,"error creating database connection pool");
         return -1;
     }
     
-
     if (settings->sql_max_connections > 0) {
         if (settings->sql_max_connections < (unsigned int)ConnectionPool_getInitialConnections(con->pool))
             ConnectionPool_setInitialConnections(con->pool, settings->sql_max_connections);
@@ -156,22 +158,19 @@ int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn) {
     }
 
     ConnectionPool_setReaper(con->pool, sweep_interval);
-
     TRACE(TRACE_LOOKUP, "run a database connection reaper thread every [%d] seconds", sweep_interval);
 
+    if (strcasecmp(settings->sql_driver,"sqlite") != 0) 
+        ConnectionPool_setAbortHandler(con->pool, smf_lookup_sql_abort_handler);
+    
     ConnectionPool_start(con->pool);
 
-    TRACE(TRACE_LOOKUP, "database connection pool started with [%d] connections, max [%d]",
-            ConnectionPool_getInitialConnections(con->pool), ConnectionPool_getMaxConnections(con->pool));
-
-    if (!(c = ConnectionPool_getConnection(con->pool))) {
-        TRACE(TRACE_ERR, "error getting a database connection from the pool");
-
-        return -1;
-    }
+    if (!(c = ConnectionPool_getConnection(con->pool))) return -1;
+    if (Connection_ping(c) == 0) return -1;
     smf_lookup_sql_con_close(c);
-    
-    settings->lookup_connection = (void *)con;
+
+    TRACE(TRACE_LOOKUP, "database connection pool started with [%d] connections, max [%d]",
+    ConnectionPool_getInitialConnections(con->pool), ConnectionPool_getMaxConnections(con->pool));    
 
     return 0;
 }
@@ -189,12 +188,13 @@ int smf_lookup_sql_connect(SMFSettings_T *settings) {
     if ((ret = smf_lookup_sql_start_pool(settings,dsn)) != 0) {
         TRACE(TRACE_ERR,"failed to initialize sql pool\n");
         /* check failover connections */
-        elem = smf_list_head(settings->ldap_host);
+        elem = smf_list_head(settings->sql_host);
         while(elem != NULL) {
             if (dsn != NULL) free(dsn);
 
             host = (char *)smf_list_data(elem);
             dsn = smf_lookup_sql_get_dsn(settings, host);
+            
             if ((ret = smf_lookup_sql_start_pool(settings,dsn)) == 0)
                 break;
 
