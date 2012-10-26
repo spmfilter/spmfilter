@@ -28,8 +28,6 @@
 #include "smf_settings.h"
 #include "smf_settings_private.h"
 #include "smf_trace.h"
-#include "smf_lookup.h"
-#include "smf_lookup_private.h"
 #include "smf_modules.h"
 #include "smf_internal.h"
 

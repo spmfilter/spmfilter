@@ -21,7 +21,7 @@
 #include <db.h>
 #include <assert.h>
 #include "../src/smf_lookup.h"
-#include "../src/smf_lookup_private.h"
+#include "../src/smf_lookup_sql.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
 #include "../src/smf_dict.h"
@@ -63,6 +63,7 @@ int main (int argc, char const *argv[]) {
 	char *sql_backend_conn = SQL_BACKEND_CONN;
 	char *host1 = strdup(SQL_HOST1);
 	char *host2 = strdup(SQL_HOST2);
+    int found = 0;
    
 	SMFList_T *result = NULL;
 	SMFListElem_T *e = NULL;
@@ -105,24 +106,32 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
     }
     printf("passed\n");
 
-#if 0
-	if(smf_lookup_sql_connect(settings) == 0) {
-		result = smf_lookup_sql_query(settings,sql_query);
-
-		e = smf_list_head(result);
-		while(e != NULL) {
-			d = (SMFDict_T *)smf_list_data(e);
-			//printf("[%s]",smf_dict_get(d,"data"));
-			assert(strcmp(smf_dict_get(d,"data"),SQL_QUERY_RESULT_STRING)==0);
-			e = e->next;
-		}
-
-		smf_list_free(result);
-		smf_lookup_sql_disconnect();
-	} else {
-		printf("unable to establish database connection\n");
+    printf("* testing smf_lookup_sql_query()...\t\t\t\t");
+    result = smf_lookup_sql_query(settings,sql_query);
+    e = smf_list_head(result);
+    while(e != NULL) {
+        d = (SMFDict_T *)smf_list_data(e);
+        if (strcmp(smf_dict_get(d,"data"),SQL_QUERY_RESULT_STRING)==0) {
+            found = 1;
+            break;
+        }
+        e = e->next;
 	}
-#endif
+	smf_list_free(result);
+
+    if (found == 1) { 
+        printf("passed\n");
+        found = 0;   
+    } else {
+        printf("failed\b");
+        return -1;
+    }
+
+    printf("* testing smf_lookup_sql_disconnect()...\t\t\t");
+    smf_lookup_sql_disconnect(settings);
+    printf("passed\n");
+
+
 	smf_settings_free(settings);
 
 	return 0;
