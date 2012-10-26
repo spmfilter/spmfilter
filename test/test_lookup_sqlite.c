@@ -24,7 +24,7 @@
 #include <assert.h>
 #include "test.h"
 #include "../src/smf_lookup.h"
-#include "../src/smf_lookup_private.h"
+#include "../src/smf_lookup_sql.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
 #include "../src/smf_dict.h"
