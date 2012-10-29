@@ -20,8 +20,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <db.h>
-#include <assert.h>
 #include "test.h"
 #include "../src/smf_lookup.h"
 #include "../src/smf_lookup_sql.h"
@@ -38,7 +36,6 @@
 
 
 int main (int argc, char const *argv[]) {
-#if 0	
 	char *sql_driver = SQL_DRIVER;
 	char *sql_query = SQL_QUERY;
 	char *sql_name = NULL;
@@ -48,7 +45,10 @@ int main (int argc, char const *argv[]) {
 	SMFListElem_T *e = NULL;
 	SMFSettings_T *settings = smf_settings_new();
 	SMFDict_T *d = NULL;
+	int found = 0;
 
+
+	printf("* testing smf_lookup_sql_connect()...\t\t\t\t");
 	asprintf(&sql_name, "%s/%s", SAMPLES_DIR, SQL_SQLITE_DB);
 	smf_settings_set_sql_driver(settings, sql_driver);
 	smf_settings_set_sql_name(settings, sql_name);
@@ -56,28 +56,39 @@ int main (int argc, char const *argv[]) {
 	smf_settings_set_sql_user_query(settings, sql_query);
 	smf_settings_set_sql_max_connections(settings, 5);
 
-	if(smf_lookup_sql_connect(settings) == 0) {
-		result = smf_lookup_sql_query(settings,sql_query);
+	if(smf_lookup_sql_connect(settings) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+	printf("* testing smf_lookup_sql_query()...\t\t\t\t");
+	result = smf_lookup_sql_query(settings,sql_query);
 		
-		e = smf_list_head(result);
-		while(e != NULL) {
-			d = (SMFDict_T *)smf_list_data(e);
-			//printf("[%s]",smf_dict_get(d,"data"));
-			assert(strcmp(smf_dict_get(d,"data"),SQL_QUERY_RESULT_STRING)==0);
-			e = e->next;
-		}
-
-		smf_list_free(result);
-		smf_lookup_sql_disconnect();
-
-	} else {
-		printf("unable to establish database connection\n");
+	e = smf_list_head(result);
+	while(e != NULL) {
+		d = (SMFDict_T *)smf_list_data(e);
+		if (strcmp(smf_dict_get(d,"data"),SQL_QUERY_RESULT_STRING)==0)
+			found = 1;
+		e = e->next;
 	}
+
+	if (found!=1) {
+		printf("failed\n");
+		return -1;
+	}
+	printf("passed\n");
+	smf_list_free(result);
+	
+
+	printf("* testing smf_lookup_sql_disconnect()...\t\t\t");
+    smf_lookup_sql_disconnect(settings);
+    printf("passed\n");
 
 	if(sql_name != NULL)
 		free(sql_name);
 
 	smf_settings_free(settings);
-#endif
+
 	return 0;
 }
