@@ -133,7 +133,7 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
     if (test_query(settings)==1) { 
         printf("passed\n");
     } else {
-        printf("failed\b");
+        printf("failed\n");
         return -1;
     }
 
@@ -148,6 +148,7 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
         printf("failed\n");
         return -1;
     }
+
     smf_lookup_sql_disconnect(settings);
     printf("passed\n");
 
