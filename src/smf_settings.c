@@ -514,6 +514,7 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->ldap_user_query != NULL) free(settings->ldap_user_query);
 
     smf_dict_free(settings->groups);
+
     free(settings);
 }
 

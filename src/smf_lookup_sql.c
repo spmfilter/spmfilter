@@ -138,6 +138,9 @@ int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn) {
     assert(settings);
     assert(dsn); 
 
+    if (settings->lookup_connection != NULL)
+        smf_lookup_sql_disconnect(settings);
+
     con = malloc(sizeof(SMFSQLConnection_T));
     con->pool = NULL;
     con->url = URL_new(dsn);
@@ -147,6 +150,7 @@ int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn) {
 
     if (!(con->pool = ConnectionPool_new(con->url))) {
         TRACE(TRACE_ERR,"error creating database connection pool");
+        smf_lookup_sql_disconnect(settings);
         return -1;
     }
     
@@ -165,8 +169,14 @@ int smf_lookup_sql_start_pool(SMFSettings_T *settings, char *dsn) {
     
     ConnectionPool_start(con->pool);
 
-    if (!(c = ConnectionPool_getConnection(con->pool))) return -1;
-    if (Connection_ping(c) == 0) return -1;
+    if (!(c = ConnectionPool_getConnection(con->pool))) {
+        smf_lookup_sql_disconnect(settings);
+        return -1;
+    }
+    if (Connection_ping(c) == 0) {
+        smf_lookup_sql_disconnect(settings);
+        return -1;
+    }
     smf_lookup_sql_con_close(c);
 
     TRACE(TRACE_LOOKUP, "database connection pool started with [%d] connections, max [%d]",
