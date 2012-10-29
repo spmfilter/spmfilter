@@ -380,7 +380,6 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         return;
     }
     
-    smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     /* open the spool file */
     spool_file = fopen(session->message_file, "w+");
     if(spool_file == NULL) {
@@ -392,7 +391,6 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
     STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file); 
     smf_smtpd_string_reply(session->sock,"354 End data with <CR><LF>.<CR><LF>\r\n");
 
-    // TODO: max_size < message_size -> reject
     while((br = smf_internal_readline(session->sock,buf,MAXLINE,&rl)) > 0) {
         if ((strncasecmp(buf,".\r\n",3)==0)||(strncasecmp(buf,".\n",2)==0)) break;
         if (strncasecmp(buf,".",1)==0) smf_smtpd_stuffing(buf);
@@ -427,8 +425,8 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         smf_smtpd_append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
     
     
-    TRACE(TRACE_DEBUG,"data complete, message size: %d", (u_int32_t)session->message_size);
-
+    STRACE(TRACE_DEBUG,session->id,"data complete, message size: %d", (u_int32_t)session->message_size);
+    
     if ((session->message_size > smf_settings_get_max_size(settings))&&(smf_settings_get_max_size(settings) != 0)) {
         STRACE(TRACE_DEBUG,session->id,"max message size limit exceeded"); 
         smf_smtpd_string_reply(session->sock,"552 message size exceeds fixed maximium message size\r\n");
