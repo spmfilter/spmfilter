@@ -29,7 +29,6 @@ extern "C" {
 typedef int (*ModuleLoadFunction)(SMFSession_T *session);
 typedef int (*LoadEngine)(SMFSettings_T *settings);
 
-
 typedef struct {
     int (*load_error)(SMFSettings_T *settings, SMFSession_T *session);
     int (*processing_error)(SMFSettings_T *settings, SMFSession_T *session, int retval);
@@ -53,6 +52,9 @@ int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, S
 int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFList_T *initial_headers);
 
 int smf_modules_engine_load(SMFSettings_T *settings);
+
+int smf_modules_init(SMFSettings_T *settings, char *custom_libdir);
+int smf_modules_unload(SMFSettings_T *settings);
 
 #ifdef __cplusplus
 }

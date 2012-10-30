@@ -43,6 +43,15 @@ typedef enum {
 } SMFConnectionType_T;
 
 /*!
+ * @struct SMFModule_T smf_settings.h
+ * @brief Defines a module
+ */
+typedef struct {
+    char *name; /**< name of the module */
+    void *handle; /**< module handle */
+} SMFModule_T;
+
+/*!
  * @struct SMFSettings_T smf_settings.h
  * @brief Holds spmfilter runtime configuration 
  */
