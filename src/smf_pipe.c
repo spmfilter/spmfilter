@@ -42,12 +42,8 @@
 #define BUF_SIZE 1024
 
 
-#if 0
-/* error handler used when building module queue
- * return 1 if processing should continue, else 0
- */
-static int handle_q_error(int module_fail) {
-    switch (module_fail) {
+static int smf_pipe_handle_q_error(SMFSettings_T *settings, SMFSession_T *session) {
+    switch (settings->module_fail) {
         case 1:
             return(1);
         default:
@@ -55,11 +51,9 @@ static int handle_q_error(int module_fail) {
     }
 }
 
-/* handle processing errors when running queue
- */
-static int handle_q_processing_error(int retval, int module_fail, char *response_msg) {
+static int smf_pipe_handle_q_processing_error(SMFSettings_T *settings, SMFSession_T *session, int retval) {
     if (retval == -1) {
-        switch (module_fail) {
+        switch (settings->module_fail) {
             case 1: 
                 return(1);
             default:
@@ -70,8 +64,8 @@ static int handle_q_processing_error(int retval, int module_fail, char *response
     } else if(retval == 2) {
         return(2);
     } else {
-        if (response_msg != NULL) 
-            printf("%s\n",response_msg);
+        if (session->response_msg != NULL) 
+            printf("%s\n",session->response_msg);
         return(1);
     }
     /* if none of the above matched, halt processing, this is just
@@ -83,42 +77,28 @@ static int handle_q_processing_error(int retval, int module_fail, char *response
 
 
 /* handle nexthop delivery error */
-static int handle_nexthop_error(void *args) {
+static int smf_pipe_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T *session) {
     return(0);
 }
 
-int load_modules(SMFSession_T *session, SMFSettings_T *settings) {
-    int ret;
-    ProcessQueue_T *q;
-
-    /* initialize the modules queue handler */
-    q = smf_modules_pqueue_init(
-        handle_q_error,
-        handle_q_processing_error,
-        handle_nexthop_error
-    );
-
-    if(q == NULL) {
-        return(-1);
-    }
-
-    /* now tun the process queue */
-    ret = smf_modules_process(q,session,settings);
-    free(q);
-
-    if(ret != 0) {
-        TRACE(TRACE_DEBUG, "pipe engine failed to process modules!");
-        return(-1);
-    }
-    return(0);
-}
-#endif
 int load(SMFSettings_T *settings) {
     struct tms start_acct;
     char buffer[BUF_SIZE];
     FILE *spool_file;
     SMFMessage_T *message = smf_message_new();
     SMFSession_T *session = smf_session_new();
+    SMFProcessQueue_T *q;
+
+    /* initialize the modules queue handler */
+    q = smf_modules_pqueue_init(
+        smf_pipe_handle_q_error,
+        smf_pipe_handle_q_processing_error,
+        smf_pipe_handle_nexthop_error
+    );
+
+    if(q == NULL) {
+        return(-1);
+    }
 
     start_acct = smf_internal_init_runtime_stats();
 
@@ -158,8 +138,7 @@ int load(SMFSettings_T *settings) {
 
     session->envelope->message = message;
 
-    
-    /*
+/*
     if (load_modules(session, settings) != 0) {
         remove(session->message_file);
         smf_session_free(session);
@@ -171,8 +150,7 @@ int load(SMFSettings_T *settings) {
         TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
         return 0;
     }
-    */
-    
+  */  
     smf_internal_print_runtime_stats(start_acct,session->id);
 
     return 0;

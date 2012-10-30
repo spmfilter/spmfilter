@@ -170,9 +170,7 @@ int smf_modules_process(
     SMFMessage_T *msg = NULL;
     SMFList_T *initial_headers = NULL;
     SMFListElem_T *elem = NULL;
-    char *curmod;
-    char *path;
-    void *module = NULL;
+    SMFModule_T *curmod;
     ModuleLoadFunction runner;
     int ret, mod_count;
     char *header = NULL;
@@ -208,16 +206,20 @@ int smf_modules_process(
     modlist = smf_modules_stf_processed_modules(stfh);
     elem = smf_list_head(settings->modules);
     while(elem != NULL) {
-        curmod = (char *)smf_list_data(elem);
+        curmod = (SMFModule_T *)smf_list_data(elem);
         elem = elem->next;
 
         /* check if the module is in our modlist, if yes, the module has
          * already been processed and can be skipped */
-        if(smf_dict_get(modlist, curmod) != NULL) {
-            STRACE(TRACE_INFO, session->id, "skipping module [%s]", curmod);
+        if(smf_dict_get(modlist, curmod->name) != NULL) {
+            STRACE(TRACE_INFO, session->id, "skipping module [%s]", curmod->name);
             continue;
         }
 
+        runner = dlsym(curmod->handle,"load");
+        ret = runner(session);
+
+#if 0
         path = smf_internal_build_module_path(LIB_DIR, curmod);
         if(path == NULL) {
             STRACE(TRACE_DEBUG, session->id, "failed to build module path for [%s]", curmod);
@@ -239,19 +241,19 @@ int smf_modules_process(
         if (dlclose(module) != 0) {
             STRACE(TRACE_ERR, session->id, "failed to unload module [%s]",path);
         }
-
+#endif
         if(ret != 0) {
             ret = q->processing_error(settings,session,ret);
             
             if(ret == 0) {
-                STRACE(TRACE_ERR, session->id, "module [%s] failed, stopping processing!", curmod);
+                STRACE(TRACE_ERR, session->id, "module [%s] failed, stopping processing!", curmod->name);
                 smf_dict_free(modlist);
                 fclose(stfh);
                 free(stf_filename);
 
                 return -1;
             } else if(ret == 1) {
-                STRACE(TRACE_WARNING, session->id, "module [%s] stopped processing!", curmod);
+                STRACE(TRACE_WARNING, session->id, "module [%s] stopped processing!", curmod->name);
                 smf_dict_free(modlist);
                 fclose(stfh);
                 if(unlink(stf_filename) != 0)
@@ -263,16 +265,16 @@ int smf_modules_process(
                 break;
             }
         } else {
-            STRACE(TRACE_DEBUG, session->id, "module [%s] finished successfully", curmod);
-            smf_modules_stf_write_entry(stfh, curmod);
+            STRACE(TRACE_DEBUG, session->id, "module [%s] finished successfully", curmod->name);
+            smf_modules_stf_write_entry(stfh, curmod->name);
         }
 
         mod_count++;
         if (settings->add_header == 1) {
             if (mod_count == smf_list_size(settings->modules))
-                smf_core_strcat_printf(&header, "%s", curmod);
+                smf_core_strcat_printf(&header, "%s", curmod->name);
             else
-                smf_core_strcat_printf(&header, "%s, ", curmod);
+                smf_core_strcat_printf(&header, "%s, ", curmod->name);
         }
     }
 
@@ -463,6 +465,61 @@ int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, S
     }
 
     smf_smtp_status_free(status);
+
+    return 0;
+}
+
+
+int smf_modules_init(SMFSettings_T *settings, char *custom_libdir) {
+    SMFListElem_T *e = NULL;
+    SMFModule_T *mod = NULL;
+    char *path = NULL;
+
+    assert(settings);
+
+    e = smf_list_head(settings->modules);
+    while(e!=NULL) {
+        mod = (SMFModule_T *)smf_list_data(e);
+        if (custom_libdir != NULL)
+            path = smf_internal_build_module_path(custom_libdir, mod->name);
+        else
+            path = smf_internal_build_module_path(LIB_DIR, mod->name);
+        
+        if (path == NULL) {
+            TRACE(TRACE_DEBUG, "failed to build module path for [%s]", mod->name);
+            return -1;
+        }
+
+        if ((mod->handle = dlopen(path, RTLD_LAZY)) == NULL) {
+            TRACE(TRACE_ERR,"failed to load module [%s]: %s", mod->name,dlerror());
+            free(path);
+            return -1;
+        }
+        dlerror();  
+
+        free(path);
+        e = e->next;
+    }
+
+    return 0;
+}
+
+int smf_modules_unload(SMFSettings_T *settings) {
+    SMFListElem_T *e = NULL;
+    SMFModule_T *mod = NULL;
+
+    assert(settings);
+
+    e = smf_list_head(settings->modules);
+    while (e != NULL) {
+        mod = (SMFModule_T *)smf_list_data(e);
+
+        if (dlclose(mod->handle) != 0) {
+            TRACE(TRACE_ERR, "failed to unload module [%s]",mod->name);
+            return -1;
+        }
+        e = e->next;
+    }
 
     return 0;
 }

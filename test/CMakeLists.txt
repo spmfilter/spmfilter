@@ -48,13 +48,17 @@ add_executable(test_internal test_internal.c)
 target_link_libraries(test_internal smf ${COMMON_LIBS})
 ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_internal)
 
+add_executable(test_modules test_modules.c)
+target_link_libraries(test_modules smf ${COMMON_LIBS})
+ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_modules)
+
 add_executable(test_smtpd test_smtpd.c ../src/smf_server.c)
 target_link_libraries(test_smtpd smf smtpd ${COMMON_LIBS})
 ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_smtpd)
 
 add_executable(test_engine_pipe test_engine_pipe.c)
 target_link_libraries(test_engine_pipe smf pipe ${COMMON_LIBS})
-#ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_engine_pipe)
+
 add_executable(test_engine_pipe_execute test_engine_pipe_execute.c)
 ADD_TEST(test_engine_pipe_execute ${EXECUTABLE_OUTPUT_PATH}/test_engine_pipe_execute)
 
@@ -81,3 +85,9 @@ if(HAVE_ZDB)
         target_link_libraries(test_lookup_sqlite smf ${COMMON_LIBS} zdb)
         ADD_TEST(SQL ${EXECUTABLE_OUTPUT_PATH}/test_lookup_sqlite)
 endif(HAVE_ZDB)
+
+add_library(testmod1 SHARED testmod1.c)
+target_link_libraries(testmod1 smf)
+
+add_library(testmod2 SHARED testmod2.c)
+target_link_libraries(testmod2 smf)

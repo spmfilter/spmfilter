@@ -48,6 +48,12 @@ typedef enum _line_status {
     LINE_VALUE
 } line_status ;
 
+void _mod_list_destroy(void *data) {
+    SMFModule_T *mod = (SMFModule_T *)data;
+    if (mod->name != NULL) free(mod->name);
+    free(mod);
+}
+
 int _get_boolean(char *val) {
     int ret = 0;
 
@@ -142,14 +148,16 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 if (smf_list_free((*settings)->modules)!=0)
                     TRACE(TRACE_ERR,"failed to free modules list");
                 else 
-                    if (smf_list_new(&((*settings)->modules),smf_internal_string_list_destroy)!=0)
+                    if (smf_list_new(&((*settings)->modules),_mod_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create modules list");
             }
             sl = smf_core_strsplit(val, ";");
             p = sl;
             while(*p != NULL) {
                 s = smf_core_strstrip(*p);
-                smf_list_append((*settings)->modules, s);
+                //smf_list_append((*settings)->modules, s);
+                smf_settings_add_module((*settings),s);
+                free(s);
                 p++;
             }
             free(sl);
@@ -324,7 +332,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 if (smf_list_free((*settings)->ldap_host)!=0)
                     TRACE(TRACE_ERR,"failed to free host list");
                 else 
-                    if (smf_list_new(&((*settings)->ldap_host),smf_internal_string_list_destroy)!=0)
+                    if (smf_list_new(&((*settings)->ldap_host),_mod_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create host list");
             }
             sl = smf_core_strsplit(val, ";");
@@ -410,7 +418,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->config_file = NULL;
     settings->queue_dir = NULL;
     settings->engine = NULL;
-    if (smf_list_new(&settings->modules, smf_internal_string_list_destroy) != 0) {
+    if (smf_list_new(&settings->modules, _mod_list_destroy) != 0) {
         TRACE(TRACE_ERR,"failed to allocate space for settings->modules");
         free(settings);
         return NULL;
@@ -535,6 +543,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     char *clean_key = NULL;
     char *clean_val = NULL;
     char *tmp = NULL;
+    SMFModule_T *mod = NULL;
 
     assert(*settings);
 
@@ -698,8 +707,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->engine: [%s]", (*settings)->engine);
     elem = smf_list_head((*settings)->modules);
     while(elem != NULL) {
-        s = (char *)smf_list_data(elem);
-        TRACE(TRACE_DEBUG, "settings->modules: [%s]", s);
+        mod = (SMFModule_T *)smf_list_data(elem);
+        TRACE(TRACE_DEBUG, "settings->modules: [%s]", mod->name);
         elem = elem->next;
     }
     TRACE(TRACE_DEBUG, "settings->module_fail [%d]",(*settings)->module_fail);
@@ -855,10 +864,13 @@ char *smf_settings_get_engine(SMFSettings_T *settings) {
 }
 
 int smf_settings_add_module(SMFSettings_T *settings, char *module) {
+    SMFModule_T *m = malloc(sizeof(SMFModule_T));
     assert(settings); 
     assert(module);
    
-    return smf_list_append(settings->modules, (void *)module);
+    m->name = strdup(module);
+
+    return smf_list_append(settings->modules, (void *)m);
 }
 
 SMFList_T *smf_settings_get_modules(SMFSettings_T *settings) {
