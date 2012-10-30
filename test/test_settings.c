@@ -106,7 +106,8 @@ int main (int argc, char const *argv[]) {
     } else {
         printf("passed\n");
     }
-
+    free(s);
+    
     printf("* testing smf_settings_get_modules()...\t\t\t");
     list = smf_settings_get_modules(settings);
     if (smf_list_size(list)!=3) {
