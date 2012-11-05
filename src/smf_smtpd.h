@@ -20,6 +20,7 @@
 
 #include "smf_settings.h"
 #include "smf_session.h"
+#include "smf_modules.h"
 
 #define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
 #define CODE_250 "250 OK\r\n"
@@ -40,7 +41,7 @@
 static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session);
 static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSession_T *session, int retval);
 static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T *session);
-int smf_smtpd_load_modules(SMFSession_T *session, SMFSettings_T *settings);
+int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q);
 char *smf_smtpd_get_req_value(char *req, int jmp);
 void smf_smtpd_stuffing(char chain[]);
 int smf_smtpd_append_missing_headers(SMFSession_T *session, 
@@ -53,7 +54,7 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session,
     char *nl);
 void smf_smtpd_string_reply(int sock, const char *format, ...);
 void smf_smtpd_code_reply(int sock, int code, SMFDict_T *codes);
-void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings);
-void smf_smtpd_handle_client(SMFSettings_T *settings, int client);
+void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings,SMFProcessQueue_T *q);
+void smf_smtpd_handle_client(SMFSettings_T *settings, int client,SMFProcessQueue_T *q);
 
 #endif  /* _SMF_SMTPD_H */

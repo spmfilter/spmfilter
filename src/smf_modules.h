@@ -54,6 +54,7 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
 int smf_modules_engine_load(SMFSettings_T *settings);
 
 int smf_modules_init(SMFSettings_T *settings, char *custom_libdir);
+
 int smf_modules_unload(SMFSettings_T *settings);
 
 #ifdef __cplusplus

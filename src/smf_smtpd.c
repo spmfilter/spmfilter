@@ -125,24 +125,24 @@ static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T 
     return 0;
 }
 
-int smf_smtpd_load_modules(SMFSession_T *session, SMFSettings_T *settings) {
+int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q) {
     int ret;
-    SMFProcessQueue_T *q;
+//    SMFProcessQueue_T *q;
 
     /* initialize the modules queue handler */
-    q = smf_modules_pqueue_init(
-        smf_smtpd_handle_q_error,
-        smf_smtpd_handle_q_processing_error,
-        smf_smtpd_handle_nexthop_error
-    );
+//    q = smf_modules_pqueue_init(
+//        smf_smtpd_handle_q_error,
+//        smf_smtpd_handle_q_processing_error,
+//        smf_smtpd_handle_nexthop_error
+//    );
 
-    if(q == NULL) {
-        return(-1);
-    }
+//    if(q == NULL) {
+//        return(-1);
+//    }
 
     /* now tun the process queue */
     ret = smf_modules_process(q,session,settings);
-    free(q);
+//    free(q);
 
     if(ret == -1) {
         STRACE(TRACE_DEBUG, session->id, "smtpd engine failed!");
@@ -356,7 +356,7 @@ void smf_smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
     free(out);
 }
 
-void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
+void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q) {
 	ssize_t br;
     char buf[MAXLINE];
     void *rl = NULL;
@@ -438,7 +438,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         }
 
         session->envelope->message = message;
-        smf_smtpd_load_modules(session,settings);
+        smf_smtpd_process_modules(session,settings,q);
     }
 
     STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
@@ -446,7 +446,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings) {
         STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
 }
 
-void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
+void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
     char *hostname = NULL;
     int br;
     void *rl = NULL;
@@ -607,7 +607,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
             } else {
                 state = ST_DATA;
                 STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
-                smf_smtpd_process_data(session,settings);
+                smf_smtpd_process_data(session,settings,q);
             }
         } else if (strncasecmp(req,"rset", 4)==0) {
             alarm(settings->smtpd_timeout);
@@ -642,15 +642,37 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client) {
 
 int load(SMFSettings_T *settings) {
     int sd;
+    SMFProcessQueue_T *q;
 
     TRACE(TRACE_INFO,"starting smtpd engine");
+
+    if (smf_modules_init(settings,NULL)!=0) {
+        TRACE(TRACE_ERR,"failed to initialize modules");
+        return -1;
+    }
+
+    /* initialize the modules queue handler */
+    q = smf_modules_pqueue_init(
+        smf_smtpd_handle_q_error,
+        smf_smtpd_handle_q_processing_error,
+        smf_smtpd_handle_nexthop_error
+    );
+
+    if(q == NULL) {
+        TRACE(TRACE_ERR,"failed to initialize module queue");
+        return(-1);
+    }
 
     if ((sd = smf_server_listen(settings)) < 0) {
         exit(EXIT_FAILURE);
     }
 
     smf_server_init(settings,sd);
-    smf_server_loop(settings,sd,smf_smtpd_handle_client);
+    smf_server_loop(settings,sd,q,smf_smtpd_handle_client);
+
+    if (smf_modules_unload(settings)!=0) {
+        TRACE(TRACE_ERR,"failed to unload modules");
+    }
 
     return 0;
 }
