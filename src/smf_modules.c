@@ -177,6 +177,7 @@ int smf_modules_process(
 
     /* initialize message file  and load processed modules */
     stf_filename = smf_modules_stf_path(settings,session);
+
     stfh = fopen(stf_filename, "a+");
     if(stfh == NULL) {
         STRACE(TRACE_ERR, session->id, "failed to open message state file %s: %s (%d)", stf_filename, strerror(errno),errno);
@@ -219,29 +220,6 @@ int smf_modules_process(
         runner = dlsym(curmod->handle,"load");
         ret = runner(session);
 
-#if 0
-        path = smf_internal_build_module_path(LIB_DIR, curmod);
-        if(path == NULL) {
-            STRACE(TRACE_DEBUG, session->id, "failed to build module path for [%s]", curmod);
-            return -1;
-        }
-
-        STRACE(TRACE_DEBUG, session->id, "preparing to run module %s", curmod);
-        if ((module = dlopen(path, RTLD_LAZY)) == NULL) {
-            TRACE(TRACE_ERR,"failed to load module [%s]: %s", path,dlerror());
-            free(path);
-            return -1;
-        }
-        dlerror();  
-
-        runner = dlsym(module,"load");
-        ret = runner(session);
-
-        free(path);
-        if (dlclose(module) != 0) {
-            STRACE(TRACE_ERR, session->id, "failed to unload module [%s]",path);
-        }
-#endif
         if(ret != 0) {
             ret = q->processing_error(settings,session,ret);
             
