@@ -35,7 +35,7 @@ int main (int argc, char const *argv[]) {
     printf("============================================\n");
     printf("This test expects a running SMTP daemon, \n");
     printf("listening on localhost:25, wich accepts \n");
-    printf("mails for foo@bar.com\n");
+    printf("mails for user@example.org\n");
     printf("============================================\n");
 
     printf("* testing smf_smtp_status_new()...\t\t\t\t");
