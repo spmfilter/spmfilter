@@ -19,20 +19,22 @@
 #define _SMF_SERVER_H
 
 #include "smf_settings.h"
+#include "smf_modules.h"
 
-typedef void (*handle_client_func)(SMFSettings_T *settings,int client);
+typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q);
 
 void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
 void smf_server_init(SMFSettings_T *settings, int sd);
 int smf_server_listen(SMFSettings_T *settings);
-void smf_server_fork(SMFSettings_T *settings,int sd,
-    void (*handle_client_func)(SMFSettings_T *settings,int client));
-void smf_server_loop(SMFSettings_T *settings,int sd,
-    void (*handle_client_func)(SMFSettings_T *settings,int client));
+void smf_server_fork(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
+    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
+void smf_server_loop(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
+    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
 void smf_server_accept_handler(
     SMFSettings_T *settings, 
     int sd, 
-    void (*handle_client_func)(SMFSettings_T *settings,int client));
+    SMFProcessQueue_T *q,
+    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
 
 #endif  /* _SMF_SERVER_H */

@@ -34,6 +34,7 @@
 #include "smf_settings.h"
 #include "smf_trace.h"
 #include "smf_server.h"
+#include "smf_modules.h"
 
 #define THIS_MODULE "server"
 
@@ -222,8 +223,8 @@ int smf_server_listen(SMFSettings_T *settings) {
     return sd;
 }
 
-void smf_server_fork(SMFSettings_T *settings,int sd,
-        void (*handle_client_func)(SMFSettings_T *settings,int client)) {
+void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
+        void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
     int pos = 0;
 
     for (pos=0; pos < settings->max_childs; pos++) {
@@ -238,7 +239,7 @@ void smf_server_fork(SMFSettings_T *settings,int sd,
             break;
         case 0:
 
-            smf_server_accept_handler(settings,sd,handle_client_func);
+            smf_server_accept_handler(settings,sd,q,handle_client_func);
             
             exit(EXIT_SUCCESS); /* quit child process */
             break;
@@ -249,8 +250,8 @@ void smf_server_fork(SMFSettings_T *settings,int sd,
     num_procs++;
 }
 
-void smf_server_loop(SMFSettings_T *settings,int sd,
-        void (*handle_client_func)(SMFSettings_T *settings,int client)) {
+void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
+        void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
     int i, status;
     pid_t pid;
 
@@ -259,11 +260,11 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
 
     /* prefork min. 1 child(s) */
     if(settings->spare_childs == 0) {
-        smf_server_fork(settings,sd,handle_client_func);
+        smf_server_fork(settings,sd,q,handle_client_func);
     } else {
         for (i = 0; i < settings->spare_childs; i++) {
             num_spare++;
-            smf_server_fork(settings,sd,handle_client_func);
+            smf_server_fork(settings,sd,q,handle_client_func);
         }
     }
 
@@ -283,7 +284,7 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
         if (num_procs < settings->max_childs) {
             /* minimal number of childs is not running */
             while (num_spare < settings->spare_childs) {
-                smf_server_fork(settings,sd,handle_client_func);
+                smf_server_fork(settings,sd,q,handle_client_func);
                 num_spare++;
             }      
         }
@@ -302,7 +303,8 @@ void smf_server_loop(SMFSettings_T *settings,int sd,
     unlink(settings->pid_file);
 }
 
-void smf_server_accept_handler(SMFSettings_T *settings, int sd, void (*handle_client_func)(SMFSettings_T *settings,int client)) {
+void smf_server_accept_handler(SMFSettings_T *settings, int sd, SMFProcessQueue_T *q, 
+        void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
     int client;
     socklen_t slen;
     struct sockaddr_storage sa;
@@ -321,7 +323,7 @@ void smf_server_accept_handler(SMFSettings_T *settings, int sd, void (*handle_cl
             }
             continue;
         }
-        handle_client_func(settings,client);
+        handle_client_func(settings,client,q);
         close(client);
     }
 
