@@ -59,9 +59,6 @@ ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_smtpd)
 add_executable(test_engine_pipe test_engine_pipe.c)
 target_link_libraries(test_engine_pipe smf pipe ${COMMON_LIBS})
 
-add_executable(test_engine_pipe_execute test_engine_pipe_execute.c)
-ADD_TEST(test_engine_pipe_execute ${EXECUTABLE_OUTPUT_PATH}/test_engine_pipe_execute)
-
 target_link_libraries(test_core smf ${COMMON_LIBS})
 ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
 
