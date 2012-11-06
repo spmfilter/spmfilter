@@ -18,54 +18,79 @@
 
 #define _GNU_SOURCE
 
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
-#include <sys/wait.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "../src/smf_list.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
 #include "../src/smf_internal.h"
 
-
-#define ENGINE "pipe"
-#define BUF_SIZE 1024
-#define QUEUE_DIR "/tmp"
+#include "test.h"
 
 int load(SMFSettings_T *settings);
 
 
 int main (int argc, char const *argv[]) {
-    SMFSettings_T *settings = NULL;
-    char *engine = ENGINE;
-    char *queue_dir = QUEUE_DIR;
+    SMFSettings_T *settings = smf_settings_new();
+    int pipefd[2];
+    char *fname;
 
-    if((settings = smf_settings_new()) != NULL) {
-        smf_settings_set_debug(settings, 1);
-        if (smf_settings_parse_config(&settings,"../../../spmfilter/spmfilter.conf.sample") != 0)
-            return(-1);
+    printf("Start smf_pipe tests...\n");
 
-        smf_settings_set_engine(settings,engine);
-    } else {
+    fflush(stdout); 
+
+    if (pipe(pipefd)) {
         return -1;
     }
 
-    smf_settings_set_engine(settings,engine);
-    smf_settings_set_queue_dir(settings, queue_dir); 
+    printf("* preparing pipe engine...\t\t\t");
+    smf_settings_set_debug(settings, 1);
+    smf_settings_set_queue_dir(settings, BINARY_DIR);
+    smf_settings_set_engine(settings, "pipe");
     
-    /* make sure none of the plugins is loaded, therefor we just 
-     * clear and recreate settings->modules
-     */
-    smf_list_free(settings->modules);
-    smf_list_new(&settings->modules, smf_internal_string_list_destroy);
+    /* add test modules */
+    smf_settings_add_module(settings, "testmod1");
+    smf_settings_add_module(settings, "testmod2");
 
-    /* call load function */
-    if(load(settings) != 0) {
+    if (smf_modules_init(settings,BINARY_DIR)!=0) {
+        printf("failed\n");
         return -1;
     }
-    
+
+    asprintf(&fname, "%s/m0001.txt",SAMPLES_DIR);
+
+    switch (fork()) {
+        case -1:
+            printf("failed\n");
+            return -1;
+        case 0:
+            close(pipefd[0]); 
+            dup2(pipefd[1], 1); 
+            close(pipefd[1]);  
+            sleep(10);
+            execl("/bin/cat", "cat", fname, (char *)NULL);
+            
+            break;
+        default:
+            close(pipefd[1]);  
+            dup2(pipefd[0], 0);
+            close(pipefd[0]); 
+            printf("passed\n");
+            printf("* testing engine...\t\t\t\t");
+            if (load(settings) != 0) {
+                printf("failed\n");
+                return -1;
+            }
+
+            printf("passed\n");
+            break;
+    }
+    free(fname);
+    smf_settings_free(settings);
     return 0;
 }
