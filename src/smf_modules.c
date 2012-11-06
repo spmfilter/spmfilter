@@ -172,7 +172,8 @@ int smf_modules_process(
     SMFListElem_T *elem = NULL;
     SMFModule_T *curmod;
     ModuleLoadFunction runner;
-    int ret, mod_count;
+    int ret = 0;
+    int mod_count;
     char *header = NULL;
 
     /* initialize message file  and load processed modules */
@@ -458,24 +459,26 @@ int smf_modules_init(SMFSettings_T *settings, char *custom_libdir) {
     e = smf_list_head(settings->modules);
     while(e!=NULL) {
         mod = (SMFModule_T *)smf_list_data(e);
-        if (custom_libdir != NULL)
-            path = smf_internal_build_module_path(custom_libdir, mod->name);
-        else
-            path = smf_internal_build_module_path(LIB_DIR, mod->name);
-        
-        if (path == NULL) {
-            TRACE(TRACE_DEBUG, "failed to build module path for [%s]", mod->name);
-            return -1;
-        }
+        if (mod->handle == NULL) {
+            if (custom_libdir != NULL)
+                path = smf_internal_build_module_path(custom_libdir, mod->name);
+            else
+                path = smf_internal_build_module_path(LIB_DIR, mod->name);
+            
+            if (path == NULL) {
+                TRACE(TRACE_DEBUG, "failed to build module path for [%s]", mod->name);
+                return -1;
+            }
 
-        if ((mod->handle = dlopen(path, RTLD_LAZY)) == NULL) {
-            TRACE(TRACE_ERR,"failed to load module [%s]: %s", mod->name,dlerror());
+            if ((mod->handle = dlopen(path, RTLD_LAZY)) == NULL) {
+                TRACE(TRACE_ERR,"failed to load module [%s]: %s", mod->name,dlerror());
+                free(path);
+                return -1;
+            }
+            dlerror();  
+
             free(path);
-            return -1;
         }
-        dlerror();  
-
-        free(path);
         e = e->next;
     }
 
