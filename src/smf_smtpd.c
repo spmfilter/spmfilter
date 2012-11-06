@@ -127,22 +127,8 @@ static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T 
 
 int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q) {
     int ret;
-//    SMFProcessQueue_T *q;
-
-    /* initialize the modules queue handler */
-//    q = smf_modules_pqueue_init(
-//        smf_smtpd_handle_q_error,
-//        smf_smtpd_handle_q_processing_error,
-//        smf_smtpd_handle_nexthop_error
-//    );
-
-//    if(q == NULL) {
-//        return(-1);
-//    }
-
     /* now tun the process queue */
     ret = smf_modules_process(q,session,settings);
-//    free(q);
 
     if(ret == -1) {
         STRACE(TRACE_DEBUG, session->id, "smtpd engine failed!");

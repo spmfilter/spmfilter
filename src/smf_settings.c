@@ -869,7 +869,7 @@ int smf_settings_add_module(SMFSettings_T *settings, char *module) {
     assert(module);
    
     m->name = strdup(module);
-
+    m->handle = NULL;
     return smf_list_append(settings->modules, (void *)m);
 }
 

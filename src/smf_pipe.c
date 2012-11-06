@@ -88,6 +88,14 @@ int load(SMFSettings_T *settings) {
     SMFMessage_T *message = smf_message_new();
     SMFSession_T *session = smf_session_new();
     SMFProcessQueue_T *q;
+    int ret = -1;
+
+    start_acct = smf_internal_init_runtime_stats();
+
+    if (smf_modules_init(settings,NULL)!=0) {
+        TRACE(TRACE_ERR,"failed to initialize modules");
+        return -1;
+    }
 
     /* initialize the modules queue handler */
     q = smf_modules_pqueue_init(
@@ -100,8 +108,7 @@ int load(SMFSettings_T *settings) {
         return(-1);
     }
 
-    start_acct = smf_internal_init_runtime_stats();
-
+    
     /* generate the queue file */
     smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file);
@@ -138,20 +145,18 @@ int load(SMFSettings_T *settings) {
 
     session->envelope->message = message;
 
-/*
-    if (load_modules(session, settings) != 0) {
-        remove(session->message_file);
-        smf_session_free(session);
-        TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
-        return -1;
-    } else {
-        remove(session->message_file);
-        smf_session_free(session);
-        TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
-        return 0;
+
+    ret = smf_modules_process(q,session,settings);
+    remove(session->message_file);
+    
+    TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
+    
+    if (smf_modules_unload(settings)!=0) {
+        TRACE(TRACE_ERR,"failed to unload modules");
     }
-  */  
+    free(q);
     smf_internal_print_runtime_stats(start_acct,session->id);
 
-    return 0;
+    smf_session_free(session);
+    return ret;
 }
