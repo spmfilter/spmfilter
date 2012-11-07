@@ -42,45 +42,43 @@ ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
 
 add_executable(test_smtp test_smtp.c)
 target_link_libraries(test_smtp smf ${COMMON_LIBS})
-ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_smtp)
+ADD_TEST(smf_smtp ${EXECUTABLE_OUTPUT_PATH}/test_smtp)
 
 add_executable(test_internal test_internal.c)
 target_link_libraries(test_internal smf ${COMMON_LIBS})
-ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_internal)
+ADD_TEST(smf_internal ${EXECUTABLE_OUTPUT_PATH}/test_internal)
 
 add_executable(test_modules test_modules.c)
 target_link_libraries(test_modules smf ${COMMON_LIBS})
-ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_modules)
+ADD_TEST(smf_modules ${EXECUTABLE_OUTPUT_PATH}/test_modules)
+
+add_executable(test_pipe test_pipe.c)
+target_link_libraries(test_pipe smf pipe ${COMMON_LIBS})
+ADD_TEST(smf_pipe ${EXECUTABLE_OUTPUT_PATH}/test_pipe)
 
 add_executable(test_smtpd test_smtpd.c ../src/smf_server.c)
 target_link_libraries(test_smtpd smf smtpd ${COMMON_LIBS})
-ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_smtpd)
-
-add_executable(test_engine_pipe test_engine_pipe.c)
-target_link_libraries(test_engine_pipe smf pipe ${COMMON_LIBS})
-
-target_link_libraries(test_core smf ${COMMON_LIBS})
-ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
+ADD_TEST(smf_smtpd ${EXECUTABLE_OUTPUT_PATH}/test_smtpd)
 
 if(HAVE_DB4)
 	add_executable(test_lookup_db4 test_lookup_db4.c)
 	target_link_libraries(test_lookup_db4 smf ${COMMON_LIBS} db)
-	ADD_TEST(DB4 ${EXECUTABLE_OUTPUT_PATH}/test_lookup_db4)
+	ADD_TEST(smf_lookup_db4 ${EXECUTABLE_OUTPUT_PATH}/test_lookup_db4)
 endif(HAVE_DB4)
 
 if(HAVE_LDAP)
 	add_executable(test_lookup_ldap test_lookup_ldap.c)
         target_link_libraries(test_lookup_ldap smf ${COMMON_LIBS} ldap)
-        ADD_TEST(LDAP ${EXECUTABLE_OUTPUT_PATH}/test_lookup_ldap)
+        ADD_TEST(smf_lookup_ldap ${EXECUTABLE_OUTPUT_PATH}/test_lookup_ldap)
 endif(HAVE_LDAP)
 
 if(HAVE_ZDB)
 	add_executable(test_lookup_sql test_lookup_sql.c)
         target_link_libraries(test_lookup_sql smf ${COMMON_LIBS} zdb)
-        ADD_TEST(SQL ${EXECUTABLE_OUTPUT_PATH}/test_lookup_sql)
+        ADD_TEST(smf_lookup_sql ${EXECUTABLE_OUTPUT_PATH}/test_lookup_sql)
 	add_executable(test_lookup_sqlite test_lookup_sqlite.c)
         target_link_libraries(test_lookup_sqlite smf ${COMMON_LIBS} zdb)
-        ADD_TEST(SQL ${EXECUTABLE_OUTPUT_PATH}/test_lookup_sqlite)
+        ADD_TEST(smf_lookup_sqlite ${EXECUTABLE_OUTPUT_PATH}/test_lookup_sqlite)
 endif(HAVE_ZDB)
 
 add_library(testmod1 SHARED testmod1.c)
