@@ -29,6 +29,7 @@
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
 #include "../src/smf_internal.h"
+#include "../src/smf_modules.h"
 
 #include "test.h"
 
@@ -81,7 +82,7 @@ int main (int argc, char const *argv[]) {
             dup2(pipefd[0], 0);
             close(pipefd[0]); 
             printf("passed\n");
-            printf("* testing engine...\t\t\t\t");
+            printf("* sending test message...\t\t\t\t");
             if (load(settings) != 0) {
                 printf("failed\n");
                 return -1;

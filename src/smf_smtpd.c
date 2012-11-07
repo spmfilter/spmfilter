@@ -660,5 +660,7 @@ int load(SMFSettings_T *settings) {
         TRACE(TRACE_ERR,"failed to unload modules");
     }
 
+    free(q);
+    
     return 0;
 }
