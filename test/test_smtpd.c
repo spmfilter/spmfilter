@@ -43,7 +43,7 @@ int load(SMFSettings_T *settings);
 
 int main (int argc, char const *argv[]) {
     char *msg_file = NULL;
-
+    int pipefd[2];
     SMFSmtpStatus_T *status = NULL;
     SMFSettings_T *settings = smf_settings_new();
     SMFEnvelope_T *env = smf_envelope_new();
@@ -56,23 +56,48 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_max_childs(settings,1);
     smf_settings_set_debug(settings,1);
     smf_settings_set_queue_dir(settings, BINARY_DIR);
+    smf_settings_set_engine(settings, "smtpd");
+
+    /* add test modules */
+    smf_settings_add_module(settings, "testmod1");
+    smf_settings_add_module(settings, "testmod2");
     
     printf("Start smf_smtpd tests...\n");
-    printf("* forking up smtpd()...\t\t\t");
+
+    fflush(stdout); 
+
+    if (pipe(pipefd)) {
+        return -1;
+    }
     
+    printf("* preparing smtpd engine...\t\t\t");
+    
+    if (smf_modules_init(settings,BINARY_DIR)!=0) {
+        printf("failed\n");
+        return -1;
+    }
+
+    printf("passed\n");
     switch(pid = fork()) {
         case -1:
-            printf("fork() failed: %s\n",strerror(errno));
+            printf("failed\n");
             break;
         case 0:
-            if(load(settings) != 0) {
+            close(pipefd[0]); 
+            dup2(pipefd[1], 1); 
+            close(pipefd[1]);  
+            if (load(settings) != 0) {
                 return -1;
             }
             break;
 
         default:
+            close(pipefd[1]);  
+            dup2(pipefd[0], 0);
+            close(pipefd[0]); 
+            
             sleep(10);
-            printf("* sending test message ...\t\t");
+            printf("* sending test message ...\t\t\t");
             asprintf(&msg_file, "%s/m0001.txt",SAMPLES_DIR);
 
             smf_envelope_set_nexthop(env, "127.0.0.1:10025");
@@ -89,6 +114,7 @@ int main (int argc, char const *argv[]) {
             smf_smtp_status_free(status);
             printf("passed\n");
             kill(pid,SIGTERM);
+
             break;
     }
 
