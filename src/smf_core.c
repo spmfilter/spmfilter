@@ -158,7 +158,7 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
 
     while(*it != '\0') {
         if(*it == '%') {
-            *it++;
+            it++;
             switch(*it) {
                 case 's':
                     iter = addr;
@@ -179,7 +179,7 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
             memcpy((*buf + pos), iter, iter_size);
             pos += iter_size;
 
-            *it++; /* jump over current */
+            it++; /* jump over current */
             rep_made++;
         } else {
             (*buf)[pos++] = *it++;
