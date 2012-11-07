@@ -99,7 +99,7 @@ CONFIGURE_FILE(
 # check for enabled debugging
 if(ENABLE_DEBUG)
 	set(CMAKE_VERBOSE_MAKEFILE TRUE)
-    add_definitions(-DDEBUG -g -O0 -Wall)
+    add_definitions(-DDEBUG -g -O0 -Wall -Werror)
 endif(ENABLE_DEBUG)
 
 IF(APPLE)
