@@ -37,13 +37,17 @@
 
 #include "smf_list.h"
 
+/*!
+ * @struct SMFDict_T smf_dict.h
+ * @brief Dictionary data type
+ */
 typedef struct {
     int n; /**< number of entries in dictionary */
     int size; /**< storage size */
     char **val; /**< list of values */
     char **key; /**< list of string keys */
     unsigned *hash; /**< list of hash values for keys */
-} SMFDict_T ;
+} SMFDict_T;
 
 /*!
  * @fn SMFDict_T *smf_dict_new(void);

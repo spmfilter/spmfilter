@@ -15,6 +15,14 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_header.h
+ * @brief Defines the #SMFHeader_T data type and related functions
+ * @details SMFHeader_T represents an email header.
+ * @details To create a new #SMFHeader_T, use smf_header_new()
+ * @details To destroy a #SMFHeader_T use smf_header_free()
+ */
+
 #ifndef _SMF_HEADER_H
 #define _SMF_HEADER_H
 
@@ -23,11 +31,9 @@ extern "C" {
 #endif
 
 #include <cmime.h>
-#include "smf_core.h"
-
 
 /*!
- * @struct SMFHeader_T smf_header.h
+ * @typedef SMFHeader_T
  * @brief Represents a message header
  */
 typedef CMimeHeader_T SMFHeader_T;

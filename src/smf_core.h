@@ -46,7 +46,7 @@ char *smf_core_strlwc(char *s);
  * @fn char *smf_core_strcat_printf(char **s, const char *fmt, ...)
  * @brief Append format string to string and reallocate memory.
  *        The pointer to string is returned to allow the nesting of functions.
- * @param string to append to 
+ * @param s string to append to 
  * @param fmt format string
  * @return new appended string
  */
