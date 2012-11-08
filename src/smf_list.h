@@ -15,6 +15,12 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_list.h 
+ * @brief Defines the SMFList_T data type and functions for a linked lists 
+ *        that can be iterated over in both directions
+ */
+
 #ifndef _SMF_LIST_H
 #define _SMF_LIST_H
 

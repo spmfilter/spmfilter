@@ -15,6 +15,11 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_internal.h
+ * @brief Internal helper functions
+ */
+
 #ifndef _SMF_INTERNAL_H
 #define _SMF_INTERNAL_H
 
