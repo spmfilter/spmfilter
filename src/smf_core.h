@@ -15,39 +15,44 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_core.h
+ * @brief Various helper functions
+ */
+
 #ifndef _SMF_CORE_H
 #define	_SMF_CORE_H
 
-/**
+/*!
  * @fn char *smf_core_strstrip(char *s)
  * @brief Removes leading and trailing whitespace from a string.
- * This function doesn't allocate or reallocate any memory; it 
- * modifies string in place. The pointer to string is returned 
- * to allow the nesting of functions.
+ *        This function doesn't allocate or reallocate any memory; it 
+ *        modifies string in place. The pointer to string is returned 
+ *        to allow the nesting of functions.
  * @param s String to parse.
  * @return intput string
  */
 char *smf_core_strstrip(char *s); 
 
-/**
- * @fn char *smf_core_strlwc(const char *s)
+/*!
+ * @fn char *smf_core_strlwc(char *s)
  * @brief Convert a string to lowercase.
  * @param s String to convert.
  * @return ptr to string
  */
 char *smf_core_strlwc(char *s);
 
-/**
- * @fn char *smf_core_strcat_printf(char *s, const char *fmt, ...)
+/*!
+ * @fn char *smf_core_strcat_printf(char **s, const char *fmt, ...)
  * @brief Append format string to string and reallocate memory.
- * The pointer to string is returned to allow the nesting of functions.
+ *        The pointer to string is returned to allow the nesting of functions.
  * @param string to append to 
  * @param fmt format string
  * @return new appended string
  */
 char *smf_core_strcat_printf(char **s, const char *fmt, ...);
 
-/**
+/*!
  * @fn char **smf_core_strsplit(char *s, char *sep)
  * @brief Split a given string
  * @param s String to split
@@ -56,7 +61,7 @@ char *smf_core_strcat_printf(char **s, const char *fmt, ...);
  */
 char **smf_core_strsplit(char *s, char *sep);
 
-/** 
+/*!
  * @fn int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid)
  * @brief Generate a new queue file name
  * @param queue_dir path to queue directory
@@ -67,15 +72,15 @@ char **smf_core_strsplit(char *s, char *sep);
  */
 int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid);
 
-/**
- * @fn char *smf_md5sum(const char *data)
+/*!
+ * @fn char *smf_core_md5sum(const char *data)
  * @brief Generate md5 hexdigest for string
  * @param data String to generate md5sum for
  * @returns Pointer to hexdigest string on success, NULL on error
  */
 char *smf_core_md5sum(const char *data);
 
-/**
+/*!
  * @fn char *smf_core_get_maildir_filename(void)
  * @brief Generates a unique maildir filename
  * @return newly allocated pointer with generated filename 
@@ -83,7 +88,7 @@ char *smf_core_md5sum(const char *data);
  */
 char *smf_core_get_maildir_filename(void);
 
-/**
+/*!
  * @fn int smf_core_expand_string(char *format, char *addr, char **buf)
  * @brief expands placeholders in a user querystring
  * @param format format string to use as input
