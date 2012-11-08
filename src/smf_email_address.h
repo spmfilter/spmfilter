@@ -15,6 +15,11 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_email_address.h
+ * @brief Defines functions for email address handling
+ */
+
 #ifndef _SMF_EMAIL_ADDRESS_H
 #define _SMF_EMAIL_ADDRESS_H
 

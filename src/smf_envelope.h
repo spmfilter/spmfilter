@@ -15,6 +15,12 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+/*!
+ * @file smf_envelope.h
+ * @brief Defines message envelope data structures and functions
+ */
+
 #ifndef _SMF_ENVELOPE_H
 #define _SMF_ENVELOPE_H
 
