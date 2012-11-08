@@ -25,7 +25,6 @@
 
 #define THIS_MODULE "envelope"
 
- /** Creates a new SMFEnvelope_T object */
 SMFEnvelope_T *smf_envelope_new(void) {
     SMFEnvelope_T *envelope = NULL;
 
@@ -45,7 +44,6 @@ SMFEnvelope_T *smf_envelope_new(void) {
     return envelope;
 }
 
-/** Free SMFEnvelope_T object */
 void smf_envelope_free(SMFEnvelope_T *envelope) {
     assert(envelope);
 
@@ -69,7 +67,6 @@ void smf_envelope_free(SMFEnvelope_T *envelope) {
     free(envelope);
 }
 
-/** Set envelope sender */
 void smf_envelope_set_sender(SMFEnvelope_T *envelope, char *sender) {
     char *t = NULL;
     assert(envelope);
@@ -89,7 +86,6 @@ char *smf_envelope_get_sender(SMFEnvelope_T *envelope) {
     return envelope->sender;
 }
 
-/** Add new recipient to envelope */
 int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt) {
     char *t = NULL;
     assert(envelope);
@@ -120,7 +116,6 @@ void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope,
 
 }
 
-/** Set auth user */
 void smf_envelope_set_auth_user(SMFEnvelope_T *envelope, char *auth_user) {
     assert(envelope);
     assert(auth_user);
@@ -131,13 +126,11 @@ void smf_envelope_set_auth_user(SMFEnvelope_T *envelope, char *auth_user) {
     envelope->auth_user = strdup(auth_user);
 }
 
-/** Get auth user */
 char *smf_envelope_get_auth_user(SMFEnvelope_T *envelope) {
     assert(envelope);
     return envelope->auth_user;
 }
 
-/** Set auth password */
 void smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pass) {
     assert(envelope);
     assert(auth_pass);
@@ -148,13 +141,11 @@ void smf_envelope_set_auth_pass(SMFEnvelope_T *envelope, char *auth_pass) {
     envelope->auth_pass = strdup(auth_pass);
 }
 
-/** Get auth pass */
 char *smf_envelope_get_auth_pass(SMFEnvelope_T *envelope) {
     assert(envelope);
     return envelope->auth_pass;
 }
 
-/** Set nexthop */
 void smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop) {
     assert(envelope);
     assert(nexthop);
@@ -165,7 +156,6 @@ void smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop) {
     envelope->nexthop = strdup(nexthop);
 }
 
-/** Get nexthop */
 char *smf_envelope_get_nexthop(SMFEnvelope_T *envelope) {
     assert(envelope);
     return envelope->nexthop;

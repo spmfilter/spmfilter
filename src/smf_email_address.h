@@ -17,7 +17,16 @@
 
 /*!
  * @file smf_email_address.h
- * @brief Defines functions for email address handling
+ * @brief Defines the #SMFEmailAddress_T data type and functions for
+ *        E-Mail address handling.
+ * @details A #SMFEmailAddress_T consists of three parts: 
+ *          - the actual email address, e.g. doe@example.org
+ *          - an optional display name, e.g. John Doe
+ *          - a possible email addresse type
+ * @details To create a new #SMFEmailAddress_T, use smf_email_address_new()
+ * @details To destroy a #SMFEmailAddress_T use smf_email_address_free()
+ * @details It's possible to parse a string with smf_email_address_parse_string() and create a new
+ *          #SMFEmailAddress_T. To get a string from a #SMFEmailAddress_T, use smf_email_address_to_string().
  */
 
 #ifndef _SMF_EMAIL_ADDRESS_H
@@ -25,7 +34,6 @@
 
 #include <cmime.h>
 
-#include "spmfilter_config.h"
 #include "smf_lookup.h"
 
 /*!
@@ -40,21 +48,21 @@ typedef enum _SMFEmailAddressType {
 } SMFEmailAddressType_T;
 
 /*!
- * @struct SMFEmailAddress_T smf_email_address.h
- * @brief Represents an E-Mail address
+ * @typedef SMFEmailAddress_T
+ * @brief Represents an E-Mail address.
  */
 typedef CMimeAddress_T SMFEmailAddress_T;
 
 /*!
  * @fn SMFEmailAddress_T *smf_email_address_new(void)
- * @brief Creates a new SMFEmailAddress_T object
- * @returns an empty SMFEmailAddress_T object
+ * @brief Creates a new SMFEmailAddress_T object.
+ * @return an empty SMFEmailAddress_T object
  */
 SMFEmailAddress_T *smf_email_address_new(void);
 
 /*!
  * @fn void smf_email_address_free(SMFEmailAddress_T *ea)
- * @brief Free a SMFEmailAddress_T object
+ * @brief Free a SMFEmailAddress_T object.
  * @param ea a SMFEmailAddress_T object
  */
 void smf_email_address_free(SMFEmailAddress_T *ea);
@@ -84,7 +92,7 @@ char *smf_email_address_to_string(SMFEmailAddress_T *ea);
 void smf_email_address_set_type(SMFEmailAddress_T *ea, SMFEmailAddressType_T t);
 
 /*!
- * @fn SMFEmailAddressType_T smf_email_address_get_type(SMFEMailAddress_T *ea)
+ * @fn SMFEmailAddressType_T smf_email_address_get_type(SMFEmailAddress_T *ea)
  * @brief Get the address type of SMFEmailAddress_T object
  * @param ea SMFEmailAddress_T object
  * @returns a SMFEmailAddressType_T object
@@ -110,7 +118,7 @@ char *smf_email_address_get_name(SMFEmailAddress_T *ea);
 /*! 
  * @fn void smf_email_address_set_email(SMFEmailAddress_T *ea, const char *email)
  * @brief Set the email address of SMFEmailAddress_T object
- * @param ca SMFEmailAddress_T pointer
+ * @param ea SMFEmailAddress_T pointer
  * @param email email address
  */
 void smf_email_address_set_email(SMFEmailAddress_T *ea, const char *email);
