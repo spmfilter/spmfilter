@@ -22,14 +22,12 @@
 
 #define THIS_MODULE "email_address"
 
-/** Creates a new SMFEmailAddress_T object */
 SMFEmailAddress_T *smf_email_address_new(void) {
     CMimeAddress_T *ea = cmime_address_new();
 
     return (SMFEmailAddress_T *)ea;
 }
 
-/** Free SMFEmailAddress_T object */
 void smf_email_address_free(SMFEmailAddress_T *ea) {
     assert(ea);
     cmime_address_free((CMimeAddress_T *)ea);

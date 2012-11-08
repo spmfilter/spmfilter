@@ -15,10 +15,15 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 /*!
  * @file smf_envelope.h
- * @brief Defines message envelope data structures and functions
+ * @brief Defines the SMFEnvelope_T data type and related functions
+ * @details A SMFEnvelope_T is used to delivery a SMFMessage_T via SMTP.
+ *          The destination server can be set with smf_envelope_set_nexthop().
+ *          If the destination server requires smtp-auth login credentials, use
+ *          smf_envelope_set_auth_user() and smf_envelope_set_auth_pass().
+ * @details To create a new SMFEnvelope_T, use smf_envelope_new()
+ * @details To destroy a SMFEnvelope_T use smf_envelope_free()
  */
 
 #ifndef _SMF_ENVELOPE_H
@@ -35,7 +40,6 @@
 typedef struct {
     SMFList_T *recipients; /**< envelope recipients */
     char *sender; /**< envelope sender */
-    
     char *auth_user; /**< SMTP auth user, if needed */
     char *auth_pass; /**< SMTP auth password, if needed */
     char *nexthop; /**< destination smtp server */
@@ -74,9 +78,9 @@ char *smf_envelope_get_sender(SMFEnvelope_T *envelope);
 
 /*!
  * @fn int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt)
- * @brief Add new recipient to envelope
- * @param envelope SMFEnvelope_T object
- * @param rcpt rcpt address
+ * @brief Add a new recipient to envelope
+ * @param envelope a SMFEnvelope_T
+ * @param rcpt recipient address
  * @returns 0 on success or -1 in case of error
  */
 int smf_envelope_add_rcpt(SMFEnvelope_T *envelope, char *rcpt);
@@ -94,7 +98,7 @@ typedef void (*SMFRcptForeachFunc) (char *addr, void *user_data);
  * @brief Recursively calls callback on each envelope recipient.
  * @param envelope SMFEnvelope_T object
  * @param callback function to call on each recipient
- * @param user-supplied callback data
+ * @param user_data user-supplied callback data
  */
 void smf_envelope_foreach_rcpt(SMFEnvelope_T *envelope, SMFRcptForeachFunc callback, void  *user_data);
 
@@ -147,7 +151,7 @@ void smf_envelope_set_nexthop(SMFEnvelope_T *envelope, char *nexthop);
 char *smf_envelope_get_nexthop(SMFEnvelope_T *nexthop);
 
 /*! 
- * @fn void smd_envelope_set_message(SMFEnvelope_T *envelope, SMFMessage_T *message)
+ * @fn void smf_envelope_set_message(SMFEnvelope_T *envelope, SMFMessage_T *message)
  * @brief Set SMFMessage_T object
  * @param envelope a SMFEnvelope_T object
  * @param message a SMFMessage_T object
