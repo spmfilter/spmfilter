@@ -107,6 +107,10 @@ IF(APPLE)
 ENDIF(APPLE)
 
 ENABLE_TESTING()
+# for unit-testing you need the check-library
+message(STATUS "checking for test-modules")
+find_package(Check REQUIRED)
+include_directories(${CHECK_INCLUDES})
 
 # build stuff in src directory
 add_subdirectory(src)
