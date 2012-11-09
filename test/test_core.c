@@ -15,102 +15,115 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <check.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "../src/smf_core.h"
-#include "../src/smf_list.h"
-#include "test.h"
 
-int main (int argc, char const *argv[]) {
-    char *s = NULL;
+START_TEST(strstrip) {
+    char *s = strdup(" Test string ");
+
+    fail_unless((s = smf_core_strstrip(s)) != NULL);
+    fail_unless(strcmp(s, "Test string") == 0);
+
+    free(s);
+}
+END_TEST
+
+START_TEST(strlwc) {
+    char *s = strdup("Test string");
+
+    fail_unless((s = smf_core_strlwc(s)) != NULL);
+    fail_unless(strcmp(s, "test string") == 0);
+
+    free(s);
+}
+END_TEST
+
+START_TEST(strcat_printf) {
+    char *s = strdup("value1");
+
+    fail_unless((smf_core_strcat_printf(&s, ";%s", "value2")) != NULL);
+    fail_unless((smf_core_strcat_printf(&s, ";%s", "value3")) != NULL);
+    fail_unless(strcmp(s, "value1;value2;value3") == 0);
+
+    free(s);
+}
+END_TEST
+
+START_TEST(strsplit) {
+    const char *src = "value1;value2;value3";
     char **sl = NULL;
-    
-    printf("Start smf_core tests...\n");
 
-    printf("* testing smf_core_strstrip()...\t\t\t");
-    s = strdup(test_string_strip);
-    smf_core_strstrip(s);
-    if (strcmp(s,test_string)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-    free(s);
-    printf("passed\n");
+    fail_unless((sl = smf_core_strsplit(src, ";")) != NULL);
+    fail_unless(strcmp(sl[0], "value1") == 0);
+    fail_unless(strcmp(sl[1], "value2") == 0);
+    fail_unless(strcmp(sl[2], "value3") == 0);
+    fail_unless(sl[3] == '\0');
 
-    printf("* testing smf_core_strlwc()...\t\t\t\t");
-    s = strdup(test_string);
-    smf_core_strlwc(s);
-    if (strcmp(s,test_string_lower)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-    free(s);
-    printf("passed\n");
-
-    printf("* testing smf_core_strcat_printf()...\t\t\t");
-    s = strdup(test_split_value1);
-    smf_core_strcat_printf(&s, ";%s", test_split_value2);
-    smf_core_strcat_printf(&s, ";%s", test_split_value3);
-    if (strcmp(s,test_split)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-    free(s);
-    printf("passed\n");
-
-    printf("* testing smf_core_strsplit()...\t\t\t");
-    sl = smf_core_strsplit(test_split,";");
-    if ((strcmp(sl[0],test_split_value1)!=0) 
-            || (strcmp(sl[1],test_split_value2)!=0) 
-            || (strcmp(sl[2],test_split_value3)!=0)) {
-        printf("failed\n");
-        return -1;
-    }
     free(sl[0]);
     free(sl[1]);
     free(sl[2]);
     free(sl);
-    printf("passed\n");
-    
-    printf("* testing smf_core_gen_queue_file()...\t\t\t");
-    if (smf_core_gen_queue_file(P_tmpdir,&s,"1234567890") != 0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
+}
+END_TEST
+
+START_TEST(gen_queue_file) {
+    char *s;
+    struct stat fstat;
+
+    fail_unless(smf_core_gen_queue_file("/tmp", &s, "1234567890") == 0);
+    fail_unless(stat(s, &fstat) == 0);
+    fail_unless(S_ISREG(fstat.st_mode));
+    fail_unless(unlink(s) == 0);
+
     free(s);
+}
+END_TEST
 
-    printf("* testing smf_core_md5sum()...\t\t\t\t");
-    s = smf_core_md5sum(test_string);
-    if (strcmp(s,test_string_md5)!=0) {
-        printf("failed\n");
-        return -1;
-    }
+START_TEST(md5sum) {
+    char *s;
+
+    fail_unless((s = smf_core_md5sum("Test string")) != NULL);
+    fail_unless(strcmp(s, "0fd3dbec9730101bff92acc820befc34") == 0);
+
     free(s);
-    printf("passed\n");
+}
+END_TEST
 
-    printf("* testing smf_core_get_maildir_filanem()...\t\t");
-    s = smf_core_get_maildir_filename();
-    if (s == NULL) {
-        printf("failed\n");
-        return -1;
-    }
+START_TEST(get_maildir_filename) {
+    char *s;
+
+    fail_unless((s = smf_core_get_maildir_filename()) != NULL);
     free(s);
-    printf("passed\n");
+}
+END_TEST
 
-    printf("* testing smf_core_expand_string()...\t\t\t");
-    if (smf_core_expand_string(test_sql_expand_query,test_email,&s)==-1) {
-        printf("failed\n");
-        return -1;
-    }
-    if (strcmp(s,test_sql_expand_query_out)!=0) {
-        printf("failed\n");
-        return -1;
-    }
+START_TEST(expand_string) {
+    const char *query = "SELECT * FROM users WHERE email='%s'";
+    char *s;
+
+    fail_unless(smf_core_expand_string(query, "user@example.org", &s) == 1);
+    fail_unless(strcmp(s, "SELECT * FROM users WHERE email='user@example.org'") == 0);
+
     free(s);
-    printf("passed\n");
+}
+END_TEST
 
+TCase *core_tcase() {
+    TCase* tc = tcase_create("binbuf");
 
-    return 0;
+    tcase_add_test(tc, strstrip);
+    tcase_add_test(tc, strlwc);
+    tcase_add_test(tc, strcat_printf);
+    tcase_add_test(tc, strsplit);
+    tcase_add_test(tc, gen_queue_file);
+    tcase_add_test(tc, md5sum);
+    tcase_add_test(tc, get_maildir_filename);
+    tcase_add_test(tc, expand_string);
+
+    return tc;
 }

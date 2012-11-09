@@ -49,11 +49,15 @@ char *smf_core_strstrip(char *s) {
 
 
 char *smf_core_strlwc(char *s) {
+    char *p;
+
     assert(s);
     
-    while (*s) {
-        *s = tolower(*s);
-        s++;
+    p = s;
+
+    while (*p) {
+        *p = tolower(*p);
+        p++;
     }
     return s;
 }
@@ -73,7 +77,7 @@ char *smf_core_strcat_printf(char **s, const char *fmt, ...) {
     return (*s);
 }
 
-char **smf_core_strsplit(char *s, char *sep) {
+char **smf_core_strsplit(const char *s, char *sep) {
     char **sl = NULL;   
     char *cp = NULL;
     char *tf = NULL;
@@ -96,7 +100,7 @@ char **smf_core_strsplit(char *s, char *sep) {
     return(sl);
 }
 
-int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid) {
+int smf_core_gen_queue_file(const char *queue_dir, char **tempname, const char *sid) {
     asprintf(&(*tempname),"%s/%s.XXXXXX",queue_dir,sid);
     if(mkstemp(*tempname) == -1) {
         return -1;
@@ -139,11 +143,11 @@ char *smf_core_get_maildir_filename(void) {
     return filename;
 }
 
-int smf_core_expand_string(char *format, char *addr, char **buf) {
+int smf_core_expand_string(const char *format, const char *addr, char **buf) {
     int rep_made = 0;
     int pos = 0;
     int iter_size;
-    char *it = format;
+    char *it = (char*)format;
     char *iter;
     char **parts = smf_core_strsplit(addr, "@");
     char **t;
@@ -161,7 +165,7 @@ int smf_core_expand_string(char *format, char *addr, char **buf) {
             it++;
             switch(*it) {
                 case 's':
-                    iter = addr;
+                    iter = (char*)addr;
                     break;
                 case 'u':
                     iter = parts[0];
