@@ -1,5 +1,9 @@
 list(APPEND COMMON_LIBS)
 
+add_executable(spm_unit_tests suite.c)
+target_link_libraries(spm_unit_tests smf ${COMMON_LIBS} ${CHECK_LIB})
+ADD_TEST(SMFUnitTests spm_unit_tests)
+
 add_executable(test_settings test_settings.c)
 target_link_libraries(test_settings smf ${COMMON_LIBS})
 ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_settings)
