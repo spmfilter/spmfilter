@@ -31,6 +31,14 @@ typedef enum {
     TRACE_LOOKUP = 256 // Logs at Debug Level
 } SMFTrace_T;
 
+/**
+ * Logging destinations.
+ */
+typedef enum {
+	TRACE_DEST_SYSLOG,
+	TRACE_DEST_STDERR
+} SMFTrace_Dest_T;
+
 /*!
  * @def TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
  * @brief convenience macro for logging
@@ -42,7 +50,19 @@ typedef enum {
 #define STRACE(level, sid, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, sid, fmt)
 void trace(SMFTrace_T level, const char * module, const char * function, int line, const char *sid, const char *formatstring, ...);
 
+/*!
+ * @brief Configures the detail-level of a trace-entry.
+ *
+ * @param debug If set to 1, then the function and line-number are logged in in addition
+ */
 void configure_debug(int debug);
+
+/*!
+ * @brief Configures the destination, where all the log-data are send to.
+ *
+ * @param dest The new logging-destination. The default is TRACE_DEST_SYSLOG.
+ */
+void configure_trace_destination(SMFTrace_Dest_T dest);
 
 #define TRDEBUG(fmt, ...) TRACE(TRACE_DEBUG, fmt, ##__VA_ARGS__)
 #define TRINFO(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
