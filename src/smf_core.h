@@ -59,7 +59,7 @@ char *smf_core_strcat_printf(char **s, const char *fmt, ...);
  * @param sep separator
  * @return a newly-allocated NULL-terminated array of strings. 
  */
-char **smf_core_strsplit(char *s, char *sep);
+char **smf_core_strsplit(const char *s, char *sep);
 
 /*!
  * @fn int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid)
@@ -70,7 +70,7 @@ char **smf_core_strsplit(char *s, char *sep);
  * @param sid current session id
  * @return 0 on success or -1 in case of error
  */
-int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid);
+int smf_core_gen_queue_file(const char *queue_dir, char **tempname, const char *sid);
 
 /*!
  * @fn char *smf_core_md5sum(const char *data)
@@ -97,6 +97,6 @@ char *smf_core_get_maildir_filename(void);
  *        needs to free'd by caller if not required anymore
  * @return the number of replacements made or -1 in case of error
  */
-int smf_core_expand_string(char *format, char *addr, char **buf);
+int smf_core_expand_string(const char *format, const char *addr, char **buf);
 
 #endif	/* _SMF_CORE_H */
