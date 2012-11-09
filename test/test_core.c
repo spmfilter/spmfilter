@@ -54,11 +54,11 @@ START_TEST(strcat_printf) {
 }
 END_TEST
 
-START_TEST(strsplit) {
+START_TEST(strsplit_no_nelems) {
     const char *src = "value1;value2;value3";
     char **sl = NULL;
 
-    fail_unless((sl = smf_core_strsplit(src, ";")) != NULL);
+    fail_unless((sl = smf_core_strsplit(src, ";", NULL)) != NULL);
     fail_unless(strcmp(sl[0], "value1") == 0);
     fail_unless(strcmp(sl[1], "value2") == 0);
     fail_unless(strcmp(sl[2], "value3") == 0);
@@ -67,6 +67,40 @@ START_TEST(strsplit) {
     free(sl[0]);
     free(sl[1]);
     free(sl[2]);
+    free(sl);
+}
+END_TEST
+
+START_TEST(strsplit_with_nelems) {
+    const char *src = "value1;value2;value3";
+    char **sl = NULL;
+    int nelems = -99;
+
+    fail_unless((sl = smf_core_strsplit(src, ";", &nelems)) != NULL);
+    fail_unless(strcmp(sl[0], "value1") == 0);
+    fail_unless(strcmp(sl[1], "value2") == 0);
+    fail_unless(strcmp(sl[2], "value3") == 0);
+    fail_unless(sl[3] == '\0');
+    fail_unless(nelems == 3);
+
+    free(sl[0]);
+    free(sl[1]);
+    free(sl[2]);
+    free(sl);
+}
+END_TEST
+
+START_TEST(strsplit_no_split) {
+    const char *src = "value1";
+    char **sl = NULL;
+    int nelems = -99;
+
+    fail_unless((sl = smf_core_strsplit(src, ";", &nelems)) != NULL);
+    fail_unless(strcmp(sl[0], "value1") == 0);
+    fail_unless(sl[1] == '\0');
+    fail_unless(nelems == 1);
+
+    free(sl[0]);
     free(sl);
 }
 END_TEST
@@ -119,7 +153,9 @@ TCase *core_tcase() {
     tcase_add_test(tc, strstrip);
     tcase_add_test(tc, strlwc);
     tcase_add_test(tc, strcat_printf);
-    tcase_add_test(tc, strsplit);
+    tcase_add_test(tc, strsplit_no_nelems);
+    tcase_add_test(tc, strsplit_with_nelems);
+    tcase_add_test(tc, strsplit_no_split);
     tcase_add_test(tc, gen_queue_file);
     tcase_add_test(tc, md5sum);
     tcase_add_test(tc, get_maildir_filename);

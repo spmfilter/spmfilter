@@ -142,7 +142,8 @@ static SMFDict_T *smf_modules_stf_processed_modules(FILE *fh) {
     fseek(fh, 0, SEEK_SET); /* rewind the file */
 
     while(getline(&buf,&n,fh) >= 0) {
-        parts = smf_core_strsplit(buf,":");
+        parts = smf_core_strsplit(buf, ":", NULL);
+        // FIXME What if parts only contains 1 element?
         smf_dict_set(d, parts[0], parts[1]);
         free(buf);
     }
