@@ -103,6 +103,17 @@ char **smf_core_strsplit(const char *s, char *sep, int *nelems) {
     return(sl);
 }
 
+static void smf_core_strsplit_free(char **parts) {
+    char **t = parts;
+
+    while (*t != NULL) {
+        free(*t);
+        t++;
+    }
+
+    free(parts);
+}
+
 int smf_core_gen_queue_file(const char *queue_dir, char **tempname, const char *sid) {
     asprintf(&(*tempname),"%s/%s.XXXXXX",queue_dir,sid);
     if(mkstemp(*tempname) == -1) {
@@ -152,8 +163,8 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
     int iter_size;
     char *it = (char*)format;
     char *iter;
-    char **parts = smf_core_strsplit(addr, "@", NULL);
-    char **t;
+    int nelems;
+    char **parts = smf_core_strsplit(addr, "@", &nelems);
 
     /* allocate space for buffer
      * TODO: put buffer size declaration somewhere else
@@ -174,9 +185,15 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
                     iter = parts[0];
                     break;
                 case 'd':
+                    if (nelems < 2) {
+                        smf_core_strsplit_free(parts);
+                        return -1;
+                    }
+
                     iter = parts[1];
                     break;
                 default:
+                    smf_core_strsplit_free(parts);
                     return(-2);
                     break; /* never reached */
             }
@@ -193,11 +210,7 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
         }
     }
 
-    t= parts;
-    while(*t != NULL) {
-        free(*t);
-        t++;
-    }
-    free(parts);
+    smf_core_strsplit_free(parts);
+
     return(rep_made);
 }
