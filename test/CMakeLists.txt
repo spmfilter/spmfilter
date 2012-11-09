@@ -1,6 +1,6 @@
 list(APPEND COMMON_LIBS)
 
-add_executable(spm_unit_tests suite.c)
+add_executable(spm_unit_tests suite.c test_core.c)
 target_link_libraries(spm_unit_tests smf ${COMMON_LIBS} ${CHECK_LIB})
 ADD_TEST(SMFUnitTests spm_unit_tests)
 
@@ -39,10 +39,6 @@ ADD_TEST(SMFPart_T ${EXECUTABLE_OUTPUT_PATH}/test_part)
 add_executable(test_message test_message.c)
 target_link_libraries(test_message smf ${COMMON_LIBS})
 ADD_TEST(SMFMessage_T ${EXECUTABLE_OUTPUT_PATH}/test_message)
-
-add_executable(test_core test_core.c)
-target_link_libraries(test_core smf ${COMMON_LIBS})
-ADD_TEST(smf_core ${EXECUTABLE_OUTPUT_PATH}/test_core)
 
 add_executable(test_smtp test_smtp.c)
 target_link_libraries(test_smtp smf ${COMMON_LIBS})
