@@ -136,12 +136,63 @@ START_TEST(get_maildir_filename) {
 }
 END_TEST
 
-START_TEST(expand_string) {
+START_TEST(expand_string_unsupported_option) {
+    const char *query = "SELECT * FROM users WHERE email='%x'";
+    char *s;
+
+	fail_unless(smf_core_expand_string(query, "user@example.org", &s) == -2);
+}
+END_TEST
+
+START_TEST(expand_string_all) {
     const char *query = "SELECT * FROM users WHERE email='%s'";
     char *s;
 
     fail_unless(smf_core_expand_string(query, "user@example.org", &s) == 1);
     fail_unless(strcmp(s, "SELECT * FROM users WHERE email='user@example.org'") == 0);
+
+    free(s);
+}
+END_TEST
+
+START_TEST(expand_string_user) {
+    const char *query = "SELECT * FROM users WHERE email='%u'";
+    char *s;
+
+    fail_unless(smf_core_expand_string(query, "user@example.org", &s) == 1);
+    fail_unless(strcmp(s, "SELECT * FROM users WHERE email='user'") == 0);
+
+    free(s);
+}
+END_TEST
+
+START_TEST(expand_string_user_no_domain) {
+    const char *query = "SELECT * FROM users WHERE email='%u'";
+    char *s;
+
+    fail_unless(smf_core_expand_string(query, "user", &s) == 1);
+    fail_unless(strcmp(s, "SELECT * FROM users WHERE email='user'") == 0);
+
+    free(s);
+}
+END_TEST
+
+START_TEST(expand_string_domain) {
+    const char *query = "SELECT * FROM users WHERE email='%d'";
+    char *s;
+
+    fail_unless(smf_core_expand_string(query, "user@example.org", &s) == 1);
+    fail_unless(strcmp(s, "SELECT * FROM users WHERE email='example.org'") == 0);
+
+    free(s);
+}
+END_TEST
+
+START_TEST(expand_string_domain_no_domain) {
+    const char *query = "SELECT * FROM users WHERE email='%d'";
+    char *s;
+
+    fail_unless(smf_core_expand_string(query, "user", &s) == -1);
 
     free(s);
 }
@@ -159,7 +210,12 @@ TCase *core_tcase() {
     tcase_add_test(tc, gen_queue_file);
     tcase_add_test(tc, md5sum);
     tcase_add_test(tc, get_maildir_filename);
-    tcase_add_test(tc, expand_string);
+    tcase_add_test(tc, expand_string_unsupported_option);
+    tcase_add_test(tc, expand_string_all);
+    tcase_add_test(tc, expand_string_user);
+    tcase_add_test(tc, expand_string_user_no_domain);
+    tcase_add_test(tc, expand_string_domain);
+    tcase_add_test(tc, expand_string_domain_no_domain);
 
     return tc;
 }
