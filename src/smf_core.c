@@ -159,57 +159,74 @@ char *smf_core_get_maildir_filename(void) {
 
 int smf_core_expand_string(const char *format, const char *addr, char **buf) {
     int rep_made = 0;
-    int pos = 0;
-    int iter_size;
-    char *it = (char*)format;
-    char *iter;
     int nelems;
     char **parts = smf_core_strsplit(addr, "@", &nelems);
+    char *out;
+    size_t out_size;
+    int offs;
 
-    /* allocate space for buffer
-     * TODO: put buffer size declaration somewhere else
-     */
-    *buf = (char *)calloc(512,sizeof(char));
-    if(*buf == NULL) {
-        return(-1);
-    }
+    assert(format != NULL);
+    assert(addr != NULL);
+    assert(buf != NULL);
 
-    while(*it != '\0') {
-        if(*it == '%') {
-            it++;
-            switch(*it) {
+    out_size = strlen(format) + 1;
+	if ((out = malloc(out_size)) == NULL)  {
+		return -1;
+	}
+	
+    // Prepare the result with the format.
+    // The '%<x>'-expressions are replaced later.
+    strncpy(out, format, out_size);
+    offs = 0;
+
+    while(out[offs] != '\0') {
+        if(out[offs] == '%') {
+            const char *insert = NULL;
+
+            switch(out[offs + 1]) {
                 case 's':
-                    iter = (char*)addr;
+                    insert = addr;
                     break;
                 case 'u':
-                    iter = parts[0];
+                    insert = parts[0];
                     break;
                 case 'd':
                     if (nelems < 2) {
                         smf_core_strsplit_free(parts);
+                        free(out);
                         return -1;
                     }
 
-                    iter = parts[1];
+                    insert = parts[1];
                     break;
                 default:
                     smf_core_strsplit_free(parts);
+                    free(out);
                     return(-2);
                     break; /* never reached */
             }
 
-            /* now copy the replacement text */
-            iter_size = strlen(iter);
-            memcpy((*buf + pos), iter, iter_size);
-            pos += iter_size;
+            // Replace the both option-characters with the "insert"-string
+            if (insert != NULL) {
+                // New size of out: size of insert-string but without the two option-characters
+                const size_t insert_len = strlen(insert);
+                out_size += (insert_len - 2);
+                out = realloc(out, out_size);
+				
+                // First move everything behind the option-characters
+                memmove(out + offs + insert_len, out + offs + 2, strlen(out + offs + 2) + 1);
+                // Now insert the "insert"-string at the current position
+                memcpy(out + offs, insert, insert_len);
+            }
 
-            it++; /* jump over current */
+            offs++;
             rep_made++;
-        } else {
-            (*buf)[pos++] = *it++;
         }
+
+        offs++;
     }
 
+    *buf = out;
     smf_core_strsplit_free(parts);
 
     return(rep_made);
