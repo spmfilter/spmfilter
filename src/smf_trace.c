@@ -26,9 +26,8 @@
 #include "smf_trace.h"
 #include "smf_settings.h"
 
-#define min(x,y) ((x)<=(y)?(x):(y))
-
 static int debug_flag = 0;
+static SMFTrace_Dest_T debug_dest = TRACE_DEST_SYSLOG;
 
 static const char * trace_to_text(SMFTrace_T level) {
 	const char * const trace_text[] = {
@@ -49,80 +48,83 @@ void configure_debug(int debug) {
 	debug_flag = debug;
 }
 
+void configure_trace_destination(SMFTrace_Dest_T dest) {
+	debug_dest = dest;
+}
+
+const char* format_string(SMFTrace_T level, const char *module, const char *function, int line,
+                                 const char *sid, const char *formatstring,
+                                 char* out, size_t size) {
+	char debug_format[size];
+	char sid_format[size];
+    
+	if (debug_flag == 1)
+		snprintf(debug_format, size, " (%s:%d)", function, line);
+	else
+		debug_format[0] = '\0';
+    
+	if (sid != NULL)
+		snprintf(sid_format, size, " [%s]", sid);
+	else
+		sid_format[0] = '\0';
+    
+	snprintf(out, size, "%s [%s]%s%s: %s\n",
+		trace_to_text(level),
+		module,
+		debug_format,
+		sid_format,
+		formatstring);
+    
+	return out;
+}
+
+static void trace_syslog(SMFTrace_T level, const char *message) {
+	int priority;
+
+	// Convert our extended log levels (>128) to syslog levels
+	switch (level) {
+		case TRACE_EMERG:   priority = LOG_EMERG; break;
+		case TRACE_ALERT:   priority = LOG_ALERT; break;
+		case TRACE_CRIT:    priority = LOG_CRIT; break;
+		case TRACE_ERR:     priority = LOG_ERR; break;
+		case TRACE_WARNING: priority = LOG_WARNING;  break;
+		case TRACE_NOTICE:  priority = LOG_NOTICE; break;
+		case TRACE_INFO:    priority = LOG_INFO; break;
+		default:            priority = LOG_DEBUG; break;
+	}
+	
+	syslog(priority, message);
+}
+
+static void trace_stderr(const char *message) {
+	fprintf(stderr, message);
+}
+
 void trace(SMFTrace_T level, const char *module, const char *function, int line, const char *sid, const char *formatstring, ...) {
-	SMFTrace_T syslog_level;
+	const size_t maxlen = 1024;
 	va_list ap;
-	va_list cp;
-	char *message = NULL;
-	size_t l, maxlen=1024;
-	char *out = NULL;
+	char format[maxlen];
+	char message[maxlen];
+	size_t l;
 
-	/* Return now if we're not logging anything. */
-	if (! level)
-		return;
-
+	// Prepare the format-string
+	format_string(level, module, function, line, sid, formatstring, format, maxlen);
+    
+	// Format the trace-message
 	va_start(ap, formatstring);
-	va_copy(cp, ap);
-	vasprintf(&message,formatstring,cp);
-	va_end(cp);
+	vsnprintf(message, maxlen, format, ap);
+	va_end(ap);
 
 	l = strlen(message);
 	
 	if (message[l] == '\n')
 		message[l] = '\0';
 
-	if (sid != NULL)
-		asprintf(&out,"[%s] ",sid);
-	else
-		out = (char *)calloc(1,sizeof(char));
-
-	if (level) {
-		/* Convert our extended log levels (>128) to syslog levels */
-		switch((int)ilogb((double) level)) {
-			case 0:
-				syslog_level = LOG_EMERG;
-				break;
-			case 1:
-				syslog_level = LOG_ALERT;
-				break;
-			case 2:
-				syslog_level = LOG_CRIT;
-				break;
-			case 3:
-				syslog_level = LOG_ERR;
-				break;
-			case 4:
-				syslog_level = LOG_WARNING;
-				break;
-			case 5:
-				syslog_level = LOG_NOTICE;
-				break;
-			case 6:
-				syslog_level = LOG_INFO;
-				break;
-			case 7:
-				syslog_level = LOG_DEBUG;
-				break;
-			case 8:
-				syslog_level = LOG_DEBUG;
-				break;
-			default:
-				syslog_level = LOG_DEBUG;
-				break;
-		}
-		size_t w = min(l,maxlen);
-		message[w] = '\0';
-		
-		smf_core_strcat_printf(&out,"%s:[%s]",trace_to_text(level), module);
-		if (debug_flag == 1) smf_core_strcat_printf(&out," %s(+%d)",function, line);
-
-		smf_core_strcat_printf(&out, " %s",message);
-
-		if ((level >= 128) && (debug_flag == 1)) 
-   			syslog(syslog_level,out);
-   		else if (level < 128)
-			syslog(syslog_level, out);
+	switch (debug_dest) {
+		case TRACE_DEST_SYSLOG: trace_syslog(level, message); break;
+		case TRACE_DEST_STDERR: trace_stderr(message); break;
+		default:                fprintf(stderr, "Unsupported trace-destination: %i", debug_dest);
+								abort();
+								break;
 	}
-	free(out);
-	free(message);
 }
