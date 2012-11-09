@@ -77,7 +77,7 @@ char *smf_core_strcat_printf(char **s, const char *fmt, ...) {
     return (*s);
 }
 
-char **smf_core_strsplit(const char *s, char *sep) {
+char **smf_core_strsplit(const char *s, char *sep, int *nelems) {
     char **sl = NULL;   
     char *cp = NULL;
     char *tf = NULL;
@@ -96,6 +96,9 @@ char **smf_core_strsplit(const char *s, char *sep) {
     }
     free(tf);
     sl[count] = '\0';
+
+    if (nelems != NULL)
+        *nelems = count;
 
     return(sl);
 }
@@ -149,7 +152,7 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
     int iter_size;
     char *it = (char*)format;
     char *iter;
-    char **parts = smf_core_strsplit(addr, "@");
+    char **parts = smf_core_strsplit(addr, "@", NULL);
     char **t;
 
     /* allocate space for buffer

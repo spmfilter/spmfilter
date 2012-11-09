@@ -57,9 +57,11 @@ char *smf_core_strcat_printf(char **s, const char *fmt, ...);
  * @brief Split a given string
  * @param s String to split
  * @param sep separator
+ * @param nelems If set to non-NULL, then the function stores here the number of
+ *               elements in the resulting array.
  * @return a newly-allocated NULL-terminated array of strings. 
  */
-char **smf_core_strsplit(const char *s, char *sep);
+char **smf_core_strsplit(const char *s, char *sep, int *nelems);
 
 /*!
  * @fn int smf_core_gen_queue_file(char *queue_dir, char **tempname, char *sid)
