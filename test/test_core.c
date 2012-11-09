@@ -198,6 +198,15 @@ START_TEST(expand_string_domain_no_domain) {
 }
 END_TEST
 
+START_TEST(expand_string_complex) {
+    const char* in = "foo %s bar %d blubb %u%d";
+    char *s;
+    
+    fail_unless(smf_core_expand_string(in, "xxx@example.com", &s) == 4);
+    fail_unless(strcmp(s, "foo xxx@example.com bar example.com blubb xxxexample.com") == 0);
+}
+END_TEST
+
 TCase *core_tcase() {
     TCase* tc = tcase_create("binbuf");
 
@@ -216,6 +225,7 @@ TCase *core_tcase() {
     tcase_add_test(tc, expand_string_user_no_domain);
     tcase_add_test(tc, expand_string_domain);
     tcase_add_test(tc, expand_string_domain_no_domain);
+    tcase_add_test(tc, expand_string_complex);
 
     return tc;
 }
