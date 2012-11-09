@@ -16,14 +16,19 @@
  */
 
 #include <check.h>
+#include <unistd.h>
+
+extern TCase *core_tcase();
 
 static Suite *sfm_suite() {
 	Suite* s = suite_create("sfm unit tests");
 
+	suite_add_tcase(s, core_tcase());
+
 	return s;
 }
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char * const argv[]) {
 	int nfailed;
  	int c;
  	int enable_debug = 0;
