@@ -19,12 +19,14 @@
 #include <unistd.h>
 
 extern TCase *core_tcase();
+extern TCase *modules_tcase();
 
 static Suite *sfm_suite() {
 	Suite* s = suite_create("sfm unit tests");
 
 	suite_add_tcase(s, core_tcase());
-
+	suite_add_tcase(s, modules_tcase());
+    
 	return s;
 }
 
