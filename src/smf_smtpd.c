@@ -632,11 +632,6 @@ int load(SMFSettings_T *settings) {
 
     TRACE(TRACE_INFO,"starting smtpd engine");
 
-    if (smf_modules_init(settings,NULL)!=0) {
-        TRACE(TRACE_ERR,"failed to initialize modules");
-        return -1;
-    }
-
     /* initialize the modules queue handler */
     q = smf_modules_pqueue_init(
         smf_smtpd_handle_q_error,
@@ -655,10 +650,6 @@ int load(SMFSettings_T *settings) {
 
     smf_server_init(settings,sd);
     smf_server_loop(settings,sd,q,smf_smtpd_handle_client);
-
-    if (smf_modules_unload(settings)!=0) {
-        TRACE(TRACE_ERR,"failed to unload modules");
-    }
 
     free(q);
     

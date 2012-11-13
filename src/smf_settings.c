@@ -33,6 +33,7 @@
 #include "smf_dict.h"
 #include "smf_core.h"
 #include "smf_internal.h"
+#include "smf_modules.h"
 
 #define MAX_LINE 200
 
@@ -50,8 +51,7 @@ typedef enum _line_status {
 
 void _mod_list_destroy(void *data) {
     SMFModule_T *mod = (SMFModule_T *)data;
-    if (mod->name != NULL) free(mod->name);
-    free(mod);
+    smf_module_destroy(mod);
 }
 
 int _get_boolean(char *val) {
@@ -866,13 +866,15 @@ char *smf_settings_get_engine(SMFSettings_T *settings) {
 }
 
 int smf_settings_add_module(SMFSettings_T *settings, char *module) {
-    SMFModule_T *m = malloc(sizeof(SMFModule_T));
+    SMFModule_T *m;
+    
     assert(settings); 
     assert(module);
    
-    m->name = strdup(module);
-    m->handle = NULL;
-    return smf_list_append(settings->modules, (void *)m);
+    if ((m = smf_module_create(module)) == NULL)
+        return -1;
+    
+    return smf_list_append(settings->modules, m);
 }
 
 SMFList_T *smf_settings_get_modules(SMFSettings_T *settings) {
