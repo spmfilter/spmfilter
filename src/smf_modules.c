@@ -163,6 +163,72 @@ static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
     return(0);
 }
 
+SMFModule_T *smf_module_create(const char *name) {
+    SMFModule_T *module;
+    char *path;
+    void *handle;
+
+    assert(name);
+
+    if ((path = smf_internal_build_module_path(LIB_DIR, name)) == NULL) {
+        TRACE(TRACE_ERR, "failed to build module path for [%s]", name);
+        return NULL;
+    }
+        
+    if ((handle = dlopen(path, RTLD_LAZY)) == NULL) {
+        TRACE(TRACE_ERR, "failed to load module [%s]: %s", name, dlerror());
+        free(path);
+        return NULL;
+    }
+
+    if ((module = malloc(sizeof(SMFModule_T))) != NULL) {
+        free(path);
+        dlclose(handle);
+        return NULL;
+    }
+
+    module->name = strdup(name);
+    module->handle = handle;
+    
+    free(path);
+    
+    TRACE(TRACE_DEBUG, "module %s loaded", name);
+    
+    return module;
+}
+
+int smf_module_destroy(SMFModule_T *module) {
+    int result = 0;
+    
+    assert(module);
+
+    if (module->handle != NULL && dlclose(module->handle) != 0) {
+        TRACE(TRACE_ERR, "failed to unload module [%s]", module->name);
+        result = -1;
+    }
+
+    free(module->name);
+    free(module);
+    
+    return result;
+}
+
+int smf_module_invoke(SMFModule_T *module, SMFSession_T *session) {
+    ModuleLoadFunction runner;
+    
+    assert(module);
+    assert(session);
+    
+    dlerror(); // Clear any errors
+    if ((runner = dlsym(module->handle, "load")) == NULL) {
+        TRACE(TRACE_ERR, "failed to locate 'load'-symbol in module '%s': %s",
+            module->name, dlerror());
+        return -1;
+    }
+    
+    return runner(session);
+}
+
 int smf_modules_process(
         SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
     FILE *stfh = NULL;
@@ -172,7 +238,6 @@ int smf_modules_process(
     SMFList_T *initial_headers = NULL;
     SMFListElem_T *elem = NULL;
     SMFModule_T *curmod;
-    ModuleLoadFunction runner;
     int ret = 0;
     int mod_count;
     char *header = NULL;
@@ -219,8 +284,7 @@ int smf_modules_process(
             continue;
         }
 
-        runner = dlsym(curmod->handle,"load");
-        ret = runner(session);
+        ret = smf_module_invoke(curmod, session);
 
         if(ret != 0) {
             ret = q->processing_error(settings,session,ret);
@@ -445,63 +509,6 @@ int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, S
     }
 
     smf_smtp_status_free(status);
-
-    return 0;
-}
-
-
-int smf_modules_init(SMFSettings_T *settings, char *custom_libdir) {
-    SMFListElem_T *e = NULL;
-    SMFModule_T *mod = NULL;
-    char *path = NULL;
-
-    assert(settings);
-
-    e = smf_list_head(settings->modules);
-    while(e!=NULL) {
-        mod = (SMFModule_T *)smf_list_data(e);
-        if (mod->handle == NULL) {
-            if (custom_libdir != NULL)
-                path = smf_internal_build_module_path(custom_libdir, mod->name);
-            else
-                path = smf_internal_build_module_path(LIB_DIR, mod->name);
-            
-            if (path == NULL) {
-                TRACE(TRACE_DEBUG, "failed to build module path for [%s]", mod->name);
-                return -1;
-            }
-
-            if ((mod->handle = dlopen(path, RTLD_LAZY)) == NULL) {
-                TRACE(TRACE_ERR,"failed to load module [%s]: %s", mod->name,dlerror());
-                free(path);
-                return -1;
-            }
-            dlerror();  
-
-            free(path);
-        }
-        e = e->next;
-    }
-
-    return 0;
-}
-
-int smf_modules_unload(SMFSettings_T *settings) {
-    SMFListElem_T *e = NULL;
-    SMFModule_T *mod = NULL;
-
-    assert(settings);
-
-    e = smf_list_head(settings->modules);
-    while (e != NULL) {
-        mod = (SMFModule_T *)smf_list_data(e);
-
-        if (dlclose(mod->handle) != 0) {
-            TRACE(TRACE_ERR, "failed to unload module [%s]",mod->name);
-            return -1;
-        }
-        e = e->next;
-    }
 
     return 0;
 }
