@@ -92,11 +92,6 @@ int load(SMFSettings_T *settings) {
 
     start_acct = smf_internal_init_runtime_stats();
 
-    if (smf_modules_init(settings,NULL)!=0) {
-        TRACE(TRACE_ERR,"failed to initialize modules");
-        return -1;
-    }
-
     /* initialize the modules queue handler */
     q = smf_modules_pqueue_init(
         smf_pipe_handle_q_error,
@@ -151,9 +146,6 @@ int load(SMFSettings_T *settings) {
     
     TRACE(TRACE_DEBUG,"removing spool file %s",session->message_file);
     
-    if (smf_modules_unload(settings)!=0) {
-        TRACE(TRACE_ERR,"failed to unload modules");
-    }
     free(q);
     smf_internal_print_runtime_stats(start_acct,session->id);
 
