@@ -164,34 +164,47 @@ static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
 }
 
 SMFModule_T *smf_module_create(const char *name) {
-    SMFModule_T *module;
-    char *path;
+    return smf_module_create_callback(name, NULL);
+}
+
+static void *smf_module_create_handle(const char *name) {
     void *handle;
-
-    assert(name);
-
+    char *path;
+    
     if ((path = smf_internal_build_module_path(LIB_DIR, name)) == NULL) {
         TRACE(TRACE_ERR, "failed to build module path for [%s]", name);
         return NULL;
     }
-        
+    
     if ((handle = dlopen(path, RTLD_LAZY)) == NULL) {
         TRACE(TRACE_ERR, "failed to load module [%s]: %s", name, dlerror());
         free(path);
         return NULL;
     }
+        
+    free(path);
+    
+    return handle;
+}
 
-    if ((module = malloc(sizeof(SMFModule_T))) != NULL) {
-        free(path);
-        dlclose(handle);
+SMFModule_T *smf_module_create_callback(const char *name, ModuleLoadFunction callback) {
+    SMFModule_T *module;
+
+    assert(name);
+
+    if ((module = malloc(sizeof(SMFModule_T))) == NULL) {
         return NULL;
     }
-
-    module->type = 0;
-    module->name = strdup(name);
-    module->u.handle = handle;
     
-    free(path);
+    module->name = strdup(name);
+
+    if (callback == NULL) {
+        module->type = 0;
+        module->u.handle = smf_module_create_handle(name);
+    } else {
+        module->type = 1;
+        module->u.callback = callback;
+    }
     
     TRACE(TRACE_DEBUG, "module %s loaded", name);
     
@@ -203,9 +216,11 @@ int smf_module_destroy(SMFModule_T *module) {
     
     assert(module);
 
-    if (module->u.handle != NULL && dlclose(module->u.handle) != 0) {
-        TRACE(TRACE_ERR, "failed to unload module [%s]", module->name);
-        result = -1;
+    if (module->type == 0) {
+        if (module->u.handle != NULL && dlclose(module->u.handle) != 0) {
+            TRACE(TRACE_ERR, "failed to unload module [%s]", module->name);
+            result = -1;
+        }
     }
 
     free(module->name);
@@ -220,11 +235,15 @@ int smf_module_invoke(SMFModule_T *module, SMFSession_T *session) {
     assert(module);
     assert(session);
     
-    dlerror(); // Clear any errors
-    if ((runner = dlsym(module->u.handle, "load")) == NULL) {
-        TRACE(TRACE_ERR, "failed to locate 'load'-symbol in module '%s': %s",
-            module->name, dlerror());
-        return -1;
+    if (module->type == 0) {
+        dlerror(); // Clear any errors
+        if ((runner = dlsym(module->u.handle, "load")) == NULL) {
+            TRACE(TRACE_ERR, "failed to locate 'load'-symbol in module '%s': %s",
+                  module->name, dlerror());
+              return -1;
+          }
+    } else {
+        runner = module->u.callback;
     }
     
     return runner(session);

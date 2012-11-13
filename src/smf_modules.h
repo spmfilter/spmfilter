@@ -27,6 +27,10 @@ extern "C" {
 #include "smf_session.h"
 #include "smf_list.h"
 
+typedef int (*ModuleLoadFunction)(SMFSession_T *session);
+typedef int (*LoadEngine)(SMFSettings_T *settings);
+
+
 /*!
  * @struct SMFModule_T
  * @brief Defines a module
@@ -38,11 +42,9 @@ typedef struct {
     char *name; /**< name of the module */
     union {
         void *handle; /**< module handle, value for typp 0 */
+        ModuleLoadFunction callback; /**< Callback, used for type != 0 */
     } u;
 } SMFModule_T;
-
-typedef int (*ModuleLoadFunction)(SMFSession_T *session);
-typedef int (*LoadEngine)(SMFSettings_T *settings);
 
 typedef struct {
     int (*load_error)(SMFSettings_T *settings, SMFSession_T *session);
@@ -68,6 +70,21 @@ SMFProcessQueue_T *smf_modules_pqueue_init(
  *         NULL is returned.
  */
 SMFModule_T *smf_module_create(const char *name);
+
+/**
+ * @brief Creates a new new module, which invokes the given callback.
+ *
+ * Instead of loading an external shared-object, a invocatio of smf_module_invoke()
+ * will invoke the given callback.
+ *
+ * @param name The name of the module.
+ * @param callback The callback which is invoked. If you pass NULL here, then
+ *                 it still tries to load the shared-object (as fallback).
+ * @return The module-instance. If the callback is NULL and the shared-object could
+ *         not be located, NULL is returned.
+ * @see smf_module_create
+ */
+SMFModule_T *smf_module_create_callback(const char *name, ModuleLoadFunction callback);
 
 /**
  * @brief Destroys the module-instance again.
