@@ -187,8 +187,9 @@ SMFModule_T *smf_module_create(const char *name) {
         return NULL;
     }
 
+    module->type = 0;
     module->name = strdup(name);
-    module->handle = handle;
+    module->u.handle = handle;
     
     free(path);
     
@@ -202,7 +203,7 @@ int smf_module_destroy(SMFModule_T *module) {
     
     assert(module);
 
-    if (module->handle != NULL && dlclose(module->handle) != 0) {
+    if (module->u.handle != NULL && dlclose(module->u.handle) != 0) {
         TRACE(TRACE_ERR, "failed to unload module [%s]", module->name);
         result = -1;
     }
@@ -220,7 +221,7 @@ int smf_module_invoke(SMFModule_T *module, SMFSession_T *session) {
     assert(session);
     
     dlerror(); // Clear any errors
-    if ((runner = dlsym(module->handle, "load")) == NULL) {
+    if ((runner = dlsym(module->u.handle, "load")) == NULL) {
         TRACE(TRACE_ERR, "failed to locate 'load'-symbol in module '%s': %s",
             module->name, dlerror());
         return -1;

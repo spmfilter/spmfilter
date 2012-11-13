@@ -22,9 +22,24 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 #include "smf_session.h"
-#include "smf_settings.h"
 #include "smf_list.h"
+
+/*!
+ * @struct SMFModule_T
+ * @brief Defines a module
+ */
+typedef struct {
+    uint8_t type; /**< Type of module. If set to 0 then a shared-object is
+                       loaded, any other value means that a callback-function
+                       is executed. */
+    char *name; /**< name of the module */
+    union {
+        void *handle; /**< module handle, value for typp 0 */
+    } u;
+} SMFModule_T;
 
 typedef int (*ModuleLoadFunction)(SMFSession_T *session);
 typedef int (*LoadEngine)(SMFSettings_T *settings);
