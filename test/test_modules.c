@@ -132,14 +132,14 @@ START_TEST(create_invoke_destroy_callback) {
 END_TEST
 
 START_TEST(process_success) {
-    SMFMessage_T *message = load_sample_message(SAMPLES_DIR "/m0001.txt");
+    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
         
     smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
     smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
     smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
     fail_unless(smf_list_size(settings->modules) == 3);
     
-    session->envelope->message = message;
+    
     fail_unless(smf_modules_process(queue, session, settings) == 0);
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
@@ -150,12 +150,101 @@ START_TEST(process_success) {
 }
 END_TEST
 
+START_TEST(process_err_halt_queue) {
+    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
+        
+    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    fail_unless(smf_list_size(settings->modules) == 3);
+    
+    mod2_data.rc = 1; // != 0 is that counts
+    processing_error_data.rc = 0; // halt the queue, can be continued
+        
+    fail_unless(smf_modules_process(queue, session, settings) == -1);
+    fail_unless(mod1_data.count == 1);
+    fail_unless(mod2_data.count == 1);
+    fail_unless(mod3_data.count == 0);
+    fail_unless(error_data.count == 0);
+    fail_unless(processing_error_data.count == 1);
+    fail_unless(nexthop_error_data.count == 0);
+    
+    // queue can be continued
+    mod2_data.rc = 0;
+    
+    fail_unless(smf_modules_process(queue, session, settings) == 0);
+    fail_unless(mod1_data.count == 1); // Now skipped
+    fail_unless(mod2_data.count == 2); // Repeated, but now successful
+    fail_unless(mod3_data.count == 1); // Now executed
+    fail_unless(error_data.count == 0);
+    fail_unless(processing_error_data.count == 1);
+    fail_unless(nexthop_error_data.count == 0);
+}
+END_TEST
+
+START_TEST(process_err_stop_queue) {
+    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
+        
+    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    fail_unless(smf_list_size(settings->modules) == 3);
+    
+    mod2_data.rc = 1; // != 0 is that counts
+    processing_error_data.rc = 1; // stop the queue
+    
+    fail_unless(smf_modules_process(queue, session, settings) == 1);
+    fail_unless(mod1_data.count == 1);
+    fail_unless(mod2_data.count == 1);
+    fail_unless(mod3_data.count == 0);
+    fail_unless(error_data.count == 0);
+    fail_unless(processing_error_data.count == 1);
+    fail_unless(nexthop_error_data.count == 0);
+    
+    // processing the module-queue again will invoke all modules
+    mod2_data.rc = 0;
+    processing_error_data.rc = 0;
+    
+    fail_unless(smf_modules_process(queue, session, settings) == 0);
+    fail_unless(mod1_data.count == 2);
+    fail_unless(mod2_data.count == 2);
+    fail_unless(mod3_data.count == 1);
+    fail_unless(error_data.count == 0);
+    fail_unless(processing_error_data.count == 1);
+    fail_unless(nexthop_error_data.count == 0);
+}
+END_TEST
+
+START_TEST(process_err_nexthop) {
+    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
+        
+    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    fail_unless(smf_list_size(settings->modules) == 3);
+    
+    mod2_data.rc = 1; // != 0 is that counts
+    processing_error_data.rc = 2; // stop the queue, invoke nexthop
+ 
+    fail_unless(smf_modules_process(queue, session, settings) == 2);
+    fail_unless(mod1_data.count == 1);
+    fail_unless(mod2_data.count == 1);
+    fail_unless(mod3_data.count == 0);
+    fail_unless(error_data.count == 0);
+    fail_unless(processing_error_data.count == 1);
+    fail_unless(nexthop_error_data.count == 0);
+}
+END_TEST
+
 TCase *modules_tcase() {
     TCase* tc = tcase_create("modules");
     tcase_add_checked_fixture(tc, setup, teardown);
     
     tcase_add_test(tc, create_invoke_destroy_callback);
     tcase_add_test(tc, process_success);
+    tcase_add_test(tc, process_err_halt_queue);
+    tcase_add_test(tc, process_err_stop_queue);
+    tcase_add_test(tc, process_err_nexthop);
     
     return tc;
 }
