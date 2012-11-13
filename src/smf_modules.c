@@ -137,17 +137,18 @@ static SMFDict_T *smf_modules_stf_processed_modules(FILE *fh) {
     char *buf = NULL;
     size_t n;
     char **parts = NULL;
+    int nparts;
 
     d = smf_dict_new();
     fseek(fh, 0, SEEK_SET); /* rewind the file */
 
     while(getline(&buf,&n,fh) >= 0) {
-        parts = smf_core_strsplit(buf, ":", NULL);
-        // FIXME What if parts only contains 1 element?
+        parts = smf_core_strsplit(buf, ":", &nparts);
+        assert(nparts == 2);
         smf_dict_set(d, parts[0], parts[1]);
         free(buf);
     }
-    free(buf);
+
     if (parts != NULL) {
         free(parts[0]);
         free(parts[1]);
