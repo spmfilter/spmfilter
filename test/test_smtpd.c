@@ -72,11 +72,6 @@ int main (int argc, char const *argv[]) {
     
     printf("* preparing smtpd engine...\t\t\t");
     
-    if (smf_modules_init(settings,BINARY_DIR)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-
     printf("passed\n");
     switch(pid = fork()) {
         case -1:

@@ -58,11 +58,6 @@ int main (int argc, char const *argv[]) {
     smf_settings_add_module(settings, "testmod1");
     smf_settings_add_module(settings, "testmod2");
 
-    if (smf_modules_init(settings,BINARY_DIR)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-
     asprintf(&fname, "%s/m0001.txt",SAMPLES_DIR);
 
     switch (fork()) {

@@ -66,7 +66,7 @@ int main(int argc, char const *argv[]) {
 
     /* preparing session stuff */
     asprintf(&s, "%s/m0001.txt",SAMPLES_DIR);
-    smf_message_from_file(&message, s, 0);
+    smf_message_from_file(&message, s, 1);
     free(s);
     session->envelope->message = message;
 
@@ -80,13 +80,6 @@ int main(int argc, char const *argv[]) {
     /* add test modules */
     smf_settings_add_module(settings, "testmod1");
     smf_settings_add_module(settings, "testmod2");
-
-    printf("* testing smf_modules_init()...\t\t\t");
-    if (smf_modules_init(settings,BINARY_DIR)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
 
     printf("* testing smf_modules_pqueue_init()...\t\t");
     q = smf_modules_pqueue_init(
@@ -118,13 +111,6 @@ int main(int argc, char const *argv[]) {
 
     free(q);
     smf_session_free(session);
-
-    printf("* testing smf_modules_unload()...\t\t");
-    if (smf_modules_unload(settings)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
 
     smf_settings_free(settings);
 
