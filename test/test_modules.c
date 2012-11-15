@@ -129,6 +129,15 @@ static void teardown() {
     session = NULL;
 }
 
+START_TEST(create_invoke_destroy) {
+    SMFModule_T *module;
+    
+    fail_unless((module = smf_module_create(BINARY_DIR "/libtestmod1.so")) !=  NULL);
+    fail_unless(smf_module_invoke(module, session) == 0);
+    fail_unless(smf_module_destroy(module) == 0);
+}
+END_TEST
+
 START_TEST(create_invoke_destroy_callback) {
     SMFModule_T *module;
     
@@ -278,6 +287,7 @@ TCase *modules_tcase() {
     TCase* tc = tcase_create("modules");
     tcase_add_checked_fixture(tc, setup, teardown);
     
+    tcase_add_test(tc, create_invoke_destroy);
     tcase_add_test(tc, create_invoke_destroy_callback);
     tcase_add_test(tc, process_success);
     tcase_add_test(tc, process_err_halt_queue);

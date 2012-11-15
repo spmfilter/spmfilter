@@ -17,6 +17,8 @@
 
 #define _GNU_SOURCE
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -172,10 +174,13 @@ SMFModule_T *smf_module_create(const char *name) {
 }
 
 static void *smf_module_create_handle(const char *name) {
+    struct stat fstat;
     void *handle;
     char *path;
-    
-    if ((path = smf_internal_build_module_path(LIB_DIR, name)) == NULL) {
+
+    if (stat(name, &fstat) == 0 && S_ISREG(fstat.st_mode)) {
+        path = strdup(name);
+    } else if ((path = smf_internal_build_module_path(LIB_DIR, name)) == NULL) {
         TRACE(TRACE_ERR, "failed to build module path for [%s]", name);
         return NULL;
     }
