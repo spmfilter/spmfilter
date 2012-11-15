@@ -65,7 +65,8 @@ SMFProcessQueue_T *smf_modules_pqueue_init(
  * @brief Creates a new module.
  *
  * The module is a shared-object located in the library-path configured during the
- * build of the smpfilter.
+ * build of the smpfilter. If name is the path of the shared-library, then the path
+ * is not resolved and the library is laoded directly.
  *
  * @param name The name of the module. This is also the name of the library.
  * @return The module-instance. If the shared-library could not be loaded,
