@@ -37,10 +37,39 @@
 #include "smf_lookup.h"
 #include "smf_message_private.h"
 #include "smf_internal.h"
+#include "smf_smtp.h"
 
 #define THIS_MODULE "pipe"
 #define BUF_SIZE 1024
 
+static int smf_pipe_handle_nexthop(SMFSettings_T *settings, SMFSession_T *session) {
+    SMFEnvelope_T *env = smf_session_get_envelope(session);
+    SMFSmtpStatus_T *status = NULL;
+
+    STRACE(TRACE_DEBUG, session->id, "will now deliver to nexthop [%s]", settings->nexthop);
+
+    if (env->sender == NULL)
+        smf_envelope_set_sender(env, "<>");
+
+    if (env->recipients->size == 0) {
+        STRACE(TRACE_ERR,session->id,"got no recipients");
+        return -1;
+    }
+
+    if (env->nexthop == NULL)
+        smf_envelope_set_nexthop(env, settings->nexthop);
+
+    status = smf_smtp_deliver(env, settings->tls, session->message_file,session->id);
+    if (status->code != 250) {
+        STRACE(TRACE_ERR,session->id,"delivery to [%s] failed!",settings->nexthop);
+        STRACE(TRACE_ERR,session->id,"nexthop said: %d - %s", status->code,status->text);
+        return -1;
+    }
+
+    smf_smtp_status_free(status);
+
+    return 0;
+}
 
 static int smf_pipe_handle_q_error(SMFSettings_T *settings, SMFSession_T *session) {
     switch (settings->module_fail) {
@@ -94,6 +123,7 @@ int load(SMFSettings_T *settings) {
 
     /* initialize the modules queue handler */
     q = smf_modules_pqueue_init(
+        smf_pipe_handle_nexthop,
         smf_pipe_handle_q_error,
         smf_pipe_handle_q_processing_error,
         smf_pipe_handle_nexthop_error
