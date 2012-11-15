@@ -98,7 +98,9 @@ int smf_modules_engine_load(SMFSettings_T *settings) {
 }
 
 /* initialize the processing queue */
-SMFProcessQueue_T *smf_modules_pqueue_init(int (*loaderr)(SMFSettings_T *settings, SMFSession_T *session),
+SMFProcessQueue_T *smf_modules_pqueue_init(
+        int (*nexthop)(SMFSettings_T *settings, SMFSession_T *session),
+        int (*loaderr)(SMFSettings_T *settings, SMFSession_T *session),
         int (*processerr)(SMFSettings_T *settings, SMFSession_T *session, int retval),
         int (*nhoperr)(SMFSettings_T *settings, SMFSession_T *session)) {
     SMFProcessQueue_T *q;
@@ -109,6 +111,7 @@ SMFProcessQueue_T *smf_modules_pqueue_init(int (*loaderr)(SMFSettings_T *setting
         return(NULL);
     }
 
+    q->nexthop = nexthop;
     q->load_error = loaderr;
     q->processing_error = processerr;
     q->nexthop_error = nhoperr;
@@ -365,10 +368,11 @@ int smf_modules_process(
     /* queue is done, if we're still here check for next hop and
      * deliver
      */
-    if (settings->nexthop != NULL ) {
-        STRACE(TRACE_DEBUG, session->id, "will now deliver to nexthop [%s]", settings->nexthop);
-        ret = smf_modules_deliver_nexthop(settings, q, session);
-    } 
+    if (q->nexthop != NULL) {
+        if ((ret = q->nexthop(settings, session)) != 0) {
+            q->nexthop_error(settings, session);
+        }
+    }
 
      smf_list_free(initial_headers);
 
