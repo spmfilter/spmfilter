@@ -39,6 +39,7 @@ static SMFProcessQueue_T *queue;
 static struct cb_data mod1_data;
 static struct cb_data mod2_data;
 static struct cb_data mod3_data;
+static struct cb_data nexthop_data;
 static struct cb_data error_data;
 static struct cb_data processing_error_data;
 static struct cb_data nexthop_error_data;
@@ -75,21 +76,28 @@ static int mod3(SMFSession_T *s) {
     return mod3_data.rc;
 }
 
-static int _handle_q_error(SMFSettings_T *set, SMFSession_T *ses) {
+static int nexthop_cb(SMFSettings_T *set, SMFSession_T *ses) {
+    fail_unless(settings == set);
+    fail_unless(session == ses);
+    nexthop_data.count++;
+    return nexthop_data.rc;
+}
+
+static int error_cb(SMFSettings_T *set, SMFSession_T *ses) {
     fail_unless(settings == set);
     fail_unless(session == ses);
     error_data.count++;
     return error_data.rc;
 }
 
-static int _handle_q_processing_error(SMFSettings_T *set, SMFSession_T *ses, int retval) {
+static int processing_error_cb(SMFSettings_T *set, SMFSession_T *ses, int retval) {
     fail_unless(settings == set);
     fail_unless(session == ses);
     processing_error_data.count++;
     return processing_error_data.rc;
 }
 
-static int _handle_nexthop_error(SMFSettings_T *set, SMFSession_T *ses) {
+static int nexthop_error_cb(SMFSettings_T *set, SMFSession_T *ses) {
     fail_unless(settings == set);
     fail_unless(session == ses);
     nexthop_error_data.count++;
@@ -102,12 +110,13 @@ static void setup() {
         
     fail_unless((session = smf_session_new()) != NULL);
     
-    queue = smf_modules_pqueue_init(_handle_q_error, _handle_q_processing_error, _handle_nexthop_error);
+    queue = smf_modules_pqueue_init(nexthop_cb, error_cb, processing_error_cb, nexthop_error_cb);
     fail_unless(queue != NULL);
         
     init_cb_data(&mod1_data);
     init_cb_data(&mod2_data);
     init_cb_data(&mod3_data);
+    init_cb_data(&nexthop_data);
     init_cb_data(&error_data);
     init_cb_data(&processing_error_data);
     init_cb_data(&nexthop_error_data);
@@ -144,6 +153,7 @@ START_TEST(process_success) {
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 1);
+    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 0);
     fail_unless(nexthop_error_data.count == 0);
@@ -166,6 +176,7 @@ START_TEST(process_err_halt_queue) {
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 0);
     fail_unless(error_data.count == 0);
+    fail_unless(nexthop_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
     
@@ -176,6 +187,7 @@ START_TEST(process_err_halt_queue) {
     fail_unless(mod1_data.count == 1); // Now skipped
     fail_unless(mod2_data.count == 2); // Repeated, but now successful
     fail_unless(mod3_data.count == 1); // Now executed
+    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
@@ -197,6 +209,7 @@ START_TEST(process_err_stop_queue) {
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 0);
+    fail_unless(nexthop_data.count == 0);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
@@ -209,6 +222,7 @@ START_TEST(process_err_stop_queue) {
     fail_unless(mod1_data.count == 2);
     fail_unless(mod2_data.count == 2);
     fail_unless(mod3_data.count == 1);
+    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
@@ -226,13 +240,37 @@ START_TEST(process_err_nexthop) {
     mod2_data.rc = 1; // != 0 is that counts
     processing_error_data.rc = 2; // stop the queue, invoke nexthop
  
-    fail_unless(smf_modules_process(queue, session, settings) == 2);
+    fail_unless(smf_modules_process(queue, session, settings) == 0);
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 0);
+    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
+}
+END_TEST
+
+START_TEST(process_err_nexthop_err) {
+    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
+        
+    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    fail_unless(smf_list_size(settings->modules) == 3);
+    
+    mod2_data.rc = 1; // != 0 is that counts
+    nexthop_data.rc = 4711; // != 0 is that counts
+    processing_error_data.rc = 2; // stop the queue, invoke nexthop
+ 
+    fail_unless(smf_modules_process(queue, session, settings) == 4711);
+    fail_unless(mod1_data.count == 1);
+    fail_unless(mod2_data.count == 1);
+    fail_unless(mod3_data.count == 0);
+    fail_unless(nexthop_data.count == 1);
+    fail_unless(error_data.count == 0);
+    fail_unless(processing_error_data.count == 1);
+    fail_unless(nexthop_error_data.count == 1);
 }
 END_TEST
 
@@ -245,6 +283,7 @@ TCase *modules_tcase() {
     tcase_add_test(tc, process_err_halt_queue);
     tcase_add_test(tc, process_err_stop_queue);
     tcase_add_test(tc, process_err_nexthop);
+    tcase_add_test(tc, process_err_nexthop_err);
     
     return tc;
 }
