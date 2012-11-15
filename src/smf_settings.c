@@ -232,7 +232,9 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
             (*settings)->listen_backlog = _get_integer(val);
         /** [global]foreground **/
         } else if (strcmp(key,"foreground")==0) {
-            (*settings)->foreground = _get_boolean(val);
+            int fg = _get_boolean(val);
+            (*settings)->foreground = fg;
+            configure_trace_destination(val ? TRACE_DEST_STDERR : TRACE_DEST_SYSLOG);
         /** [global]user **/
         } else if (strcmp(key,"user")==0) {
             if ((*settings)->user!=NULL)
