@@ -348,7 +348,7 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     } else {
         retstat = smtp_message_transfer_status(message);
         smtp_enumerate_recipients(message, smf_smtp_print_recipient_status, sid);
-        status->text = strdup(retstat->text);
+        status->text = (retstat->text != NULL) ? strdup(retstat->text) : NULL;
         status->code = retstat->code;
         
         if (sid != NULL)
