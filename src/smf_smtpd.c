@@ -528,23 +528,21 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'helo/ehlo' received");
             req_value = smf_smtpd_get_req_value(req,4);
             smf_session_set_helo(session,req_value);
-            if (strncmp(req_value,req,strlen(req_value)) != 0) {
-                if (strcmp(session->helo,"") == 0)  {
-                    smf_smtpd_string_reply(session->sock,"501 Syntax: HELO hostname\r\n");
-                } else {
-                    STRACE(TRACE_DEBUG,session->id,"session->helo: [%s]",smf_session_get_helo(session));
-
-                    if (strncasecmp(req, "ehlo", 4)==0) {
-                        smf_smtpd_string_reply(session->sock,
-                            "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",hostname,settings->max_size);
-                    } else {
-                        smf_smtpd_string_reply(session->sock,"250 %s\r\n",hostname);
-                    }
-                    state = ST_HELO;
-                }
-            } else {
+            
+            if (strcmp(session->helo,"") == 0)  {
                 smf_smtpd_string_reply(session->sock,"501 Syntax: HELO hostname\r\n");
+            } else {
+                STRACE(TRACE_DEBUG,session->id,"session->helo: [%s]",smf_session_get_helo(session));
+
+                if (strncasecmp(req, "ehlo", 4)==0) {
+                    smf_smtpd_string_reply(session->sock,
+                        "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",hostname,settings->max_size);
+                } else {
+                    smf_smtpd_string_reply(session->sock,"250 %s\r\n",hostname);
+                }
+                state = ST_HELO;
             }
+            
             free(req_value);
         } else if (strncasecmp(req,"xforward",8)==0) {
             alarm(settings->smtpd_timeout);
