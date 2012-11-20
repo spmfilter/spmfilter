@@ -286,6 +286,8 @@ int smf_modules_process(
 
     if (smf_list_new(&initial_headers,_header_destroy) != 0) {
         STRACE(TRACE_ERR,session->id, "failed to create header list");
+        free(stf_filename);
+        fclose(stfh);
         return -1;
     }
 
@@ -395,12 +397,7 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     int dirty = 0;
     int found = 0;
     int i = 0;
-    FILE *new = NULL;
-    FILE *old = NULL;
-    char *tmpname = NULL;
     size_t len;
-    ssize_t read;
-    char *buf = NULL;
 
     STRACE(TRACE_DEBUG,session->id,"flushing header information to filesystem");
     
@@ -446,8 +443,15 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     
     /* merge new headers with message content to new queue file */
     if (dirty == 1) {
+        char tmpname[PATH_MAX];
+        char *buf = NULL;
+        FILE *new = NULL;
+        FILE *old = NULL;
+        size_t nbytes;
+        
         found = 0;
-        asprintf(&tmpname,"%s/XXXXXX",settings->queue_dir);
+        snprintf(tmpname, sizeof(tmpname), "%s/XXXXXX", settings->queue_dir);
+
         if(mkstemp(tmpname) == -1) {
             STRACE(TRACE_ERR,session->id,"failed to create temporary file: %s (%d)",strerror(errno),errno);
             return -1;
@@ -465,37 +469,50 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
 
         if((old = fopen(session->message_file, "r"))==NULL) {
             STRACE(TRACE_ERR,session->id,"unable to open queue file: %s (%d)",strerror(errno), errno);
+            fclose(new);
             return -1;
         }
 
         while(!feof(old)) {
             if (found == 0) {
-                if ((read = getline(&buf,&len,old)) == -1) {
+                if ((nbytes = getline(&buf,&len,old)) == -1) {
                     STRACE(TRACE_ERR, session->id, "failed to read queue_file");
-                    return -1;
+                    nbytes = 0; // to pass the ferror-check below
+                    break;
                 }
 
-                if ((strcmp(buf,LF)==0)||(strcmp(buf,CRLF)==0)) found = 1;
+                if ((strcmp(buf,LF)==0)||(strcmp(buf,CRLF)==0)) {
+                    found = 1;
+                    
+                    // Prepare "buf" for the following body-read
+                    free(buf);
+                    buf = (char *)calloc(BUFSIZE + 1,sizeof(char));
+                }
                 
                 continue;
             } else {
-                if (buf != NULL) free(buf);
-                buf = (char *)calloc(BUFSIZE + 1,sizeof(char));
-                if ((read = fread(buf,sizeof(char),BUFSIZE,old)) <= 0) {
+                if ((nbytes = fread(buf,sizeof(char),BUFSIZE,old)) <= 0) {
                     STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
-                    return -1;
+                    break;
                 }      
             }
 
-            if (read > 0) {
-                if (fwrite(buf,sizeof(char),read,new) <= 0) {
+            if (nbytes > 0) {
+                if ((nbytes = fwrite(buf,sizeof(char),nbytes,new)) <= 0) {
                     STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
-                    return -1;
+                    break;
                 }
             }                
         }
-        if (buf != NULL) free(buf);
         
+        free(buf);
+        
+        if (nbytes == 0 && (ferror(old) || ferror(new))) {
+            fclose(old); 
+            fclose(new);
+            return -1;
+        }
+
         fclose(old); 
         fclose(new);
 
@@ -508,8 +525,6 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
             STRACE(TRACE_ERR,session->id,"failed to rename queue file: %s (%d)",strerror(errno),errno);
             return -1;
         }
-
-        free(tmpname);
     }
 
     return 0;
