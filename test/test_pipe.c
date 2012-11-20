@@ -53,10 +53,11 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_debug(settings, 1);
     smf_settings_set_queue_dir(settings, BINARY_DIR);
     smf_settings_set_engine(settings, "pipe");
+    smf_settings_set_nexthop(settings, "localhost:25");
     
     /* add test modules */
-    smf_settings_add_module(settings, "testmod1");
-    smf_settings_add_module(settings, "testmod2");
+    smf_settings_add_module(settings, BINARY_DIR "/libtestmod1.so");
+    smf_settings_add_module(settings, BINARY_DIR "/libtestmod2.so");
 
     asprintf(&fname, "%s/m0001.txt",SAMPLES_DIR);
 
@@ -68,7 +69,6 @@ int main (int argc, char const *argv[]) {
             close(pipefd[0]); 
             dup2(pipefd[1], 1); 
             close(pipefd[1]);  
-            sleep(10);
             execl("/bin/cat", "cat", fname, (char *)NULL);
             
             break;
