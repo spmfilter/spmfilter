@@ -85,8 +85,8 @@ CONFIGURE_FILE(
 )
 
 CONFIGURE_FILE(
-    ${CMAKE_CURRENT_SOURCE_DIR}/test/test.h.cmake
-    ${CMAKE_CURRENT_SOURCE_DIR}/test/test.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/testdirs.h.cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/testdirs.h
 )
 
 # write spmfilter.pc

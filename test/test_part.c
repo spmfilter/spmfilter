@@ -24,6 +24,7 @@
 #include "../src/smf_part.h"
 
 #include "test.h"
+#include "testdirs.h"
 
 int main (int argc, char const *argv[]) {
     SMFPart_T *part = NULL;

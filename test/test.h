@@ -22,9 +22,6 @@
 extern "C" {
 #endif
 
-#define SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test/samples"
-#define BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/test"
-
 char mime_type_string[] = "text/plain; charset=us-ascii";
 char mime_disposition_string[] = "inline";
 char mime_encoding_string[] = "quoted-printable";
