@@ -177,6 +177,7 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
     // Prepare the result with the format.
     // The '%<x>'-expressions are replaced later.
     strncpy(out, format, out_size);
+    out[out_size - 1] = '\0';
     offs = 0;
 
     while(out[offs] != '\0') {
