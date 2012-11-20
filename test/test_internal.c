@@ -26,6 +26,7 @@
 #include <unistd.h>
 
 #include "test.h"
+#include "testdirs.h"
 #include "../src/smf_internal.h"
  
 

@@ -32,6 +32,7 @@
 #include "../src/smf_modules.h"
 
 #include "test.h"
+#include "testdirs.h"
 
 int load(SMFSettings_T *settings);
 
