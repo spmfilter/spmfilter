@@ -32,6 +32,7 @@
 
 
 #include "test.h"
+#include "testdirs.h"
 #include "../src/smf_internal.h"
 #include "../src/smf_server.h"
 #include "../src/smf_settings.h"

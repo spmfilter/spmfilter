@@ -11,7 +11,7 @@ libtool
 src/spmfilter.pc
 src/spmfilter_config.h
 src/spmfilter
-test/test.h
+test/testdirs.h
 *.o
 *.lo
 *.so*

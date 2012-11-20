@@ -27,6 +27,7 @@
 #include "../src/smf_settings_private.h"
 
 #include "test.h"
+#include "testdirs.h"
 
 struct cb_data {
     int count;
