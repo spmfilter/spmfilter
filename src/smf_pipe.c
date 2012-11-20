@@ -45,11 +45,22 @@
 static int smf_pipe_handle_nexthop(SMFSettings_T *settings, SMFSession_T *session) {
     SMFEnvelope_T *env = smf_session_get_envelope(session);
     SMFSmtpStatus_T *status = NULL;
+    SMFList_T *rcpts;
+    SMFListElem_T *elem = NULL;
 
     STRACE(TRACE_DEBUG, session->id, "will now deliver to nexthop [%s]", settings->nexthop);
 
     if (env->sender == NULL)
         smf_envelope_set_sender(env, "<>");
+
+    rcpts = smf_message_get_recipients(env->message);
+    elem = smf_list_head(rcpts);
+    while(elem != NULL) {
+        char *addr = smf_email_address_to_string((SMFEmailAddress_T*)smf_list_data(elem));
+        smf_envelope_add_rcpt(env, addr);
+        free(addr);
+        elem = elem->next;
+    }
 
     if (env->recipients->size == 0) {
         STRACE(TRACE_ERR,session->id,"got no recipients");
