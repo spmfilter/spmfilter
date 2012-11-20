@@ -24,6 +24,7 @@
 #include "../src/smf_envelope.h"
 #include "../src/smf_settings.h"
 #include "test.h"
+#include "testdirs.h"
 
 int main (int argc, char const *argv[]) {
     SMFSmtpStatus_T *status = NULL;

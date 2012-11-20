@@ -25,6 +25,7 @@
 #include "../src/smf_part.h"
 
 #include "test.h"
+#include "testdirs.h"
 
 char test_files[54][10] = {
     "m0001.txt","m0002.txt","m0003.txt","m0004.txt","m0005.txt",

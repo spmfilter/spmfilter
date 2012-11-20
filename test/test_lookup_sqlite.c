@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "test.h"
+#include "testdirs.h"
 #include "../src/smf_lookup.h"
 #include "../src/smf_lookup_sql.h"
 #include "../src/smf_settings.h"
