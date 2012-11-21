@@ -39,9 +39,11 @@ There are two mailing lists devoted to spmfilter.
 BUG REPORTS
 -----------
 
-To visit this web page for full the details on bug reporting:
+If you believe you have found a bug, please send this information, plus 
+information about the machine and OS platform used along with a description 
+of the problem to
 
-	http://www.spmfilter.org/projects/spmfilter/issues
+	bugs@spmfilter.org
 
 	
 MERCURIAL REPOSITORY
@@ -52,8 +54,4 @@ source code repository then you can use mercurial:
 
 	hg clone http://www.spmfilter.org/hg/spmfilter
 	
-See the download page for full details on all the ways to grab the
-source web-browsing of the mercurial repository, etc.:
-
-	http://www.spmfilter.org/projects/spmfilter/files
 	

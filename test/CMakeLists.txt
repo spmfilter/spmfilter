@@ -1,6 +1,11 @@
 list(APPEND COMMON_LIBS)
 
-add_executable(spm_unit_tests suite.c test_core.c test_modules.c)
+add_executable(spm_unit_tests
+  suite.c
+  test_core.c
+  test_modules.c
+  test_ea.c
+  test_envelope.c )
 target_link_libraries(spm_unit_tests smf ${COMMON_LIBS} ${CHECK_LIB})
 ADD_TEST(SMFUnitTests spm_unit_tests)
 
@@ -11,14 +16,6 @@ ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_settings)
 add_executable(test_session test_session.c)
 target_link_libraries(test_session smf ${COMMON_LIBS})
 ADD_TEST(SMFSession_T ${EXECUTABLE_OUTPUT_PATH}/test_session)
-
-add_executable(test_envelope test_envelope.c)
-target_link_libraries(test_envelope smf ${COMMON_LIBS})
-ADD_TEST(SMFEnvelope_T ${EXECUTABLE_OUTPUT_PATH}/test_envelope)
-
-add_executable(test_ea test_ea.c)
-target_link_libraries(test_ea smf ${COMMON_LIBS})
-ADD_TEST(SMFEmailAddress_T ${EXECUTABLE_OUTPUT_PATH}/test_ea)
 
 add_executable(test_list test_list.c)
 target_link_libraries(test_list smf ${COMMON_LIBS})

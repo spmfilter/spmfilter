@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -13,82 +13,79 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Original implementation by N.Devillard
  */
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <check.h>
 
 #include "../src/smf_email_address.h"
 
-#include "test.h"
+static SMFEmailAddress_T *ea;
 
-int main (int argc, char const *argv[]) {
-    SMFEmailAddress_T *ea = NULL;
-    SMFEmailAddress_T *ea2 = NULL;
-    char *s = NULL;
+static void setup() {
+    fail_unless((ea = smf_email_address_new()) != NULL);
+}
 
-    printf("Start SMFEmailAddress_T tests...\n");
-
-    printf("* testing smf_email_address_new()...\t\t\t\t");
-    ea = smf_email_address_new();
-    assert(ea);
-    printf("passed\n");
-
-    printf("* testing smf_email_address_parse_string()...\t\t\t");
-    ea2 = smf_email_address_parse_string(test_addr);
-    assert(ea2);
-    printf("passed\n");   
-
-    printf("* testing smf_email_address_to_string()...\t\t\t");
-    s = smf_email_address_to_string(ea2);
-    
-    if (strcmp(test_addr,s) != 0) {
-        printf("failed\n");
-        return -1;
-    } else
-        printf("passed\n");
-
-    free(s);
-    smf_email_address_free(ea2);
-
-    printf("* testing smf_email_address_set_type()...\t\t\t");
-    smf_email_address_set_type(ea,SMF_EMAIL_ADDRESS_TYPE_TO);
-    printf("passed\n");
-
-    printf("* testing smf_email_address_get_type()...\t\t\t");
-    if (smf_email_address_get_type(ea) != SMF_EMAIL_ADDRESS_TYPE_TO) {
-        printf("failed\n");
-        return -1;
-    } else
-        printf("passed\n");
-
-    printf("* testing smf_email_address_set_name()...\t\t\t");
-    smf_email_address_set_name(ea,test_name);
-    printf("passed\n");
-
-    printf("* testing smf_email_address_get_name()...\t\t\t");
-    if (strcmp(test_name,smf_email_address_get_name(ea)) != 0) {
-        printf("failed\n");
-        return -1;
-    } else
-        printf("passed\n");
-
-    printf("* testing smf_email_address_set_email()...\t\t\t");
-    smf_email_address_set_email(ea,test_email);
-    printf("passed\n");
-
-    printf("* testing smf_email_address_get_email()...\t\t\t");
-    if (strcmp(test_email,smf_email_address_get_email(ea)) != 0) {
-        printf("failed\n");
-        return -1;
-    } else
-        printf("passed\n");
-    
-    printf("* testing smf_email_address_free()...\t\t\t\t");
+static void teardown() {
     smf_email_address_free(ea);
-    printf("passed\n");
-    
-    return 0;
+    ea = NULL;
+}
+
+START_TEST(set_get_type) {
+    smf_email_address_set_type(ea,SMF_EMAIL_ADDRESS_TYPE_TO);
+    fail_unless(smf_email_address_get_type(ea) == SMF_EMAIL_ADDRESS_TYPE_TO);
+}
+END_TEST
+
+START_TEST(set_get_name) {
+    char *s = strdup("John Doe");
+    smf_email_address_set_name(ea,s);
+    fail_unless(strcmp(s,smf_email_address_get_name(ea)) == 0);
+    free(s);
+}
+END_TEST
+
+START_TEST(set_get_email) {
+    char *s = strdup("user@example.org");
+    smf_email_address_set_email(ea,s);
+    fail_unless(strcmp(s,smf_email_address_get_email(ea)) == 0);
+    free(s);
+}
+END_TEST
+
+START_TEST(parse_string) {
+    SMFEmailAddress_T *ea2 = NULL;
+    char *s = strdup("John Doe <user@example.org>");
+    fail_unless((ea2 = smf_email_address_parse_string(s)) != NULL);
+    smf_email_address_free(ea2);
+    free(s);
+}
+END_TEST
+
+START_TEST(to_string) {
+    SMFEmailAddress_T *ea2 = NULL;
+    char *s1 = strdup("John Doe <user@example.org>");
+    char *s2;
+    fail_unless((ea2 = smf_email_address_parse_string(s1)) != NULL);
+    fail_unless(( s2 = smf_email_address_to_string(ea2)) != NULL);
+    fail_unless(strcmp(s1, s2) == 0);
+    free(s1);
+    free(s2);
+    smf_email_address_free(ea2);
+}
+END_TEST
+
+TCase *ea_tcase() {
+    TCase* tc = tcase_create("email_address");
+
+    tcase_add_checked_fixture(tc, setup, teardown);
+
+    tcase_add_test(tc, set_get_type);
+    tcase_add_test(tc, set_get_name);
+    tcase_add_test(tc, set_get_email);
+    tcase_add_test(tc, parse_string);
+    tcase_add_test(tc, to_string);
+
+    return tc;
 }
