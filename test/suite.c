@@ -20,13 +20,17 @@
 
 extern TCase *core_tcase();
 extern TCase *modules_tcase();
+extern TCase *ea_tcase();
+extern TCase *env_tcase();
 
-static Suite *sfm_suite() {
-	Suite* s = suite_create("sfm unit tests");
+static Suite *smf_suite() {
+	Suite* s = suite_create("smf unit tests");
 
 	suite_add_tcase(s, core_tcase());
 	suite_add_tcase(s, modules_tcase());
-    
+    suite_add_tcase(s, ea_tcase());
+    suite_add_tcase(s, env_tcase());
+
 	return s;
 }
 
@@ -45,7 +49,7 @@ int main(int argc, char * const argv[]) {
 		}
 	}
 
-	SRunner* sr = srunner_create(sfm_suite());
+	SRunner* sr = srunner_create(smf_suite());
 
 	if (enable_debug) {
 		srunner_set_fork_status(sr, CK_NOFORK);
