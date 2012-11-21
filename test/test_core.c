@@ -193,8 +193,6 @@ START_TEST(expand_string_domain_no_domain) {
     char *s;
 
     fail_unless(smf_core_expand_string(query, "user", &s) == -1);
-
-    free(s);
 }
 END_TEST
 

@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2012 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -13,11 +13,10 @@
  *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Original implementation by N.Devillard
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <check.h>
 
 #include "../src/smf_email_address.h"
@@ -30,6 +29,7 @@ static void setup() {
 
 static void teardown() {
     smf_email_address_free(ea);
+    ea = NULL;
 }
 
 START_TEST(set_get_type) {
@@ -39,31 +39,39 @@ START_TEST(set_get_type) {
 END_TEST
 
 START_TEST(set_get_name) {
-    smf_email_address_set_name(ea,"John Doe");
-    fail_unless(strcmp("John Doe",smf_email_address_get_name(ea)) == 0);
+    char *s = strdup("John Doe");
+    smf_email_address_set_name(ea,s);
+    fail_unless(strcmp(s,smf_email_address_get_name(ea)) == 0);
+    free(s);
 }
 END_TEST
 
 START_TEST(set_get_email) {
-    smf_email_address_set_email(ea,"user@example.org");
-    fail_unless(strcmp("user@example.org",smf_email_address_get_email(ea)) == 0);
+    char *s = strdup("user@example.org");
+    smf_email_address_set_email(ea,s);
+    fail_unless(strcmp(s,smf_email_address_get_email(ea)) == 0);
+    free(s);
 }
 END_TEST
 
 START_TEST(parse_string) {
     SMFEmailAddress_T *ea2 = NULL;
-    fail_unless((ea2 = smf_email_address_parse_string("John Doe <user@example.org>")) != NULL);
+    char *s = strdup("John Doe <user@example.org>");
+    fail_unless((ea2 = smf_email_address_parse_string(s)) != NULL);
     smf_email_address_free(ea2);
+    free(s);
 }
 END_TEST
 
 START_TEST(to_string) {
     SMFEmailAddress_T *ea2 = NULL;
-    char *s;
-    fail_unless((ea2 = smf_email_address_parse_string("John Doe <user@example.org>")) != NULL);
-    fail_unless(( s = smf_email_address_to_string(ea2)) != NULL);
-    fail_unless(strcmp(s, "John Doe <user@example.org>") == 0);
-    free(s);
+    char *s1 = strdup("John Doe <user@example.org>");
+    char *s2;
+    fail_unless((ea2 = smf_email_address_parse_string(s1)) != NULL);
+    fail_unless(( s2 = smf_email_address_to_string(ea2)) != NULL);
+    fail_unless(strcmp(s1, s2) == 0);
+    free(s1);
+    free(s2);
     smf_email_address_free(ea2);
 }
 END_TEST
