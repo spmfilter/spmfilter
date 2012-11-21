@@ -106,11 +106,14 @@ IF(APPLE)
 	set(_link_flags "${_link_flags} -flat_namespace")
 ENDIF(APPLE)
 
-ENABLE_TESTING()
-# for unit-testing you need the check-library
-message(STATUS "checking for test-modules")
-find_package(Check REQUIRED)
-include_directories(${CHECK_INCLUDES})
+# check for enabled testing
+if (ENABLE_TESTING)
+    ENABLE_TESTING()
+    # for unit-testing you need the check-library
+    message(STATUS "checking for test-modules")
+    find_package(Check REQUIRED)
+    include_directories(${CHECK_INCLUDES})
+endif(ENABLE_TESTING)
 
 # build stuff in src directory
 add_subdirectory(src)
