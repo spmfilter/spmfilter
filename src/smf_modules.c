@@ -325,7 +325,7 @@ int smf_modules_process(
                 smf_dict_free(modlist);
                 fclose(stfh);
                 free(stf_filename);
-
+                smf_list_free(initial_headers);
                 return -1;
             } else if(ret == 1) {
                 STRACE(TRACE_WARNING, session->id, "module [%s] stopped processing!", curmod->name);
@@ -334,9 +334,10 @@ int smf_modules_process(
                 if(unlink(stf_filename) != 0)
                     STRACE(TRACE_ERR,session->id,"Failed to unlink state file [%s]", stf_filename);
                 free(stf_filename);
+                smf_list_free(initial_headers);
                 return 1;
             } else if(ret == 2) {
-                STRACE(TRACE_DEBUG,session->id,"module [%s] stopped processing, turning to nexthop processing!",curmod);
+                STRACE(TRACE_DEBUG,session->id,"module [%s] stopped processing, turning to nexthop processing!",curmod->name);
                 break;
             }
         } else {
@@ -357,7 +358,6 @@ int smf_modules_process(
     STRACE(TRACE_DEBUG, session->id,"module processing finished successfully.");
     fclose(stfh);
     smf_dict_free(modlist);
-
 
     if(unlink(stf_filename) != 0) {
         STRACE(TRACE_ERR,session->id,"failed to unlink state file [%s]: %s (%d)", stf_filename,strerror(errno),errno);
