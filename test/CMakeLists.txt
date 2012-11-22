@@ -4,6 +4,7 @@ add_executable(spm_unit_tests
   suite.c
   test_core.c
   test_modules.c
+  test_nexthop.c
   test_ea.c
   test_envelope.c )
 target_link_libraries(spm_unit_tests smf ${COMMON_LIBS} ${CHECK_LIB})
