@@ -15,112 +15,96 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include <check.h>
 
 #include "../src/smf_dict.h"
 #include "../src/smf_list.h"
 
-#include "test.h"
+static SMFDict_T *dict;
 
 int iter_ok = 0;
 
-void _iter_test(char *key, char *value, void *args) {
-    if ((strcmp(key,test_header_name)==0)||(strcmp(key,test_header_value)==0)) {
-        if (strcmp(value,test_header_value)==0) {
+static void iter_test(char *key, char *value, void *args) {
+    if ((strcmp(key,"key1")==0)||(strcmp(key,"key2")==0)) {
+        if (strcmp(value,"value")==0) {
             iter_ok++;
         }
     }
 }
 
-int main(int argc, char const *argv[]) {
-    SMFDict_T *dict = NULL;
+static void setup() {
+    fail_unless((dict = smf_dict_new()) != NULL);
+}
+
+static void teardown() {
+    smf_dict_free(dict);
+    dict = NULL;
+}
+
+START_TEST(set) {
+    fail_unless(smf_dict_set(dict,"key","value")==0);
+}
+END_TEST
+
+START_TEST(get) {
+    fail_unless(smf_dict_set(dict,"key","value")==0);
+    fail_unless(strcmp(smf_dict_get(dict,"key"),"value")==0);
+}
+END_TEST
+
+START_TEST(get_fail) {
+    fail_unless(smf_dict_get(dict,"notexisting")==NULL);
+}
+END_TEST
+
+START_TEST(keys) {
     SMFList_T *l = NULL;
     SMFListElem_T *e = NULL;
-    char *s = NULL;
-    int count = 0;
+    char *s;
 
-    printf("Start SMFDict_T tests...\n");
-
-    printf("* testing smf_dict_new()...\t\t\t");
-    dict = smf_dict_new();
-    assert(dict);
-    if (smf_dict_count(dict) != 0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
-
-    printf("* testing smf_dict_set()...\t\t\t");
-    if (smf_dict_set(dict,test_header_name,test_header_value)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
-
-    printf("* testing smf_dict_get()...\t\t\t");
-    if (strcmp(smf_dict_get(dict,test_header_name),test_header_value)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
-
-    printf("* testing smf_dict_get_keys()...\t\t");
-    if (smf_dict_set(dict,test_header_value,test_header_value)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-
-    l = smf_dict_get_keys(dict);
+    fail_unless(smf_dict_set(dict,"key1","value1")==0);
+    fail_unless(smf_dict_set(dict,"key2","value2")==0);
+    fail_unless((l = smf_dict_get_keys(dict))!=NULL);
+    
     e = smf_list_head(l);
     while(e != NULL) {
         s = smf_list_data(e);
-        if ((strcmp(s,test_header_name)!=0)&&(strcmp(s,test_header_value)!=0)) {
-            printf("failed\n");
-            return -1;
-        }
-        count++;
+        fail_unless((strcmp(s,"key1")==0)||(strcmp(s,"key2")==0));
         e = e->next;
     }
-    if (smf_dict_count(dict) != 2) {
-        printf("failed\n");
-        return -1;
-    }
-    if (smf_list_free(l)!=0) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
+    fail_unless(smf_dict_count(dict)==2);
+    smf_list_free(l);
+}
+END_TEST
 
-    printf("* testing smf_dict_map()...\t\t\t");
-    smf_dict_map(dict,_iter_test,NULL);
-    if (iter_ok==2)
-        printf("passed\n");
-    else {
-        printf("failed\n");
-        return -1;
-    }
+START_TEST(map) {
+    fail_unless(smf_dict_set(dict,"key1","value")==0);
+    fail_unless(smf_dict_set(dict,"key2","value")==0);
+    smf_dict_map(dict,iter_test,NULL);
+    fail_unless(iter_ok==2);
 
-    printf("* testing smf_dict_remove()...\t\t\t");
-    smf_dict_remove(dict,test_header_value);
+}
+END_TEST
 
-    if (smf_dict_count(dict) != 1) {
-        printf("failed\n");
-        return -1;
-    }    
+START_TEST(remove_item) {
+    fail_unless(smf_dict_set(dict,"key","value")==0);
+    smf_dict_remove(dict,"key");
 
-    if (smf_dict_get(dict,test_header_value)==NULL) {
-        printf("passed\n");
-    } else {
-        printf("failed\n");
-        return -1;
-    }
+    fail_unless(smf_dict_count(dict)==0);
+}
+END_TEST
 
-    printf("* testing smf_dict_free()...\t\t\t");
-    smf_dict_free(dict);
-    printf("passed\n");
+TCase *dict_tcase() {
+    TCase* tc = tcase_create("dict");
 
-    return 0;
+    tcase_add_checked_fixture(tc, setup, teardown);
+
+    tcase_add_test(tc, set);
+    tcase_add_test(tc, get);
+    tcase_add_test(tc, get_fail);
+    tcase_add_test(tc, keys);
+    tcase_add_test(tc, map);
+    tcase_add_test(tc, remove_item);
+
+    return tc;
 }
