@@ -334,7 +334,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 if (smf_list_free((*settings)->ldap_host)!=0)
                     TRACE(TRACE_ERR,"failed to free host list");
                 else 
-                    if (smf_list_new(&((*settings)->ldap_host),_mod_list_destroy)!=0)
+                    if (smf_list_new(&((*settings)->ldap_host),smf_internal_string_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create host list");
             }
             sl = smf_core_strsplit(val, ";", NULL);

@@ -23,6 +23,7 @@ extern TCase *modules_tcase();
 extern TCase *nexthop_tcase();
 extern TCase *ea_tcase();
 extern TCase *env_tcase();
+extern TCase *dict_tcase();
 
 static Suite *smf_suite() {
 	Suite* s = suite_create("smf unit tests");
@@ -32,6 +33,7 @@ static Suite *smf_suite() {
     suite_add_tcase(s, nexthop_tcase());
     suite_add_tcase(s, ea_tcase());
     suite_add_tcase(s, env_tcase());
+    suite_add_tcase(s, dict_tcase());
 
 	return s;
 }
