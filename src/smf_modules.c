@@ -31,6 +31,7 @@
 #include "smf_header.h"
 #include "smf_envelope.h"
 #include "smf_message.h"
+#include "smf_nexthop.h"
 #include "smf_trace.h"
 #include "smf_internal.h"
 #include "smf_dict.h"
@@ -101,7 +102,6 @@ int smf_modules_engine_load(SMFSettings_T *settings) {
 
 /* initialize the processing queue */
 SMFProcessQueue_T *smf_modules_pqueue_init(
-        int (*nexthop)(SMFSettings_T *settings, SMFSession_T *session),
         int (*loaderr)(SMFSettings_T *settings, SMFSession_T *session),
         int (*processerr)(SMFSettings_T *settings, SMFSession_T *session, int retval),
         int (*nhoperr)(SMFSettings_T *settings, SMFSession_T *session)) {
@@ -113,7 +113,6 @@ SMFProcessQueue_T *smf_modules_pqueue_init(
         return(NULL);
     }
 
-    q->nexthop = nexthop;
     q->load_error = loaderr;
     q->processing_error = processerr;
     q->nexthop_error = nhoperr;
@@ -270,6 +269,7 @@ int smf_modules_process(
     int ret = 0;
     int mod_count;
     char *header = NULL;
+    NexthopFunction nexthop;
 
     /* initialize message file  and load processed modules */
     stf_filename = smf_modules_stf_path(settings,session);
@@ -375,13 +375,12 @@ int smf_modules_process(
     /* queue is done, if we're still here check for next hop and
      * deliver
      */
-    if (q->nexthop != NULL) {
-        if ((ret = q->nexthop(settings, session)) != 0) {
+    if ((nexthop = smf_nexthop_find(settings)) != NULL) {
+        if ((ret = nexthop(settings, session)) != 0)
             q->nexthop_error(settings, session);
-        }
     }
-
-     smf_list_free(initial_headers);
+         
+    smf_list_free(initial_headers);
 
     return ret;
 }

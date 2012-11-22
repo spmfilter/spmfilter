@@ -37,10 +37,10 @@ struct cb_data {
 static SMFSettings_T *settings;
 static SMFSession_T *session;
 static SMFProcessQueue_T *queue;
+static char spoolfile[PATH_MAX];
 static struct cb_data mod1_data;
 static struct cb_data mod2_data;
 static struct cb_data mod3_data;
-static struct cb_data nexthop_data;
 static struct cb_data error_data;
 static struct cb_data processing_error_data;
 static struct cb_data nexthop_error_data;
@@ -50,13 +50,40 @@ static void init_cb_data(struct cb_data* data) {
     data->rc = 0;
 }
 
-static SMFMessage_T *load_sample_message(const char *sample) {
+static SMFMessage_T *create_sample_message(SMFSession_T *session, const char *sample) {
     SMFMessage_T *message;
     
     fail_unless((message = smf_message_new()) != NULL);
     fail_unless(smf_message_from_file(&message, sample, 1) == 0);
+    session->envelope->message = message;
     
     return message;
+}
+
+static const char *create_spoolfile(SMFSession_T *session, const char *sample) {
+    int src, dest;
+    char buf[512];
+    
+    snprintf(spoolfile, sizeof(spoolfile), "%s/XXXXXX", BINARY_DIR);
+    fail_if((src = open(sample, O_RDONLY)) == -1);
+    fail_if((dest = mkstemp(spoolfile)) == -1);
+    
+    while (1) {
+        size_t nread, nwritten;
+        
+        if ((nread = read(src, buf, sizeof(buf))) == 0)
+            break;
+        fail_unless(nread > 0);
+        
+        nwritten = write(dest, buf, nread);
+        fail_unless(nread == nwritten);
+    }
+    
+    close(src);
+    close(dest);
+    smf_session_set_message_file(session, spoolfile);
+    
+    return spoolfile;
 }
 
 static int mod1(SMFSession_T *s) {
@@ -75,13 +102,6 @@ static int mod3(SMFSession_T *s) {
     fail_unless(session == s);
     mod3_data.count++;
     return mod3_data.rc;
-}
-
-static int nexthop_cb(SMFSettings_T *set, SMFSession_T *ses) {
-    fail_unless(settings == set);
-    fail_unless(session == ses);
-    nexthop_data.count++;
-    return nexthop_data.rc;
 }
 
 static int error_cb(SMFSettings_T *set, SMFSession_T *ses) {
@@ -111,19 +131,22 @@ static void setup() {
         
     fail_unless((session = smf_session_new()) != NULL);
     
-    queue = smf_modules_pqueue_init(nexthop_cb, error_cb, processing_error_cb, nexthop_error_cb);
+    queue = smf_modules_pqueue_init(error_cb, processing_error_cb, nexthop_error_cb);
     fail_unless(queue != NULL);
+    
+    create_sample_message(session, SAMPLES_DIR "/m0001.txt");
+    create_spoolfile(session, SAMPLES_DIR "/m0001.txt");
         
     init_cb_data(&mod1_data);
     init_cb_data(&mod2_data);
     init_cb_data(&mod3_data);
-    init_cb_data(&nexthop_data);
     init_cb_data(&error_data);
     init_cb_data(&processing_error_data);
     init_cb_data(&nexthop_error_data);
 }
 
 static void teardown() {
+    fail_unless(unlink(spoolfile) == 0);
     smf_settings_free(settings);
     smf_session_free(session);
     free(queue);
@@ -151,8 +174,6 @@ START_TEST(create_invoke_destroy_callback) {
 END_TEST
 
 START_TEST(process_success) {
-    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
-        
     smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
     smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
     smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
@@ -163,7 +184,6 @@ START_TEST(process_success) {
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 1);
-    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 0);
     fail_unless(nexthop_error_data.count == 0);
@@ -171,8 +191,6 @@ START_TEST(process_success) {
 END_TEST
 
 START_TEST(process_err_halt_queue) {
-    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
-        
     smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
     smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
     smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
@@ -186,7 +204,6 @@ START_TEST(process_err_halt_queue) {
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 0);
     fail_unless(error_data.count == 0);
-    fail_unless(nexthop_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
     
@@ -197,7 +214,6 @@ START_TEST(process_err_halt_queue) {
     fail_unless(mod1_data.count == 1); // Now skipped
     fail_unless(mod2_data.count == 2); // Repeated, but now successful
     fail_unless(mod3_data.count == 1); // Now executed
-    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
@@ -205,8 +221,6 @@ START_TEST(process_err_halt_queue) {
 END_TEST
 
 START_TEST(process_err_stop_queue) {
-    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
-        
     smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
     smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
     smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
@@ -219,7 +233,6 @@ START_TEST(process_err_stop_queue) {
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 0);
-    fail_unless(nexthop_data.count == 0);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
@@ -232,7 +245,6 @@ START_TEST(process_err_stop_queue) {
     fail_unless(mod1_data.count == 2);
     fail_unless(mod2_data.count == 2);
     fail_unless(mod3_data.count == 1);
-    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
@@ -240,7 +252,7 @@ START_TEST(process_err_stop_queue) {
 END_TEST
 
 START_TEST(process_err_nexthop) {
-    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
+    smf_settings_set_nexthop(settings, "/dev/null");
         
     smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
     smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
@@ -254,7 +266,6 @@ START_TEST(process_err_nexthop) {
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 0);
-    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 0);
@@ -262,22 +273,20 @@ START_TEST(process_err_nexthop) {
 END_TEST
 
 START_TEST(process_err_nexthop_err) {
-    session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
-        
+    smf_settings_set_nexthop(settings, "something_that_not_exists");
+    
     smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
     smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
     smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
     fail_unless(smf_list_size(settings->modules) == 3);
     
     mod2_data.rc = 1; // != 0 is that counts
-    nexthop_data.rc = 4711; // != 0 is that counts
     processing_error_data.rc = 2; // stop the queue, invoke nexthop
  
-    fail_unless(smf_modules_process(queue, session, settings) == 4711);
+    fail_unless(smf_modules_process(queue, session, settings) == -1);
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 0);
-    fail_unless(nexthop_data.count == 1);
     fail_unless(error_data.count == 0);
     fail_unless(processing_error_data.count == 1);
     fail_unless(nexthop_error_data.count == 1);

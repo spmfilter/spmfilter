@@ -20,6 +20,7 @@
 
 extern TCase *core_tcase();
 extern TCase *modules_tcase();
+extern TCase *nexthop_tcase();
 extern TCase *ea_tcase();
 extern TCase *env_tcase();
 
@@ -28,6 +29,7 @@ static Suite *smf_suite() {
 
 	suite_add_tcase(s, core_tcase());
 	suite_add_tcase(s, modules_tcase());
+    suite_add_tcase(s, nexthop_tcase());
     suite_add_tcase(s, ea_tcase());
     suite_add_tcase(s, env_tcase());
 
