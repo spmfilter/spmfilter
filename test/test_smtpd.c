@@ -17,6 +17,8 @@
 
 #define _GNU_SOURCE
 
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,7 +46,6 @@ int load(SMFSettings_T *settings);
 
 int main (int argc, char const *argv[]) {
     char *msg_file = NULL;
-    int pipefd[2];
     SMFSmtpStatus_T *status = NULL;
     SMFSettings_T *settings = smf_settings_new();
     SMFEnvelope_T *env = smf_envelope_new();
@@ -60,17 +61,11 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_engine(settings, "smtpd");
 
     /* add test modules */
-    smf_settings_add_module(settings, "testmod1");
-    smf_settings_add_module(settings, "testmod2");
+    smf_settings_add_module(settings, BINARY_DIR "/libtestmod1.so");
+    smf_settings_add_module(settings, BINARY_DIR "/libtestmod2.so");
     
     printf("Start smf_smtpd tests...\n");
 
-    fflush(stdout); 
-
-    if (pipe(pipefd)) {
-        return -1;
-    }
-    
     printf("* preparing smtpd engine...\t\t\t");
     
     printf("passed\n");
@@ -79,24 +74,16 @@ int main (int argc, char const *argv[]) {
             printf("failed\n");
             break;
         case 0:
-            close(pipefd[0]); 
-            dup2(pipefd[1], 1); 
-            close(pipefd[1]);  
             if (load(settings) != 0) {
                 return -1;
             }
             break;
 
         default:
-            close(pipefd[1]);  
-            dup2(pipefd[0], 0);
-            close(pipefd[0]); 
-            
-            sleep(10);
             printf("* sending test message ...\t\t\t");
             asprintf(&msg_file, "%s/m0001.txt",SAMPLES_DIR);
 
-            smf_envelope_set_nexthop(env, "127.0.0.1:10025");
+            smf_envelope_set_nexthop(env, "127.0.0.1:33332");
             smf_envelope_set_sender(env, test_email);
             smf_envelope_add_rcpt(env, test_email);
             status = smf_smtp_deliver(env, SMF_TLS_DISABLED, msg_file, NULL);
@@ -110,6 +97,7 @@ int main (int argc, char const *argv[]) {
             smf_smtp_status_free(status);
             printf("passed\n");
             kill(pid,SIGTERM);
+            waitpid(pid, NULL, 0);
 
             break;
     }
