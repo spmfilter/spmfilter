@@ -54,7 +54,7 @@ int main (int argc, char const *argv[]) {
     smf_settings_set_debug(settings, 1);
     smf_settings_set_queue_dir(settings, BINARY_DIR);
     smf_settings_set_engine(settings, "pipe");
-    smf_settings_set_nexthop(settings, "localhost:25");
+    smf_settings_set_nexthop(settings, "/dev/null");
     
     /* add test modules */
     smf_settings_add_module(settings, BINARY_DIR "/libtestmod1.so");

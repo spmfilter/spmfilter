@@ -47,7 +47,6 @@ typedef struct {
 } SMFModule_T;
 
 typedef struct {
-    int (*nexthop)(SMFSettings_T *settings, SMFSession_T *session);
     int (*load_error)(SMFSettings_T *settings, SMFSession_T *session);
     int (*processing_error)(SMFSettings_T *settings, SMFSession_T *session, int retval);
     int (*nexthop_error)(SMFSettings_T *settings, SMFSession_T *session);
@@ -56,7 +55,6 @@ typedef struct {
 
 /** initialize the process queue */
 SMFProcessQueue_T *smf_modules_pqueue_init(
-    int (*nexthop)(SMFSettings_T *settings, SMFSession_T *session),
     int (*loaderr)(SMFSettings_T *settings, SMFSession_T *session),
     int (*processerr)(SMFSettings_T *settings, SMFSession_T *session, int retval),
     int (*nhoperr)(SMFSettings_T *settings, SMFSession_T *session));
