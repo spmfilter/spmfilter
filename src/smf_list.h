@@ -18,7 +18,15 @@
 /*!
  * @file smf_list.h 
  * @brief Defines the SMFList_T data type and functions for a linked lists 
- *        that can be iterated over in both directions
+ *        that can be iterated over in both directions. 
+ * @details Each element in the list contains a piece of data, together with 
+ *        pointers which link to the previous and next elements in the list. 
+ *        Using these pointers it is possible to move through the list in both directions.
+ *
+ * @details To create a new SMFList_T, use smf_list_new()
+ * @details To insert an element into a SMFList_T, use smf_list_append()
+ * @details To remove an element, use smf_list_remove()
+ * @details To destroy a SMFList_T use smf_list_free()
  */
 
 #ifndef _SMF_LIST_H
@@ -31,28 +39,28 @@ extern "C" {
 #include <cmime.h>
 
 /*!
- * @struct SMFListElem_T smf_list.h
+ * @typedef typedef CMimeListElem_T SMFListElem_T
  * @brief An element of a SMFList_T list
  */
 typedef CMimeListElem_T SMFListElem_T;
 
 /*!
- * @struct SMFList_T smf_list.h
+ * @typedef typedef CMimeList_T SMFList_T
  * @brief Double linked list implementation
  */
 typedef CMimeList_T SMFList_T;
 
 /*!
- * @fn smf_list_new(SMFList_T **list, void (*destroy)(void *data))
+ * @fn int smf_list_new(SMFList_T **list, void (*destroy)(void *data))
  * @brief Creates a new SMFList_T list
  * @param list out param to return the new list
- * @param func list destroy function
+ * @param destroy list destroy function
  * @returns 0 on success or -1 in case of error
  */
 int smf_list_new(SMFList_T **list, void (*destroy)(void *data));
 
 /*!
- * @fn smf_list_free(SMFList_T *list)
+ * @fn int smf_list_free(SMFList_T *list)
  * @brief Free a SMFList_T list
  * @param list list to free
  * @returns 0 on success or -1 in case of error
@@ -60,7 +68,7 @@ int smf_list_new(SMFList_T **list, void (*destroy)(void *data));
 int smf_list_free(SMFList_T *list);
 
 /*! 
- * @fn smf_list_remove(SMFList_T *list, SMFListElem_T *elem, void **data)
+ * @fn int smf_list_remove(SMFList_T *list, SMFListElem_T *elem, void **data)
  * @brief Remove an element from list
  * @param list a SMFList_T list
  * @param elem the SMFListElem_T element which should be removed
@@ -70,7 +78,7 @@ int smf_list_free(SMFList_T *list);
 int smf_list_remove(SMFList_T *list, SMFListElem_T *elem, void **data);
 
 /*! 
- * @fn smf_list_append(SMFList_T *list, void *data)
+ * @fn int smf_list_append(SMFList_T *list, void *data)
  * @brief Append data to the end of a list
  * @param list SMFList_T list to which new data should be appended
  * @param data new data which should be appended
@@ -79,7 +87,7 @@ int smf_list_remove(SMFList_T *list, SMFListElem_T *elem, void **data);
 int smf_list_append(SMFList_T *list, void *data);
 
 /*! 
- * @fn smf_list_prepend(SMFList_T *list, void *data)
+ * @fn int smf_list_prepend(SMFList_T *list, void *data)
  * @brief Prepend data to a list
  * @param list a SMFList_T list to which new data should be prepended
  * @param data new data which should be appended
@@ -88,7 +96,7 @@ int smf_list_append(SMFList_T *list, void *data);
 int smf_list_prepend(SMFList_T *list, void *data);
 
 /*! 
- * @fn smf_list_pop_tail(SMFList_T *list)
+ * @fn void *smf_list_pop_tail(SMFList_T *list)
  * @brief Remove tail element from list and return data pointer
  * @param list a SMFList_T list
  * @returns data pointer of removed list element
@@ -96,7 +104,7 @@ int smf_list_prepend(SMFList_T *list, void *data);
 void *smf_list_pop_tail(SMFList_T *list);
 
 /*! 
- * @fn SMF_list_pop_head(SMFList_T *list)
+ * @fn void *smf_list_pop_head(SMFList_T *list);
  * @brief Remove head element from list an return data pointer
  * @param list a SMFList_T list
  * @returns data pointer of removed list element   
@@ -104,7 +112,7 @@ void *smf_list_pop_tail(SMFList_T *list);
 void *smf_list_pop_head(SMFList_T *list);
 
 /*! 
- * @fn smf_list_insert_next(SMFList_T *list, CMimeListElem_T *elem, void *data)
+ * @fn int smf_list_insert_next(SMFList_T *list, SMFListElem_T *elem, void *data)
  * @brief Insert new element next to elem
  * @param list a SMFList_T list
  * @param elem a SMFListElem_T element
@@ -114,7 +122,7 @@ void *smf_list_pop_head(SMFList_T *list);
 int smf_list_insert_next(SMFList_T *list, SMFListElem_T *elem, void *data);
 
 /*! 
- * @fn smf_list_insert_prev(SMFList_T *list, SMFListElem_T *elem, void *data)
+ * @fn int smf_list_insert_prev(SMFList_T *list, SMFListElem_T *elem, void *data)
  * @brief Insert new element previous to elem 
  * @param list a SMFList_T list
  * @param elem a SMFListElem_T element
@@ -124,7 +132,7 @@ int smf_list_insert_next(SMFList_T *list, SMFListElem_T *elem, void *data);
 int smf_list_insert_prev(SMFList_T *list, SMFListElem_T *elem, void *data);
 
 /*! 
- * @fn smf_list_map(SMFList_T *list, void(*func)(SMFListElem_T *elem,void *args), void *args)
+ * @fn void smf_list_map(SMFList_T *list, void(*func)(SMFListElem_T *elem,void *args), void *args)
  * @brief Iterates over list and calls function for every element with the current element 
  * @param list a SMFList_T list
  * @param func function to call for each element
@@ -133,7 +141,7 @@ int smf_list_insert_prev(SMFList_T *list, SMFListElem_T *elem, void *data);
 void smf_list_map(SMFList_T *list, void(*func)(SMFListElem_T *elem,void *args), void *args);
 
 /*! 
- * @fn smf_list_map_new(SMFList_T *list, SMFList_T **new, void *(*func)(SMFListElem_T *elem, void *args), void *args)
+ * @fn int smf_list_map_new(SMFList_T *list, SMFList_T **new, void *(*func)(SMFListElem_T *elem, void *args), void *args)
  * @brief Iterates over list and calls function func with every element, return value of func will be saved in new list **new
  * @param list a SMFList_T list
  * @param new out param to return the new list
