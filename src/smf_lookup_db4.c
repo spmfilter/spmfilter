@@ -29,6 +29,7 @@ char *smf_lookup_db4_query(char *database, char *key) {
     DB *dbp;
     DBT db_key, db_value;
     int ret;
+    char *db_res = NULL;
 
     /* initialize db4 */
     if ((ret = db_create(&dbp, NULL, 0)) != 0) {
@@ -64,17 +65,15 @@ char *smf_lookup_db4_query(char *database, char *key) {
     db_key.size = strlen(key) + 1;
 
     ret = dbp->get(dbp, NULL, &db_key, &db_value, 0);
-
-    TRACE(TRACE_LOOKUP, "[%p] found value [%s]", dbp, (char *)db_value.data);
+    
+    if (ret == 0) {
+        asprintf(&db_res, "%s", (char *)db_value.data);
+        TRACE(TRACE_LOOKUP, "[%p] found value [%s]", dbp, db_res);
+    } else
+        TRACE(TRACE_LOOKUP, "[%p] nothing found", dbp);
 
     if (dbp != NULL)
         dbp->close(dbp, 0);
 
-    if(ret < 0)
-        return NULL;
-    else {
-        char *db_res;
-        asprintf(&db_res, "%s", (char *)db_value.data);
-        return db_res;
-    }
+    return db_res;
 }
