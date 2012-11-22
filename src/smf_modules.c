@@ -336,7 +336,7 @@ int smf_modules_process(
                 free(stf_filename);
                 return 1;
             } else if(ret == 2) {
-                STRACE(TRACE_DEBUG,session->id,"module [%s] stopped processing, turning to nexthop processing!",curmod);
+                STRACE(TRACE_DEBUG,session->id,"module [%s] stopped processing, turning to nexthop processing!",curmod->name);
                 break;
             }
         } else {

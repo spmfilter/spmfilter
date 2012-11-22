@@ -108,7 +108,7 @@ static int nexthop_error_cb(SMFSettings_T *set, SMFSession_T *ses) {
 static void setup() {
     fail_unless((settings = smf_settings_new()) != NULL);
     smf_settings_set_queue_dir(settings, BINARY_DIR);
-        
+    smf_settings_set_add_header(settings, 0);    
     fail_unless((session = smf_session_new()) != NULL);
     
     queue = smf_modules_pqueue_init(nexthop_cb, error_cb, processing_error_cb, nexthop_error_cb);
@@ -152,7 +152,7 @@ END_TEST
 
 START_TEST(process_success) {
     session->envelope->message = load_sample_message(SAMPLES_DIR "/m0001.txt");
-        
+
     smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
     smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
     smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
