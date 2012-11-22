@@ -202,6 +202,7 @@ START_TEST(expand_string_complex) {
     
     fail_unless(smf_core_expand_string(in, "xxx@example.com", &s) == 4);
     fail_unless(strcmp(s, "foo xxx@example.com bar example.com blubb xxxexample.com") == 0);
+    free(s);
 }
 END_TEST
 

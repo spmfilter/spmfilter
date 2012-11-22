@@ -127,8 +127,7 @@ static int nexthop_error_cb(SMFSettings_T *set, SMFSession_T *ses) {
 
 static void setup() {
     fail_unless((settings = smf_settings_new()) != NULL);
-    smf_settings_set_queue_dir(settings, BINARY_DIR);
-        
+    smf_settings_set_queue_dir(settings, BINARY_DIR);  
     fail_unless((session = smf_session_new()) != NULL);
     
     queue = smf_modules_pqueue_init(error_cb, processing_error_cb, nexthop_error_cb);
@@ -274,15 +273,15 @@ END_TEST
 
 START_TEST(process_err_nexthop_err) {
     smf_settings_set_nexthop(settings, "something_that_not_exists");
-    
+        
     smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
     smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
     smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
     fail_unless(smf_list_size(settings->modules) == 3);
-    
+        
     mod2_data.rc = 1; // != 0 is that counts
     processing_error_data.rc = 2; // stop the queue, invoke nexthop
- 
+     
     fail_unless(smf_modules_process(queue, session, settings) == -1);
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
