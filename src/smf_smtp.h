@@ -15,6 +15,14 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_smtp.h
+ * @brief Message delivery functions and datatypes.
+ * @details If you need to send a message to a host via SMTP, use smf_smtp_deliver().
+ *          Envelope informations must be stored in a SMFEnvelope_T object, a session
+ *          id is optional.
+ */
+
 #ifndef _SMF_SMTP_H
 #define _SMF_SMTP_H
 
@@ -25,7 +33,8 @@ extern "C" {
 #include "smf_settings.h"
 #include "smf_envelope.h"
 
-/*! @struct SMFSmtpStatus_T smf_smtp.h
+/*! 
+ * @struct SMFSmtpStatus_T smf_smtp.h
  * @brief SMTP status informations
  */ 
 typedef struct {
@@ -48,8 +57,8 @@ SMFSmtpStatus_T *smf_smtp_status_new(void);
 void smf_smtp_status_free(SMFSmtpStatus_T *status);
 
 /*!
- * @fn int smf_smtp_deliver(SMFEnvelope_T *env)
- * @brief Deliver message via smtp
+ * @fn SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *msg_file, char *sid)
+ * @brief Deliver a message via smtp
  * @param env a SMFEnvelope_T object
  * @param tls enable/disable TLS for connection
  * @param msg_file alternate message content
