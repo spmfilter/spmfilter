@@ -117,19 +117,21 @@ int load(SMFSettings_T *settings) {
 
     /* write stream directly to spool_file */
     while(!feof(stdin)) {
-        char *content_to_write = malloc(sizeof(char) * BUF_SIZE);
+        size_t nread, nwritten;
 
-        if(content_to_write == NULL) {
-            STRACE(TRACE_ERR, session->id, "Failed to reallocate memory for content");
-            fclose(spool_file);
-            return(-1);
+        nread = fread(&buffer, 1, BUF_SIZE-1, stdin);
+        if (nread == 0 && ferror(stdin)) {
+          STRACE(TRACE_ERR, session->id, "Failed to read from stdin: %s", strerror(errno));
+          fclose(spool_file);
+          return -1;
         }
-
-        content_to_write[0] = '\0';
-        fread(&buffer, BUF_SIZE-1, sizeof(char), stdin);
-        strcat(content_to_write, buffer);
-        fwrite(content_to_write, sizeof(char), strlen(content_to_write), spool_file);
-        free(content_to_write);
+        
+        nwritten = fwrite(buffer, 1, nread, spool_file);
+        if (nread != nwritten) {
+          STRACE(TRACE_ERR, session->id, "Failed to write the spoolfile: %s", strerror(errno));
+          fclose(spool_file);
+          return -1;
+        }
     }
 
     fclose(spool_file);
