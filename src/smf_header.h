@@ -18,7 +18,7 @@
 /*!
  * @file smf_header.h
  * @brief Defines the #SMFHeader_T data type and related functions
- * @details SMFHeader_T represents an email header.
+ * @details #SMFHeader_T represents an email header.
  * @details To create a new #SMFHeader_T, use smf_header_new()
  * @details To destroy a #SMFHeader_T use smf_header_free()
  */

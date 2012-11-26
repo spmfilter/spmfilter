@@ -15,6 +15,12 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file spmfilter.h
+ * @brief Convenience header, which includes the rest of spmfilter. 
+ *
+ */
+
 #ifndef SPMFILTER_H
 #define SPMFILTER_H
 
