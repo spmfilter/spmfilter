@@ -15,6 +15,14 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_message.h
+ * @brief Defines the #SMFMessage_T data type and related functions
+ * @details #SMFMessage_T represents an email message.
+ * @details To create a new #SMFMessage_T, use smf_message_new()
+ * @details To destroy a #SMFMessage_T use smf_message_free()
+ */
+
 #ifndef _SMF_MESSAGE_H
 #define _SMF_MESSAGE_H
 
@@ -31,10 +39,9 @@ extern "C" {
 #include "smf_part.h"
 
 /*!
- * @struct SMFMessage_T smf_message.h
+ * @typedef SMFMessage_T
  * @brief Represents an email message
  */
-
 typedef CMimeMessage_T SMFMessage_T;
 
 /*!
@@ -140,6 +147,7 @@ SMFList_T *smf_message_get_headers(SMFMessage_T *message);
  * @fn int smf_message_remove_header(SMFMessage_T *message, const char *header_name)
  * @brief Remove a header from message
  * @param message a SMFMessage_T object
+ * @param header_name name of the header
  * @returns 0 on success or -1 in case of error
  */
 int smf_message_remove_header(SMFMessage_T *message, const char *header_name);
@@ -285,7 +293,7 @@ char *smf_message_generate_boundary(void);
 void smf_message_add_generated_boundary(SMFMessage_T *message);
 
 /*!
- * @fn void SMF_message_set_subject(SMFMessage_T *message, const char *subject)
+ * @fn void smf_message_set_subject(SMFMessage_T *message, const char *s)
  * @brief Set message subject
  * @param message a SMFMessage_T object
  * @param s the subject string
@@ -293,7 +301,7 @@ void smf_message_add_generated_boundary(SMFMessage_T *message);
 void smf_message_set_subject(SMFMessage_T *message, const char *s);
 
 /*!
- * @fn char *SMF_message_get_subject(SMFMessage_T *message)
+ * @fn char *smf_message_get_subject(SMFMessage_T *message)
  * @brief Get the subject string from SMFMessage_T object
  * @param message a SMFMessage_T object
  * @returns subject string to append
@@ -374,7 +382,7 @@ int smf_message_set_body(SMFMessage_T *message, const char *content);
 int smf_message_append_part(SMFMessage_T *message, SMFPart_T *part);
 
 /*!
- * @fn int smf_message_part_count(SMFMessage_T *message)
+ * @fn  int smf_message_get_part_count(SMFMessage_T *message)
  * @brief Get number of mime parts
  * @param message a SMFMessage_T object
  * @returns number of mime parts
@@ -400,7 +408,7 @@ void smf_message_add_attachment(SMFMessage_T *message, char *attachment);
 SMFMessage_T *smf_message_create_skeleton(const char *sender, const char *recipient, const char *subject);
 
 /*! 
- * @fn int cmime_message_add_child_part(CMimeMessage_T *message, CMimePart_T *part, CMimePart_T *child, CMimeMultipartType_T subtype)
+ * @fn int smf_message_add_child_part(SMFMessage_T *message, SMFPart_T *part, SMFPart_T *child, SMFMultipartType_T subtype)
  * @brief Add a child part to given mimepart, set content type and generate a boundary if necessary.
  * @param message a CMimeMessage_T object
  * @param part the parent mime part
@@ -419,7 +427,7 @@ int smf_message_add_child_part(SMFMessage_T *message, SMFPart_T *part, SMFPart_T
 SMFPart_T *smf_message_part_first(SMFMessage_T *message);
 
 /*!
- * @fn SMFPart_T *smf_message_part_first(SMFMessage_T *message)
+ * @fn SMFPart_T *smf_message_part_last(SMFMessage_T *message)
  * @brief Get the last mime part of a SMFMessage_T object
  * @param message a SMFMessage_T object
  * @returns returns the lat mime part of message
