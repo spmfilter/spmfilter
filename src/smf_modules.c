@@ -150,9 +150,9 @@ static SMFDict_T *smf_modules_stf_processed_modules(FILE *fh) {
         parts = smf_core_strsplit(buf, ":", &nparts);
         assert(nparts == 2);
         smf_dict_set(d, parts[0], parts[1]);
-        free(buf);
     }
 
+    free(buf);
     if (parts != NULL) {
         free(parts[0]);
         free(parts[1]);
@@ -325,6 +325,7 @@ int smf_modules_process(
                 smf_dict_free(modlist);
                 fclose(stfh);
                 free(stf_filename);
+                free(header);
                 smf_list_free(initial_headers);
                 return -1;
             } else if(ret == 1) {
@@ -334,6 +335,7 @@ int smf_modules_process(
                 if(unlink(stf_filename) != 0)
                     STRACE(TRACE_ERR,session->id,"Failed to unlink state file [%s]", stf_filename);
                 free(stf_filename);
+                free(header);
                 smf_list_free(initial_headers);
                 return 1;
             } else if(ret == 2) {
