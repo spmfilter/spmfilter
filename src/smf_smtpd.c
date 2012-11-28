@@ -132,6 +132,7 @@ int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SM
 
     if(ret == -1) {
         STRACE(TRACE_DEBUG, session->id, "smtpd engine failed!");
+        smf_smtpd_string_reply(session->sock, CODE_552);
         return(-1);
     } else if (ret == 1) {
         return(0);
