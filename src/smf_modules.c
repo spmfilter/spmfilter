@@ -445,6 +445,7 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     /* merge new headers with message content to new queue file */
     if (dirty == 1) {
         char tmpname[PATH_MAX];
+        int fd;
         char *buf = NULL;
         FILE *new = NULL;
         FILE *old = NULL;
@@ -453,15 +454,17 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
         found = 0;
         snprintf(tmpname, sizeof(tmpname), "%s/XXXXXX", settings->queue_dir);
 
-        if(mkstemp(tmpname) == -1) {
+        if ((fd = mkstemp(tmpname)) == -1) {
             STRACE(TRACE_ERR,session->id,"failed to create temporary file: %s (%d)",strerror(errno),errno);
             return -1;
         }
     
-        if (smf_message_to_file(msg, tmpname) == -1) {
-            STRACE(TRACE_ERR,session->id,"unable to write temporary file [%s]",tmpname);
+        if (smf_message_to_fd(msg, fd) == -1) {
+            STRACE(TRACE_ERR,session->id,"unable to write temporary file [%s]: %s",tmpname, strerror(errno));
             return -1;
         }
+        
+        close(fd);
 
         if((new = fopen(tmpname, "a"))==NULL) {
             STRACE(TRACE_ERR,session->id,"unable to open temporary file: %s (%d)",strerror(errno), errno);
