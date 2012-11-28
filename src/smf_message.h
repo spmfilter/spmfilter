@@ -321,6 +321,15 @@ int smf_message_from_file(SMFMessage_T **message, const char *filename, int head
 int smf_message_to_file(SMFMessage_T *message, const char *filename);
 
 /*!
+ * @fn int smf_message_to_fd(SMFMessage_T *message, int fd)
+ * @brief Write SMFMessage_T object into the file-descriptor
+ * @param message a SMFMessage_T object
+ * @param fd the file-descriptor, where the file should be written
+ * @returns the number of bytes written into the file-descriptor
+ */
+int smf_message_to_fd(SMFMessage_T *message, int fd);
+
+/*!
  * @fn char *smf_message_to_string(SMFMessage_T *message) 
  * @brief Allocates a string buffer containing the contents of SMFMessage_T.
  * @param message a SMFMessage_T object 
