@@ -371,13 +371,13 @@ int smf_modules_process(
         free(header); 
     }
     
-    if (smf_modules_flush_dirty(settings,session,initial_headers) != 0)
+    if ((ret = smf_modules_flush_dirty(settings,session,initial_headers)) != 0)
         STRACE(TRACE_ERR,session->id,"message flush failed");
 
     /* queue is done, if we're still here check for next hop and
      * deliver
      */
-    if ((nexthop = smf_nexthop_find(settings)) != NULL) {
+    if (ret == 0 && (nexthop = smf_nexthop_find(settings)) != NULL) {
         if ((ret = nexthop(settings, session)) != 0)
             q->nexthop_error(settings, session);
     }
