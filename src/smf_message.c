@@ -234,6 +234,30 @@ int smf_message_to_file(SMFMessage_T *message, const char *filename) {
     return cmime_message_to_file((CMimeMessage_T *)message,filename);
 }
 
+int smf_message_to_fd(SMFMessage_T *message, int fd) {
+    char *s;
+    int total = 0;
+    
+    assert(message);
+
+    // TODO To decrease the memory footprint you can write the message directly
+    //      into the fd (instead of make a detour via the string)
+    s = smf_message_to_string(message);
+    
+    while (total < strlen(s)) {
+        int written = write(fd, s + total, strlen(s) - total);
+        
+        if (written == -1)
+            return -1;
+        
+        total += written;
+    }
+    
+    free(s);
+    
+    return total;
+}
+
 char *smf_message_to_string(SMFMessage_T *message) {
     assert(message);
     return cmime_message_to_string((CMimeMessage_T *)message);
