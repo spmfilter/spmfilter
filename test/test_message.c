@@ -342,8 +342,6 @@ int main (int argc, char const *argv[]) {
         if (retval != 0)
             return retval;
                 
-        msg_string = smf_message_to_string(msg);
-        
         if ((fp = fopen(fname, "rb")) == NULL) {
             printf("failed\n");
             return(-1);
@@ -363,15 +361,28 @@ int main (int argc, char const *argv[]) {
             printf("failed\n");
             return(-1);
         }
-            
+
         fclose(fp);
         asprintf(&s2,"out_%s",test_files[i]);
+        
         fp2 = fopen(s2,"wb");
+        msg_string = smf_message_to_string(msg);
         fwrite(msg_string,strlen(msg_string),1,fp2);
+        assert(strcmp(msg_string,s)==0);
         fclose(fp2);
+        
+        fp2 = fopen(s2,"wb");
+        assert(smf_message_to_fd(msg, fileno(fp2)) == strlen(s));
+        size = ftell(fp2);
+        rewind(fp2);
+        s = realloc(s, size + 1);
+        fread(s, 1, size, fp2);
+        s[size] = '\0';
+        assert(strcmp(msg_string,s)==0);
+        fclose(fp2);
+        
         free(s2);
         
-        assert(strcmp(msg_string,s)==0);
         free(s);
         free(msg_string);
         smf_message_free(msg);
