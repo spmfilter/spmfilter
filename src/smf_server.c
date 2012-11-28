@@ -35,6 +35,7 @@
 #include "smf_trace.h"
 #include "smf_server.h"
 #include "smf_modules.h"
+#include "smf_settings_private.h"
 
 #define THIS_MODULE "server"
 
@@ -240,6 +241,9 @@ void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         case 0:
 
             smf_server_accept_handler(settings,sd,q,handle_client_func);
+            
+            smf_settings_free(settings);
+            free(q);
             
             exit(EXIT_SUCCESS); /* quit child process */
             break;
