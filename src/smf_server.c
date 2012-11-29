@@ -52,6 +52,7 @@ void smf_server_sig_handler(int sig) {
      */
     switch(sig) {
         case SIGTERM:
+        case SIGINT:
             daemon_exit = 1;
             break;
         case SIGUSR1:
@@ -77,6 +78,11 @@ void smf_server_sig_init(void) {
 
     if (sigaction(SIGTERM, &action, &old_action) < 0) {
         TRACE(TRACE_ERR,"sigaction (SIGTERM) failed: %s",strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    if (sigaction(SIGINT, &action, &old_action) < 0) {
+        TRACE(TRACE_ERR,"sigaction (SIGINT) failed: %s",strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -259,6 +265,8 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
     int i, status;
     pid_t pid;
 
+    TRACE(TRACE_NOTICE, "smf_server is coming up");
+
     for(i=0; i<settings->max_childs; i++)
         child[i] = 0;
 
@@ -296,6 +304,9 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         if (daemon_exit)
             break;
     }
+
+    TRACE(TRACE_NOTICE, "smf_server is going down");
+	
     close(sd);
 
     for (i = 0; i < settings->max_childs; i++)
