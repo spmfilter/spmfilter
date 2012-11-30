@@ -618,6 +618,9 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
 
     smf_internal_print_runtime_stats(start_acct,session->id);
     smf_session_free(session);
+    
+    smf_settings_free(settings);
+    exit(0);
 }
 
 int load(SMFSettings_T *settings) {
