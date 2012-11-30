@@ -248,9 +248,6 @@ void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
 
             smf_server_accept_handler(settings,sd,q,handle_client_func);
             
-            smf_settings_free(settings);
-            free(q);
-            
             exit(EXIT_SUCCESS); /* quit child process */
             break;
         default: /* parent process: go on with accept */
