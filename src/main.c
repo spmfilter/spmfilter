@@ -97,14 +97,25 @@ int main(int argc, char *argv[]) {
         smf_settings_set_debug(settings,debug);
 
     /* connect to database/ldap server, if necessary */
-#if 0
-    if(settings->backend != NULL) {
-        if (smf_lookup_connect() != 0) {
-            fprintf(stderr,"spmfilter: unable to establish lookup connection!");
-            return -1;
+    if((settings->backend != NULL) && (settings->lookup_persistent == 1)) {
+#ifdef HAVE_LDAP
+        if (strcmp(settings->backend,"ldap") == 0) {
+            if (smf_lookup_ldap_connect(settings) != 0) {
+                fprintf(stderr,"spmfilter: unable to establish lookup connection!");
+                return -1;
+            }
         }
+#endif
+
+#ifdef HAVE_ZDB
+        if (strcmp(settings->backend,"sql") == 0) {
+            if (smf_lookup_sql_connect(settings) != 0) {
+                fprintf(stderr,"spmfilter: unable to establish lookup connection!");
+                return -1;
+            }
+        }
+#endif  
     }
-#endif 
 
     /* check queue dir */
     if (stat(settings->queue_dir,&sb) != 0) {
@@ -127,12 +138,17 @@ int main(int argc, char *argv[]) {
 
     ret = smf_modules_engine_load(settings);
 
-#if 0
-    if(settings->backend != NULL) {
-        if (smf_lookup_disconnect() != 0)
-            TRACE(TRACE_ERR,"Unable to destroy lookup connection!");
+    if((settings->backend != NULL) && (settings->lookup_persistent == 1)) {
+#ifdef HAVE_LDAP
+        if (strcmp(settings->backend,"ldap") == 0)
+            smf_lookup_ldap_disconnect(settings);
+#endif
+
+#ifdef HAVE_ZDB
+        if (strcmp(settings->backend,"sql") == 0) 
+            smf_lookup_sql_disconnect(settings);
+#endif  
     }
-#endif 
 
     /* free all stuff */
     smf_settings_free(settings);
