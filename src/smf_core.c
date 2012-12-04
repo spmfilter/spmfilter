@@ -115,10 +115,13 @@ static void smf_core_strsplit_free(char **parts) {
 }
 
 int smf_core_gen_queue_file(const char *queue_dir, char **tempname, const char *sid) {
+    int fd;
+    
     asprintf(&(*tempname),"%s/%s.XXXXXX",queue_dir,sid);
-    if(mkstemp(*tempname) == -1) {
+    if ((fd = mkstemp(*tempname)) == -1)
         return -1;
-    }
+    close(fd);
+    
     return 0;   
 }
 
