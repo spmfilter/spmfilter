@@ -207,7 +207,6 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     struct sigaction sa;
     const smtp_status_t *retstat;
     SMFListElem_T *elem = NULL;
-    char *nexthop = NULL;
     char *reverse_path = NULL;
     char *msg_string = NULL;
     FILE *fp = NULL;
@@ -237,8 +236,10 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
         if (strstr(env->nexthop,":"))
             smtp_set_server(session, env->nexthop);
         else {
+            char *nexthop;
             asprintf(&nexthop,"%s:25",env->nexthop);
             smtp_set_server(session,nexthop);
+            free(nexthop);
         }
     } else {
         smtp_destroy_session(session);
@@ -272,12 +273,15 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     if (smtp_set_reverse_path(message,reverse_path) == 0) {
         asprintf(&status->text,"failed to set reverse_path");
         status->code = -1;
+        free(reverse_path);
         if (sid != NULL)
             STRACE(TRACE_ERR,sid,status->text);
         else
             TRACE(TRACE_ERR,status->text);
         return status;
     }
+    
+    free(reverse_path);
 
     if (msg_file != NULL) {
         if((fp = fopen(msg_file, "r"))==NULL) {
@@ -359,10 +363,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
 
     smtp_destroy_session(session);
 
-    if (nexthop != NULL) free(nexthop);
     if (fp != NULL) fclose(fp);
     if (msg_string != NULL) free(msg_string);
-    if (reverse_path != NULL) free(reverse_path);
     if (authctx != NULL) {
         auth_destroy_context(authctx);
         auth_client_exit();
