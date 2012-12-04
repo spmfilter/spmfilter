@@ -24,10 +24,11 @@ extern "C" {
 
 #include <stdint.h>
 
+#include "smf_settings.h"
 #include "smf_session.h"
 #include "smf_list.h"
 
-typedef int (*ModuleLoadFunction)(SMFSession_T *session);
+typedef int (*ModuleLoadFunction)(SMFSettings_T *settings, SMFSession_T *session);
 typedef int (*LoadEngine)(SMFSettings_T *settings);
 
 
@@ -105,12 +106,13 @@ int smf_module_destroy(SMFModule_T *module);
  * shared-object. The load-function must be declared like ModuleLoadFunction
  * and should return 0 on success.
  *
+ * @param settings the settiogs.
  * @param module The module is invoke
  * @param session The session os passed to the load-function of the module
  * @return If the load-function could be located, then the return-code of
  *         the load-invocation is returned. Otherwise -1 is returned.
  */
-int smf_module_invoke(SMFModule_T *module, SMFSession_T *session);
+int smf_module_invoke(SMFSettings_T *settings, SMFModule_T *module, SMFSession_T *session);
 
 /** load all modules and run them */
 int smf_modules_process(SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings);
