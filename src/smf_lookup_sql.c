@@ -274,15 +274,13 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {
     Connection_T c; 
     ResultSet_T r;
     SMFList_T *result;
-    va_list ap, cp;
+    va_list ap;
     char *query;
     int i;
 
     va_start(ap, q);
-    va_copy(cp, ap);
-    query = (char *)malloc(strlen(q) + 1);
-    vsprintf(query,q,cp);
-    va_end(cp);
+    vasprintf(&query,q,ap);
+    va_end(ap);
     smf_core_strstrip(query);
 
     if (strlen(query) == 0) return NULL;
