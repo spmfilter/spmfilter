@@ -196,7 +196,7 @@ void smf_lookup_ldap_disconnect(SMFSettings_T *settings) {
     ld = (LDAP *)settings->lookup_connection;
     if (ld != NULL) {
         ldap_unbind_ext_s(ld,NULL,NULL);
-        TRACE(TRACE_LOOKUP, "successfully bound ldap connection");
+        TRACE(TRACE_LOOKUP, "successfully unbound ldap connection");
         settings->lookup_connection = NULL;
     }
 }

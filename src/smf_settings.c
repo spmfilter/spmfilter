@@ -730,6 +730,8 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->group: [%s]", (*settings)->group);
     TRACE(TRACE_DEBUG, "settings->max_childs: [%d]", (*settings)->max_childs);
     TRACE(TRACE_DEBUG, "settings->spare_childs: [%d]", (*settings)->spare_childs);
+    TRACE(TRACE_DEBUG, "settings->lookup_persistent: [%d]", (*settings)->lookup_persistent);
+
 
     TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
     TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
