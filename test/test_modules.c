@@ -86,19 +86,22 @@ static const char *create_spoolfile(SMFSession_T *session, const char *sample) {
     return spoolfile;
 }
 
-static int mod1(SMFSession_T *s) {
+static int mod1(SMFSettings_T *set, SMFSession_T *s) {
+    fail_unless(set == settings);
     fail_unless(session == s);
     mod1_data.count++;
     return mod1_data.rc;
 }
 
-static int mod2(SMFSession_T *s) {
+static int mod2(SMFSettings_T *set,  SMFSession_T *s) {
+    fail_unless(set == settings);
     fail_unless(session == s);
     mod2_data.count++;
     return mod2_data.rc;
 }
 
-static int mod3(SMFSession_T *s) {
+static int mod3(SMFSettings_T *set, SMFSession_T *s) {
+    fail_unless(set == settings);
     fail_unless(session == s);
     mod3_data.count++;
     return mod3_data.rc;
@@ -156,7 +159,7 @@ START_TEST(create_invoke_destroy) {
     SMFModule_T *module;
     
     fail_unless((module = smf_module_create(BINARY_DIR "/libtestmod1.so")) !=  NULL);
-    fail_unless(smf_module_invoke(module, session) == 0);
+    fail_unless(smf_module_invoke(settings, module, session) == 0);
     fail_unless(smf_module_destroy(module) == 0);
 }
 END_TEST
@@ -166,7 +169,7 @@ START_TEST(create_invoke_destroy_callback) {
     
     fail_unless(mod1_data.count == 0);
     fail_unless((module = smf_module_create_callback("foo", mod1)) != NULL);
-    fail_unless(smf_module_invoke(module, session) == 0);
+    fail_unless(smf_module_invoke(settings, module, session) == 0);
     fail_unless(smf_module_destroy(module) == 0);
     fail_unless(mod1_data.count == 1);
 }

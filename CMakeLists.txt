@@ -113,12 +113,12 @@ if (ENABLE_TESTING)
     message(STATUS "checking for test-modules")
     find_package(Check REQUIRED)
     include_directories(${CHECK_INCLUDES})
+    add_subdirectory(test)
 endif(ENABLE_TESTING)
 
 # build stuff in src directory
 add_subdirectory(src)
 add_subdirectory(man)
-add_subdirectory(test)
 
 # * * * custom targets * * *
 set(SMF_ARCHIVE_NAME "${CMAKE_PROJECT_NAME}-${SMF_VERSION}")

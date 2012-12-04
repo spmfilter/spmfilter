@@ -150,9 +150,9 @@ static SMFDict_T *smf_modules_stf_processed_modules(FILE *fh) {
         parts = smf_core_strsplit(buf, ":", &nparts);
         assert(nparts == 2);
         smf_dict_set(d, parts[0], parts[1]);
-        free(buf);
     }
 
+    free(buf);
     if (parts != NULL) {
         free(parts[0]);
         free(parts[1]);
@@ -237,7 +237,7 @@ int smf_module_destroy(SMFModule_T *module) {
     return result;
 }
 
-int smf_module_invoke(SMFModule_T *module, SMFSession_T *session) {
+int smf_module_invoke(SMFSettings_T *settings, SMFModule_T *module, SMFSession_T *session) {
     ModuleLoadFunction runner;
     
     assert(module);
@@ -254,7 +254,7 @@ int smf_module_invoke(SMFModule_T *module, SMFSession_T *session) {
         runner = module->u.callback;
     }
     
-    return runner(session);
+    return runner(settings,session);
 }
 
 int smf_modules_process(
@@ -315,7 +315,7 @@ int smf_modules_process(
             continue;
         }
 
-        ret = smf_module_invoke(curmod, session);
+        ret = smf_module_invoke(settings, curmod, session);
 
         if(ret != 0) {
             ret = q->processing_error(settings,session,ret);
@@ -325,6 +325,7 @@ int smf_modules_process(
                 smf_dict_free(modlist);
                 fclose(stfh);
                 free(stf_filename);
+                free(header);
                 smf_list_free(initial_headers);
                 return -1;
             } else if(ret == 1) {
@@ -334,6 +335,7 @@ int smf_modules_process(
                 if(unlink(stf_filename) != 0)
                     STRACE(TRACE_ERR,session->id,"Failed to unlink state file [%s]", stf_filename);
                 free(stf_filename);
+                free(header);
                 smf_list_free(initial_headers);
                 return 1;
             } else if(ret == 2) {
@@ -369,13 +371,13 @@ int smf_modules_process(
         free(header); 
     }
     
-    if (smf_modules_flush_dirty(settings,session,initial_headers) != 0)
+    if ((ret = smf_modules_flush_dirty(settings,session,initial_headers)) != 0)
         STRACE(TRACE_ERR,session->id,"message flush failed");
 
     /* queue is done, if we're still here check for next hop and
      * deliver
      */
-    if ((nexthop = smf_nexthop_find(settings)) != NULL) {
+    if (ret == 0 && (nexthop = smf_nexthop_find(settings)) != NULL) {
         if ((ret = nexthop(settings, session)) != 0)
             q->nexthop_error(settings, session);
     }
@@ -443,6 +445,7 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     /* merge new headers with message content to new queue file */
     if (dirty == 1) {
         char tmpname[PATH_MAX];
+        int fd;
         char *buf = NULL;
         FILE *new = NULL;
         FILE *old = NULL;
@@ -451,15 +454,17 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
         found = 0;
         snprintf(tmpname, sizeof(tmpname), "%s/XXXXXX", settings->queue_dir);
 
-        if(mkstemp(tmpname) == -1) {
+        if ((fd = mkstemp(tmpname)) == -1) {
             STRACE(TRACE_ERR,session->id,"failed to create temporary file: %s (%d)",strerror(errno),errno);
             return -1;
         }
     
-        if (smf_message_to_file(msg, tmpname) == -1) {
-            STRACE(TRACE_ERR,session->id,"unable to write temporary file [%s]",tmpname);
+        if (smf_message_to_fd(msg, fd) == -1) {
+            STRACE(TRACE_ERR,session->id,"unable to write temporary file [%s]: %s",tmpname, strerror(errno));
             return -1;
         }
+        
+        close(fd);
 
         if((new = fopen(tmpname, "a"))==NULL) {
             STRACE(TRACE_ERR,session->id,"unable to open temporary file: %s (%d)",strerror(errno), errno);
