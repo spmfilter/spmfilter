@@ -234,7 +234,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         } else if (strcmp(key,"foreground")==0) {
             int fg = _get_boolean(val);
             (*settings)->foreground = fg;
-            configure_trace_destination(val ? TRACE_DEST_STDERR : TRACE_DEST_SYSLOG);
+            configure_trace_destination(fg ? TRACE_DEST_STDERR : TRACE_DEST_SYSLOG);
         /** [global]user **/
         } else if (strcmp(key,"user")==0) {
             if ((*settings)->user!=NULL)
