@@ -232,7 +232,7 @@ LDAP *smf_lookup_ldap_get_connection(SMFSettings_T *settings) {
 
 
 SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
-    va_list ap, cp;
+    va_list ap;
     int i,value_count;
 
     LDAP *c = NULL;
@@ -263,10 +263,8 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
         return NULL;
     } else {
         va_start(ap, q);
-        va_copy(cp, ap);
-        query = (char *)malloc(strlen(q) + 1);
-        vsprintf(query,q,cp);
-        va_end(cp);
+        vasprintf(&query,q,ap);
+        va_end(ap);
         smf_core_strstrip(query);
 
         if (strlen(query) == 0)
