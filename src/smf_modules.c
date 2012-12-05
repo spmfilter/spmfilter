@@ -478,6 +478,8 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
         }
 
         while(!feof(old)) {
+            size_t nwritten = 0;
+            
             if (found == 0) {
                 if ((nbytes = getline(&buf,&len,old)) == -1) {
                     STRACE(TRACE_ERR, session->id, "failed to read queue_file");
@@ -494,19 +496,24 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
                 }
                 
                 continue;
-            } else {
-                if ((nbytes = fread(buf,sizeof(char),BUFSIZE,old)) <= 0) {
-                    STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
-                    break;
-                }      
+            }
+            
+            if ((nbytes = fread(buf,sizeof(char),BUFSIZE,old)) == 0) {
+                STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
+                break;
             }
 
-            if (nbytes > 0) {
-                if ((nbytes = fwrite(buf,sizeof(char),nbytes,new)) <= 0) {
+            while (nwritten < nbytes) {
+                size_t n;
+                
+                if ((n = fwrite(buf + nwritten, sizeof(char), nbytes - nwritten, new)) == 0) {
                     STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+                    nbytes = 0;
                     break;
                 }
-            }                
+                
+                nwritten += n;
+            }
         }
         
         free(buf);
