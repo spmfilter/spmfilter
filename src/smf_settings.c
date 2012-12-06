@@ -68,6 +68,18 @@ int _get_integer(char *val) {
     return (int)strtol(val, NULL, 0);
 }
 
+char **_get_list(char *val) {
+    char **sl = NULL;
+
+    if (strchr(val,';') != NULL) {
+        sl = smf_core_strsplit(val, ";", NULL);
+    } else {
+        sl = smf_core_strsplit(val, ",", NULL);
+    } 
+    
+    return sl;
+}
+
 static line_status _parse_line(
         char *input_line,
         char *section,
@@ -151,11 +163,10 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                     if (smf_list_new(&((*settings)->modules),_mod_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create modules list");
             }
-            sl = smf_core_strsplit(val, ";", NULL);
+            sl = _get_list(val);
             p = sl;
             while(*p != NULL) {
                 s = smf_core_strstrip(*p);
-                //smf_list_append((*settings)->modules, s);
                 smf_settings_add_module((*settings),s);
                 free(s);
                 p++;
@@ -281,7 +292,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                     if (smf_list_new(&((*settings)->sql_host),smf_internal_string_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create host list");
             }
-            sl = smf_core_strsplit(val, ";", NULL);
+            sl = _get_list(val);
             p = sl;
             while(*p != NULL) {
                 s = smf_core_strstrip(*p);
@@ -337,7 +348,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                     if (smf_list_new(&((*settings)->ldap_host),smf_internal_string_list_destroy)!=0)
                         TRACE(TRACE_ERR,"failed to create host list");
             }
-            sl = smf_core_strsplit(val, ";", NULL);
+            sl = _get_list(val);
             p = sl;
             while(*p != NULL) {
                 s = smf_core_strstrip(*p);
