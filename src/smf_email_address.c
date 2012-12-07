@@ -19,6 +19,7 @@
 #include <cmime.h>
 
 #include "smf_email_address.h"
+#include "smf_core.h"
 
 #define THIS_MODULE "email_address"
 
@@ -82,4 +83,31 @@ char *smf_email_address_get_email(SMFEmailAddress_T *ea) {
     assert(ea);
 
     return (char *)cmime_address_get_email((CMimeAddress_T *)ea);
+}
+
+SMFEmailAddress_T *smf_email_address_get_simplified(SMFEmailAddress_T *ea) {
+    SMFEmailAddress_T *result;
+    char *email;
+
+    assert(ea != NULL);
+    assert(ea->email != NULL);
+
+    result = smf_email_address_parse_string(ea->email);
+    email = smf_email_address_get_email(result);
+
+    if (*email == '<') { /* angle-addr format */
+        char *end;
+                
+        email = strdup(email + 1);
+        if ((end = strchr(email, '>')) != NULL)
+            *end = '\0';
+    } else {
+        email = strdup(email);
+    }
+
+    smf_core_strstrip(email);    
+    smf_email_address_set_email(result, email);
+    free(email);
+
+    return result;
 }
