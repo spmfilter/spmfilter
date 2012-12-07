@@ -131,4 +131,19 @@ void smf_email_address_set_email(SMFEmailAddress_T *ea, const char *email);
  */
 char *smf_email_address_get_email(SMFEmailAddress_T *ea);
 
+/*!
+ * @fn SMFEmailAddress_T *smf_email_address_get_clean(SMFEmailAddress_T *ea)
+ * @brief Creates a simplified address-instance.
+ *
+ * The function can be used to extract the email from the angle-addr format.
+ *
+ * - smf_email_address_get_name() will return NULL
+ * - smf_email_address_get_email() will return the simplified email-adress. It
+ *   does not have any angle-bracket, this is the plain email.
+ *
+ * @param ea The SMFEmailAddress_T-instance to clone
+ * @return The simplified version of ea
+ */
+SMFEmailAddress_T *smf_email_address_get_simplified(SMFEmailAddress_T *ea);
+
 #endif  /* _SMF_EMAIL_ADDRESS_H */
