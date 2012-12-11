@@ -94,6 +94,32 @@ START_TEST(remove_item) {
 }
 END_TEST
 
+START_TEST(get_ulong_empty) {
+    int success;
+    fail_unless(smf_dict_get_ulong(dict, "foo", &success)  == -1);
+    fail_unless(success == 0);
+    fail_unless(smf_dict_get_ulong(dict, "foo", NULL)  == -1);
+}
+END_TEST
+
+START_TEST(get_ulong_no_num) {
+    int success;
+    fail_unless(smf_dict_set(dict, "foo", "1234bar") == 0);
+    fail_unless(smf_dict_get_ulong(dict, "foo", &success)  == -1);
+    fail_unless(success == 0);
+    fail_unless(smf_dict_get_ulong(dict, "foo", NULL)  == -1);
+}
+END_TEST
+
+START_TEST(get_ulong) {
+    int success;
+    fail_unless(smf_dict_set(dict, "foo", "4711") == 0);
+    fail_unless(smf_dict_get_ulong(dict, "foo", &success)  == 4711);
+    fail_unless(success == 1);
+    fail_unless(smf_dict_get_ulong(dict, "foo", NULL)  == 4711);
+}
+END_TEST
+
 TCase *dict_tcase() {
     TCase* tc = tcase_create("dict");
 
@@ -105,6 +131,9 @@ TCase *dict_tcase() {
     tcase_add_test(tc, keys);
     tcase_add_test(tc, map);
     tcase_add_test(tc, remove_item);
+    tcase_add_test(tc, get_ulong_empty);
+    tcase_add_test(tc, get_ulong_no_num);
+    tcase_add_test(tc, get_ulong);
 
     return tc;
 }
