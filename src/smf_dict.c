@@ -27,6 +27,8 @@
 #include "smf_dict.h"
 #include "smf_list.h"
 
+#define _set_ptr(ptr, val) if (ptr != NULL) { *ptr = val; }
+
 /* Doubles the allocated size associated to a pointer */
 /* 'size' is the current allocated size. */
 static void *_mem_double(void * ptr, int size) {
@@ -167,6 +169,30 @@ char *smf_dict_get(SMFDict_T *dict, const char * key) {
         }
     }
     return NULL;
+}
+
+unsigned long smf_dict_get_ulong(SMFDict_T *dict, const char * key, int *success) {
+    char *value;
+    char *endptr;
+    unsigned long lval;
+
+    assert(dict);
+    assert(key);
+    
+    if ((value = smf_dict_get(dict, key)) == NULL) {
+        _set_ptr(success, 0);
+        return -1;
+    }
+    
+    lval = strtoul(value, &endptr, 10);
+    
+    if (endptr == value || *endptr != '\0') {
+        _set_ptr(success, 0);
+        return -1;
+    }
+
+    _set_ptr(success, 1);
+    return lval;
 }
 
 void smf_dict_remove(SMFDict_T *dict, const char * key) {
