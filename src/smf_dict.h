@@ -86,6 +86,22 @@ int smf_dict_set(SMFDict_T *dict, const char * key, const char * val);
 char *smf_dict_get(SMFDict_T *dict, const char * key);
 
 /*!
+ * @fn unsigned long smf_dict_get_ulong(SMFDict_T *dict, const char * key, int *success)
+ * @brief Looks up a key in a SMFDict_T and get the associated unsigned long value
+ *        (if possible).
+ * The function tries to convert to value behind the key into a unsigned long value,
+ * returns it and sets the success-pointer to 1. If the key does not exists or if the
+ * convertion is not possible, then (unsigned long)-1 is returned and the success-pointer
+ * is set to 0.
+ * @param dict a SMFDict_T object
+ * @param key key to look for in the dictionary.
+ * @param success If set to non-NULL, then the function assigns here the result of the
+ *                conversion
+ * @return The unsigned long value of the key or (unsigned long)-1 on any error.
+ */
+unsigned long smf_dict_get_ulong(SMFDict_T *dict, const char * key, int *success);
+
+/*!
  * @fn void smf_dict_remove(SMFDict_T *dict, const char * key)
  * @brief Removes a key and its associated value from a SMFDict_T
  * @param dict a SMFDict_T 
