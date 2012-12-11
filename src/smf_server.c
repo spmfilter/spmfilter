@@ -279,6 +279,10 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
 
     for (;;) {
         pid = waitpid(-1, &status, 0);
+
+        if (daemon_exit)
+            break;
+        
         if (pid > 0) {
 
             for (i=0; i < settings->max_childs; i++) {
@@ -297,9 +301,6 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
                 num_spare++;
             }      
         }
-
-        if (daemon_exit)
-            break;
     }
 
     TRACE(TRACE_NOTICE, "smf_server is going down");
