@@ -53,15 +53,18 @@
 
 int client_sock = 0;
 
-void smf_smtpd_timeout_handler(int sig) {
-    char *hostname = NULL;
-    TRACE(TRACE_DEBUG,"session timeout exceeded");
+void smf_smtpd_sig_handler(int sig) {
+    if (sig == SIGALRM) {
+        char *hostname = NULL;
+        TRACE(TRACE_DEBUG,"session timeout exceeded");
 
-    hostname = (char *)malloc(MAXHOSTNAMELEN);
-    gethostname(hostname,MAXHOSTNAMELEN);
-    smf_smtpd_string_reply(client_sock,"421 %s Error: timeout exceeded\r\n",hostname);
-    free(hostname);
+        hostname = (char *)malloc(MAXHOSTNAMELEN);
+        gethostname(hostname,MAXHOSTNAMELEN);
+        smf_smtpd_string_reply(client_sock,"421 %s Error: timeout exceeded\r\n",hostname);
+        free(hostname);
+    }
 
+    TRACE(TRACE_NOTICE, "terminating child %i", getpid());
     kill(getppid(),SIGUSR2);
     exit(0);
 }
@@ -457,12 +460,16 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
 
 
     /* set timeout */
-    action.sa_handler = smf_smtpd_timeout_handler;
+    action.sa_handler = smf_smtpd_sig_handler;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
 
     if (sigaction(SIGALRM, &action, NULL) < 0) {
         TRACE(TRACE_ERR,"sigaction (SIGALRM) failed: %s",strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    if (sigaction(SIGTERM, &action, NULL) < 0) {
+        TRACE(TRACE_ERR,"sigaction (SIGTERM) failed: %s",strerror(errno));
         exit(EXIT_FAILURE);
     }
     alarm(settings->smtpd_timeout);
