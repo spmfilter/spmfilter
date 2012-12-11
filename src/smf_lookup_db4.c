@@ -77,3 +77,53 @@ char *smf_lookup_db4_query(char *database, char *key) {
 
     return db_res;
 }
+
+int smf_lookup_db4_update(const char *database, const char *key, const char *value) {
+    DB *dbp;
+    DBT db_key, db_data;
+    int ret;
+
+    /* Initialize the structure. This database is not opened in an environment,
+     * so the environment pointer is NULL. */
+    if ((ret = db_create(&dbp, NULL, 0)) != 0) {
+        TRACE(TRACE_ERR, "db_create: %s\n", db_strerror(ret));
+        return -1;
+    }
+
+    /* set page- and cachesize */
+    if ((ret = dbp->set_pagesize(dbp, 1024)) != 0) {
+        printf("db->open: %s\n", db_strerror(ret));
+        return(-1);
+    }
+    if ((ret = dbp->set_cachesize(dbp, 0, 32 * 1024, 0)) != 0) {
+        printf("db->open: %s\n", db_strerror(ret));
+        return(-1);
+    }
+
+    /* open the database */
+    ret = dbp->open(dbp, NULL, database, NULL, DB_HASH, DB_CREATE, 0);
+    if (ret != 0) {
+        TRACE(TRACE_ERR,"DB: %s",db_strerror(ret));
+        return -1;
+    }
+
+    memset(&db_key, 0, sizeof(DBT));
+    db_key.data = (char*)key;
+    db_key.size = strlen(key) + 1;
+    memset(&db_data, 0, sizeof(DBT));
+    db_data.data = (char*)value;
+    db_data.size = strlen(value) + 1;
+
+    ret = dbp->put(dbp, NULL, &db_key, &db_data, 0);
+    if (ret == 0) {
+        TRACE(TRACE_DEBUG, "[%p] update was successful [%s: %s]", dbp, key, value);
+    } else {
+        TRACE(TRACE_ERR, "[%p] failed to update database [%s: %s]: %s",
+              dbp, key, value, db_strerror(ret));
+    }
+
+    if (dbp != NULL)
+        dbp->close(dbp, 0);
+
+    return (ret == 0) ? ret : -1;
+}
