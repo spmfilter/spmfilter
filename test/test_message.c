@@ -96,6 +96,23 @@ START_TEST(set_header) {
 }
 END_TEST
 
+START_TEST(update_header) {
+    SMFHeader_T *hdr;
+
+    // Create a new header
+    fail_unless(smf_message_update_header(msg, "X-Foo", "foo") == 0);
+    fail_unless((hdr = smf_message_get_header(msg, "X-Foo")) != NULL);
+    ck_assert_str_eq(smf_header_get_name(hdr), "X-Foo");
+    ck_assert_str_eq(smf_header_get_value(hdr, 0), "foo");
+    
+    // Update already existing header
+    fail_unless(smf_message_update_header(msg, "X-Foo", "bar") == 0);
+    fail_unless((hdr = smf_message_get_header(msg, "X-Foo")) != NULL);
+    ck_assert_str_eq(smf_header_get_name(hdr), "X-Foo");
+    ck_assert_str_eq(smf_header_get_value(hdr, 0), "bar");
+}
+END_TEST
+
 START_TEST(remove_header) {
     SMFHeader_T *hdr;
 
@@ -305,6 +322,7 @@ TCase *messages_tcase() {
     tcase_add_test(tc, generate_message_id);
     tcase_add_test(tc, set_message_id);
     tcase_add_test(tc, set_header);
+    tcase_add_test(tc, update_header);
     tcase_add_test(tc, remove_header);
     tcase_add_test(tc, add_recipient);
     tcase_add_test(tc, set_content_type);

@@ -119,6 +119,19 @@ char *smf_message_generate_message_id(void);
  */
 int smf_message_set_header(SMFMessage_T *message, const char *header);
 
+/**
+ * @fn int smf_message_update_header(SMFMessage_T *message, const char *header, const char *value)
+ * @brief Updates the header-value with the given key
+ *
+ * If the header-entry does not exist, it will be created
+ *
+ * @param message a SMFMessage_T object
+ * @param header The key of the header-entry to update resp. create
+ * @param value The new value of the header-entry
+ * @return 0 on success or -1 in case of error
+ */
+int smf_message_update_header(SMFMessage_T *message, const char *header, const char *value);
+
 /*!
  * @fn SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header)
  * @brief Get header for given key
