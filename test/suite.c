@@ -19,6 +19,7 @@
 #include <unistd.h>
 
 extern TCase *core_tcase();
+extern TCase *messages_tcase();
 extern TCase *modules_tcase();
 extern TCase *nexthop_tcase();
 extern TCase *ea_tcase();
@@ -29,6 +30,7 @@ static Suite *smf_suite() {
 	Suite* s = suite_create("smf unit tests");
 
 	suite_add_tcase(s, core_tcase());
+	suite_add_tcase(s, messages_tcase());
 	suite_add_tcase(s, modules_tcase());
     suite_add_tcase(s, nexthop_tcase());
     suite_add_tcase(s, ea_tcase());
