@@ -15,8 +15,10 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
 #include <assert.h>
 #include <cmime.h>
+ #include <stdio.h>
 
 #include "smf_list.h"
 #include "smf_header.h"
@@ -97,6 +99,20 @@ int smf_message_set_header(SMFMessage_T *message, const char *header) {
     return cmime_message_set_header((CMimeMessage_T *)message,header);
 }
 
+int smf_message_update_header(SMFMessage_T *message, const char *header, const char *value) {
+    char *header_value;
+    int result;
+
+    assert(message);
+    assert(header);
+    assert(value);
+
+    asprintf(&header_value, "%s: %s", header, value);
+    result = cmime_message_set_header(message, header_value);
+    free(header_value);
+    
+    return result;
+}
 
 SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header) {
     assert(message);
