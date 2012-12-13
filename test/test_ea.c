@@ -76,6 +76,52 @@ START_TEST(to_string) {
 }
 END_TEST
 
+START_TEST(is_empty_plain) {
+    SMFEmailAddress_T *ea;
+    
+    fail_unless((ea = smf_email_address_parse_string("   foo@example.com  ")) != NULL);
+    fail_unless(smf_email_address_is_empty(ea) == 0);
+    smf_email_address_free(ea);
+
+}
+END_TEST
+
+START_TEST(is_empty_angle) {
+    SMFEmailAddress_T *ea;
+    
+    fail_unless((ea = smf_email_address_parse_string("Foo      <  foo@example.com    >")) != NULL);
+    fail_unless(smf_email_address_is_empty(ea) == 0);
+    smf_email_address_free(ea);
+}
+END_TEST
+
+START_TEST(is_empty_empty_angle) {
+    SMFEmailAddress_T *ea;
+    
+    fail_unless((ea = smf_email_address_parse_string("Foo  <  >")) != NULL);
+    fail_unless(smf_email_address_is_empty(ea) == 1);
+    smf_email_address_free(ea);
+}
+END_TEST
+
+START_TEST(is_empty_noname_angle) {
+    SMFEmailAddress_T *ea;
+    
+    fail_unless((ea = smf_email_address_parse_string("    < foo@example.com>")) != NULL);
+    fail_unless(smf_email_address_is_empty(ea) == 0);
+    smf_email_address_free(ea);
+}
+END_TEST
+
+START_TEST(is_empty_noname_empty_angle) {
+    SMFEmailAddress_T *ea;
+    
+    fail_unless((ea = smf_email_address_parse_string("   < >")) != NULL);
+    fail_unless(smf_email_address_is_empty(ea) == 1);
+    smf_email_address_free(ea);
+}
+END_TEST
+
 START_TEST(simplified_plain) {
     SMFEmailAddress_T *ea1, *ea2;
     
@@ -146,6 +192,11 @@ TCase *ea_tcase() {
     tcase_add_test(tc, set_get_email);
     tcase_add_test(tc, parse_string);
     tcase_add_test(tc, to_string);
+    tcase_add_test(tc, is_empty_plain);
+    tcase_add_test(tc, is_empty_angle);
+    tcase_add_test(tc, is_empty_empty_angle);
+    tcase_add_test(tc, is_empty_noname_angle);
+    tcase_add_test(tc, is_empty_noname_empty_angle);
     tcase_add_test(tc, simplified_plain);
     tcase_add_test(tc, simplified_angle);
     tcase_add_test(tc, simplified_empty_angle);
