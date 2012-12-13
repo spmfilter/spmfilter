@@ -131,6 +131,17 @@ void smf_email_address_set_email(SMFEmailAddress_T *ea, const char *email);
  */
 char *smf_email_address_get_email(SMFEmailAddress_T *ea);
 
+/**
+ * @fn int smf_email_address_is_empty(SMFEmailAddress_T *ea)
+ * @brief Tests whether the email-part is empty.
+ *
+ * The function pays attention to the angle-addr format.
+ *
+ * @param ea The email-instance to check
+ * @return When the email-address is emty true is returned
+ */
+int smf_email_address_is_empty(SMFEmailAddress_T *ea);
+
 /*!
  * @fn SMFEmailAddress_T *smf_email_address_get_clean(SMFEmailAddress_T *ea)
  * @brief Creates a simplified address-instance.
