@@ -85,6 +85,26 @@ char *smf_email_address_get_email(SMFEmailAddress_T *ea) {
     return (char *)cmime_address_get_email((CMimeAddress_T *)ea);
 }
 
+int smf_email_address_is_empty(SMFEmailAddress_T *ea) {
+    char *p;
+
+    assert(ea != NULL);
+
+    p = strchr(ea->email, '<');
+    if (p != NULL)
+        p++;
+    else
+        p = ea->email;
+    
+    while (*p != '>' && *p != '\0') {
+        if (!isspace(*p))
+            return 0;
+        p++;
+    }
+    
+    return 1;
+}
+
 SMFEmailAddress_T *smf_email_address_get_simplified(SMFEmailAddress_T *ea) {
     SMFEmailAddress_T *result;
     char *email;
