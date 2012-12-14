@@ -40,24 +40,27 @@ char *smf_lookup_db4_query(char *database, char *key) {
     TRACE(TRACE_LOOKUP, "[%p] lookup key [%s]", dbp,key);
 
     if ((ret = dbp->set_pagesize(dbp, 1024)) != 0) {
-        TRACE(TRACE_WARNING, "DB: %s",db_strerror(ret));
+        TRACE(TRACE_WARNING, "DB (%s): %s", database, db_strerror(ret));
     }
     if ((ret = dbp->set_cachesize(dbp, 0, 32 * 1024, 0)) != 0) {
-        TRACE(TRACE_WARNING, "DB: %s",db_strerror(ret));
+        TRACE(TRACE_WARNING, "DB (%s): %s", database, db_strerror(ret));
     }
 
     /* open db */
 #if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR < 1
     if ((ret = dbp->open(dbp, database, NULL, DB_HASH, DB_RDONLY, 0)) != 0) {
-        TRACE(TRACE_ERR, "DB: %s",db_strerror(ret));
+        TRACE(TRACE_ERR, "DB (%s): %s", database, db_strerror(ret));
         return NULL;
     }
 #else
     if ((ret = dbp->open(dbp, NULL, database, NULL, DB_HASH, DB_RDONLY, 0)) != 0) {
-        TRACE(TRACE_ERR,"DB: %s",db_strerror(ret));
+        TRACE(TRACE_ERR,"DB (%s): %s", database, db_strerror(ret));
         return NULL;
     }
 #endif
+    else {
+        TRACE(TRACE_DEBUG, "DB (%s): open", database);
+    }
 
     memset(&db_key, 0, sizeof(DBT));
     memset(&db_value, 0, sizeof(DBT));
