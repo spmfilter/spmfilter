@@ -20,7 +20,6 @@
 #include <assert.h>
 
 #include "../src/smf_session.h"
-#include "../src/smf_session_private.h"
 
 #include "test.h"
 
