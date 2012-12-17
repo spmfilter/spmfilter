@@ -56,6 +56,7 @@ set_property(TARGET smf PROPERTY PRIVATE_HEADER
 	smf_lookup.h
 	smf_message.h
 	smf_modules.h
+	smf_nexthop.h
 	smf_part.h
 	smf_session.h
 	smf_settings.h
