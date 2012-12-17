@@ -68,7 +68,9 @@ void smf_session_free(SMFSession_T *session) {
     
     if (session->response_msg!=NULL)
         free(session->response_msg);
-    smf_envelope_free(session->envelope);
+        
+    if (session->envelope != NULL)
+        smf_envelope_free(session->envelope);
     
     if (session->id!=NULL)
         free(session->id);
