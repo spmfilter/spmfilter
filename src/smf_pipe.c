@@ -33,7 +33,6 @@
 #include "smf_trace.h"
 #include "smf_settings.h"
 #include "smf_session.h"
-#include "smf_session_private.h"
 #include "smf_lookup.h"
 #include "smf_message_private.h"
 #include "smf_internal.h"

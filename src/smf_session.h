@@ -36,6 +36,20 @@ typedef struct {
 } SMFSession_T;
 
 /*!
+ * @fn SMFSession_T *smf_session_new(void)
+ * @brief Create a new SMFSession_T object
+ * @returns a newly allocated SMFSession_T object
+ */
+SMFSession_T *smf_session_new(void);
+
+/*!
+ * @fn void smf_session_free(SMFSession_T *session)
+ * @brief Free a SMFSession_T object
+ * @param session a SMFSession_T object
+ */
+void smf_session_free(SMFSession_T *session);
+
+/*!
  * @fn void smf_session_set_helo(SMFSession_T *session, char *helo)
  * @brief Set helo for session
  * @param session SMFSession_T object
