@@ -114,6 +114,24 @@ int smf_message_update_header(SMFMessage_T *message, const char *header, const c
     return result;
 }
 
+int smf_message_add_header(SMFMessage_T *message, const char *header, const char *value) {
+    SMFHeader_T *hdr;
+
+    assert(message);
+    assert(header);
+    assert(value);
+
+    if ((hdr = smf_message_get_header(message, header)) == NULL) {
+        if (smf_message_set_header(message, header) != 0)
+            return -1;
+        if ((hdr = smf_message_get_header(message, header)) == NULL)
+            return -1;
+    }
+
+    smf_header_set_value(hdr, value, 0);
+    return 0;
+}
+
 SMFHeader_T *smf_message_get_header(SMFMessage_T *message, const char *header) {
     assert(message);
     assert(header);
