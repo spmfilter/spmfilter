@@ -22,7 +22,6 @@
 
 #include "../src/smf_modules.h"
 #include "../src/smf_session.h"
-#include "../src/smf_session_private.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
 
