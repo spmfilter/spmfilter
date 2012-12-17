@@ -112,9 +112,20 @@ START_TEST(file_no_dest) {
 }
 END_TEST
 
-START_TEST(file_success) {
+START_TEST(file_from_spoolfile) {
     NexthopFunction func;
 
+    smf_settings_set_nexthop(settings, dest_file);
+    fail_unless((func = smf_nexthop_find(settings)) != NULL);
+    fail_unless(func(settings, session) == 0);
+}
+END_TEST
+
+START_TEST(file_from_message) {
+    NexthopFunction func;
+
+    free(session->message_file);
+    session->message_file = NULL;
     smf_settings_set_nexthop(settings, dest_file);
     fail_unless((func = smf_nexthop_find(settings)) != NULL);
     fail_unless(func(settings, session) == 0);
@@ -157,7 +168,8 @@ TCase *nexthop_tcase() {
     
     tcase_add_test(tc, file_no_src);
     tcase_add_test(tc, file_no_dest);
-    tcase_add_test(tc, file_success);
+    tcase_add_test(tc, file_from_spoolfile);
+    tcase_add_test(tc, file_from_message);
     tcase_add_test(tc, smtp_no_src);
     tcase_add_test(tc, smtp_no_dest);
     tcase_add_test(tc, smtp_success);

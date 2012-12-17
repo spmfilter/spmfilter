@@ -73,9 +73,6 @@ static int smtp_delivery_nexthop(SMFSettings_T *settings, SMFSession_T *session)
 }
 
 static int file_delivery_nexthop(SMFSettings_T *settings, SMFSession_T *session) {
-    FILE *src, *dest;
-    char block[512];
-    size_t nbytes;
     int result = 0;
     
     assert(settings);
@@ -83,36 +80,50 @@ static int file_delivery_nexthop(SMFSettings_T *settings, SMFSession_T *session)
 
     STRACE(TRACE_DEBUG, session->id, "will now deliver to nexthop-file [%s]", settings->nexthop);
     
-    if ((src = fopen(session->message_file, "r")) == NULL) {
-        STRACE(TRACE_ERR, session->id, "Failed to open %s for reading: %s",
-            session->message_file, strerror(errno));
-        return -1;
-    }
-    
-    if ((dest = fopen(settings->nexthop, "w")) == NULL) {
-        STRACE(TRACE_ERR, session->id, "Failed to open %s for writing: %s",
-            settings->nexthop, strerror(errno));
+    if (session->message_file != NULL) {
+        FILE *src, *dest;
+        char block[512];
+        size_t nbytes;
+        
+        if ((src = fopen(session->message_file, "r")) == NULL) {
+            STRACE(TRACE_ERR, session->id, "Failed to open %s for reading: %s",
+                session->message_file, strerror(errno));
+            return -1;
+        }
+        
+        if ((dest = fopen(settings->nexthop, "w")) == NULL) {
+            STRACE(TRACE_ERR, session->id, "Failed to open %s for writing: %s",
+                settings->nexthop, strerror(errno));
+            fclose(src);
+            return -1;
+        }
+
+        while (!feof(src)) {
+            if ((nbytes = fread(block, 1, sizeof(block), src)) == 0 && ferror(src)) {
+                STRACE(TRACE_ERR, "Failed to read from %s: %s",
+                    session->message_file, strerror(ferror(src)));
+                result = -1;
+                break;
+            }
+            if ((nbytes = fwrite(block, 1, nbytes, dest)) == 0 && ferror(dest)) {
+                STRACE(TRACE_ERR, "Failed to write to %s: %s",
+                    settings->nexthop, strerror(ferror(dest)));
+                result = -1;
+                break;
+            }
+        }
+
         fclose(src);
+        fclose(dest);
+    } else if (session->envelope->message != NULL) {
+        int nitems;
+        
+        nitems = smf_message_to_file(session->envelope->message, settings->nexthop);
+        result = (nitems > 0) ? 0 : -1;
+    } else {
+        STRACE(TRACE_ERR, session->id, "Could not detect the source message for delivery");
         return -1;
     }
-    
-    while (!feof(src)) {
-        if ((nbytes = fread(block, 1, sizeof(block), src)) == 0 && ferror(src)) {
-            STRACE(TRACE_ERR, "Failed to read from %s: %s",
-                session->message_file, strerror(ferror(src)));
-            result = -1;
-            break;
-        }
-        if ((nbytes = fwrite(block, 1, nbytes, dest)) == 0 && ferror(dest)) {
-            STRACE(TRACE_ERR, "Failed to write to %s: %s",
-                settings->nexthop, strerror(ferror(dest)));
-            result = -1;
-            break;
-        }
-    }
-    
-    fclose(src);
-    fclose(dest);
     
     return result;
 }
