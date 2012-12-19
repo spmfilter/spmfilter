@@ -17,8 +17,10 @@
 
 #define _GNU_SOURCE
 
+#include <sys/types.h>
 #include <check.h>
 #include <stdio.h>
+#include <utime.h>
 
 #include "../src/smf_modules.h"
 #include "../src/smf_session.h"
@@ -104,6 +106,18 @@ static int mod3(SMFSettings_T *set, SMFSession_T *s) {
     fail_unless(session == s);
     mod3_data.count++;
     return mod3_data.rc;
+}
+
+static int message_file_changed_cb(SMFSettings_T *set, SMFSession_T *s) {
+  struct stat fstat;
+  struct utimbuf times;
+
+  fail_unless(stat(s->message_file, &fstat) == 0);
+  times.actime = fstat.st_ctime + 10;
+  times.modtime = fstat.st_mtime + 10;
+  fail_unless(utime(s->message_file, &times) == 0);
+
+  return 0;
 }
 
 static int error_cb(SMFSettings_T *set, SMFSession_T *ses) {
@@ -294,6 +308,18 @@ START_TEST(process_err_nexthop_err) {
 }
 END_TEST
 
+START_TEST(message_file_changed) {
+  SMFModule_T *module;
+  SMFMessage_T *old_msg_ptr;
+
+  fail_unless((old_msg_ptr = session->envelope->message) != NULL);
+  fail_unless((module = smf_module_create_callback("foo", message_file_changed_cb)) != NULL);
+  fail_unless(smf_module_invoke(settings, module, session) == 0);
+  fail_unless(smf_module_destroy(module) == 0);
+  fail_unless(old_msg_ptr != session->envelope->message); /* Reloaded */
+}
+END_TEST
+
 TCase *modules_tcase() {
     TCase* tc = tcase_create("modules");
     tcase_add_checked_fixture(tc, setup, teardown);
@@ -305,6 +331,7 @@ TCase *modules_tcase() {
     tcase_add_test(tc, process_err_stop_queue);
     tcase_add_test(tc, process_err_nexthop);
     tcase_add_test(tc, process_err_nexthop_err);
+    tcase_add_test(tc, message_file_changed);
     
     return tc;
 }

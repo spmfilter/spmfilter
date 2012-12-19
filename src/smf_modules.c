@@ -39,6 +39,17 @@
 
 #define THIS_MODULE "modules"
 
+static time_t message_file_mtime(SMFSession_T *session) {
+  struct stat fstat;
+  
+  if (stat(session->message_file, &fstat) != 0) {
+    STRACE(TRACE_ERR, session->id, "%s: %s", session->message_file, strerror(errno));
+    return 0; /* Ignore... */
+  }
+  
+  return fstat.st_mtime;
+}
+
 void _header_destroy(void *data) {
     SMFHeader_T *h = (SMFHeader_T *)data;
     smf_header_free(h);
@@ -239,6 +250,8 @@ int smf_module_destroy(SMFModule_T *module) {
 
 int smf_module_invoke(SMFSettings_T *settings, SMFModule_T *module, SMFSession_T *session) {
     ModuleLoadFunction runner;
+    time_t mtime_before, mtime_after;
+    int result;
     
     assert(module);
     assert(session);
@@ -254,7 +267,27 @@ int smf_module_invoke(SMFSettings_T *settings, SMFModule_T *module, SMFSession_T
         runner = module->u.callback;
     }
     
-    return runner(settings,session);
+    if (session->message_file != NULL)
+      mtime_before = message_file_mtime(session);
+    
+    result = runner(settings,session);
+
+    if (result == 0 && session->message_file != NULL) {
+      mtime_after = message_file_mtime(session);
+      
+      if (mtime_after > mtime_before) {
+        // Spoolfile has change. Reload the message inside the session
+        SMFMessage_T *message_new = smf_message_new();
+        result = smf_message_from_file(&message_new, session->message_file, 0);
+        
+        if (result == 0) {
+          smf_message_free(session->envelope->message);
+          session->envelope->message = message_new;
+        }
+      }
+    }
+    
+    return result;
 }
 
 int smf_modules_process(
