@@ -80,19 +80,7 @@ div#powered {
   background: url(logo_spacenet.png) no-repeat;
 }
 
-#navrow1{
-  margin-top: -51px;
-  /*
-  position: absolute;
-  width: 100%;
-  height: 51px;
-  top: 134px;
-  */
-/*  background-image:  url(menu_left.png), url(menu_right.png);
-  background-repeat: no-repeat;
-  background-position: top left, top right; */
-/*  border: 1px solid red;*/
-}
+
 
 /*
 .tabs {
@@ -110,6 +98,8 @@ div#powered {
 }
 
 */
+
+/*
 .tablist li {
   float: left;
   margin: 10px 0 0 0; 
@@ -118,32 +108,72 @@ div#powered {
   list-style-type: none;
   white-space: nowrap;
 }
+*/
 
-#navrow1 ul {
+.tablist { 
+  margin: 0px 30px 0px 30px; 
+  padding: 0;
+  display: table; 
+}
+
+.tablist li {
+    display: block;
+    float: left;
+    padding-right: 2px;
+}
+
+.tablist a {
+    float: none;
+    padding: 10px 20px 11px;
+    line-height: 36px; 
+    color: #999999;
+    text-decoration: none;
+/*    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25); */
+}
+
+.tablist a:hover {
+    background-color: transparent;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.tablist li.current a {
+    color: #ffffff;
+    text-decoration: none;
+    background-color: #222222;
+}
+
+#navrow1{
+  margin-top: -51px;
   border-bottom: 1px solid #AF443D;
-  height: 30px;
   margin-left: 50px;
   margin-right: 50px;
+  height: 30px;
   padding: 0;
 }
+
+*
+#navrow1 li {
+  padding-right: 20px;
+}
+
 
 #navrow1 li a:link, #navrow1 li a:visited {
   background: none;
   float: left;
   font-size: 85%;
-  line-height: 20px;  
   font-weight: bold;
-  margin: 0 10px 0 10px;    
   text-decoration: none;
   color: #000000;
-  display: block; 
+  padding: 0px;
 }
 
 #navrow1 li a.active:link, #navrow1 li a.active:visited, #navrow1 li a:hover {
-  background: none;
-/*  border-bottom: 4px solid #AF443D; */
-  padding: 0px;
+/*  background: none;
+  border-bottom: 4px solid #AF443D; 
+  padding: 0px; */
   color: #AF443D;
+/*  line-height: 30px; */
 }
 
 #navrow2{
@@ -153,20 +183,24 @@ div#powered {
   left: 15px;
   top: 155px;
 */
-  height: 51px;
-  z-index: 2;
+  clear: left;
+  height: 50px;
+  margin-top: -10px;
+  padding: 0;
+  z-index: -1;
 }
 
 #navrow2 ul {
   height: 30px;
-  margin-top: 2px;
+/*  margin-top: 2px; */
   margin-left: 50px;
   margin-right: 50px;
   padding: 0;
 }
 
+
 #navrow2 li {
-  display: block;
+  margin-top: 0;
 }
 
 #navrow2 li a:link, #navrow2 li a:visited {
@@ -252,13 +286,11 @@ div#powered {
 #navrow4 a:hover { color: #555555; text-decoration: underline; }
 
 .contents, .header {
-  position: relative;
-  top: 200px;
   background-image: url(content_left.png), url(content_right.png);
   background-repeat: repeat-y;
   background-position: top left, top right;
   background-color: #FFFFFF;
-  padding: 30px 50px 0 50px;
+  padding: 20px 50px 0 50px;
 
 }
 
@@ -285,7 +317,6 @@ div#footer {
 
 .headertitle {
   font-size: 18px;
-/*  border-bottom: 1px solid #484848;*/
 }
 
 /* TABLES */
