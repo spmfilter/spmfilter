@@ -27,7 +27,7 @@
 #include "smf_settings.h"
 
 static int debug_flag = 0;
-static SMFTrace_Dest_T debug_dest = TRACE_DEST_SYSLOG;
+static SMFTraceDest_T debug_dest = TRACE_DEST_SYSLOG;
 
 static const char * trace_to_text(SMFTrace_T level) {
 	const char * const trace_text[] = {
@@ -48,7 +48,7 @@ void configure_debug(int debug) {
 	debug_flag = debug;
 }
 
-void configure_trace_destination(SMFTrace_Dest_T dest) {
+void configure_trace_destination(SMFTraceDest_T dest) {
 	debug_dest = dest;
 }
 
