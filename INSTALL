@@ -1,6 +1,25 @@
 Installation Instructions
 *************************
 
+Getting spmfilter
+=================
+  * Download the sources at http://www.spmfilter.org/files
+
+  * Configuring is done using CMake (http://www.cmake.org), version 2.4.5 is the 
+    minimum required version. This means there is no configure-script, but you 
+    need to run cmake. Use ccmake to see all available settings.
+
+System requirements
+====================
+spmfilter runs on any Unix-based/Unix-style operating system. There are only few requirements:
+
+  * libcmime >= 0.1.6
+
+  * libesmtp >= 1.0
+
+  * pcre >= 6.0
+
+
 Basic Installation
 ===================
 
@@ -22,38 +41,30 @@ variables:
 CMAKE_INCLUDE_PATH
 CMAKE_LIBRARY_PATH
 
-
+By default, "make install" installs the package's commands under
+/usr/local/sbin, include files under /usr/local/include, etc.  You
+can specify an installation prefix other than /usr/local by giving
+cmake the option "-DPREFIX:STRING=/opt".
 
 Configure Parameters
 =====================
 
 Some systems require unusual options for compilation or linking that the
-`cmake' script does not know about.  Run `./cmake -h' for details on some of
+cmake script does not know about. Run "./cmake -h" for details on some of
 the pertinent environment variables.
 
-You can give `cmake' initial values for configuration parameters
+You can give cmake initial values for configuration parameters
 by setting variables in the command line or in the environment.  Here
 is an example:
 
-	./cmake ../ -DPREFIX:STRING=/usr/local
+	./cmake ../ -DPREFIX:STRING=/opt
 
 Instead of defining parameters on the command line you can also create
 the file "build.properties" in the source and define your configuration
 parameters there. Here is an example for "build.properties":
 
-
-	set(PREFIX /opt/spmfilter)
-	set(ENABLE_DEBUG TRUE)
-	set(WITHOUT_ZDB TRUE)
-	set(WITHOUT_DB4 TRUE)
-	set(WITHOUT_LDAP TRUE)
-
-
-
-Installation Names
-==================
-
-By default, `make install' installs the package's commands under
-`/usr/local/sbin', include files under `/usr/local/include', etc.  You
-can specify an installation prefix other than `/usr/local' by giving
-`cmake' the option `-DPREFIX:STRING=/usr/local'.
+  set(PREFIX /opt/spmfilter)
+  set(ENABLE_DEBUG TRUE)
+  set(WITHOUT_ZDB TRUE)
+  set(WITHOUT_DB4 TRUE)
+  set(WITHOUT_LDAP TRUE)
