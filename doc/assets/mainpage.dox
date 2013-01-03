@@ -1,0 +1,89 @@
+/*!
+ * @brief Documentation file for Mainpage, and defgroups.
+ * @file
+ */
+
+/*!
+ * 
+@mainpage Overview
+
+spmfilter is a high-performance mail filtering framework, written in C.
+It attempts to be a general filtering framework for any purposes. Filtering
+mechanisms are provided by plugins, the API enables spmfilter plugins to access
+messages as they are being processed by the MTA. This allows them to examine
+and modify message content and meta-information during the SMTP transaction.
+Plugins are loaded at runtime and can be processed in any sequence, the
+processing chain can also be altered by a single plugin, for example if the
+plugin has to stop further processing (e.g. the clamav-plugin detected malicious
+software like a virus and the infected message is actually discarded - so
+further processing is stopped by the plugin).
+
+@section features Features
+
+- **Generic SMTP engine** <br/>
+spmfilter ships with it's own SMTP engine, so you can use spmfilter with any MTA. Data, submitted via SMTP, is available for all plugins.
+
+- **Plugin support**<br/>
+There are no filtering mechanisms in spmfilter, all is done via plugins. Plugins are loaded at runtime and can be processed in any sequence. Any plugin can be added or changed independently of other existing plugins.
+
+- **Plugin tracking**<br/>
+By the use of state files, spmfilter is able to track the current plugin processing status. In short, plugins which have already been executed won't be re-processed in case of an error.
+
+- **Message parsing and creation**<br/> 
+API functions for header and message parsing as well as header and message creation.
+
+- **Generic database interface**<br/>
+Transparent connection to multiple database systems with connection pooling, failover and load balancing functions. Spmfilter supports PostgreSQL, MySQL, SQLite, BerkeleyDB and LDAP as database backend.
+
+- **Speed**<br/>
+By the use of C, a higher performance is reached than other filters using scripting languages.
+
+- **Reliability**<br/>  
+Coding failures (e.g. core dumps) in a plugin will not stop mail delivery. Faced with such a failure, the MTA will receive a 4xx SMTP error code, so that the mail will be queued for later processing.
+
+@section download Getting spmfilter
+
+You can download the sources at http://spmfilter.org/files
+
+Development is done using <a href="http://mercurial.selenic.com/" target="_blank">Mercurial</a>
+
+@code
+$ hg clone http://spmfilter.org/hg/spmfilter
+@endcode
+
+@section doc Documentation
+
+Follow these links to find available documentation and installation notes:
+
+- [Installation and configuration](@ref install) 
+  - [TLS configuration](@ref tls)
+- [Plugin development](@ref plugin)
+
+
+@section lists Mailing lists
+
+There are two mailing lists devoted to spmfilter.
+
+- Users mailing list (http://groups.google.com/group/spmfilter-users) <br/>
+The main list for help and announcements.
+  
+- Developers mailing list (http://groups.google.com/group/spmfilter-devel)<br/>
+The developers mailing list is used for discussions and questions about 
+the development of spmfilter or plugins.
+
+@section bugs Bug reports
+
+If you believe you have found a bug, please send this information, plus 
+information about the machine and OS platform used along with a description 
+of the problem to bugs@spmfilter.org
+
+
+@section contribute Contribute to spmfilter
+
+We're happy about developers who want to share their usefull spmfilter-plugins with the community. Just contact us on the developers mailing list if you want to contribute spmfilter-plugins to spmfilter.
+
+@section license License
+
+spmfilter is released under the [LGPL](http://www.gnu.org/licenses/lgpl.txt) . This means (in short..) that you are free to use, change and distribute it.
+
+*/

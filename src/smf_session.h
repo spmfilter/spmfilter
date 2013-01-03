@@ -15,6 +15,20 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_session.h
+ * @brief Defines SMFSession_T datatype and related functions.
+ * @details Each message is processed in a new session, with unique session id.
+ *          The session data itself is stored in a SMFSession_T object, whereas the 
+ *          email content is stored on disk instead, but connection informations 
+ *          and message headers are hold in memory. If you need to modify an 
+ *          email in the current session, you have to use the session functions.
+ * @details If a header of a session object has been modified, the session will 
+ *          be marked as "dirty" - that means the header will be flushed to disk 
+ *          before the final delivery is initialized, to keep the message in sync 
+ *          with the modified data.
+ */
+
 #ifndef _SMF_SESSION_H
 #define _SMF_SESSION_H
 
@@ -107,7 +121,7 @@ char *smf_session_get_response_msg(SMFSession_T *session);
 SMFEnvelope_T *smf_session_get_envelope(SMFSession_T *session);
 
 /*!
- * @fn void smf_envelope_set_message_file(SMFSession_T *session, char *fp)
+ * @fn void smf_session_set_message_file(SMFSession_T *session, char *fp)
  * @brief Set path for message file
  * @param session SMFSession_T object
  * @param fp message file path
@@ -115,7 +129,7 @@ SMFEnvelope_T *smf_session_get_envelope(SMFSession_T *session);
 void smf_session_set_message_file(SMFSession_T *session, char *fp);
 
 /*!
- * @fn char *smf_envelope_get_message_file(SMFEnvelope_T *envelope)
+ * @fn char *smf_session_get_message_file(SMFSession_T *session)
  * @brief Get message file
  * @param session SMFSession_T object
  * @returns path to message file
@@ -123,7 +137,7 @@ void smf_session_set_message_file(SMFSession_T *session, char *fp);
 char *smf_session_get_message_file(SMFSession_T *session);
 
 /*!
- * @fn char *smf_envelope_get_id(SMFEnvelope_T *envelope)
+ * @fn char *smf_session_get_id(SMFSession_T *session)
  * @brief Get session id
  * @param session SMFSession_T object
  * @returns session id

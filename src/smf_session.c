@@ -54,7 +54,6 @@ SMFSession_T *smf_session_new(void) {
     return session;
 }
 
-/** Free SMFSession_T structure */
 void smf_session_free(SMFSession_T *session) {
     STRACE(TRACE_DEBUG,session->id,"destroy session data");
     if (session->helo!=NULL)
@@ -78,7 +77,6 @@ void smf_session_free(SMFSession_T *session) {
     free(session);
 }
 
-/** Set helo */
 void smf_session_set_helo(SMFSession_T *session, char *helo) {
     assert(session);
     assert(helo);
@@ -96,7 +94,6 @@ char *smf_session_get_helo(SMFSession_T *session) {
     return session->helo;
 }
 
-/** Set message file path */
 void smf_session_set_message_file(SMFSession_T *session, char *fp) {
     assert(session);
     assert(fp);
@@ -112,8 +109,6 @@ char *smf_session_get_message_file(SMFSession_T *session) {
     return session->message_file;
 }
 
-
-/** Set xforward address */
 void smf_session_set_xforward_addr(SMFSession_T *session, char *xfwd) {
     assert(session);
     assert(xfwd);
@@ -131,7 +126,6 @@ char *smf_session_get_xforward_addr(SMFSession_T *session) {
     return session->xforward_addr;
 }
 
-/** Set response message */
 void smf_session_set_response_msg(SMFSession_T *session, char *rmsg) {
     assert(session);
     assert(rmsg);
