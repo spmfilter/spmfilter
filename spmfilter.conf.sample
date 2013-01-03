@@ -28,9 +28,6 @@ nexthop = localhost:2525
 # Path to queue directory
 queue_dir = /var/spool/spmfilter
 
-# Start spmfilter in daemon mode
-daemon = true
-
 # If one module fails, there are 3 options:
 # 1 = proceed and ignore
 # 2 = cancel further processing and return permanet error
@@ -117,6 +114,9 @@ nexthop_fail_msg = Requested action aborted: local error in processing
 
 # Database password.
 #pass =
+
+# Encoding to match database/table encoding, e.g., latin1, utf8
+#encoding =
 
 # Maximum number of connections to database server
 #max_connections = 10

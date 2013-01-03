@@ -161,9 +161,6 @@ Parameters in this section are global and do not affect any modules.
 - **pid_file**<br/>
   The pid_file option sets the file to which the daemon records the process id.
 
-- **daemon**<br/>
-  Start spmfilter in daemon mode
-
 - **bind_ip**<br/>
   The IP addresses the daemon will bind to
 
@@ -211,6 +208,9 @@ with a 500 error code:
   List of available database hosts, separated by a semicolon.  Set to 
   localhost if database is on the same host as spmfilter.
 
+- **port**<br/>
+Database port
+
 - **name**<br/>
   Database name, or path to database if driver is set to sqlite.
 
@@ -220,11 +220,11 @@ with a 500 error code:
 - **pass**<br/>
   Database password.
 
+- **encoding**<br/>
+  Encoding to match database/table encoding, e.g., latin1, utf8
+
 - **max_connections**<br/>
   Maximum number of connections to database server
-
-- **port**<br/>
-Database port
 
 - **user_query**<br/>
   user_query setting contains the sql query to look up user 
@@ -234,6 +234,17 @@ Database port
     - %s = replaced by the full email address.
     - %u = replaced by the local part of the email address.
     - %d = replaced by the domain part of the email address.
+
+*Example:*
+@code
+[sql]
+driver = mysql
+host = localhost
+name = mail
+user = user
+pass = pass
+user_query = SELECT address FROM users WHERE addr='%s'
+@endcode
 
 @subsection ldap The [ldap] section
 
@@ -264,4 +275,51 @@ Database port
     - %s = replaced by the full email address.
     - %u = replaced by the local part of the email address.
     - %d = replaced by the domain part of the email address.
+
+*Example:*
+@code
+[ldap]
+host = localhost
+binddn = ou=users,dc=example,dc=org
+bindpw = password
+base =  ou=users,dc=example,dc=org
+scope = subtree
+user_query = (&(email=%s)(accountstatus=active))
+@endcode
+
+@subsection sample Sample configuration
+What follows is a sample configuration file:
+@code
+[global]
+engine = smtpd
+debug = false
+modules=clamav
+module_fail = 3
+nexthop = localhost:2525
+max_size = 0
+tls_enable = 1
+backend = sql
+backend_connection = balance
+bind_ip = 127.0.0.1
+bind_port = 10025
+spare_childs = 5
+max_childs = 15
+pid_file = /var/run/spmfilter.pid
+user = nobody
+group = mail
+
+[sql]
+driver = postgresql
+host = 192.168.0.1;192.168.0.2
+name = maildb
+user = mail
+pass = password
+user_query = SELECT * FROM accounts WHERE email='%s'
+
+[clamav]
+host = 127.0.0.1
+port = 3310
+add_header = true
+@endcode
+
 */
