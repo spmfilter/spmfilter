@@ -17,7 +17,10 @@
 
 /*!
  * @file smf_settings.h
- * @brief Defines spmfilter configuration and config file parsing functions
+ * @brief Defines SMFSettings_T and config file parsing functions
+ * @details All config settings, defined in spmfilter.conf, are stored
+ *          in a SMFSettings_T object and can be accessed via the 
+ *          corresponding function.
  */
 
 #ifndef _SMF_SETTINGS_H
@@ -37,6 +40,10 @@ typedef enum {
     SMF_TLS_REQUIRED /**< TLS is enabled and required */
 } SMFTlsOption_T;
 
+/*!
+ * @enum SMFConnectionType_T
+ * @brief Possible backend connection types
+ */
 typedef enum {
     SMF_SQL_CONN, /**< SQL connection */
     SMF_LDAP_CONN /**< LDAP connection */
@@ -157,7 +164,7 @@ int smf_settings_set_queue_dir(SMFSettings_T *settings, char *qd);
 /*!
  * @fn char *smf_settings_get_queue_dir(SMFSettings_T *settings)
  * @brief Get queue directory path
- * @params settings a SMFSettings_T object
+ * @param settings a SMFSettings_T object
  * @returns queue directory
  */
 char *smf_settings_get_queue_dir(SMFSettings_T *settings);
@@ -476,7 +483,7 @@ char *smf_settings_get_user(SMFSettings_T *settings);
  * @fn void smf_settings_set_group(SMFSettings_T *settings, char *group)
  * @brief Set effective group
  * @param settings a SMFSettings_T object
- * @param user effective groupname
+ * @param group effective groupname
  */
 void smf_settings_set_group(SMFSettings_T *settings, char *group);
 
@@ -522,7 +529,7 @@ int smf_settings_get_spare_childs(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)
- * @biref Add smtp return code to list
+ * @brief Add smtp return code to list
  * @param settings a SMFSettings_T object
  * @param code smtp code
  * @param msg smtp return message
@@ -872,7 +879,7 @@ int smf_settings_get_lookup_persistent(SMFSettings_T *settings);
 /*!
  * @fn char *smf_settings_group_get(SMFSettings_T *settings, char *group_name, char *key)
  * @brief Returns the raw value associated with key under the selected group.
- * @param group a SMFSettings_T object
+ * @param settings a SMFSettings_T object
  * @param group_name name of the settings section
  * @param key a key
  * @returns a newly allocated string or NULL if the specified key cannot be found.
@@ -882,7 +889,7 @@ char *smf_settings_group_get(SMFSettings_T *settings, char *group_name, char *ke
 /*!
  * @fn int smf_settings_group_get_integer(SMFSettings_T *settings, char *group_name, char *key)
  * @brief Returns the value associated with key under the selected group as an integer.
- * @param group a SMFSettings_T object
+ * @param settings a SMFSettings_T object
  * @param group_name name of the settings section
  * @param key a key
  * @returns he value associated with the key as an integer, or 0 if the key was not found or could not be parsed.
@@ -892,7 +899,7 @@ int smf_settings_group_get_integer(SMFSettings_T *settings, char *group_name, ch
 /*!
  * @fn int smf_settings_group_get_boolean(SMFSettings_T *settings, char *group_name, char *key)
  * @brief Returns the boolean values associated with key under the selected group as integer.
- * @param group a SMFSettings_T object
+ * @param settings a SMFSettings_T object
  * @param group_name name of the settings section
  * @param key a key
  * @returns the value associated with the key as a integer, 1 if true, 0 if false
@@ -902,7 +909,7 @@ int smf_settings_group_get_boolean(SMFSettings_T *settings, char *group_name, ch
 /*!
  * @fn SMFList_T *smf_settings_group_get_list(SMFSettings_T *settings, char *group_name, char *key)
  * @brief Returns the values associated with key under the selected group.
- * @param group a SMFSettings_T object
+ * @param settings a SMFSettings_T object
  * @param group_name name of the settings section
  * @param key a key
  * @returns a newly allocated SMFList_T object or NULL on failure

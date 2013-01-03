@@ -15,6 +15,15 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_part.h
+ * @brief Defines the #SMFPart_T data type and related functions
+ * @details #SMFPart_T represents an Mime part.
+ * @details To create a new #SMFPart_T, use smf_part_new()
+ * @details To destroy a #SMFPart_T use smf_part_free()
+ */
+
+
 #ifndef _SMF_PART_H
 #define _SMF_PART_H
 
@@ -24,6 +33,10 @@ extern "C" {
 
 #include <cmime.h>
 
+/*!
+ * @typedef SMFPart_T
+ * @brief A Mime part
+ */
 typedef CMimePart_T SMFPart_T;
 
 /*!
@@ -127,7 +140,7 @@ void smf_part_set_content(SMFPart_T *part, const char *s);
 void smf_part_set_postface(SMFPart_T *part, const char *s);
 
 /*!
- * @def cmime_part_get_postface(part)
+ * @def smf_part_get_postface(part)
  * @returns postface of mime part 
  */
 #define smf_part_get_postface(part) (part->postface);

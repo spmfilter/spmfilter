@@ -1,0 +1,33 @@
+/*!
+ * @brief Documentation file for TLS configuration
+ * @file
+ */
+
+/*!
+ * 
+@page tls TLS configuration
+
+In order to use STARTTLS for smtp connections, you have to enable TLS with the option tls_enable, and optionally tls_pass for the SSL certificate passphrase within the [global]-section in spmfilter.conf like follows:
+
+@code
+[global]
+...
+tls_enable = 1
+...
+@endcode
+
+To install the SSL certificate you need to:
+
+  1. create a ~/.authenticate directory for the certificates. All files and directories in ~/.authenticate (including itself) must be user-readable only, i.e., they must have 0600 and 0700 permissions respectively.
+  2. put the certificate of the trusted Cert-Authority that signed the server certificate into ~/.authenticate/ca.pem
+  3. if a client certificate is required by the server then put it (including the private key) into ~/.authenticate/private/smtp-starttls.pem or ~/.authenticate/host.name/private/smtp-starttls.pem
+
+In case of failure no error message will appear (only if debugging is enabled). Instead, spmfilter will terminate the SMTP connection right after issuing the STARTLS command
+
+Configuration parameter overview:
+option | description | scope
+-------|-------------|-------
+tls_enable | Use STARTTLS for smtp connections. Possible values are 0 (STARTTLS disabled), 1 (STARTTLS enabled), 2 (STARTTLS required) | optional
+tls_pass | specify SSL certifcate passphrase if needed | optional
+
+*/
