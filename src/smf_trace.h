@@ -15,10 +15,18 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*!
+ * @file smf_trace.h
+ * @brief Logging functions
+ */
+
 #ifndef _SMF_TRACE_H
 #define _SMF_TRACE_H
 
-/* Logging and debugging stuff */
+/*!
+ * @enum SMFTrace_T
+ * @brief Possible log levels
+ */
 typedef enum {
     TRACE_EMERG = 1,
     TRACE_ALERT = 2,
@@ -31,24 +39,33 @@ typedef enum {
     TRACE_LOOKUP = 256 // Logs at Debug Level
 } SMFTrace_T;
 
-/**
- * Logging destinations.
+/*!
+ * @enum SMFTraceDest_T
+ * @brief Trace destination
  */
 typedef enum {
 	TRACE_DEST_SYSLOG,
 	TRACE_DEST_STDERR
-} SMFTrace_Dest_T;
+} SMFTraceDest_T;
 
 /*!
  * @def TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, fmt)
- * @brief convenience macro for logging
+ * @brief Convenience macro for logging
  * @param level loglevel, see trace_t
  * @param fmt format string for log message
  * @param ... format string arguments
  */
 #define TRACE(level, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, NULL, fmt)
+
+/*!
+ * @def STRACE(level, sid, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, sid, fmt)
+ * @brief Log message with session id
+ */
 #define STRACE(level, sid, fmt...) trace(level, THIS_MODULE, __func__, __LINE__, sid, fmt)
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 void trace(SMFTrace_T level, const char * module, const char * function, int line, const char *sid, const char *formatstring, ...);
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /*!
  * @brief Configures the detail-level of a trace-entry.
@@ -62,15 +79,54 @@ void configure_debug(int debug);
  *
  * @param dest The new logging-destination. The default is TRACE_DEST_SYSLOG.
  */
-void configure_trace_destination(SMFTrace_Dest_T dest);
+void configure_trace_destination(SMFTraceDest_T dest);
 
+/*!
+ * @def TRDEBUG(fmt, ...) TRACE(TRACE_DEBUG, fmt, ##__VA_ARGS__)
+ * @brief Shortcut for logging with debug log level
+ */
 #define TRDEBUG(fmt, ...) TRACE(TRACE_DEBUG, fmt, ##__VA_ARGS__)
+
+/*!
+ * @def TRINFO(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+ * @brief Shortcut for logging with info log level
+ */
 #define TRINFO(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+
+ /*!
+ * @def TRNOTICE(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+ * @brief Shortcut for logging with notice log level
+ */
 #define TRNOTICE(fmt, ...) TRACE(TRACE_NOTICE, fmt, ##__VA_ARGS__)
+
+/*!
+ * @def TRWARN(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+ * @brief Shortcut for logging with warning log level
+ */
 #define TRWARN(fmt, ...) TRACE(TRACE_WARNING, fmt, ##__VA_ARGS__)
+
+/*!
+ * @def TRERR(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+ * @brief Shortcut for logging with error log level
+ */ 
 #define TRERR(fmt, ...) TRACE(TRACE_ERR, fmt, ##__VA_ARGS__)
+
+/*!
+ * @def TRCRIT(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+ * @brief Shortcut for logging with critical log level
+ */ 
 #define TRCRIT(fmt, ...) TRACE(TRACE_CRIT, fmt, ##__VA_ARGS__)
+
+/*!
+ * @def TRALERT(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+ * @brief Shortcut for logging with alert log level
+ */
 #define TRALERT(fmt, ...) TRACE(TRACE_ALERT, fmt, ##__VA_ARGS__)
+
+/*!
+ * @def TREMERG(fmt, ...) TRACE(TRACE_INFO, fmt, ##__VA_ARGS__)
+ * @brief Shortcut for logging with ermegency log level
+ */
 #define TREMERG(fmt, ...) TRACE(TRACE_EMERG, fmt, ##__VA_ARGS__)
 
 #endif  /* _SMF_TRACE_H */

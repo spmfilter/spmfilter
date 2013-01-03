@@ -17,16 +17,16 @@
 
 /*!
  * @file smf_list.h 
- * @brief Defines the SMFList_T data type and functions for a linked lists 
+ * @brief Defines the #SMFList_T data type and functions for a linked lists 
  *        that can be iterated over in both directions. 
  * @details Each element in the list contains a piece of data, together with 
  *        pointers which link to the previous and next elements in the list. 
  *        Using these pointers it is possible to move through the list in both directions.
  *
- * @details To create a new SMFList_T, use smf_list_new()
- * @details To insert an element into a SMFList_T, use smf_list_append()
+ * @details To create a new #SMFList_T, use smf_list_new()
+ * @details To insert an element into a #SMFList_T, use smf_list_append()
  * @details To remove an element, use smf_list_remove()
- * @details To destroy a SMFList_T use smf_list_free()
+ * @details To destroy a #SMFList_T use smf_list_free()
  */
 
 #ifndef _SMF_LIST_H
@@ -104,7 +104,7 @@ int smf_list_prepend(SMFList_T *list, void *data);
 void *smf_list_pop_tail(SMFList_T *list);
 
 /*! 
- * @fn void *smf_list_pop_head(SMFList_T *list);
+ * @fn void *smf_list_pop_head(SMFList_T *list)
  * @brief Remove head element from list an return data pointer
  * @param list a SMFList_T list
  * @returns data pointer of removed list element   

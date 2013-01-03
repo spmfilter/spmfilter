@@ -1,4 +1,4 @@
-.TH "spmfilter.conf" "5" "30 Mar 2010" "" ""
+.TH "spmfilter.conf" "5" "03 Jan 2013" "" ""
 
 .SH "NAME"
 .P
@@ -32,9 +32,6 @@ within a parameter value is retained verbatim.
 .P
 Any line beginning with a hash (#) is ignored, as are lines containing
 only whitespace.
-.P
-Any line ending in a \e is \(lqcontinued\(rq on the next line in the
-customary UNIX fashion.
 .P
 The values following the equals sign in parameters are all either a string
 (no quotes needed) or a boolean, which may be given as true/false. Case is 
@@ -90,6 +87,9 @@ This parameter specifies the final destination, after a mail is processed
 by spmfilter. The value can be a hostname or IP address, with a port number,
 e.g. localhost:2525 to send filtered mails to localhost at port 2525.
 
+.IP "\fBqueue_dir\fR"
+Path to queue directory
+
 .IP "\fBbackend\fR"
 Define lookup backend, this can be either \fBsql\fR or \fBldap\fR. Every
 backend has it's own config section, \fB[sql]\fR and \fB[ldap]\fR.
@@ -129,8 +129,29 @@ than transferring any messages if the STARTTLS extension is not available.
 2 = require STARTTLS
 .fi
 
-.IP "\fBtls_pass\fR
-Passphrase for SSL certificate, if needed.
+.IP "\fBpid_file\fR"
+The pid_file option sets the file to which the daemon records the process id.
+
+.IP "\fBbind_ip\fR"
+The IP addresses the daemon will bind to
+
+.IP "\fBbind_port\fR"
+Port to bind to
+
+.IP "\fBmax_childs\fR"
+Maximum number of child processes allowed
+
+.IP "\fBspare_childs\fR"
+Unused children to always have availale
+
+.IP "\fBlisten_backlog\fR"
+The maximum length of the queue of pending connections
+
+.IP "\fBuser\fR"
+Drop root privs and switch to the specified user
+
+.IP "\fBgroup\fR"
+Drop root privs and switch to the specified group
 
 .SS "The [smtpd] section"
 .P
@@ -180,10 +201,11 @@ Database password.
 .IP "\fBencoding\fR"
 Encoding to match database/table encoding, e.g., latin1, utf8
 
+.IP "\fBmax_connections\fR"
+Maximum number of connections to database server
+
 .IP "\fBuser_query\fR"
-If you store user information within a SQL database in your network infrastructure,
-you can configure spmfilter to query your SQL database to determine either a user
-exists in your system or not.
+user_query setting contains the sql query to look up user information in your sql database. 
 
 This parameter supports the following '%' expansions:
 .nf
@@ -205,6 +227,9 @@ Parameters in this section affect the \fBldap backend\fR configuration.
 List of available LDAP hosts, separated by a semicolon. Set to localhost if LDAP server
 is on the same host as spmfilter.
 
+.IP "\fBport\fR"
+LDAP Port
+
 .IP "\fBbinddn\fR"
 Bind DN of LDAP user
 
@@ -218,9 +243,7 @@ Base DN (distinguishing name) for the LDAP server.
 LDAP search scope, either subtree, onelevel or base.
 
 .IP "\fBuser_query\fR"
-If you store user information within a LDAP directory in your network infrastructure,
-you can configure spmfilter to query your LDAP directory to determine either a user
-exists in your system or not.
+user_query setting contains the ldap query to look up user information in your directory. 
 
 This parameter supports the following '%' expansions:
 .nf
@@ -250,6 +273,13 @@ max_size = 0
 tls_enable = 1
 backend = sql
 backend_connection = balance
+bind_ip = 127.0.0.1
+bind_port = 10025
+spare_childs = 5
+max_childs = 15
+pid_file = /var/run/spmfilter.pid
+user = nobody
+group = mail
 
 [sql]
 driver = postgresql
@@ -271,8 +301,9 @@ add_header = true
  
 .SH "BUGS"
 .P
-Please report bugs! The spmfilter bug tracking system is available at
-http://www.spmfilter.org
+If you believe you have found a bug, please send this information, plus 
+information about the machine and OS platform used along with a description 
+of the problem to bugs@spmfilter.org
 
 .SH "SEE ALSO" 
 .P

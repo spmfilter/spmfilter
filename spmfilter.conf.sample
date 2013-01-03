@@ -5,9 +5,7 @@
 # are two engines in spmfilter for receiving emails:
 #
 # smtpd - This engine allows to inject emails via smtp to
-#         spmfilter. But please note, with this engine, spmfilter has to be
-#         started with inetd, Postfix or similar TCP server programs.
-#
+#         spmfilter. 
 # pipe - The pipe engine lets you inject emails via shell
 #        pipe to spmfilter. This is usefully, when you don't need a full
 #        smtp server.
@@ -29,9 +27,6 @@ nexthop = localhost:2525
 
 # Path to queue directory
 queue_dir = /var/spool/spmfilter
-
-# Start spmfilter in daemon mode
-daemon = true
 
 # If one module fails, there are 3 options:
 # 1 = proceed and ignore
@@ -70,10 +65,28 @@ max_size=0
 # 2 = require STARTTLS
 tls_enable=0
 
+# The pid_file option sets the file to which the daemon records the process id.
 pid_file = /var/run/spmfilter.pid
 
+# The IP addresses the daemon will bind to
 bind_ip = 127.0.0.1
+
+# Port to bind to
 bind_port = 10025
+
+# Maximum number of child processes allowed
+max_childs = 15
+
+# Unused children to always have availale
+spare_childs = 5
+
+# The maximum length of the queue of pending connections
+#listen_backlog = 
+
+# Root privs are used to open a port, then privs
+# are dropped down to the user/group specified here
+user = nobody
+group = mail
 
 [smtpd]
 # The fail code is used as response code for the 
@@ -84,18 +97,17 @@ nexthop_fail_code = 451
 # to the sending MTA with fail code. 
 nexthop_fail_msg = Requested action aborted: local error in processing
 
-
 #[sql]
 
 # SQL database driver. Supported drivers are mysql, pgsql, sqlite.
-driver = mysql
+#driver = mysql
 
 # List of available database hosts, separated by a semicolon.  Set to 
 # localhost if database is on the same host as spmfilter.
-host =  127.0.0.1 ; db.treibsand.com 
+#host =  127.0.0.1 ; db.treibsand.com 
 
 # Database name, or path to database if driver is set to sqlite.
-name = test
+#name = test
 
 # Database username.
 #user =
@@ -103,16 +115,17 @@ name = test
 # Database password.
 #pass =
 
+# Encoding to match database/table encoding, e.g., latin1, utf8
+#encoding =
+
 # Maximum number of connections to database server
 #max_connections = 10
 
 # Database port
 #port = 
 
-# If you store user information within a SQL database in your net-
-# work  infrastructure,  you can configure spmfilter to query your
-# SQL database to determine either a user exists in your system or
-# not.
+# user_query setting contains the sql query to look up user 
+# information in your sql database. 
 #
 # This parameter supports the following '%' expansions:
 #   %s = replaced by the full email address.
@@ -141,14 +154,13 @@ name = test
 # LDAP search scope, either subtree, onelevel or base.
 # scope = subtree
 
-# If you store user information within a LDAP  directory  in  your
-# network  infrastructure,  you  can  configure spmfilter to query
-# your LDAP directory to determine either a user  exists  in  your
-# system or not.
+# user_query setting contains the ldap query to look up user 
+# information in your directory. 
 #
 # This parameter supports the following '%' expansions:
 #   %s = replaced by the full email address.
 #   %u = replaced by the local part of the email address.
 #   %d = replaced by the domain part of the email address.
 #user_query = (mail=%s)
+
 
