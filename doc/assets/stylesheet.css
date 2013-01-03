@@ -415,7 +415,7 @@ div.fragment {
   border: 1px solid #DADADA;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 2px 2px 2px 0;
+  padding: 5px;
   width: auto;
   font-family: monospace;
 }
