@@ -51,11 +51,14 @@ Development is done using <a href="http://mercurial.selenic.com/" target="_blank
 $ hg clone http://spmfilter.org/hg/spmfilter
 @endcode
 
-@section installation Installation and configuration
+@section doc Documentation
 
-Follow these links to find available installation and configuration notes:
+Follow these links to find available documentation and installation notes:
 
 - [Installation and configuration](@ref install) 
+  - [TLS configuration](@ref tls)
+- [Plugin development](@ref plugin)
+
 
 @section lists Mailing lists
 
