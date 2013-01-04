@@ -9,7 +9,7 @@ html, body {
   color:#484848;
   background: #333333 url(bg_header.png) repeat-x;
   font-family: Verdana, sans-serif; 
-  font-size: 11px; 
+  font-size: 12px; 
   color:#484848; 
   min-width: 800px;
 }
@@ -139,9 +139,9 @@ div#powered {
 }
 
 .tablist li.current a {
-  color: #ffffff;
+  color: #AF443D; 
   text-decoration: none;
-  background-color: #222222;
+/*  background-color: #222222; */
 }
 
 #navrow1{
@@ -227,7 +227,7 @@ div#powered {
 
 #navrow3 .tablist {
   margin-top: 10px;
-/*  border-bottom: 1px solid #DDDDDD; */
+  border-bottom: 1px solid #DDDDDD; 
 }
 
 #navrow3 li a {
@@ -260,7 +260,7 @@ div#powered {
 }
 
 #navrow4 {
-  margin: 0 20px 0 20px;
+  margin: -1px 20px 0 20px;
 }
 
 #navrow4 .tablist {
@@ -315,6 +315,7 @@ div#footer {
   margin: 0 60px 0 60px;
   height: 40px;
   text-align: center;
+  font-size: 9px;
 }
 
 .headertitle {
@@ -350,6 +351,7 @@ tbody:first-child tr:first-child td:first-child {
   -moz-border-radius: 4px 0 0 0;
   border-radius: 4px 0 0 0;
 }
+
 thead:first-child tr:first-child th:last-child,
 tbody:first-child tr:first-child td:last-child {
   -webkit-border-radius: 0 4px 0 0;
@@ -375,6 +377,8 @@ tbody > tr:nth-child(odd) > td,
 tbody > tr:nth-child(odd) > th {
   background-color: #f9f9f9;
 }
+
+
 /*
 tbody tr:nth-child(odd) td,
 tbody tr:nth-child(odd) th {
@@ -392,20 +396,20 @@ tbody:last-child tr:last-child td:last-child:hover {
 */
 
 h1 {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: bold;
   border-bottom: 1px dotted #BBBBBB;
 }
 
 h3 {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: bold;
   line-height: 15px;
   border-bottom: 1px dotted #BBBBBB;
 }
 
 h2 {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: bold;
   line-height: 15px;
 }
@@ -419,3 +423,89 @@ div.fragment {
   width: auto;
   font-family: monospace;
 }
+
+.memberdecls {
+  margin-bottom: 20px;
+}
+
+.memberdecls  tbody > tr:nth-child(odd) > td,
+.memberdecls  tbody > tr:nth-child(odd) > th {
+  background-color: #FFFFFF;
+}
+
+
+.memberdecls thead:first-child tr:first-child th,
+.memberdecls tbody:first-child tr:first-child th,
+.memberdecls tbody:first-child tr:first-child td {
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #dddddd;
+}
+
+
+.memSeparator {
+  height: 10px;
+  line-height: 10px;
+  padding: 0px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #dddddd; 
+  border-bottom: 1px solid #dddddd;
+}
+
+.memberdecls tbody:last-child tr:last-child td.memSeparator {
+  border-bottom: 0px;
+}
+
+.memberdecls  tbody > tr:nth-child(odd) > td.memSeparator,
+.memberdecls  tbody > tr:nth-child(odd) > th.memSeparator {
+  background-color: #f9f9f9;
+}
+
+
+
+.memItemLeft {
+  border-right: 1px solid #dddddd;
+  border-bottom: 1px solid #dddddd;
+}
+
+.memItemRight {
+  border-bottom: 1px solid #dddddd;
+}
+
+.memname, .params {
+  border: 0px;
+}
+
+.memitem {
+  border: 1px solid #dddddd;
+  border-collapse: separate;
+  *border-collapse: collapsed;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.memproto {
+  border-bottom: 1px solid #dddddd;
+  background-color: #f9f9f9;
+}
+
+.memdoc {
+  padding: 10px;
+}
+
+table.params {
+  border: 1px solid #dddddd;
+  border-collapse: separate;
+  *border-collapse: collapsed;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+/*
+.params tbody > tr:nth-child(odd) > td,
+.params tbody > tr:nth-child(odd) > th {
+  background-color: #ffffff;
+}*/

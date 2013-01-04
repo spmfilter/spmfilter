@@ -60,20 +60,18 @@ char *smf_lookup_db4_query(char *database, char *key);
 
 /*!
  * @fn int smf_lookup_db4_update(const char *database, const char *key, const char *value)
- * @brief Updates a key in a berkkey database
- *
- * The database is created if it does not exist. Afterwards the key is created or updated
- * with the given value.
+ * @brief Updates a key in a berkeley database. The database is created if it does not exist. 
+ * Afterwards the key is created or updated with the given value.
  *
  * @param database The path of the database to update (resp. create)
  * @param key The key to update (resp. create)
- * @param The new value of the key
+ * @param value The new value of the key
  * @return On success 0 is returned or -1 in case of an error
  */
 int smf_lookup_db4_update(const char *database, const char *key, const char *value);
 
 /*!
- * @fn *smpf_lookup_sql_connect (SMFSettings_T *settings)
+ * @fn int smf_lookup_sql_connect(SMFSettings_T *settings)
  * @brief connect to sql server
  * @param settings Pointer to SMFSettings_T 
  * @returns 0 on success or -1 in case of error
