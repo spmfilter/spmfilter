@@ -13,12 +13,9 @@ System requirements
 ====================
 spmfilter runs on any Unix-based/Unix-style operating system. There are only few requirements:
 
-  * libcmime >= 0.1.6
+  * libcmime (http://libcmime.org) >= 0.1.6
 
-  * libesmtp >= 1.0
-
-  * pcre >= 6.0
-
+  * libesmtp (http://www.stafford.uklinux.net/libesmtp/) >= 1.0
 
 Basic Installation
 ===================
