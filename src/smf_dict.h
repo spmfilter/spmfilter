@@ -130,6 +130,7 @@ void smf_dict_map(SMFDict_T *dict, void(*func)(char *key,char *value, void *args
 
 /*!
  * @def smf_dict_count(dict)
+ * @brief Get the number of elements in a SMFDict_T
  * @return number of elemtents in a SMFDict_T 
  */
 #define smf_dict_count(dict) ((dict)->n)
