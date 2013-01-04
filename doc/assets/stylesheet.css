@@ -80,36 +80,6 @@ div#powered {
   background: url(logo_spacenet.png) no-repeat;
 }
 
-
-
-/*
-.tabs {
-  background: url(menu_bg.png) repeat-x;
-  background-position: top;
-}
-*/
-
-/*
-.tablist {
-
-  margin: 0px 30px 0px 30px; 
-  padding: 0;
-  display: table; 
-}
-
-*/
-
-/*
-.tablist li {
-  float: left;
-  margin: 10px 0 0 0; 
-  list-style: none;
-  background: none;
-  list-style-type: none;
-  white-space: nowrap;
-}
-*/
-
 .tablist { 
   margin: 0px 30px 0px 30px; 
   padding: 0;
@@ -129,7 +99,6 @@ div#powered {
   line-height: 30px; 
   color: #999999;
   text-decoration: none;
-/*    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25); */
 }
 
 .tablist a:hover {
@@ -141,13 +110,11 @@ div#powered {
 .tablist li.current a {
   color: #AF443D; 
   text-decoration: none;
-/*  background-color: #222222; */
 }
 
 #navrow1{
   margin-top: -30px;
-/*  margin-top: -51px; */
-  border-bottom: 1px solid #AF443D;
+  border-bottom: 1px solid #bbbbbb;
   margin-left: 50px;
   margin-right: 50px;
   height: 30px;
@@ -158,7 +125,6 @@ div#powered {
 #navrow1 li {
   padding-right: 20px;
 }
-
 
 #navrow1 li a:link, #navrow1 li a:visited {
   background: none;
@@ -193,7 +159,6 @@ div#powered {
 #navrow2 li a:link, #navrow2 li a:visited {
   background: none;
   float: left;
-/*  font-size: 85%; */
   line-height: 10px;  
   font-weight: normal;
   margin: 0 10px 0 10px;   
@@ -460,17 +425,19 @@ div.fragment {
   background-color: #f9f9f9;
 }
 
-
+.mdescLeft, .mdescRight {
+  border-top: 1px solid #dddddd;
+}
 
 .memItemLeft {
   border-right: 1px solid #dddddd;
-  border-bottom: 1px solid #dddddd;
+/*  border-bottom: 1px solid #dddddd; */
 }
-
+/*
 .memItemRight {
   border-bottom: 1px solid #dddddd;
 }
-
+*/
 .memname, .params {
   border: 0px;
 }
@@ -504,8 +471,4 @@ table.params {
   margin-bottom: 20px;
 }
 
-/*
-.params tbody > tr:nth-child(odd) > td,
-.params tbody > tr:nth-child(odd) > th {
-  background-color: #ffffff;
-}*/
+/
