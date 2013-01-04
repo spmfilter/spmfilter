@@ -64,7 +64,8 @@ typedef struct {
     int nexthop_fail_code; /**< smtp code, when delivery to nexthop fails */
     char *nexthop_fail_msg; /**< smtp return message, when delivery to nexthop fails */
     char *backend; /**< configured lookup backend */
-    char *backend_connection; /**< if multiple backend hosts are defined,
+    char *backend_connection; /**< 
+                               * if multiple backend hosts are defined,
                                * it's possible to balance connections
                                * between all, or do failover connections.
                                * possible keys are:
