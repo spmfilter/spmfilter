@@ -43,6 +43,12 @@ $ pkg-config --libs spmfilter
 -L/usr/lib/spmfilter -lsmf  
 @endcode
 
+@section datatypes Datatypes
+
+Spmfilter uses a bunch of custom datatypes. The following image will give you a overview of all datatypes and their dependencies.
+
+@image html datatypes.png
+
 @section sessions Sessions
 
 All session data is stored in a SMFSession_T object by spmfilter, whereas the email content is stored on disk instead, but connection informations and message headers are hold in memory. If you need to modify an email in the current session, you have to use the session functions.
@@ -61,9 +67,15 @@ Additional with smtp engine available:
   - transmitted smtp helo/ehlo name
   - transmitted smtp xforward address (only if MTA is configured to do so)
 
-@section messages Messages and Mime Parts
+Within one SMFSession_T object a SMFEnvelope_T object is encapsulated, containing the envelope information of a mail.
 
-Each incoming messages is automatically parsed by spmfilter. All message data is stored within a SMFMessage_T object. If you are using the smtpd engine for receiving mails, the smtpd session data is stored within a SMFEnvelope_T object.
+@image html smfsession_t.png
+
+@section messages Messages
+
+Each incoming messages is automatically parsed by spmfilter. All message data is stored within a #SMFMessage_T object. If you are using the smtpd engine for receiving mails, the smtpd session data is stored within a SMFEnvelope_T object. Please note, that the message body and all mime parts of an incoming message is not stored within a #SMFMessage_T object, since possible attachments should not be hold in memory. If you need access to all mime parts, you have to reparse the spool file with smf_message_from_file().
+
+@image html smfmessage_t.png
 
 @section lookups Lookups
 
@@ -83,27 +95,5 @@ Whether you are using a SQL database or a LDAP directory, all results are delive
 The only exception here is Berkeley DB, as this does not require a query language and is based on key/values.
 
 In order to use database lookups, you have to set a backend in spmfilter.conf, this can be sql or ldap. If a valid backend is configured, spmfilter will automatically establish the connection.
-
-The following, fictitious Example shows how to use the spmfilter API to query a LDAP-backend:
-
-@code
-#include <stdlib.h>
-#include <stdio.h>
-#include <spmfilter.h>
-#define THIS_MODULE "test" 
- 
-int load(SMFSettings_T *settings, SMFSession_T *session) {
-    SMFList_T *result = NULL;
-    SMFListElem_T *e = NULL;
-    SMFDict_T *d = NULL;
-
-    result = smf_lookup_ldap_query(settings,"(mail=foo@example.com");
-    e = smf_list_head(result);
-    d = (SMFDict_T *)smf_list_data(elem); 
-    TRACE(TRACE_DEBUG,"UID: [%s]\n",smf_dict_get(d,"uidNumber");
-
-    return 0;
-}
-@endcode
 
 */
