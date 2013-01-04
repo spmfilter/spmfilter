@@ -143,7 +143,7 @@ char *smf_email_address_get_email(SMFEmailAddress_T *ea);
 int smf_email_address_is_empty(SMFEmailAddress_T *ea);
 
 /*!
- * @fn SMFEmailAddress_T *smf_email_address_get_clean(SMFEmailAddress_T *ea)
+ * @fn SMFEmailAddress_T *smf_email_address_get_simplified(SMFEmailAddress_T *ea)
  * @brief Creates a simplified address-instance.
  *
  * The function can be used to extract the email from the angle-addr format.

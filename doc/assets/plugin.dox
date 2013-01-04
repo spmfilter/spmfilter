@@ -61,6 +61,10 @@ Additional with smtp engine available:
   - transmitted smtp helo/ehlo name
   - transmitted smtp xforward address (only if MTA is configured to do so)
 
+@section messages Messages and Mime Parts
+
+Each incoming messages is automatically parsed by spmfilter. All message data is stored within a SMFMessage_T object. If you are using the smtpd engine for receiving mails, the smtpd session data is stored within a SMFEnvelope_T object.
+
 @section lookups Lookups
 
 Spmfilter implements a small, fast, and easy to use database API with thread-safe connection pooling. The library can connect transparently to multiple database systems, has zero configuration and connections are specified via a standard URL scheme.
@@ -89,16 +93,16 @@ The following, fictitious Example shows how to use the spmfilter API to query a 
 #define THIS_MODULE "test" 
  
 int load(SMFSettings_T *settings, SMFSession_T *session) {
-  SMFList_T *result = NULL;
-  SMFListElem_T *e = NULL;
-  SMFDict_T *d = NULL;
+    SMFList_T *result = NULL;
+    SMFListElem_T *e = NULL;
+    SMFDict_T *d = NULL;
 
-  result = smf_lookup_ldap_query(settings,"(mail=foo@example.com");
-  e = smf_list_head(result);
-  d = (SMFDict_T *)smf_list_data(elem); 
-  TRACE(TRACE_DEBUG,"UID: [%s]\n",smf_dict_get(d,"uidNumber");
+    result = smf_lookup_ldap_query(settings,"(mail=foo@example.com");
+    e = smf_list_head(result);
+    d = (SMFDict_T *)smf_list_data(elem); 
+    TRACE(TRACE_DEBUG,"UID: [%s]\n",smf_dict_get(d,"uidNumber");
 
-  return 0;
+    return 0;
 }
 @endcode
 
