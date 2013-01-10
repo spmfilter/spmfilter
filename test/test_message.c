@@ -333,6 +333,44 @@ START_TEST(to_fd) {
 }
 END_TEST
 
+START_TEST(write_skip_header) {
+    FILE *src;
+    FILE *dest;
+    char buf[1024];
+    size_t nbytes;
+    const char *body = 
+        "Die Hasen und die Fr=F6sche\r\n"
+        "\r\n"
+        "Die Hasen klagten einst =FCber ihre mi=DFliche Lage; \"wir leben\", sprach =\r\n"
+        "ein Redner, \"in steter Furcht vor Menschen und Tieren, eine Beute der =\r\n"
+        "Hunde, der Adler, ja fast aller Raubtiere! Unsere stete Angst ist =\r\n"
+        "=E4rger als der Tod selbst. Auf, la=DFt uns ein f=FCr allemal sterben.\"=20\r\n"
+        "\r\n"
+        "In einem nahen Teich wollten sie sich nun ers=E4ufen; sie eilten ihm zu; =\r\n"
+        "allein das au=DFerordentliche Get=F6se und ihre wunderbare Gestalt =\r\n"
+        "erschreckte eine Menge Fr=F6sche, die am Ufer sa=DFen, so sehr, da=DF =\r\n"
+        "sie aufs schnellste untertauchten.=20\r\n"
+        "\r\n"
+        "\"Halt\", rief nun eben dieser Sprecher, \"wir wollen das Ers=E4ufen noch =\r\n"
+        "ein wenig aufschieben, denn auch uns f=FCrchten, wie ihr seht, einige =\r\n"
+        "Tiere, welche also wohl noch ungl=FCcklicher sein m=FCssen als wir.\"=20\r\n"
+        "\r\n";
+    
+    fail_unless((src = fopen(SAMPLES_DIR "/m0002.txt", "r")) != NULL);
+    fail_unless((dest = tmpfile()) != NULL);
+    
+    fail_unless(smf_message_write_skip_header(src, dest) == 809);
+    fail_unless(fseek(dest, 0, SEEK_SET) == 0);
+    
+    nbytes = fread(buf, 1, sizeof(buf), dest);
+    buf[nbytes] = '\0';
+    ck_assert_str_eq(buf, body);
+    
+    fclose(src);
+    fclose(dest);
+}
+END_TEST
+
 TCase *messages_tcase() {
     TCase* tc = tcase_create("message");
 
@@ -361,6 +399,7 @@ TCase *messages_tcase() {
     tcase_add_test(tc, create_skeleton);
     tcase_add_loop_test(tc, from_file, 0, 54);
     tcase_add_loop_test(tc, to_fd, 0, 54);
+    tcase_add_test(tc, write_skip_header);
 
     return tc;
 }

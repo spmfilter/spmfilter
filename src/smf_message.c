@@ -22,8 +22,10 @@
 
 #include "smf_list.h"
 #include "smf_header.h"
+#include "smf_internal.h"
 #include "smf_message.h"
 #include "smf_part.h"
+#include "smf_trace.h"
 
 
 #define THIS_MODULE "message"
@@ -375,4 +377,58 @@ SMFPart_T *smf_message_part_last(SMFMessage_T *message) {
     assert(message);
     part = (SMFPart_T *)smf_list_tail(message->parts)->data;
     return part;
+}
+
+int smf_message_write_skip_header(FILE *src, FILE *dest) {
+    int found = 0;
+    char *buf = NULL;
+    size_t len;
+    size_t nwritten = 0;
+    
+    while (!feof(src)) {
+        ssize_t nbytes;
+        size_t nbytes_dest;
+
+        if (found == 0) {
+            if ((nbytes = getline(&buf, &len, src)) == -1) {
+                TRACE(TRACE_ERR, "failed to read queue_file");
+                free(buf);
+                return -1;
+            }
+
+            if ((strcmp(buf, LF) == 0) || (strcmp(buf, CRLF) == 0)) {
+                found = 1;
+                
+                // Prepare "buf" for the following body-read
+                free(buf);
+                buf = malloc(BUFSIZE);
+            }
+            
+            continue;
+        }
+        
+        if ((nbytes = fread(buf, 1, BUFSIZE, src)) == 0) {
+            TRACE(TRACE_ERR, "failed to read queue file: %s (%d)", strerror(errno), errno);
+            free(buf);
+            return -1;
+        }
+
+        nbytes_dest = 0;
+        while (nbytes > 0) {
+            size_t n;
+            if ((n = fwrite(buf + nbytes_dest, 1, nbytes, dest)) == 0) {
+                TRACE(TRACE_ERR, "failed to write queue file: %s (%d)", strerror(errno), errno);
+                free(buf);
+                return -1;
+            }
+            
+            nbytes -= n;
+            nbytes_dest += n;
+            nwritten += n;
+        }
+    }
+    
+    free(buf);
+
+    return nwritten;
 }
