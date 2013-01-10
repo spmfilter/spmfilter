@@ -431,7 +431,6 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     int dirty = 0;
     int found = 0;
     int i = 0;
-    size_t len;
 
     STRACE(TRACE_DEBUG,session->id,"flushing header information to filesystem");
     
@@ -479,12 +478,9 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     if (dirty == 1) {
         char tmpname[PATH_MAX];
         int fd;
-        char *buf = NULL;
         FILE *new = NULL;
         FILE *old = NULL;
-        size_t nbytes;
         
-        found = 0;
         snprintf(tmpname, sizeof(tmpname), "%s/XXXXXX", settings->queue_dir);
 
         if ((fd = mkstemp(tmpname)) == -1) {
@@ -510,53 +506,12 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
             return -1;
         }
 
-        while(!feof(old)) {
-            size_t nwritten = 0;
-            
-            if (found == 0) {
-                if ((nbytes = getline(&buf,&len,old)) == -1) {
-                    STRACE(TRACE_ERR, session->id, "failed to read queue_file");
-                    nbytes = 0; // to pass the ferror-check below
-                    break;
-                }
-
-                if ((strcmp(buf,LF)==0)||(strcmp(buf,CRLF)==0)) {
-                    found = 1;
-                    
-                    // Prepare "buf" for the following body-read
-                    free(buf);
-                    buf = (char *)calloc(BUFSIZE + 1,sizeof(char));
-                }
-                
-                continue;
-            }
-            
-            if ((nbytes = fread(buf,sizeof(char),BUFSIZE,old)) == 0) {
-                STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
-                break;
-            }
-
-            while (nwritten < nbytes) {
-                size_t n;
-                
-                if ((n = fwrite(buf + nwritten, sizeof(char), nbytes - nwritten, new)) == 0) {
-                    STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
-                    nbytes = 0;
-                    break;
-                }
-                
-                nwritten += n;
-            }
-        }
-        
-        free(buf);
-        
-        if (nbytes == 0 && (ferror(old) || ferror(new))) {
+        if (smf_message_write_skip_header(old, new) == -1) {
             fclose(old); 
             fclose(new);
-            return -1;
+            return -1;    
         }
-
+        
         fclose(old); 
         fclose(new);
 
