@@ -470,7 +470,7 @@ SMFPart_T *smf_message_part_first(SMFMessage_T *message);
 SMFPart_T *smf_message_part_last(SMFMessage_T *message);
 
 /**
- * @fn int smf_message_write_skip_header(FILE *in, FILE *out)
+ * @fn int smf_message_write_skip_header(FILE *in, FILE *dest)
  * @brief Utility function to copy a message without the header
  * The function reads a message from src but skips the header. When the
  * body is reached, the content is written into dest.
