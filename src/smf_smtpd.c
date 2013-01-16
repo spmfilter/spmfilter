@@ -356,6 +356,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     regex_t regex;
     int reti;
     char *nl = NULL;
+    char *mid = NULL;
 
     reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
 
@@ -423,6 +424,10 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
             return;
         }
 
+        mid = strdup(smf_message_get_message_id(message));
+        mid = smf_core_strstrip(mid);
+        STRACE(TRACE_INFO,session->id,"processing message-id=%s",mid);
+        free(mid);
         session->envelope->message = message;
         smf_smtpd_process_modules(session,settings,q);
     }
