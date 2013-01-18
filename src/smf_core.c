@@ -18,8 +18,11 @@
 #define _GNU_SOURCE
 #define THIS_MODULE "core"
 
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <assert.h>
 #include <ctype.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -234,4 +237,51 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
     smf_core_strsplit_free(parts);
 
     return(rep_made);
+}
+
+int smf_core_copy_file(const char *source, const char *dest) {
+    int out, result;
+	
+	if ((out = open(dest, O_WRONLY)) == -1)
+        return 0;
+    
+    result = smf_core_copy_to_fd(source, out);
+    close(out);
+    
+    return result;
+}
+
+int smf_core_copy_to_fd(const char *source, int dest) {
+    char buf[512];
+    int in_fd;
+    ssize_t nread;
+    size_t nbytes = 0;
+	
+    if ((in_fd = open(source, O_RDONLY)) == -1)
+        return -1;
+	
+	while ((nread = read(in_fd, buf, sizeof(buf))) != 0) {
+	    ssize_t nwritten = 0;
+	    
+	    if (nread == -1) {
+            close(in_fd);
+            return -1;
+        }
+	    
+        while (nwritten < nread) {
+            ssize_t n;
+            
+            if ((n = write(dest, buf, nread)) == -1) {
+                close(in_fd);
+                return -1;
+            }
+            
+            nwritten += n;
+            nbytes += n;
+        }
+	}
+	
+    close(in_fd);
+
+    return nbytes;
 }
