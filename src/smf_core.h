@@ -101,4 +101,25 @@ char *smf_core_get_maildir_filename(void);
  */
 int smf_core_expand_string(const char *format, const char *addr, char **buf);
 
+/*!
+ * @fn smf_core_copy_file(const char *source, const char *dest)
+ * @brief Copies the content of the source file into dest
+ * @param source Path of the source file
+ * @param dest Path of the destination file. If file already exists, then the current
+ *             content is replaced with the content of the source file.
+ * @return the number of bytes copied
+ */
+int smf_core_copy_file(const char *source, const char *dest);
+
+/*!
+ * @fn int smf_core_copy_to_fd(const char *source, int dest)
+ * @brief Copies the content of the source file into an already open file-descriptor.
+ * This function is similar to smf_core_copy_file(). But rather than opening the destination
+ * file, this function uses an already open file-descriptor as a destination.
+ * @param source Path of the source file
+ * @param dest On open file-descriptior, where the content is written into.
+ * @return the number of bytes copied
+ */
+int smf_core_copy_to_fd(const char *source, int dest);
+
 #endif	/* _SMF_CORE_H */
