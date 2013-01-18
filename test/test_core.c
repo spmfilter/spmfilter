@@ -19,8 +19,10 @@
 #include <sys/stat.h>
 #include <check.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 
+#include "testdirs.h"
 #include "../src/smf_core.h"
 
 START_TEST(strstrip) {
@@ -206,6 +208,44 @@ START_TEST(expand_string_complex) {
 }
 END_TEST
 
+START_TEST(copy_file) {
+    char fn[128];
+    int fd, result;
+    char cmd[128];
+    
+    snprintf(fn, sizeof(fn), "/tmp/test_core_XXXXXX");
+    fail_if((fd = mkstemp(fn)) == -1);
+    close(fd);
+
+    result = smf_core_copy_file(SAMPLES_DIR "/m0001.txt", fn);
+    ck_assert_int_eq(result, 1295);
+    
+    snprintf(cmd, sizeof(cmd), "diff " SAMPLES_DIR "/m0001.txt %s", fn);
+    fail_unless(system(cmd) == 0);
+    
+    fail_unless(unlink(fn) == 0);
+}
+END_TEST
+
+START_TEST(copy_to_fd) {
+    char fn[128];
+    int fd, result;
+    char cmd[128];
+    
+    snprintf(fn, sizeof(fn), "/tmp/test_core_XXXXXX");
+    fail_if((fd = mkstemp(fn)) == -1);
+
+    result = smf_core_copy_to_fd(SAMPLES_DIR "/m0001.txt", fd);
+    close(fd);
+    ck_assert_int_eq(result, 1295);
+        
+    snprintf(cmd, sizeof(cmd), "diff " SAMPLES_DIR "/m0001.txt %s", fn);
+    fail_unless(system(cmd) == 0);
+    
+    fail_unless(unlink(fn) == 0);
+}
+END_TEST
+
 TCase *core_tcase() {
     TCase* tc = tcase_create("binbuf");
 
@@ -225,6 +265,8 @@ TCase *core_tcase() {
     tcase_add_test(tc, expand_string_domain);
     tcase_add_test(tc, expand_string_domain_no_domain);
     tcase_add_test(tc, expand_string_complex);
+    tcase_add_test(tc, copy_file);
+    tcase_add_test(tc, copy_to_fd);
 
     return tc;
 }
