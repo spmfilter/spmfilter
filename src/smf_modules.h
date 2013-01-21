@@ -28,6 +28,20 @@ extern "C" {
 #include "smf_session.h"
 #include "smf_list.h"
 
+/*!
+ * @file smf_modules.h
+ * @brief The module-interface of the spmfilter
+ * @details Each message is processed in a new session, with unique session id.
+ *          The session data itself is stored in a SMFSession_T object, whereas the 
+ *          email content is stored on disk instead, but connection informations 
+ *          and message headers are hold in memory. If you need to modify an 
+ *          email in the current session, you have to use the session functions.
+ * @details If a header of a session object has been modified, the session will 
+ *          be marked as "dirty" - that means the header will be flushed to disk 
+ *          before the final delivery is initialized, to keep the message in sync 
+ *          with the modified data.
+ */
+
 typedef int (*ModuleLoadFunction)(SMFSettings_T *settings, SMFSession_T *session);
 typedef int (*LoadEngine)(SMFSettings_T *settings);
 
