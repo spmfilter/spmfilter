@@ -74,6 +74,7 @@ char test_pid_file[] = "/var/run/spmfilter.pid";
 char test_module[] = "clamav";
 char test_backend[] = "sql";
 char test_backend_conn[] = "failover";
+char test_syslog_facility[] = "local0";
 char test_sql_driver[] = "mysql";
 char test_sql_name[] = "maildb";
 char test_sql_query[] = "select * from test";

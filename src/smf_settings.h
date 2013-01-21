@@ -87,6 +87,7 @@ typedef struct {
     char *group; /**< run daemon as group */
     int max_childs; /**< maximum number of allowed processes (default 10) */
     int spare_childs; /**< number of spare childs (default 2) */
+    int syslog_facility; /**< syslog facility **/
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
     int smtpd_timeout; /**< time limit for receiving a remote SMTP client request (default 300s) */
@@ -527,6 +528,22 @@ void smf_settings_set_spare_childs(SMFSettings_T *settings, int spare_childs);
  * @returns number of spare processes
  */
 int smf_settings_get_spare_childs(SMFSettings_T *settings);
+
+/*!
+ * @fn void smf_settings_set_syslog_facility(SMFSettings_T *settings, char *facility)
+ * @brief Set syslog facility
+ * @param settings a SMFSettings_T object
+ * @param facility syslog facility
+ */
+void smf_settings_set_syslog_facility(SMFSettings_T *settings, char *facility);
+
+/*!
+ * @fn int smf_settings_get_syslog_facility(SMFSettings_T *settings)
+ * @brief Get syslog facility
+ * @param settings a SMFSettings_T object
+ * @returns syslog facility
+ */
+int smf_settings_get_syslog_facility(SMFSettings_T *settings);
 
 /*!
  * @fn int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg)

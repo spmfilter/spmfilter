@@ -145,6 +145,16 @@ void smf_server_init(SMFSettings_T *settings, int sd) {
         umask(0);
     }
 
+    if( settings->pid_file != NULL ) {
+        pidfile = fopen(settings->pid_file, "w+" );
+        if( pidfile == NULL ) {
+            TRACE(TRACE_ERR, "can't open PID file %s: %s",settings->pid_file, strerror(errno));
+        } else {
+            fprintf(pidfile, "%d\n", getpid());
+            fclose(pidfile);
+        }
+    }
+
     /* switch user */
     if ((settings->user != NULL) && (settings->group != NULL)) {
         TRACE(TRACE_DEBUG,"switching to user %s:%s",settings->user,settings->group);
@@ -169,16 +179,6 @@ void smf_server_init(SMFSettings_T *settings, int sd) {
         if (setuid(pwd->pw_uid) != 0) {
             TRACE(TRACE_ERR, "could not set uid to %s", settings->user);
             exit(EXIT_FAILURE);
-        }
-    }
-
-    if( settings->pid_file != NULL ) {
-        pidfile = fopen(settings->pid_file, "w+" );
-        if( pidfile == NULL ) {
-            TRACE(TRACE_ERR, "can't open PID file %s: %s",settings->pid_file, strerror(errno));
-        } else {
-            fprintf(pidfile, "%d\n", getpid());
-            fclose(pidfile);
         }
     }
 }
@@ -251,7 +251,7 @@ void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
             exit(EXIT_SUCCESS); /* quit child process */
             break;
         default: /* parent process: go on with accept */
-            TRACE(TRACE_DEBUG,"forked child [%d]\n",child[pos]);
+            TRACE(TRACE_DEBUG,"forked child [%d]",child[pos]);
             break;
     }
     num_procs++;
@@ -262,7 +262,7 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
     int i, status;
     pid_t pid;
 
-    TRACE(TRACE_NOTICE, "smf_server is coming up");
+    TRACE(TRACE_NOTICE, "smf_server is starting");
 
     for(i=0; i<settings->max_childs; i++)
         child[i] = 0;

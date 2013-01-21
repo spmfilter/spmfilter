@@ -21,10 +21,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <errno.h>
 #include <assert.h>
 #include <sys/stat.h>
+#include <syslog.h>
 
 #include "smf_trace.h"
 #include "smf_settings.h"
@@ -267,6 +269,8 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         /** [global]lookup_persistent **/
         } else if (strcmp(key,"lookup_persistent")==0) {
             (*settings)->lookup_persistent = _get_boolean(val);
+        } else if (strcmp(key,"syslog_facility")==0) {
+            smf_settings_set_syslog_facility((*settings), val);
         }
     /** sql section **/
     } else if (strcmp(section,"sql")==0) {
@@ -451,6 +455,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->max_childs = 10;
     settings->spare_childs = 2;
     settings->lookup_persistent = 0;
+    settings->syslog_facility = LOG_MAIL;
 
     settings->smtp_codes = smf_dict_new();
     settings->smtpd_timeout = 300;
@@ -742,7 +747,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->max_childs: [%d]", (*settings)->max_childs);
     TRACE(TRACE_DEBUG, "settings->spare_childs: [%d]", (*settings)->spare_childs);
     TRACE(TRACE_DEBUG, "settings->lookup_persistent: [%d]", (*settings)->lookup_persistent);
-
+    TRACE(TRACE_DEBUG, "settings->syslog_facility: [%d]", (*settings)->syslog_facility);
 
     TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
     TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
@@ -1119,6 +1124,52 @@ void smf_settings_set_spare_childs(SMFSettings_T *settings, int spare_childs) {
 int smf_settings_get_spare_childs(SMFSettings_T *settings) {
     assert(settings);
     return settings->spare_childs;
+}
+
+void smf_settings_set_syslog_facility(SMFSettings_T *settings, char *facility) {
+    if (strcasecmp(facility,"auth")==0) 
+        settings->syslog_facility = LOG_AUTH;
+    else if (strcasecmp(facility,"authpriv")==0) 
+        settings->syslog_facility = LOG_AUTHPRIV;
+    else if (strcasecmp(facility,"cron")==0)
+        settings->syslog_facility = LOG_CRON;
+    else if (strcasecmp(facility,"daemon")==0)
+        settings->syslog_facility = LOG_DAEMON;
+    else if (strcasecmp(facility, "ftp")==0)
+        settings->syslog_facility = LOG_FTP;
+    else if (strcasecmp(facility, "kern")==0)
+        settings->syslog_facility = LOG_KERN;
+    else if (strcasecmp(facility, "local0")==0)
+        settings->syslog_facility = LOG_LOCAL0;
+    else if (strcasecmp(facility, "local1")==0)
+        settings->syslog_facility = LOG_LOCAL1;
+    else if (strcasecmp(facility, "local2")==0)
+        settings->syslog_facility = LOG_LOCAL2;
+    else if (strcasecmp(facility, "local3")==0)
+        settings->syslog_facility = LOG_LOCAL3;
+    else if (strcasecmp(facility, "local4")==0)
+        settings->syslog_facility = LOG_LOCAL4;
+    else if (strcasecmp(facility, "local5")==0)
+        settings->syslog_facility = LOG_LOCAL5;
+    else if (strcasecmp(facility, "local6")==0)
+        settings->syslog_facility = LOG_LOCAL6;
+    else if (strcasecmp(facility, "local7")==0)
+        settings->syslog_facility = LOG_LOCAL7;
+    else if (strcasecmp(facility, "lpr")==0)
+        settings->syslog_facility = LOG_LPR;
+    else if (strcasecmp(facility, "mail")==0)
+        settings->syslog_facility = LOG_MAIL;
+    else if (strcasecmp(facility, "news")==0)
+        settings->syslog_facility = LOG_NEWS;
+    else if (strcasecmp(facility, "user")==0)
+        settings->syslog_facility = LOG_USER;
+    else if (strcasecmp(facility, "uucp")==0)
+        settings->syslog_facility = LOG_UUCP;
+}
+
+int smf_settings_get_syslog_facility(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->syslog_facility;
 }
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {
