@@ -113,6 +113,10 @@ failover	=	when you configure the backend profile for
 			the list if it cannot connect to the first host.
 .fi
 
+.IP "\fBlookup_persistent\fR"
+If true, spmfilter will use persistent connections to sql
+or ldap server.
+
 .IP "\fBadd_header\fR"
 If true, spmfilter will add a header with the processed modules.
 
@@ -152,6 +156,9 @@ Drop root privs and switch to the specified user
 
 .IP "\fBgroup\fR"
 Drop root privs and switch to the specified group
+
+.IP "\fBsyslog_facility\fR"
+The syslog facility of spmfilter logging
 
 .SS "The [smtpd] section"
 .P

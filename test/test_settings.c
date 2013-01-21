@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "../src/smf_list.h"
 #include "../src/smf_settings.h"
@@ -93,6 +94,17 @@ int main (int argc, char const *argv[]) {
 
     printf("* testing smf_settings_get_engine()...\t\t\t");
     if (strcmp(smf_settings_get_engine(settings),test_string) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+    printf("* testing smf_settings_set_syslog_facility()...\t\t");
+    smf_settings_set_syslog_facility(settings, test_syslog_facility);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_syslog_facility()...\t\t");
+    if (smf_settings_get_syslog_facility(settings) != LOG_LOCAL0) {
         printf("failed\n");
         return -1;
     }
