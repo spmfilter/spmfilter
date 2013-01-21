@@ -25,22 +25,25 @@ If the return value of the plugin is greater or equal than 400, then the value i
 
 If for example an error occurred within a plugin, then all the previous plugins are not automatically re-processed. Spmfilter uses so-called "state-files" to store the current state of the processing chain. Each plugin, which was successfully executed, will be held here, in case of an error they won't be processed again. Each "state file" has an unique name, which is computed from the message ID. In this way spmfilter is able to check the previous processing state. The "state file" will be removed, if the last plugin was processed successfully.
 
-Since each plugin is a dynamic shared object, it must provide a specific entry point, which is called by spmfilter. The entry point in the plugin is called immediately after spmfilter loads the plugin. This entry point is only called once during the execution. In calling the plugin, the first argument is a SMFSession_T object that is passed to the plugin, which holds all session informations.
+Since each plugin is a dynamic shared object, it must provide a specific entry point, which is called by spmfilter. The entry point in the plugin is called immediately after spmfilter loads the plugin. This entry point is only called once during the execution. In calling the plugin, the first argument is a SMFSettings_T instance, that contains the configuration of the spmfilter. The second argument
+passed to the plugin is a SMFSession_T object, which holds all session informations.
 
 The call is:
 @code
 int load(SMFSettings_T *settings, SMFSession_T *session)
 @endcode
 
+Check smf_modules.h for more information of the module-interface of spmfilter.
+
 @section compiling Compiling
 
-To compile a spmfilter module, you need to tell the compiler where to find the spmfilter header files and libraries. This is done with the pkg-config utility. The following interactive shell session demonstrates how pkg-config is used (the actual output on your system may be different):
+To compile a spmfilter module, you need to tell the compiler where to find the spmfilter and libcmime header files and libraries. This is done with the pkg-config utility. The following interactive shell session demonstrates how pkg-config is used (the actual output on your system may be different):
 
 @code
-$ pkg-config --cflags spmfilter
--I/usr/include/spmfilter 
-$ pkg-config --libs spmfilter
--L/usr/lib/spmfilter -lsmf  
+$ pkg-config --cflags --libs spmfilter
+-I/usr/include/spmfilter -L/usr/lib/spmfilter -lsmf
+$ pkg-config --cflags --libs libcmime
+-I/usr/include -L/usr/lib -lcmime
 @endcode
 
 @section datatypes Datatypes
@@ -54,6 +57,9 @@ Spmfilter uses a bunch of custom datatypes. The following image will give you a 
 All session data is stored in a SMFSession_T object by spmfilter, whereas the email content is stored on disk instead, but connection informations and message headers are hold in memory. If you need to modify an email in the current session, you have to use the session functions.
 
 If a header of a session object has been modified, the session will be marked as "dirty" - that means the header will be flushed to disk before the final delivery is initialized, to keep the message in sync with the modified data. In contrast to the session functions, the message functions are used to generate new messages which are hold in memory only.
+
+Spmfilter also tracks the modification time of the @link SMFSession_T::message_file spool file@endlink in the session. When a module modifies the spool-file
+(e.g. appends content to the message-body), then the changes are merged with the session and are made available for all subsequent module-invocations.
 
 Please note that not all session variables in each configuration are available. For example, all SMTP related data is not available in the pipe engine.
 
