@@ -143,7 +143,7 @@ int smf_smtp_handle_invalid_peer_certificate(long vfy_result) {
         case X509_V_ERR_CERT_REJECTED:
             k="X509_V_ERR_CERT_REJECTED"; break;
     }
-    TRACE(TRACE_DEBUG,"SMTP_EV_INVALID_PEER_CERTIFICATE: %ld: %s\n", vfy_result, k);
+    TRACE(TRACE_DEBUG,"SMTP_EV_INVALID_PEER_CERTIFICATE: %ld: %s", vfy_result, k);
     return 1; /* Accept the problem */
 }
 
@@ -166,7 +166,7 @@ void smf_smtp_event_cb (smtp_session_t session, int event_no, void *arg,...) {
         case SMTP_EV_WEAK_CIPHER: {
             int bits;
             bits = va_arg(alist, long); ok = va_arg(alist, int*);
-            TRACE(TRACE_DEBUG,"SMTP_EV_WEAK_CIPHER, bits=%d - accepted.\n", bits);
+            TRACE(TRACE_DEBUG,"SMTP_EV_WEAK_CIPHER, bits=%d - accepted.", bits);
             *ok = 1; break;
         }
         case SMTP_EV_STARTTLS_OK:
@@ -194,7 +194,7 @@ void smf_smtp_event_cb (smtp_session_t session, int event_no, void *arg,...) {
             *ok = 1; break;
         }
         default:
-            TRACE(TRACE_DEBUG,"Got event: %d - ignored.\n", event_no);
+            TRACE(TRACE_DEBUG,"Got event: %d - ignored", event_no);
     }
     va_end(alist);
 }

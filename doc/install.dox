@@ -142,6 +142,9 @@ Parameters in this section are global and do not affect any modules.
     - failover = when you configure the backend profile for failover, spmfilter fails over
                  to the next host in the list if it cannot connect to the first host.
 
+- **lookup_persistent**
+If true, spmfilter will use persistent connections to sql or ldap server.
+
 - **add_header**<br/>
   If true, spmfilter will add a header with the processed modules.
 
@@ -177,6 +180,9 @@ Parameters in this section are global and do not affect any modules.
 - **user/group**<br/>
   Root privs are used to open a port, then privs
   are dropped down to the user/group specified here
+
+- **syslog_facility**
+The syslog facility of spmfilter logging
 
 @subsection smtpd The [smptd] section
 
