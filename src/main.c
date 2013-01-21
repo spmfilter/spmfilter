@@ -82,7 +82,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    openlog("spmfilter", LOG_PID, LOG_MAIL);
     settings = smf_settings_new();
     /* parse config file and fill settings struct */
     if (smf_settings_parse_config(&settings,config_file) != 0) {
@@ -95,6 +94,8 @@ int main(int argc, char *argv[]) {
 
     if (debug == 1)
         smf_settings_set_debug(settings,debug);
+
+    openlog("spmfilter", LOG_PID, smf_settings_get_syslog_facility(settings));
 
     /* connect to database/ldap server, if necessary */
     if((settings->backend != NULL) && (settings->lookup_persistent == 1)) {

@@ -188,7 +188,7 @@ void smf_internal_print_runtime_stats(struct tms start_acct, const char *sid) {
     struct tms end_acct;
 
     times(&end_acct);
-    STRACE(TRACE_DEBUG,sid,"CPU time (user and system): %0.5f\n",
+    STRACE(TRACE_DEBUG,sid,"CPU time (user and system): %0.5f",
         (float)(end_acct.tms_utime - start_acct.tms_utime)  + /* User CPU time */
         (float)(end_acct.tms_stime - start_acct.tms_stime) + /* System CPU time */
         (float)(end_acct.tms_cutime - start_acct.tms_cutime) + /* User CPU time of terminated child processes */
