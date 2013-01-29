@@ -166,11 +166,15 @@ int smf_lookup_ldap_bind(SMFSettings_T *settings) {
     assert(settings);
 
     if(settings->ldap_base == NULL) {
-        TRERR("settings->ldap_bindpw is NULL, aborted");
+        TRERR("settings->ldap_base is not set, aborted");
         return -1;
     }
     if(settings->ldap_binddn == NULL) {
-        TRERR("settings->ldap_binddn is NULL, aborted");
+        TRERR("settings->ldap_binddn is not set, aborted");
+        return -1;
+    }
+    if(settings->ldap_bindpw == NULL) {
+        TRERR("settings->ldap_bindpw ist not set, aborted");
         return -1;
     }
 
