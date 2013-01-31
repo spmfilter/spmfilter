@@ -399,22 +399,23 @@ int smf_modules_process(
     }
     free(stf_filename);
    
-    if (settings->add_header == 1) {
-        smf_message_set_header(msg, header);
-        free(header); 
-    }
-    
-    if ((ret = smf_modules_flush_dirty(settings,session,initial_headers)) != 0)
-        STRACE(TRACE_ERR,session->id,"message flush failed");
+    if ((ret == 0) || (ret == 2)) {
+        if (settings->add_header == 1) {
+            smf_message_set_header(msg, header);
+            free(header); 
+        }
+        
+        if ((ret = smf_modules_flush_dirty(settings,session,initial_headers)) != 0)
+            STRACE(TRACE_ERR,session->id,"message flush failed");
 
-    /* queue is done, if we're still here check for next hop and
-     * deliver
-     */
-    if (ret == 0 && (nexthop = smf_nexthop_find(settings)) != NULL) {
-        if ((ret = nexthop(settings, session)) != 0)
-            q->nexthop_error(settings, session);
+        /* queue is done, if we're still here check for next hop and
+         * deliver
+         */
+        if (ret == 0 && (nexthop = smf_nexthop_find(settings)) != NULL) {
+            if ((ret = nexthop(settings, session)) != 0)
+                q->nexthop_error(settings, session);
+        }
     }
-         
     smf_list_free(initial_headers);
 
     return ret;
