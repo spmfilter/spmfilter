@@ -15,6 +15,7 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
 #include <assert.h>
 #include <sys/time.h>
 
@@ -112,12 +113,18 @@ char *smf_session_get_message_file(SMFSession_T *session) {
 void smf_session_set_xforward_addr(SMFSession_T *session, char *xfwd) {
     assert(session);
     assert(xfwd);
+    char *s = NULL;
 
     if (session->xforward_addr != NULL) {
         free(session->xforward_addr);
     }
     
-    session->xforward_addr = strdup(xfwd);
+    s = strcasestr(xfwd,"IPv6:");
+    if (s) {
+        session->xforward_addr = strdup(xfwd + (5 * sizeof(char)));
+    } else {
+        session->xforward_addr = strdup(xfwd);
+    }
 }
 
 char *smf_session_get_xforward_addr(SMFSession_T *session) {
