@@ -9,6 +9,7 @@ add_executable(spm_unit_tests
   test_ea.c
   test_envelope.c
   test_dict.c
+  test_session.c
 )
 target_link_libraries(spm_unit_tests smf ${COMMON_LIBS} ${CHECK_LIB})
 ADD_TEST(SMFUnitTests spm_unit_tests)
@@ -16,10 +17,6 @@ ADD_TEST(SMFUnitTests spm_unit_tests)
 add_executable(test_settings test_settings.c)
 target_link_libraries(test_settings smf ${COMMON_LIBS})
 ADD_TEST(SMFSettings_T ${EXECUTABLE_OUTPUT_PATH}/test_settings)
-
-add_executable(test_session test_session.c)
-target_link_libraries(test_session smf ${COMMON_LIBS})
-ADD_TEST(SMFSession_T ${EXECUTABLE_OUTPUT_PATH}/test_session)
 
 add_executable(test_list test_list.c)
 target_link_libraries(test_list smf ${COMMON_LIBS})
