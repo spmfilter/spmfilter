@@ -139,6 +139,7 @@ set(CPACK_SOURCE_IGNORE_FILES
 "\\\\.hg"
 "nbproject"
 "cmake_build"
+"build"
 "build\\\\.properties"
 "spmfilter-Makefile\\\\.mk"
 "spmfilter\\\\.pc$"
