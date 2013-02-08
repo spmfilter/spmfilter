@@ -15,12 +15,77 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
+#include <check.h>
 
 #include "../src/smf_session.h"
 
+static SMFSession_T *session;
+
+static void setup() {
+    fail_unless((session = smf_session_new()) != NULL);
+}
+
+static void teardown() {
+    smf_session_free(session);
+    session = NULL;
+}
+
+START_TEST(set_get_helo) {
+    char *s = strdup("foo.bar");
+    smf_session_set_helo(session, s);
+    fail_unless(strcmp(s,smf_session_get_helo(session)) == 0);
+    free(s);
+}
+END_TEST
+
+START_TEST(set_get_response_msg) {
+    char *s = strdup("250 OK message accepted");
+    smf_session_set_response_msg(session, s);
+    fail_unless(strcmp(s,smf_session_get_response_msg(session)) == 0);
+    free(s);
+}
+END_TEST
+
+START_TEST(set_get_message_file) {
+    char *s = strdup("/tmp/test.eml");
+    smf_session_set_message_file(session,s);
+    fail_unless(strcmp(s,smf_session_get_message_file(session)) == 0);
+    free(s);
+}
+END_TEST
+
+START_TEST(set_get_xforward_v4) {
+    char *s = strdup("127.0.0.1");
+    smf_session_set_xforward_addr(session, s);
+    fail_unless(strcmp(s,smf_session_get_xforward_addr(session)) == 0);
+    free(s);
+}
+END_TEST
+
+START_TEST(set_get_xforward_v6) {
+    char *s = strdup("IPv6:::1");
+    smf_session_set_xforward_addr(session, s);
+    fail_unless(strcmp("::1",smf_session_get_xforward_addr(session)) == 0);
+    free(s);
+}
+END_TEST
+
+TCase *session_tcase() {
+    TCase* tc = tcase_create("session");
+
+    tcase_add_checked_fixture(tc, setup, teardown);
+
+    tcase_add_test(tc, set_get_helo);
+    tcase_add_test(tc, set_get_response_msg);
+    tcase_add_test(tc, set_get_message_file);
+    tcase_add_test(tc, set_get_xforward_v4);
+    tcase_add_test(tc, set_get_xforward_v6);
+
+    return tc;
+}
+
+
+#if 0
 #include "test.h"
 
 int main (int argc, char const *argv[]) {
@@ -87,3 +152,4 @@ int main (int argc, char const *argv[]) {
 
     return 0;
 }
+#endif
