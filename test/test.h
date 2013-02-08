@@ -64,9 +64,7 @@ char test_auth_user[] = "test@localhost";
 char test_auth_pass[] = "test123";
 char test_nexthop[] = "localhost:2525";
 
-char test_helo[] = "foo.bar";
 char test_ip[] = "127.0.0.1";
-char test_response[] = "250 OK message accepted";
 
 char test_config_file[] = "test_settings";
 char test_queue_dir[] = ".";
