@@ -1,16 +1,16 @@
 WHAT IS SPMFILTER?
 ------------------
 
-spmfilter is a high-performance mail filtering framework, written in C.
-It attempts to be a general filtering framework for any purposes. Filtering
-mechanisms are provided by plugins, the API enables spmfilter plugins to access
-messages as they are being processed by the MTA. This allows them to examine
-and modify message content and meta-information during the SMTP transaction.
-Plugins are loaded at runtime and can be processed in any sequence, the
-processing chain can also be altered by a single plugin, for example if the
-plugin has to stop further processing (e.g. the clamav-plugin detected malicious
-software like a virus and the infected message is actually discarded - so
-further processing is stopped by the plugin).
+A high-performance mail filtering framework, written in C. It attempts to be a 
+general filtering framework for any purposes. Filtering mechanisms are provided 
+by plugins, the API enables spmfilter plugins to access messages as they are 
+being processed by the MTA. This allows them to examine and modify message 
+content and meta-information during the SMTP transaction. Plugins are loaded at 
+runtime and can be processed in any sequence, the processing chain can also be 
+altered by a single plugin, for example if the plugin has to stop further 
+processing (e.g. the clamav-plugin detected malicious software like a virus and 
+the infected message is actually discarded - so further processing is stopped by 
+the plugin).
 
 WEB SITE
 --------
@@ -46,12 +46,12 @@ of the problem to
 	bugs@spmfilter.org
 
 	
-MERCURIAL REPOSITORY
---------------------
+GIT REPOSITORY
+--------------
 
 If you want to get the very latest version of spmfilter direct from the
-source code repository then you can use mercurial:
+source code repository then you can use git:
 
-	hg clone http://www.spmfilter.org/hg/spmfilter
+	git clone https://github.com/spmfilter/spmfilter.git
 	
 	
