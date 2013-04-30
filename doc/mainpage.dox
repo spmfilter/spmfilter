@@ -21,7 +21,7 @@ further processing is stopped by the plugin).
 
 @section news News
 
-- ** 21.01.2013 - new release 0.6.0 ** <br />
+- **21.01.2013 - new release 0.6.0** <br />
 First release that actually contains a pre-forking spmfilter daemon. Besides that many more
 improvements and changes were introduced into spmfilter.
 
@@ -53,10 +53,10 @@ Coding failures (e.g. core dumps) in a plugin will not stop mail delivery. Faced
 
 You can download the sources at http://spmfilter.org/files
 
-Development is done using <a href="http://mercurial.selenic.com/" target="_blank">Mercurial</a>
+Development is done using <a href="http://git-scm.com/" target="_blank">Git</a>
 
 @code
-$ hg clone http://spmfilter.org/hg/spmfilter
+$ git clone https://github.com/spmfilter/spmfilter.git 
 @endcode
 
 @section doc Documentation
