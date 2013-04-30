@@ -242,7 +242,7 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
 int smf_core_copy_file(const char *source, const char *dest) {
     int out, result;
 	
-	if ((out = open(dest, O_WRONLY)) == -1)
+	if ((out = open(dest, O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
         return 0;
     
     result = smf_core_copy_to_fd(source, out);
