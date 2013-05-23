@@ -47,6 +47,7 @@
 #define	_SMF_LOOKUP_H
 
 #include "smf_settings.h"
+#include "smf_session.h"
 #include "smf_list.h"
 
 /*!
@@ -89,10 +90,11 @@ void smf_lookup_sql_disconnect(SMFSettings_T *settings);
  * @fn SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...)
  * @brief Query SQL server with given query string
  * @param settings Pointer to SMFSettings_T
+ * @param session Point to SMFSession_T
  * @param q format string for sql query for sql query
  * @returns SMFList_T or NULL
  */
-SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...);
+SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, SMFSession_T *session, const char *q, ...);
 
 /*!
  * @fn int smf_lookup_ldap_connect(SMFSettings_T *settings)
@@ -114,11 +116,12 @@ void smf_lookup_ldap_disconnect(SMFSettings_T *settings);
  * @fn SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...)
  * @brief query LDAP Server with given query string
  * @param settings Pointer to SMFSettings_T 
+ * @param session Point to SMFSession_T
  * @param q format string pointer for ldap query
  * @param ... format string arguments
  * @returns newly allocated SMFList_T
  */
-SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...);
+SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session, const char *q, ...);
 
 
 #endif	/* _SMF_LOOKUP_H */

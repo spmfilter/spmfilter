@@ -34,8 +34,6 @@
 
 #include <cmime.h>
 
-#include "smf_lookup.h"
-
 /*!
  * @enum SMFEmailAddressType_T 
  * @brief Possible types of email addresses

@@ -26,6 +26,7 @@
 #include "../src/smf_lookup_sql.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
+#include "../src/smf_session.h"
 #include "../src/smf_dict.h"
 #include "../src/smf_internal.h"
 
@@ -45,6 +46,7 @@ int main (int argc, char const *argv[]) {
 	SMFList_T *result = NULL;
 	SMFListElem_T *e = NULL;
 	SMFSettings_T *settings = smf_settings_new();
+	SMFSession_T *session = smf_session_new();
 	SMFDict_T *d = NULL;
 	int found = 0;
 
@@ -64,7 +66,7 @@ int main (int argc, char const *argv[]) {
     printf("passed\n");
 
 	printf("* testing smf_lookup_sql_query()...\t\t\t\t");
-	result = smf_lookup_sql_query(settings,sql_query);
+	result = smf_lookup_sql_query(settings,session,sql_query);
 		
 	e = smf_list_head(result);
 	while(e != NULL) {
@@ -89,6 +91,7 @@ int main (int argc, char const *argv[]) {
 	if(sql_name != NULL)
 		free(sql_name);
 
+	smf_session_free(session);
 	smf_settings_free(settings);
 
 	return 0;
