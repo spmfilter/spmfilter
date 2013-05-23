@@ -235,7 +235,7 @@ LDAP *smf_lookup_ldap_get_connection(SMFSettings_T *settings) {
 }
 
 
-SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
+SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session, const char *q, ...) {
     va_list ap;
     int i,value_count;
 
@@ -247,18 +247,19 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
     struct berval **bvals;
     BerElement *ptr;
     SMFList_T *result;
+    char *dn = NULL;
     
     assert(q);
     assert(settings);
 
     if(settings->ldap_base == NULL) {
-        TRERR("settings->ldap_base is NULL, aborted");
+        STRACE(TRACE_ERR,session->id,"settings->ldap_base is NULL, aborted");
         return NULL;
     }
 
     c = smf_lookup_ldap_get_connection(settings);
     if (c == NULL) {
-        TRACE(TRACE_ERR,"no active connection availbable");
+        STRACE(TRACE_ERR,session->id,"no active connection availbable");
         return NULL;
     }
 
@@ -274,19 +275,16 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
         if (strlen(query) == 0)
             return NULL;
 
-        TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
-        TRACE(TRACE_DEBUG,"[%p] [%s]",c,query);
+        //STRACE(TRACE_LOOKUP,session->id,"[%p] [%s]",c,query);
 
         if (ldap_search_ext_s(c,settings->ldap_base,smf_lookup_ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
-            TRACE(TRACE_ERR,"[%p] query [%s] failed",c, query);
+            STRACE(TRACE_ERR,session->id,"query [%s] failed", query);
 
-        if(ldap_count_entries(c,msg) <= 0) {
-            TRACE(TRACE_LOOKUP,"[%p] nothing found",c);
+        STRACE(TRACE_LOOKUP,session->id,"query [%s] returned [%d] entries",query, ldap_count_entries(c,msg));
+        if(ldap_count_entries(c,msg) <= 0) { 
             free(query);
             return NULL;
-        } else {
-            TRACE(TRACE_LOOKUP,"[%p] found [%d] entries", c, ldap_count_entries(c,msg));
-        }
+        } 
 
         for (entry = ldap_first_entry(c, msg); entry != NULL; entry = ldap_next_entry(c,entry)) {
             char *attr = NULL;
@@ -297,7 +295,6 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
                 
                 bvals = ldap_get_values_len(c, entry, attr);
                 value_count = ldap_count_values_len(bvals);
-                TRACE(TRACE_LOOKUP,"found attribute [%s] in entry [%p] with [%d] values", attr, entry, value_count);
                 
                 data = (char *)calloc(1,sizeof(char));
                 
@@ -310,6 +307,12 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, const char *q, ...) {
                 }
             
                 smf_dict_set(d,attr,data);
+                dn = ldap_get_dn(c,entry);
+                if (strcmp(attr,"userPassword")==0)
+                    STRACE(TRACE_LOOKUP,session->id,"DN [%s] attr [%s] value [***]", dn, attr);
+                else
+                    STRACE(TRACE_LOOKUP,session->id,"DN [%s] attr [%s] value [%s]", dn, attr, data);
+                ldap_memfree(dn);
                 ldap_memfree(attr);
                 free(data);
 

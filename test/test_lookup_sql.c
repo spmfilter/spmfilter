@@ -22,6 +22,7 @@
 #include "../src/smf_lookup_sql.h"
 #include "../src/smf_settings.h"
 #include "../src/smf_settings_private.h"
+#include "../src/smf_session.h"
 #include "../src/smf_dict.h"
 #include "../src/smf_internal.h"
 
@@ -51,13 +52,13 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');
 #define SQL_QUERY_RESULT_STRING "LoremIpsumDolorSitAmet"
 
 
-int test_query(SMFSettings_T *settings) {
+int test_query(SMFSettings_T *settings,SMFSession_T *session) {
     SMFList_T *result = NULL;
     SMFListElem_T *e = NULL;
     SMFDict_T *d = NULL;
     int found = 0;
 
-    result = smf_lookup_sql_query(settings,SQL_QUERY);
+    result = smf_lookup_sql_query(settings,session,SQL_QUERY);
     e = smf_list_head(result);
     while(e != NULL) {
         d = (SMFDict_T *)smf_list_data(e);
@@ -77,6 +78,7 @@ int main (int argc, char const *argv[]) {
 	char *host2 = strdup(SQL_HOST2);
    
 	SMFSettings_T *settings = smf_settings_new();
+    SMFSession_T *session = smf_session_new();
 	
 
 	printf("Start smf_lookup_sql tests...\n");
@@ -116,7 +118,7 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
     printf("passed\n");
 
     printf("* testing smf_lookup_sql_query()...\t\t\t\t");
-    if (test_query(settings)==1) { 
+    if (test_query(settings,session)==1) { 
         printf("passed\n");
     } else {
         printf("failed\b");
@@ -130,7 +132,7 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
     smf_settings_set_lookup_persistent(settings, 0);
 
     printf("* testing smf_lookup_sql_query() without existing connection...\t");
-    if (test_query(settings)==1) { 
+    if (test_query(settings,session)==1) { 
         printf("passed\n");
     } else {
         printf("failed\n");
@@ -152,6 +154,7 @@ INSERT INTO `test_lookup_sql_table` VALUES (1,'LoremIpsumDolorSitAmet');\n\
     smf_lookup_sql_disconnect(settings);
     printf("passed\n");
 
+    smf_session_free(session);
 	smf_settings_free(settings);
 
 	return 0;
