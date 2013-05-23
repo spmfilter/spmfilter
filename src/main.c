@@ -30,6 +30,7 @@
 #include "smf_trace.h"
 #include "smf_modules.h"
 #include "smf_internal.h"
+#include "smf_lookup.h"
 
 #define THIS_MODULE "spmfilter"
 

@@ -23,6 +23,7 @@
 #include "../src/smf_lookup.h"
 #include "../src/smf_lookup_ldap.h"
 #include "../src/smf_settings_private.h"
+#include "../src/smf_session.h"
 #include "../src/smf_list.h"
 #include "../src/smf_internal.h"
 
@@ -86,6 +87,7 @@ int main (int argc, char const *argv[]) {
     SMFList_T *result = NULL;
     SMFListElem_T *e = NULL;
     SMFSettings_T *settings = smf_settings_new();
+    SMFSession_T *session = smf_session_new();
     SMFDict_T *d = NULL;
 
     printf("Start smf_lookup_ldap tests...\n");
@@ -138,7 +140,7 @@ homeDirectory: /home/test\n");
     printf("passed\n");
 
     printf("* testing smf_lookup_ldap_query()...\t\t\t\t");
-    result = smf_lookup_ldap_query(settings, LDAP_QUERY_STRING);    
+    result = smf_lookup_ldap_query(settings, session, LDAP_QUERY_STRING);    
     e = smf_list_head(result);
     d = (SMFDict_T *)smf_list_data(e);
     if (strcmp(smf_dict_get(d,"uidNumber"),"500")!=0) {
@@ -167,7 +169,7 @@ homeDirectory: /home/test\n");
     smf_lookup_ldap_disconnect(settings);
     printf("passed\n");
 
-
+    smf_session_free(session);
     smf_settings_free(settings);
     
     return 0;

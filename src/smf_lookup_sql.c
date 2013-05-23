@@ -26,6 +26,7 @@
 #include <zdb.h>
 
 #include "smf_settings.h"
+#include "smf_session.h"
 #include "smf_trace.h"
 #include "smf_lookup.h"
 #include "smf_lookup_sql.h"
@@ -269,7 +270,7 @@ Connection_T smf_lookup_sql_get_connection(ConnectionPool_T pool) {
     return c;
 }
 
-SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {  
+SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, SMFSession_T *session, const char *q, ...) {  
     SMFSQLConnection_T *con;
     Connection_T c; 
     ResultSet_T r;
@@ -297,12 +298,11 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {
         return NULL;
     } else {
         c = smf_lookup_sql_get_connection(con->pool);
-        TRACE(TRACE_LOOKUP,"[%p] [%s]",c,query);
 
         TRY
             r = Connection_executeQuery(c, query,NULL);
         CATCH(SQLException)
-            TRACE(TRACE_ERR,"SQL error: %s\n", Connection_getLastError(c)); 
+            STRACE(TRACE_ERR,session->id,"SQL error: %s\n", Connection_getLastError(c)); 
             return NULL;
         END_TRY;
         
@@ -323,7 +323,7 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, const char *q, ...) {
             if (smf_list_append(result,d) != 0) return NULL;
         }
 
-        TRACE(TRACE_LOOKUP,"[%p] found [%d] rows", c, result->size);
+        STRACE(TRACE_LOOKUP,session->id,"query [%s] returned [%d] rows", query, result->size);
     }
 
     free(query);
