@@ -105,6 +105,8 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 	va_list ap;
 	char format[maxlen];
 	char message[maxlen];
+	char t[maxlen];
+	int i = 0;
 	size_t l;
 
 	// Prepare the format-string
@@ -112,19 +114,32 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
     
 	// Format the trace-message
 	va_start(ap, formatstring);
-	vsnprintf(message, maxlen, format, ap);
+	vsnprintf(t, maxlen, format, ap);
 	va_end(ap);
 
-	l = strlen(message);
+	l = strlen(t);
 	
-	if (message[l] == '\n')
-		message[l] = '\0';
+	if (t[l] == '\n')
+		t[l] = '\0';
 
+	/* escape % character */
+	while(i <= l) {
+		if (t[i] == '%') {
+			message[i++] = '\\';
+      message[i++] = '%';
+    } else {
+			message[i] = t[i];
+			i++;
+		}
+	}
+	message[i] = '\0';
+
+	printf("MESS: [%s]\n",message);
 	switch (debug_dest) {
 		case TRACE_DEST_SYSLOG: trace_syslog(level, message); break;
 		case TRACE_DEST_STDERR: trace_stderr(message); break;
 		default:                fprintf(stderr, "Unsupported trace-destination: %i", debug_dest);
-								abort();
-								break;
+			abort();
+			break;
 	}
 }
