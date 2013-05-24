@@ -150,7 +150,6 @@ START_TEST(add_recipient) {
     fail_unless(smf_message_add_recipient(msg, "foo@example.com", SMF_EMAIL_ADDRESS_TYPE_TO) == 0);
     fail_unless(smf_message_add_recipient(msg, "bar@example.com", SMF_EMAIL_ADDRESS_TYPE_CC) == 0);
     fail_unless(smf_message_add_recipient(msg, "blubb@example.com", SMF_EMAIL_ADDRESS_TYPE_BCC) == 0);
-    fail_unless(smf_message_add_recipient(msg, "moeeeeb@example.com", SMF_EMAIL_ADDRESS_TYPE_FROM) == 0);
     
     fail_unless((l = smf_message_get_recipients(msg)) != NULL);
     ck_assert_int_eq(smf_list_size(l), 3);
@@ -328,6 +327,8 @@ START_TEST(to_fd) {
     
     fail_unless((dump = smf_message_to_string(msg)) != NULL);
     ck_assert_str_eq(content, dump);
+    free(dump);
+    free(content);
     
     fail_unless(unlink(tmp_fn) == 0);
 }
