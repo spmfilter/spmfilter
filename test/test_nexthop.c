@@ -155,7 +155,7 @@ END_TEST
 START_TEST(smtp_success) {
     NexthopFunction func;
     
-    smf_settings_set_nexthop(settings, "localhost:33332");
+    smf_settings_set_nexthop(settings, "localhost:25");
     
     fail_unless((func = smf_nexthop_find(settings)) != NULL);
     fail_unless(func(settings, session) == 0);
