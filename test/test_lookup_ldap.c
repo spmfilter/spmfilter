@@ -26,6 +26,7 @@
 #include "../src/smf_session.h"
 #include "../src/smf_list.h"
 #include "../src/smf_internal.h"
+#include "../src/smf_modules.h"
 
 /*
  * this tests can only run successfull if there is a local ldap server available with the following
@@ -51,10 +52,12 @@
  //user2.ldif
  dn: uid=test,ou=People,dc=example,dc=com
  uid: test
+ mail: test@example.com
  cn: Test User
- objectClass: account
+ sn: Test User
  objectClass: posixAccount
  objectClass: top
+ objectClass: inetOrgPerson
  userPassword: {SSHA}DHiQoi+pqOQXFP28g+NIyQmagm1xxjNr
  loginShell: /bin/bash
  uidNumber: 500
@@ -89,6 +92,7 @@ int main (int argc, char const *argv[]) {
     SMFSettings_T *settings = smf_settings_new();
     SMFSession_T *session = smf_session_new();
     SMFDict_T *d = NULL;
+    SMFUserData_T *u = NULL;
 
     printf("Start smf_lookup_ldap tests...\n");
     printf("==================================================\n");
@@ -109,11 +113,13 @@ dn: ou=Group,dc=example,dc=com\n\
 ou: Group\n\
 objectClass: top\n\
 objectClass: organizationalUnit\n\
+objectClass: inetOrgPerson\n\
 \n\
 dn: uid=test,ou=People,dc=example,dc=com\n\
 uid: test\n\
+mail: test@example.com\n\
 cn: Test User\n\
-objectClass: account\n\
+sn: Test User\n\
 objectClass: posixAccount\n\
 objectClass: top\n\
 userPassword: {SSHA}DHiQoi+pqOQXFP28g+NIyQmagm1xxjNr\n\
@@ -131,6 +137,8 @@ homeDirectory: /home/test\n");
     smf_settings_set_ldap_binddn(settings, bind_dn);
     smf_settings_set_ldap_base(settings, LDAP_BASE);
     smf_settings_set_ldap_referrals(settings, 0);
+    smf_settings_set_backend(settings, "ldap");
+    smf_settings_set_ldap_user_query(settings, "(mail=%s)");
    
     printf("* testing smf_lookup_ldap_connect()...\t\t\t\t");
     if(smf_lookup_ldap_connect(settings) != 0) {
@@ -150,6 +158,51 @@ homeDirectory: /home/test\n");
 
     smf_list_free(result);
     printf("passed\n");
+
+    printf("* testing smf_modules_fetch_user_data()...\t\t\t");
+    if (smf_envelope_add_rcpt(session->envelope,"test@example.com")!=0) {
+        printf("failed\n");
+        return -1;
+    }
+
+    if (smf_modules_fetch_user_data(settings,session) != 0) {
+        printf("failed\n");
+        return -1;
+    }
+
+    if (smf_list_size(session->local_users) != 1) {
+        printf("failed\n");
+        return -1;
+    }
+
+    e = smf_list_head(session->local_users);
+    u = (SMFUserData_T *)smf_list_data(e);
+    if (strcmp(u->email,"test@example.com")!=0) {
+        printf("failed\n");
+        return -1;
+    }
+
+    if (strcmp(smf_dict_get(u->data, "uid"),"test")!=0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+    printf("* testing smf_session_is_local()...\t\t\t\t");
+    if (smf_session_is_local(session,"test@example.com")!=1) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
+    printf("* testing smf_session_get_user_data()...\t\t\t");
+    d = smf_session_get_user_data(session,"test@example.com");
+    if (strcmp(smf_dict_get(u->data, "uid"),"test")!=0) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
 
     printf("* testing smf_lookup_ldap_disconnect()...\t\t\t");
     smf_lookup_ldap_disconnect(settings);
