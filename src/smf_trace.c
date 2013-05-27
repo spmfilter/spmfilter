@@ -133,8 +133,7 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 		}
 	}
 	message[i] = '\0';
-
-	printf("MESS: [%s]\n",message);
+	
 	switch (debug_dest) {
 		case TRACE_DEST_SYSLOG: trace_syslog(level, message); break;
 		case TRACE_DEST_STDERR: trace_stderr(message); break;

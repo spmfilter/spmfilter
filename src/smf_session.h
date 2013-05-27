@@ -33,6 +33,7 @@
 #define _SMF_SESSION_H
 
 #include "smf_envelope.h"
+#include "smf_list.h"
 
 /*!
  * @struct SMFSession_T 
@@ -47,6 +48,7 @@ typedef struct {
     char *response_msg; /**< custom response message */
     int sock; /**< socket */
     char *id; /**< session id **/
+    SMFList_T *local_users; /**< list with local user data */
 } SMFSession_T;
 
 /*!
