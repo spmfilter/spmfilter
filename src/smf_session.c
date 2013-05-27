@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2013 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,11 @@ SMFSession_T *smf_session_new(void) {
     
     TRACE(TRACE_DEBUG,"initialize session data");
     session = (SMFSession_T *)calloc((size_t)1, sizeof(SMFSession_T));
-    session->local_users = NULL;
+    if (smf_list_new(&session->local_users,smf_internal_user_data_list_destroy)!=0) {
+        free(session);
+        return NULL;
+    }
+
     session->helo = NULL;
     session->xforward_addr = NULL;
     session->message_file = NULL;
@@ -168,3 +172,38 @@ char *smf_session_get_id(SMFSession_T *session) {
 
     return session->id;
 }
+
+int smf_session_is_local(SMFSession_T *session, const char *user) {
+    SMFListElem_T *e = NULL;
+    SMFUserData_T *d = NULL;
+    int retval = 0;
+
+    e = smf_list_head(session->local_users);
+    while(e != NULL) {
+        d = (SMFUserData_T *)smf_list_data(e);
+        if (strcmp(d->email,user) == 0) {
+            retval = 1;
+            break;
+        }
+
+        e = e->next;
+    }
+
+    return retval;
+}
+
+SMFDict_T *smf_session_get_user_data(SMFSession_T *session, const char *user) {
+    SMFListElem_T *e = NULL;
+    SMFUserData_T *user_data = NULL;
+    
+    e = smf_list_head(session->local_users);
+    while(e != NULL) {
+        user_data = (SMFUserData_T *)smf_list_data(e);
+        if (strcmp(user_data->email,user) == 0) {
+            return user_data->data;
+        }
+    }
+
+    return NULL;
+}
+

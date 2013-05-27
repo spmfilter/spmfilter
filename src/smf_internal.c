@@ -29,6 +29,7 @@
 #include "smf_internal.h"
 #include "smf_trace.h"
 #include "smf_dict.h"
+#include "smf_session.h"
 
 void smf_internal_string_list_destroy(void *data) {
     char *s = (char *)data;
@@ -41,6 +42,16 @@ void smf_internal_dict_list_destroy(void *data) {
     smf_dict_free((SMFDict_T *)data);
 }
    
+void smf_internal_user_data_list_destroy(void *data) {
+    assert(data);
+    SMFUserData_T *user_data = (SMFUserData_T *)data;
+    if (user_data->email != NULL) 
+        free(user_data->email);
+
+    smf_dict_free(user_data->data);
+    free(data);
+}
+
 char *smf_internal_build_module_path(const char *libdir, const char *modname) {
     char *path = NULL;
     char *t = NULL;
