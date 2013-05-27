@@ -34,21 +34,27 @@
 
 #include "smf_envelope.h"
 #include "smf_list.h"
+#include "smf_dict.h"
+
+typedef struct {
+  char *email;
+  SMFDict_T *data;
+} SMFUserData_T;
 
 /*!
  * @struct SMFSession_T 
  * @brief Holds spmfilter session data
  */
 typedef struct {
-    SMFEnvelope_T *envelope; /**< message envelope */
-    size_t message_size; /**< size of message body */
-    char *message_file; /**< path to message */
-    char *helo; /**< client's helo */
-    char *xforward_addr; /**< xforward data */
-    char *response_msg; /**< custom response message */
-    int sock; /**< socket */
-    char *id; /**< session id **/
-    SMFList_T *local_users; /**< list with local user data */
+  SMFEnvelope_T *envelope; /**< message envelope */
+  size_t message_size; /**< size of message body */
+  char *message_file; /**< path to message */
+  char *helo; /**< client's helo */
+  char *xforward_addr; /**< xforward data */
+  char *response_msg; /**< custom response message */
+  int sock; /**< socket */
+  char *id; /**< session id **/
+  SMFList_T *local_users; /**< list with local user data */
 } SMFSession_T;
 
 /*!
@@ -145,5 +151,23 @@ char *smf_session_get_message_file(SMFSession_T *session);
  * @returns session id
  */
 char *smf_session_get_id(SMFSession_T *session);
+
+/*!
+ * @fn int smf_session_is_local(SMFSession_T *session, const char *user)
+ * @brief Check if given user is found in local lookup database
+ * @param session SMFSession_T object
+ * @param user string with users email address, to look for
+ * @return returns 1 if user is local, otherwise 0
+ */
+int smf_session_is_local(SMFSession_T *session, const char *user);
+
+/*!
+ * @fn SMFDict_T *smf_session_get_user_data(SMFSession_T *session, const char *user)
+ * @brief Get data stored in local database for given user
+ * @param session SMFSession_T object
+ * @param user string with users email address, to look for
+ * @return returns SMFDict_T with user data, NULL if given user is not found
+ */
+SMFDict_T *smf_session_get_user_data(SMFSession_T *session, const char *user);
 
 #endif  /* _SMF_SESSION_H */
