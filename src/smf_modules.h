@@ -139,6 +139,9 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
 
 int smf_modules_engine_load(SMFSettings_T *settings);
 
+/** Collect user data from ldap/sql database for modules */
+int smf_modules_fetch_user_data(SMFSettings_T *settings, SMFSession_T *session);
+
 #ifdef __cplusplus
 }
 #endif
