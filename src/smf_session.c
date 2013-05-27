@@ -22,6 +22,8 @@
 #include "smf_envelope.h"
 #include "smf_trace.h"
 #include "smf_session.h"
+#include "smf_list.h"
+#include "smf_internal.h"
 
 #define THIS_MODULE "session"
 
@@ -34,6 +36,7 @@ SMFSession_T *smf_session_new(void) {
     
     TRACE(TRACE_DEBUG,"initialize session data");
     session = (SMFSession_T *)calloc((size_t)1, sizeof(SMFSession_T));
+    session->local_users = NULL;
     session->helo = NULL;
     session->xforward_addr = NULL;
     session->message_file = NULL;
@@ -57,6 +60,10 @@ SMFSession_T *smf_session_new(void) {
 
 void smf_session_free(SMFSession_T *session) {
     STRACE(TRACE_DEBUG,session->id,"destroy session data");
+
+    if (session->local_users != NULL)
+        smf_list_free(session->local_users);
+
     if (session->helo!=NULL)
         free(session->helo);
 
