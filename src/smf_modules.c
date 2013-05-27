@@ -36,6 +36,7 @@
 #include "smf_internal.h"
 #include "smf_dict.h"
 #include "smf_smtp.h"
+#include "smf_lookup.h"
 
 #define THIS_MODULE "modules"
 
@@ -334,6 +335,10 @@ int smf_modules_process(
     if (settings->add_header == 1)
         asprintf(&header,"X-Spmfilter: ");
 
+    /* fetch user data */
+    if (smf_modules_fetch_user_data(settings,session) != 0)
+        STRACE(TRACE_ERR, session->id, "failed to load local user data"); 
+
     mod_count = 0;
     modlist = smf_modules_stf_processed_modules(stfh);
     elem = smf_list_head(settings->modules);
@@ -555,5 +560,50 @@ int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, S
 
     smf_smtp_status_free(status);
 
+    return 0;
+}
+
+int smf_modules_fetch_user_data(SMFSettings_T *settings, SMFSession_T *session) {
+    SMFListElem_T *e = NULL;
+    char *addr = NULL;
+    char *query = NULL;
+    
+    if ((strcmp(settings->backend,"ldap")==0) && (settings->ldap_user_query==NULL)) {
+        STRACE(TRACE_WARNING, session->id, "no user_query defined for ldap backend");
+        return 0; 
+    }
+
+    if ((strcmp(settings->backend,"sql")==0) && (settings->sql_user_query==NULL)) {
+        STRACE(TRACE_WARNING, session->id, "no user_query defined for sql backend");
+        return 0; 
+    }
+
+    e = smf_list_head(session->envelope->recipients);
+    while (e != NULL) {
+        addr = (char *)smf_list_data(e);
+        STRACE(TRACE_DEBUG, session->id, "fetching user data for [%s]", addr);
+
+#ifdef HAVE_LDAP
+        if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
+            STRACE(TRACE_ERR, session->id, "failed to expand user query");
+            return -1;
+        }
+
+        session->local_users = smf_lookup_ldap_query(settings, session, query);
+#elif defined HAVE_SQL
+        if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
+            STRACE(TRACE_ERR, session->id, "failed to expand user query");
+            return -1;
+        }
+
+        session->local_users = smf_lookup_sql_query(settings, session, query);
+#endif
+
+        if (query != NULL) {
+            free(query);
+            query = NULL;
+        }
+        e = e->next;
+    }
     return 0;
 }
