@@ -26,7 +26,6 @@
 #include "../src/smf_session.h"
 #include "../src/smf_list.h"
 #include "../src/smf_internal.h"
-#include "../src/smf_modules.h"
 
 /*
  * this tests can only run successfull if there is a local ldap server available with the following
@@ -86,6 +85,7 @@ int main (int argc, char const *argv[]) {
     char *bind_dn = LDAP_BIND_DN;
     char *host1 = strdup(LDAP_HOST_1);
     char *host2 = strdup(LDAP_HOST_2);
+    char *result_attr = strdup("mail");
 
     SMFList_T *result = NULL;
     SMFListElem_T *e = NULL;
@@ -139,7 +139,8 @@ homeDirectory: /home/test\n");
     smf_settings_set_ldap_referrals(settings, 0);
     smf_settings_set_backend(settings, "ldap");
     smf_settings_set_ldap_user_query(settings, "(mail=%s)");
-   
+    smf_settings_add_ldap_result_attribute(settings, result_attr);
+
     printf("* testing smf_lookup_ldap_connect()...\t\t\t\t");
     if(smf_lookup_ldap_connect(settings) != 0) {
         printf("failed\n");
@@ -159,13 +160,13 @@ homeDirectory: /home/test\n");
     smf_list_free(result);
     printf("passed\n");
 
-    printf("* testing smf_modules_fetch_user_data()...\t\t\t");
+    printf("* testing smf_internal_fetch_user_data()...\t\t\t");
     if (smf_envelope_add_rcpt(session->envelope,"test@example.com")!=0) {
         printf("failed\n");
         return -1;
     }
 
-    if (smf_modules_fetch_user_data(settings,session) != 0) {
+    if (smf_internal_fetch_user_data(settings,session) != 0) {
         printf("failed\n");
         return -1;
     }
