@@ -388,7 +388,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
 
             (*settings)->ldap_user_query = strdup(val);
         /** [ldap]result_attributes **/
-        } else if (strcmp(key, "result_attributes")) {
+        } else if (strcmp(key, "result_attributes")==0) {
             if (smf_list_size((*settings)->ldap_result_attributes) > 0) {
                 if (smf_list_free((*settings)->ldap_result_attributes)!=0)
                     TRACE(TRACE_ERR,"failed to free result attribute list");
