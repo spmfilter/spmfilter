@@ -387,6 +387,24 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 free((*settings)->ldap_user_query);
 
             (*settings)->ldap_user_query = strdup(val);
+        /** [ldap]result_attributes **/
+        } else if (strcmp(key, "result_attributes")) {
+            if (smf_list_size((*settings)->ldap_result_attributes) > 0) {
+                if (smf_list_free((*settings)->ldap_result_attributes)!=0)
+                    TRACE(TRACE_ERR,"failed to free result attribute list");
+                else 
+                    if (smf_list_new(&((*settings)->ldap_result_attributes),smf_internal_string_list_destroy)!=0)
+                        TRACE(TRACE_ERR,"failed to create result attribute list");
+            }
+            sl = _get_list(val);
+            p = sl;
+            while(*p != NULL) {
+                s = smf_core_strstrip(*p);
+                smf_list_append((*settings)->ldap_result_attributes, s);
+                p++;
+            }
+            free(sl);
+
         /** [ldap]scope **/
         } else if (strcmp(key, "scope")==0) {
             if ((*settings)->ldap_scope != NULL)
@@ -486,6 +504,14 @@ SMFSettings_T *smf_settings_new(void) {
     settings->ldap_scope = NULL;
     settings->ldap_referrals = 0;
     settings->ldap_user_query = NULL;
+    if (smf_list_new(&settings->ldap_result_attributes, smf_internal_string_list_destroy) != 0) {
+        TRACE(TRACE_ERR, "failed to allocate space for settings->ldap_result_attributes");
+        smf_list_free(settings->modules);
+        smf_list_free(settings->sql_host);
+        smf_list_free(settings->ldap_host);
+        free(settings);
+        return NULL;
+    }
     settings->module_fail = 3;
     settings->nexthop_fail_code = 451;
     settings->add_header = 1;
@@ -538,6 +564,8 @@ void smf_settings_free(SMFSettings_T *settings) {
     if (settings->ldap_base != NULL) free(settings->ldap_base);
     if (settings->ldap_scope != NULL) free(settings->ldap_scope);
     if (settings->ldap_user_query != NULL) free(settings->ldap_user_query);
+    if (smf_list_free(settings->ldap_result_attributes) != 0)
+        TRACE(TRACE_ERR,"failed to free settings->ldap_result_attributes");
 
     smf_dict_free(settings->groups);
 
@@ -776,6 +804,12 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->ldap_bindpw: [%s]", (*settings)->ldap_bindpw);
     TRACE(TRACE_DEBUG, "settings->ldap_base: [%s]", (*settings)->ldap_base);
     TRACE(TRACE_DEBUG, "settings->ldap_user_query: [%s]", (*settings)->ldap_user_query);
+    elem = smf_list_head((*settings)->ldap_result_attributes);
+    while(elem != NULL) {
+        s = (char *)smf_list_data(elem);
+        TRACE(TRACE_DEBUG, "settings->ldap_result_attributes: [%s]", s);
+        elem = elem->next;
+    }
     TRACE(TRACE_DEBUG, "settings->ldap_scope: [%s]", (*settings)->ldap_scope);
     TRACE(TRACE_DEBUG, "settings->ldap_referrals: [%d]", (*settings)->ldap_referrals);
 
@@ -1249,11 +1283,6 @@ SMFList_T *smf_settings_get_sql_hosts(SMFSettings_T *settings) {
     return settings->sql_host;
 }
 
-SMFList_T *smf_settings_get_ldap_hosts(SMFSettings_T *settings) {
-    assert(settings);
-    return settings->ldap_host;
-}
-
 void smf_settings_set_sql_port(SMFSettings_T *settings, int port) {
     assert(settings);
     settings->sql_port = port;
@@ -1351,6 +1380,11 @@ int smf_settings_add_ldap_host(SMFSettings_T *settings, char *host) {
     return smf_list_append(settings->ldap_host, (void *)host);
 }
 
+SMFList_T *smf_settings_get_ldap_hosts(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_host;
+}
+
 void smf_settings_set_ldap_port(SMFSettings_T *settings, int port) {
     assert(settings);
     settings->ldap_port = port;
@@ -1439,6 +1473,18 @@ void smf_settings_set_ldap_user_query(SMFSettings_T *settings, char *query) {
 char *smf_settings_get_ldap_user_query(SMFSettings_T *settings) {
     assert(settings);
     return settings->ldap_user_query;
+}
+
+int smf_settings_add_ldap_result_attribute(SMFSettings_T *settings, char *attribute) {
+    assert(settings);
+    assert(attribute);
+
+    return smf_list_append(settings->ldap_result_attributes, (void *)attribute);
+}
+
+SMFList_T *smf_settings_get_ldap_result_attributes(SMFSettings_T *settings) {
+    assert(settings);
+    return settings->ldap_result_attributes;
 }
 
 void smf_settings_set_lookup_persistent(SMFSettings_T *settings, int persistent) {
