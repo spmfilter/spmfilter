@@ -65,6 +65,7 @@ char test_auth_pass[] = "test123";
 char test_nexthop[] = "localhost:2525";
 
 char test_ip[] = "127.0.0.1";
+char test_attr[] = "mail";
 
 char test_config_file[] = "test_settings";
 char test_queue_dir[] = ".";
