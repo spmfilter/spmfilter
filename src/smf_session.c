@@ -202,6 +202,7 @@ SMFDict_T *smf_session_get_user_data(SMFSession_T *session, const char *user) {
         if (strcmp(user_data->email,user) == 0) {
             return user_data->data;
         }
+        e = e->next;
     }
 
     return NULL;
