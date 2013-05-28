@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2013 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,7 @@
 #include "smf_trace.h"
 #include "smf_dict.h"
 #include "smf_session.h"
+#include "smf_lookup.h"
 
 void smf_internal_string_list_destroy(void *data) {
     char *s = (char *)data;
@@ -50,6 +51,79 @@ void smf_internal_user_data_list_destroy(void *data) {
 
     smf_dict_free(user_data->data);
     free(data);
+}
+
+int smf_internal_user_match(SMFSession_T *session, SMFList_T *result_attributes, SMFDict_T *d, char *addr) {
+    SMFListElem_T *key_elem = NULL;
+    SMFListElem_T *attr_elem = NULL;
+    SMFList_T *keys = smf_dict_get_keys(d);
+    char *attr = NULL;
+    char *lookup_attr = NULL;
+    char *value = NULL;
+
+    key_elem = smf_list_head(keys);
+    while(key_elem != NULL) {
+        attr = (char *)smf_list_data(key_elem);
+        attr_elem = smf_list_head(result_attributes);
+        while(attr_elem != NULL) {
+            lookup_attr = (char *)smf_list_data(attr_elem);
+            if (strcmp(lookup_attr,attr)==0) {
+                value = smf_dict_get(d, attr);
+                if (strcmp(value,addr)==0) {
+                    STRACE(TRACE_DEBUG,session->id,"found matching entry for address [%s] within attribute [%s]",addr,attr);
+                    smf_list_free(keys);
+                    return 1;
+                }
+            }
+            attr_elem = attr_elem->next;
+        }
+
+        key_elem = key_elem->next;
+    }
+
+    smf_list_free(keys);
+    return 0;
+}
+
+SMFDict_T *smf_internal_copy_user_data(SMFDict_T *origin) {
+    SMFDict_T *d = smf_dict_new();
+    SMFList_T *keys = smf_dict_get_keys(origin); 
+    SMFListElem_T *e = NULL;
+    char *k = NULL;
+    char *v = NULL;
+
+    e = smf_list_head(keys);
+    while(e != NULL) {
+        k = (char *)smf_list_data(e);
+        v = smf_dict_get(origin,k);
+        smf_dict_set(d,k,v);
+        e = e->next;
+    }
+
+    smf_list_free(keys);
+    return d;
+}
+
+SMFDict_T *smf_internal_get_user_result(SMFSettings_T *settings, SMFSession_T *session, SMFList_T *result, char *addr) {
+    SMFDict_T *d = NULL;
+    SMFListElem_T *e = NULL;
+
+    e = smf_list_head(result);
+
+#ifdef HAVE_LDAP
+    while(e != NULL) {
+        d = (SMFDict_T *)smf_list_data(e);
+        if (smf_internal_user_match(session,settings->ldap_result_attributes,d,addr)==1)
+            break;
+        
+        e = e->next;
+    }
+#elif defined HAVE_SQL
+    if (e != NULL)
+        d = (SMFDict_T *)smf_list_data(e);
+#endif
+
+    return smf_internal_copy_user_data(d);
 }
 
 char *smf_internal_build_module_path(const char *libdir, const char *modname) {
@@ -220,4 +294,63 @@ char *smf_internal_determine_linebreak(const char *s) {
         return(CR);
     else
         return(NULL);
+}
+
+int smf_internal_fetch_user_data(SMFSettings_T *settings, SMFSession_T *session) {
+    SMFListElem_T *e1 = NULL;
+    char *addr = NULL;
+    char *query = NULL;
+    SMFList_T *result = NULL;
+    SMFUserData_T *user_data = NULL;
+    
+    if (settings->backend == NULL) 
+        return 0;
+
+    if ((strcmp(settings->backend,"ldap")==0) && (settings->ldap_user_query==NULL)) {
+        STRACE(TRACE_WARNING, session->id, "no user_query defined for ldap backend");
+        return 0; 
+    }
+
+    if ((strcmp(settings->backend,"sql")==0) && (settings->sql_user_query==NULL)) {
+        STRACE(TRACE_WARNING, session->id, "no user_query defined for sql backend");
+        return 0; 
+    }
+
+    e1 = smf_list_head(session->envelope->recipients);
+    while (e1 != NULL) {
+        addr = (char *)smf_list_data(e1);
+        STRACE(TRACE_DEBUG, session->id, "fetching user data for [%s]", addr);
+
+#ifdef HAVE_LDAP
+        if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
+            STRACE(TRACE_ERR, session->id, "failed to expand user query");
+            return -1;
+        }
+
+        result = smf_lookup_ldap_query(settings, session, query);
+#elif defined HAVE_SQL
+        if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
+            STRACE(TRACE_ERR, session->id, "failed to expand user query");
+            return -1;
+        }
+
+        result = smf_lookup_sql_query(settings, session, query);
+#endif
+
+        if (result != NULL) {
+            user_data = (SMFUserData_T *)calloc((size_t)1, sizeof(SMFUserData_T));
+            user_data->email = strdup(addr);
+
+            user_data->data = smf_internal_get_user_result(settings, session, result, addr);
+            smf_list_append(session->local_users, (void *)user_data);
+            smf_list_free(result);
+        }
+
+        if (query != NULL) {
+            free(query);
+            query = NULL;
+        }
+        e1 = e1->next;
+    }
+    return 0;
 }
