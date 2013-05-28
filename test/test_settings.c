@@ -554,6 +554,19 @@ int main (int argc, char const *argv[]) {
     }
     printf("passed\n");
 
+    printf("* testing smf_settings_add_ldap_result_attribute()...\t");
+    s = strdup(test_attr);
+    smf_settings_add_ldap_result_attribute(settings, s);
+    printf("passed\n");
+
+    printf("* testing smf_settings_get_ldap_result_attributes()...\t");
+    list = smf_settings_get_ldap_result_attributes(settings);
+    if (smf_list_size(list)!=1) {
+        printf("failed\n");
+        return -1;
+    }
+    printf("passed\n");
+
     printf("* testing smf_settings_set_lookup_persistent()...\t");
     smf_settings_set_lookup_persistent(settings, 1);
     printf("passed\n");

@@ -111,6 +111,7 @@ typedef struct {
     int ldap_referrals; /**< ldap referrals flag */
     char *ldap_scope; /**< ldap search scope */
     char *ldap_user_query; /**< ldap user query */
+    SMFList_T *ldap_result_attributes; /**< list with ldap result attributes */
     
     SMFConnectionType_T lookup_connection_type; /**< lookup connection type */
     int lookup_persistent; /**< is the lookup connection persistent? */
@@ -877,6 +878,23 @@ void smf_settings_set_ldap_user_query(SMFSettings_T *settings, char *query);
  * @returns ldap user_query
  */
 char *smf_settings_get_ldap_user_query(SMFSettings_T *settings);
+
+/*!
+ * @fn int smf_settings_add_ldap_result_attribute(SMFSettings_T *settings, char *attribute)
+ * @brief Set LDAP result attribute(s)
+ * @param settings a SMFSettings_T object
+ * @param attribute name of ldap result attribute
+ * @returns 0 on success or -1 in case of error  
+ */
+int smf_settings_add_ldap_result_attribute(SMFSettings_T *settings, char *attribute);
+
+/*!
+ * @fn SMFList_T *smf_settings_get_ldap_result_attributes(SMFSettings_T *settings)
+ * @brief Get LDAP result attribute(s)
+ * @param settings a SMFSettings_T object
+ * @returns ldap result attribute list
+ */
+SMFList_T *smf_settings_get_ldap_result_attributes(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_lookup_persistent(SMFSettings_T *settings, int persistent)
