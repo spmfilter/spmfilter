@@ -275,8 +275,6 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
         if (strlen(query) == 0)
             return NULL;
 
-        //STRACE(TRACE_LOOKUP,session->id,"[%p] [%s]",c,query);
-
         if (ldap_search_ext_s(c,settings->ldap_base,smf_lookup_ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
             STRACE(TRACE_ERR,session->id,"query [%s] failed", query);
 
