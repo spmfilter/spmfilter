@@ -48,7 +48,7 @@
  objectClass: top
  objectClass: organizationalUnit
 
- //user2.ldif
+ //users.ldif
  dn: uid=test,ou=People,dc=example,dc=com
  uid: test
  mail: test@example.com
@@ -63,8 +63,22 @@
  gidNumber: 500
  homeDirectory: /home/test
 
+ dn: uid=test2,ou=People,dc=example,dc=com
+ uid: test2
+ mail: test2@example.com
+ cn: Test User 2
+ sn: Test User 2
+ objectClass: posixAccount
+ objectClass: top
+ objectClass: inetOrgPerson
+ userPassword: {SSHA}DHiQoi+pqOQXFP28g+NIyQmagm1xxjNr
+ loginShell: /bin/bash
+ uidNumber: 501
+ gidNumber: 501
+ homeDirectory: /home/test2
+
  * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/base.ldif -W
- * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/user2.ldif -W
+ * ldapadd -x -D "cn=Manager,dc=example,dc=com" -f /etc/openldap/users.ldif -W
  */
 
 #define LDAP_HOST_1 "localhost"
@@ -72,7 +86,7 @@
 #define LDAP_PORT 389
 #define LDAP_BIND_DN "uid=test,ou=People,dc=example,dc=com"
 #define LDAP_PSW "test"
-#define LDAP_BASE "uid=test,ou=People,dc=example,dc=com"
+#define LDAP_BASE "ou=People,dc=example,dc=com"
 #define LDAP_SCOPE "subtree"
 #define LDAP_QUERY_STRING "(uid=test)"
 #define LDAP_QUERY_STRING_RESULT "500"
@@ -126,7 +140,21 @@ userPassword: {SSHA}DHiQoi+pqOQXFP28g+NIyQmagm1xxjNr\n\
 loginShell: /bin/bash\n\
 uidNumber: 500\n\
 gidNumber: 500\n\
-homeDirectory: /home/test\n");
+homeDirectory: /home/test\n\
+\n\
+dn: uid=test2,ou=People,dc=example,dc=com\n\
+uid: test2\n\
+mail: test2@example.com\n\
+cn: Test User 2\n\
+sn: Test User 2\n\
+objectClass: posixAccount\n\
+objectClass: top\n\
+objectClass: inetOrgPerson\n\
+userPassword: {SSHA}DHiQoi+pqOQXFP28g+NIyQmagm1xxjNr\n\
+loginShell: /bin/bash\n\
+uidNumber: 501\n\
+gidNumber: 501\n\
+homeDirectory: /home/test2\n");
     printf("==================================================\n");
 
     smf_settings_add_ldap_host(settings, host1);
@@ -161,6 +189,7 @@ homeDirectory: /home/test\n");
     printf("passed\n");
 
     printf("* testing smf_internal_fetch_user_data()...\t\t\t");
+    smf_envelope_set_sender(session->envelope, "test2@example.com");
     if (smf_envelope_add_rcpt(session->envelope,"test@example.com")!=0) {
         printf("failed\n");
         return -1;
@@ -171,7 +200,7 @@ homeDirectory: /home/test\n");
         return -1;
     }
 
-    if (smf_list_size(session->local_users) != 1) {
+    if (smf_list_size(session->local_users) != 2) {
         printf("failed\n");
         return -1;
     }

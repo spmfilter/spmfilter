@@ -126,6 +126,44 @@ SMFDict_T *smf_internal_get_user_result(SMFSettings_T *settings, SMFSession_T *s
     return smf_internal_copy_user_data(d);
 }
 
+int smf_internal_query_user(SMFSettings_T *settings, SMFSession_T *session, char *addr) {
+    char *query = NULL;
+    SMFList_T *result = NULL;
+    SMFUserData_T *user_data = NULL;
+    
+#ifdef HAVE_LDAP
+    if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
+        STRACE(TRACE_ERR, session->id, "failed to expand user query");
+        return -1;
+    }
+
+    result = smf_lookup_ldap_query(settings, session, query);
+#elif defined HAVE_SQL
+    if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
+        STRACE(TRACE_ERR, session->id, "failed to expand user query");
+        return -1;
+    }
+
+    result = smf_lookup_sql_query(settings, session, query);
+#endif
+
+    if (result != NULL) {
+        user_data = (SMFUserData_T *)calloc((size_t)1, sizeof(SMFUserData_T));
+        user_data->email = strdup(addr);
+
+        user_data->data = smf_internal_get_user_result(settings, session, result, addr);
+        smf_list_append(session->local_users, (void *)user_data);
+        smf_list_free(result);
+    } 
+
+    if (query != NULL) {
+        free(query);
+        query = NULL;
+    }
+
+    return 0;
+}
+
 char *smf_internal_build_module_path(const char *libdir, const char *modname) {
     char *path = NULL;
     char *t = NULL;
@@ -299,9 +337,6 @@ char *smf_internal_determine_linebreak(const char *s) {
 int smf_internal_fetch_user_data(SMFSettings_T *settings, SMFSession_T *session) {
     SMFListElem_T *e1 = NULL;
     char *addr = NULL;
-    char *query = NULL;
-    SMFList_T *result = NULL;
-    SMFUserData_T *user_data = NULL;
     
     if (settings->backend == NULL) 
         return 0;
@@ -321,36 +356,18 @@ int smf_internal_fetch_user_data(SMFSettings_T *settings, SMFSession_T *session)
         addr = (char *)smf_list_data(e1);
         STRACE(TRACE_DEBUG, session->id, "fetching user data for [%s]", addr);
 
-#ifdef HAVE_LDAP
-        if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
-            STRACE(TRACE_ERR, session->id, "failed to expand user query");
-            return -1;
-        }
-
-        result = smf_lookup_ldap_query(settings, session, query);
-#elif defined HAVE_SQL
-        if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
-            STRACE(TRACE_ERR, session->id, "failed to expand user query");
-            return -1;
-        }
-
-        result = smf_lookup_sql_query(settings, session, query);
-#endif
-
-        if (result != NULL) {
-            user_data = (SMFUserData_T *)calloc((size_t)1, sizeof(SMFUserData_T));
-            user_data->email = strdup(addr);
-
-            user_data->data = smf_internal_get_user_result(settings, session, result, addr);
-            smf_list_append(session->local_users, (void *)user_data);
-            smf_list_free(result);
-        }
-
-        if (query != NULL) {
-            free(query);
-            query = NULL;
+        if(smf_internal_query_user(settings,session,addr)!=0) {
+            STRACE(TRACE_ERR, session->id, "failed to fetch user data for [%s]", addr);
         }
         e1 = e1->next;
     }
+
+    if (session->envelope->sender != NULL) {
+        STRACE(TRACE_DEBUG, session->id, "fetching user data for [%s]", session->envelope->sender);
+        if(smf_internal_query_user(settings,session,session->envelope->sender)!=0) {
+            STRACE(TRACE_ERR, session->id, "failed to fetch user data for [%s]", session->envelope->sender);
+        }
+    }
+
     return 0;
 }
