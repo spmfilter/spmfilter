@@ -352,8 +352,9 @@ int smf_modules_process(
             continue;
         }
 
+        STRACE(TRACE_DEBUG,session->id,"invoke module [%s]", curmod->name);
         ret = smf_module_invoke(settings, curmod, session);
-
+        
         if(ret != 0) {
             ret = q->processing_error(settings,session,ret);
             
