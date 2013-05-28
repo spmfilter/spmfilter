@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Sebastian Jaekel, Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2013 Sebastian Jaekel, Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,6 @@
 #include "smf_internal.h"
 #include "smf_dict.h"
 #include "smf_smtp.h"
-#include "smf_lookup.h"
 
 #define THIS_MODULE "modules"
 
@@ -336,7 +335,7 @@ int smf_modules_process(
         asprintf(&header,"X-Spmfilter: ");
 
     /* fetch user data */
-    if (smf_modules_fetch_user_data(settings,session) != 0)
+    if (smf_internal_fetch_user_data(settings,session) != 0)
         STRACE(TRACE_ERR, session->id, "failed to load local user data"); 
 
     mod_count = 0;
@@ -560,81 +559,5 @@ int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, S
 
     smf_smtp_status_free(status);
 
-    return 0;
-}
-
-int smf_modules_fetch_user_data(SMFSettings_T *settings, SMFSession_T *session) {
-    SMFListElem_T *e1 = NULL;
-    SMFListElem_T *e2 = NULL;
-    char *addr = NULL;
-    char *query = NULL;
-    SMFList_T *result = NULL;
-    SMFList_T *keys = NULL;
-    SMFUserData_T *user_data = NULL;
-    SMFDict_T *result_dict = NULL;
-    char *key = NULL;
-    char *value = NULL;
-    
-    if (settings->backend == NULL) 
-        return 0;
-
-    if ((strcmp(settings->backend,"ldap")==0) && (settings->ldap_user_query==NULL)) {
-        STRACE(TRACE_WARNING, session->id, "no user_query defined for ldap backend");
-        return 0; 
-    }
-
-    if ((strcmp(settings->backend,"sql")==0) && (settings->sql_user_query==NULL)) {
-        STRACE(TRACE_WARNING, session->id, "no user_query defined for sql backend");
-        return 0; 
-    }
-
-    e1 = smf_list_head(session->envelope->recipients);
-    while (e1 != NULL) {
-        addr = (char *)smf_list_data(e1);
-        STRACE(TRACE_DEBUG, session->id, "fetching user data for [%s]", addr);
-
-#ifdef HAVE_LDAP
-        if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
-            STRACE(TRACE_ERR, session->id, "failed to expand user query");
-            return -1;
-        }
-
-        result = smf_lookup_ldap_query(settings, session, query);
-#elif defined HAVE_SQL
-        if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
-            STRACE(TRACE_ERR, session->id, "failed to expand user query");
-            return -1;
-        }
-
-        result = smf_lookup_sql_query(settings, session, query);
-#endif
-
-        if (result != NULL) {
-            user_data = (SMFUserData_T *)calloc((size_t)1, sizeof(SMFUserData_T));
-            user_data->email = strdup(addr);
-            user_data->data = smf_dict_new();
-
-            result_dict = (SMFDict_T *)smf_list_data(smf_list_head(result));
-            keys = smf_dict_get_keys(result_dict);
- 
-            e2 = smf_list_head(keys);
-            while(e2 != NULL) {
-                key = (char *)smf_list_data(e2);
-                value = smf_dict_get(result_dict,key);
-                smf_dict_set(user_data->data,key,value);
-                e2 = e2->next;
-            }   
-            smf_list_append(session->local_users, (void *)user_data);
-            
-            smf_list_free(keys);
-            smf_list_free(result);
-        }
-
-        if (query != NULL) {
-            free(query);
-            query = NULL;
-        }
-        e1 = e1->next;
-    }
     return 0;
 }
