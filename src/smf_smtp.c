@@ -215,11 +215,6 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
 
     assert(env);
 
-    if (sid != NULL)
-        STRACE(TRACE_DEBUG,sid,"initializing SMTP session");
-    else
-        TRACE(TRACE_DEBUG,"initializing SMTP session");
-
     status->code = -1;
 
     auth_client_init(); 
@@ -252,6 +247,10 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
         return status;
     }
 
+    if (sid != NULL)
+        STRACE(TRACE_INFO, sid, "start delivery to %s", env->nexthop);
+    else
+        TRACE(TRACE_DEBUG,"initializing SMTP session");
 
     smtp_starttls_enable(session,tls);
     smtp_set_eventcb(session, smf_smtp_event_cb, NULL);
@@ -356,7 +355,7 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
         status->code = retstat->code;
         
         if (sid != NULL)
-            STRACE(TRACE_DEBUG,sid,"smtp client got status '%d - %s'",status->code,status->text);
+            STRACE(TRACE_INFO,sid,"delivery response '%d - %s'",status->code,status->text);
         else
             TRACE(TRACE_DEBUG,"smtp client got status '%d - %s'",status->code,status->text);
     }
