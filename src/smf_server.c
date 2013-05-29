@@ -196,8 +196,6 @@ int smf_server_listen(SMFSettings_T *settings) {
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    TRACE(TRACE_INFO,"binding to %s:%d",settings->bind_ip,settings->bind_port);
-
     asprintf(&srvname,"%d",settings->bind_port);
     if ((status == getaddrinfo(settings->bind_ip,srvname,&hints,&ai)) == 0) {
         for (aptr = ai; aptr != NULL; aptr = aptr->ai_next) {
@@ -262,7 +260,8 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
     int i, status;
     pid_t pid;
 
-    TRACE(TRACE_NOTICE, "smf_server is starting");
+    TRACE(TRACE_NOTICE, "starting spmfilter daemon");
+    TRACE(TRACE_NOTICE,"binding to %s:%d",settings->bind_ip,settings->bind_port);
 
     for(i=0; i<settings->max_childs; i++)
         child[i] = 0;
@@ -303,7 +302,7 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         }
     }
 
-    TRACE(TRACE_NOTICE, "smf_server is going down");
+    TRACE(TRACE_NOTICE, "stopping spmfilter daemon");
 	
     close(sd);
 
