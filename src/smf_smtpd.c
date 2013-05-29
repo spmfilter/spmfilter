@@ -28,6 +28,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
@@ -357,6 +359,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     int reti;
     char *nl = NULL;
     char *mid = NULL;
+    SMFListElem_T *e = NULL;
 
     reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
 
@@ -427,6 +430,13 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
         mid = strdup(smf_message_get_message_id(message));
         mid = smf_core_strstrip(mid);
         STRACE(TRACE_INFO,session->id,"processing message-id=%s",mid);
+        STRACE(TRACE_INFO,session->id,"from=<%s> size=%d",session->envelope->sender,(u_int32_t)session->message_size);
+        e = smf_list_head(session->envelope->recipients);
+        while(e != NULL) {
+            STRACE(TRACE_INFO,session->id,"to=<%s> relay=%s",(char *)smf_list_data(e),settings->nexthop);
+            e = e->next;
+        }
+
         free(mid);
         session->envelope->message = message;
         smf_smtpd_process_modules(session,settings,q);
@@ -449,6 +459,8 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     SMFListElem_T *elem = NULL;
     struct tms start_acct;
     struct sigaction action;
+    struct sockaddr_in peer;
+    socklen_t peer_len;
     
     start_acct = smf_internal_init_runtime_stats();
 
@@ -457,6 +469,13 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
 
     session->sock = client;
     client_sock = client;
+
+    peer_len = sizeof(peer);
+    if (getpeername(client, &peer, &peer_len) == -1)
+        TRACE(TRACE_ERR,"getpeername() failed: %s",strerror(errno));
+    else
+        STRACE(TRACE_INFO,session->id, "connect from %s",inet_ntoa(peer.sin_addr));
+
 
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
@@ -637,8 +656,6 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
 int load(SMFSettings_T *settings) {
     int sd;
     SMFProcessQueue_T *q;
-
-    TRACE(TRACE_INFO,"starting smtpd engine");
 
     /* initialize the modules queue handler */
     q = smf_modules_pqueue_init(
