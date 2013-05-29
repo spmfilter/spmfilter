@@ -58,23 +58,25 @@ const char* format_string(SMFTrace_T level, const char *module, const char *func
 	char debug_format[size];
 	char sid_format[size];
     
-	if (debug_flag == 1)
-		snprintf(debug_format, size, " (%s:%d)", function, line);
-	else
-		debug_format[0] = '\0';
-    
 	if (sid != NULL)
-		snprintf(sid_format, size, " [%s]", sid);
+		snprintf(sid_format, size, "SID %s ", sid);
 	else
 		sid_format[0] = '\0';
     
-	snprintf(out, size, "%s [%s]%s%s: %s\n",
-		trace_to_text(level),
-		module,
-		debug_format,
-		sid_format,
-		formatstring);
-    
+  if (debug_flag == 1) {
+  	snprintf(debug_format, size, "(%s:%s:%d)", module,function, line);
+		
+		snprintf(out, size, "%s: %s %s%s\n",
+			trace_to_text(level),
+			debug_format,
+			sid_format,
+			formatstring);
+	} else {
+		snprintf(out, size, "%s: %s%s\n",
+			trace_to_text(level),
+			sid_format,
+			formatstring);
+	}   
 	return out;
 }
 
@@ -93,11 +95,17 @@ static void trace_syslog(SMFTrace_T level, const char *message) {
 		default:            priority = LOG_DEBUG; break;
 	}
 	
-	syslog(priority, message);
+	if ((level >= 128) && (debug_flag == 1)) 
+		syslog(priority, message);
+	else if (level < 128)
+		syslog(priority, message);
 }
 
-static void trace_stderr(const char *message) {
-	fprintf(stderr, message);
+static void trace_stderr(SMFTrace_T level, const char *message) {
+	if ((level >= 128) && (debug_flag == 1)) 
+		fprintf(stderr, message);
+	else if (level < 128)
+		fprintf(stderr, message);
 }
 
 void trace(SMFTrace_T level, const char *module, const char *function, int line, const char *sid, const char *formatstring, ...) {
@@ -136,7 +144,7 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
 	
 	switch (debug_dest) {
 		case TRACE_DEST_SYSLOG: trace_syslog(level, message); break;
-		case TRACE_DEST_STDERR: trace_stderr(message); break;
+		case TRACE_DEST_STDERR: trace_stderr(level, message); break;
 		default:                fprintf(stderr, "Unsupported trace-destination: %i", debug_dest);
 			abort();
 			break;
