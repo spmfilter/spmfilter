@@ -57,13 +57,13 @@ SMFSession_T *smf_session_new(void) {
         session->id[pos++] = chars[random() % 36];
 
     session->id[pos] = '\0';
-    TRACE(TRACE_INFO,"start new session SID %s",session->id);
+    TRACE(TRACE_INFO,"start new session %s",session->id);
 
     return session;
 }
 
 void smf_session_free(SMFSession_T *session) {
-    TRACE(TRACE_INFO,"session SID %s finished", session->id);
+    TRACE(TRACE_INFO,"session %s finished", session->id);
 
     if (session->local_users != NULL)
         smf_list_free(session->local_users);
