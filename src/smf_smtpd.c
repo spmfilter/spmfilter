@@ -429,7 +429,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
 
         mid = strdup(smf_message_get_message_id(message));
         mid = smf_core_strstrip(mid);
-        STRACE(TRACE_INFO,session->id,"processing message-id=%s",mid);
+        STRACE(TRACE_INFO,session->id,"message-id=%s",mid);
         STRACE(TRACE_INFO,session->id,"from=<%s> size=%d",session->envelope->sender,(u_int32_t)session->message_size);
         e = smf_list_head(session->envelope->recipients);
         while(e != NULL) {
