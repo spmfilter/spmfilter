@@ -47,8 +47,6 @@ static int smtp_delivery_nexthop(SMFSettings_T *settings, SMFSession_T *session)
     SMFSmtpStatus_T *status = NULL;
     int retval = 0;
 
-    STRACE(TRACE_INFO, session->id, "start delivery to %s", settings->nexthop);
-
     if (env->sender == NULL)
         smf_envelope_set_sender(env, "<>");
 
@@ -61,7 +59,6 @@ static int smtp_delivery_nexthop(SMFSettings_T *settings, SMFSession_T *session)
         smf_envelope_set_nexthop(env, settings->nexthop);
 
     status = smf_smtp_deliver(env, settings->tls, session->message_file,session->id);
-    STRACE(TRACE_INFO,session->id,"delivery response '%d - %s'",status->code,status->text);
     if (status->code != 250)
         retval = -1;
 
