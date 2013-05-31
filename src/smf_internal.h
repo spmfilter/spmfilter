@@ -64,6 +64,7 @@ struct tms smf_internal_init_runtime_stats(void);
 void smf_internal_print_runtime_stats(struct tms start_acct, const char *sid);
 char *smf_internal_determine_linebreak(const char *s);
 int smf_internal_fetch_user_data(SMFSettings_T *settings, SMFSession_T *session);
+char *smf_internal_generate_sid(void);
 
 #ifdef __cplusplus
 }
