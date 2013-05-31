@@ -28,11 +28,7 @@
 #define THIS_MODULE "session"
 
 SMFSession_T *smf_session_new(void) {
-    static const char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     SMFSession_T *session;
-    int i;
-    int pos = 0;
-    struct timeval t1;
     
     TRACE(TRACE_DEBUG,"initialize session data");
     session = (SMFSession_T *)calloc((size_t)1, sizeof(SMFSession_T));
@@ -47,23 +43,14 @@ SMFSession_T *smf_session_new(void) {
     session->message_size = 0;
     session->response_msg = NULL;
     session->envelope = smf_envelope_new();
-
-    /* generate session id */
-    gettimeofday(&t1, NULL);
-
-    srandom(t1.tv_usec * t1.tv_sec);
-    session->id = (char *)calloc(13,sizeof(char));
-    for(i=0; i < 12; i++)
-        session->id[pos++] = chars[random() % 36];
-
-    session->id[pos] = '\0';
-    TRACE(TRACE_INFO,"start new session %s",session->id);
+    session->id = smf_internal_generate_sid();
+    TRACE(TRACE_INFO,"start new session SID %s",session->id);
 
     return session;
 }
 
 void smf_session_free(SMFSession_T *session) {
-    TRACE(TRACE_INFO,"session %s finished", session->id);
+    TRACE(TRACE_INFO,"session SID %s finished", session->id);
 
     if (session->local_users != NULL)
         smf_list_free(session->local_users);

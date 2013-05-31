@@ -35,8 +35,14 @@
 #include "smf_settings.h"
 #include "smf_list.h"
 #include "smf_smtp.h"
+#include "smf_internal.h"
 
 #define THIS_MODULE "smtp"
+
+typedef struct {
+    char *sid;
+    char *did;
+} SessionID_T;
 
 void smf_smtp_event_cb (smtp_session_t session, int event_no, void *arg, ...);
 int smf_smtp_handle_invalid_peer_certificate(long vfy_result);
@@ -76,13 +82,14 @@ static int smf_smtp_authinteract (auth_client_request_t request, char **result, 
 /* Callback to prnt the recipient status */
 void smf_smtp_print_recipient_status (smtp_recipient_t recipient, const char *mailbox, void *arg) {
     const smtp_status_t *status;
-    char *sid = (char *)arg;
+    //char *sid = (char *)arg;
+    SessionID_T *ids = (SessionID_T *)arg;
 
     status = smtp_recipient_status(recipient);
-    if (sid != NULL)
-        STRACE(TRACE_DEBUG,sid,"recipient [%s]: %d %s", mailbox, status->code, status->text);
+    if (ids->sid != NULL)
+        STRACE(TRACE_DEBUG,ids->sid,"DID %s recipient [%s]: %d %s", ids->did, mailbox, status->code, status->text);
     else
-        TRACE(TRACE_DEBUG,"recipient [%s]: %d %s", mailbox, status->code, status->text);
+        TRACE(TRACE_DEBUG,"DID %s recipient [%s]: %d %s", ids->did, mailbox, status->code, status->text);
 }
 
 int smf_smtp_handle_invalid_peer_certificate(long vfy_result) {
@@ -211,6 +218,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     char *msg_string = NULL;
     FILE *fp = NULL;
     char *s = NULL;
+    char *did = NULL;
+    SessionID_T *ids = NULL;
     SMFSmtpStatus_T *status = smf_smtp_status_new();
 
     assert(env);
@@ -247,10 +256,15 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
         return status;
     }
 
+    did = smf_internal_generate_sid();
+    ids = malloc(sizeof(SessionID_T));
+    ids->sid = sid;
+    ids->did = did;
+
     if (sid != NULL)
-        STRACE(TRACE_INFO, sid, "start delivery to %s", env->nexthop);
+        STRACE(TRACE_INFO, sid, "start delivery DID %s to %s", did, env->nexthop);
     else
-        TRACE(TRACE_DEBUG,"initializing SMTP session");
+        TRACE(TRACE_DEBUG,"start delivery DID %s to %s", did, env->nexthop);
 
     smtp_starttls_enable(session,tls);
     smtp_set_eventcb(session, smf_smtp_event_cb, NULL);
@@ -277,6 +291,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
             STRACE(TRACE_ERR,sid,status->text);
         else
             TRACE(TRACE_ERR,status->text);
+        if (did != NULL) free(did);
+        if (ids != NULL) free(ids);
         return status;
     }
     
@@ -291,6 +307,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
             else
                 TRACE(TRACE_ERR,status->text);
             smtp_destroy_session(session);
+            if (did != NULL) free(did);
+            if (ids != NULL) free(ids);
             return status;
         }
         smtp_set_message_fp(message, fp);
@@ -304,6 +322,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
                     STRACE(TRACE_ERR,sid,status->text);
                 else
                     TRACE(TRACE_ERR,status->text);
+                if (did != NULL) free(did);
+                if (ids != NULL) free(ids);
                 return status;
             }
         } else {
@@ -314,6 +334,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
             else
                 TRACE(TRACE_ERR,status->text);
             smtp_destroy_session(session);
+            if (did != NULL) free(did);
+            if (ids != NULL) free(ids);
             return status;
         }
     } 
@@ -323,11 +345,13 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
         asprintf(&status->text,"no recipients provided");
         status->code = -1;
         if (sid != NULL)
-            STRACE(TRACE_ERR,sid,status->text);
+            STRACE(TRACE_ERR,sid,"DID %s %s",did,status->text);
         else
-            TRACE(TRACE_ERR,status->text);
+            TRACE(TRACE_ERR,"DID %s %s",did,status->text);
         smtp_destroy_session(session);
         if (fp != NULL) fclose(fp);
+        if (did != NULL) free(did);
+        if (ids != NULL) free(ids);
         return status;
     }
 
@@ -342,28 +366,32 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
         asprintf(&status->text,"failed to initialize smtp session");
         status->code = -1;
         if (sid != NULL)
-            STRACE(TRACE_ERR,sid,status->text);
+            STRACE(TRACE_ERR,sid,"DID %s %s",did,status->text);
         else
-            TRACE(TRACE_ERR,status->text);
+            TRACE(TRACE_ERR,"DID %s %s",did,status->text);
         smtp_destroy_session(session);
         if (fp != NULL) fclose(fp);
+        if (did != NULL) free(did);
+        if (ids != NULL) free(ids);
         return status;
     } else {
         retstat = smtp_message_transfer_status(message);
-        smtp_enumerate_recipients(message, smf_smtp_print_recipient_status, sid);
+        smtp_enumerate_recipients(message, smf_smtp_print_recipient_status, ids);
         status->text = (retstat->text != NULL) ? strdup(retstat->text) : NULL;
         status->code = retstat->code;
         
         if (sid != NULL)
-            STRACE(TRACE_INFO,sid,"delivery response '%d - %s'",status->code,status->text);
+            STRACE(TRACE_INFO,sid,"delivery DID %s response '%d - %s'",did, status->code,status->text);
         else
-            TRACE(TRACE_DEBUG,"smtp client got status '%d - %s'",status->code,status->text);
+            TRACE(TRACE_DEBUG,"delivery DID %s response '%d - %s'",did, status->code,status->text);
     }
 
     smtp_destroy_session(session);
 
     if (fp != NULL) fclose(fp);
     if (msg_string != NULL) free(msg_string);
+    if (did != NULL) free(did);
+    if (ids != NULL) free(ids);
     if (authctx != NULL) {
         auth_destroy_context(authctx);
         auth_client_exit();

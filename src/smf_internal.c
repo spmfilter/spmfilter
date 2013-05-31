@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/times.h>
+#include <sys/time.h>
 
 #include "smf_internal.h"
 #include "smf_trace.h"
@@ -370,4 +371,24 @@ int smf_internal_fetch_user_data(SMFSettings_T *settings, SMFSession_T *session)
     }
 
     return 0;
+}
+
+char *smf_internal_generate_sid(void) {
+    static const char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    struct timeval t1;
+    int i;
+    int pos = 0;
+    char *sid = NULL;
+
+    /* generate session id */
+    gettimeofday(&t1, NULL);
+
+    srandom(t1.tv_usec * t1.tv_sec);
+    sid = (char *)calloc(13,sizeof(char));
+    for(i=0; i < 12; i++)
+        sid[pos++] = chars[random() % 36];
+
+    sid[pos] = '\0';
+
+    return sid;
 }
