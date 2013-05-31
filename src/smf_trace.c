@@ -59,7 +59,7 @@ const char* format_string(SMFTrace_T level, const char *module, const char *func
   char sid_format[size];
     
   if (sid != NULL)
-    snprintf(sid_format, size, "%s ", sid);
+    snprintf(sid_format, size, "SID %s ", sid);
   else
     sid_format[0] = '\0';
     
