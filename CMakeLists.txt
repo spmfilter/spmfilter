@@ -136,8 +136,7 @@ set(CPACK_COMPONENTS_ALL applications libraries headers)
 set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${SMF_VERSION}")
 set(CPACK_SOURCE_GENERATOR TGZ)
 set(CPACK_SOURCE_IGNORE_FILES
-"\\\\.hg"
-"nbproject"
+"\\\\.git"
 "cmake_build"
 "build"
 "build\\\\.properties"
