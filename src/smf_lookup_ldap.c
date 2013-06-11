@@ -288,7 +288,7 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
             char *attr = NULL;
             SMFDict_T *d = smf_dict_new();
 
-            for(attr = ldap_first_attribute(c, msg, &ptr); attr != NULL; attr = ldap_next_attribute(c, msg, ptr)) {
+            for(attr = ldap_first_attribute(c, entry, &ptr); attr != NULL; attr = ldap_next_attribute(c, entry, ptr)) {
                 char *data = NULL;
                 
                 bvals = ldap_get_values_len(c, entry, attr);
