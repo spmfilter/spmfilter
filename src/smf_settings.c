@@ -1539,7 +1539,10 @@ int smf_settings_group_get_boolean(SMFSettings_T *settings, char *group_name, ch
     s = smf_dict_get(settings->groups,tmp);
     free(tmp);
 
-    return _get_boolean(s);
+    if (s!=NULL)
+        return _get_boolean(s);
+
+    return 0;
 }
 
 SMFList_T *smf_settings_group_get_list(SMFSettings_T *settings, char *group_name, char *key) {
