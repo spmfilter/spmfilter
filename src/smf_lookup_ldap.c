@@ -272,8 +272,10 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
         va_end(ap);
         smf_core_strstrip(query);
 
-        if (strlen(query) == 0)
+        if (strlen(query) == 0) {
+            smf_list_free(result);
             return NULL;
+        }
 
         if (ldap_search_ext_s(c,settings->ldap_base,smf_lookup_ldap_get_scope(settings),query,NULL,0,NULL, NULL, NULL, 0, &msg) != LDAP_SUCCESS)
             STRACE(TRACE_ERR,session->id,"query [%s] failed", query);
@@ -281,6 +283,10 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
         STRACE(TRACE_LOOKUP,session->id,"query [%s] returned [%d] entries",query, ldap_count_entries(c,msg));
         if(ldap_count_entries(c,msg) <= 0) { 
             free(query);
+            smf_list_free(result);
+            ldap_msgfree(msg);
+            if (smf_settings_get_lookup_persistent(settings) != 1)
+                smf_lookup_ldap_disconnect(settings);
             return NULL;
         } 
 
@@ -314,16 +320,21 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
                 ldap_memfree(attr);
                 free(data);
 
-                
                 ldap_value_free_len(bvals);
             }
 
-            if (smf_list_append(result,d) != 0)
+            if (smf_list_append(result,d) != 0) {
+                free(query);
+                smf_list_free(result);
+                smf_dict_free(d);
+                if (smf_settings_get_lookup_persistent(settings) != 1)
+                    smf_lookup_ldap_disconnect(settings);
                 return NULL;
+            }
 
+            ber_free(ptr,0);
         }
     }  
-    ber_free(ptr,0);
     ldap_msgfree(msg);
     ldap_msgfree(entry);
     free(query);
