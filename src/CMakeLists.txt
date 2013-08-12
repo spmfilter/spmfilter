@@ -22,7 +22,7 @@ set(LIB_SMF_SRC
 	smf_email_address.c
 )
 
-set(COMMON_LIBS m esmtp dl ${LIBCMIME_LIBRARIES})
+set(COMMON_LIBS m esmtp ${CMAKE_DL_LIBS} ${LIBCMIME_LIBRARIES})
 
 if(HAVE_ZDB)
 	list(APPEND COMMON_LIBS zdb)
