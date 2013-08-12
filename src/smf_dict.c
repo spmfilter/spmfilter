@@ -268,3 +268,4 @@ void smf_dict_map(SMFDict_T *dict, void(*func)(char *key,char *value, void *args
 
     smf_list_free(list);
 }
+

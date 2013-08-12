@@ -204,3 +204,4 @@ int smf_list_map_new(SMFList_T *list, SMFList_T **new, void *(*func)(SMFListElem
 #endif
 
 #endif  /* _SMF_LIST_H */
+
