@@ -67,3 +67,4 @@ int smf_header_get_count(SMFHeader_T *header) {
     assert(header);
     return (int)((CMimeHeader_T *)header)->count;
 }
+

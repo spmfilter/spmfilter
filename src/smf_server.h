@@ -38,3 +38,4 @@ void smf_server_accept_handler(
     void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
 
 #endif  /* _SMF_SERVER_H */
+

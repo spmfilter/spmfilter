@@ -107,3 +107,4 @@ char *smf_header_to_string(SMFHeader_T *header);
 #endif
 
 #endif  /* _SMF_HEADER_H */
+

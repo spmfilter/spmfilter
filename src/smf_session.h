@@ -171,3 +171,4 @@ int smf_session_is_local(SMFSession_T *session, const char *user);
 SMFDict_T *smf_session_get_user_data(SMFSession_T *session, const char *user);
 
 #endif  /* _SMF_SESSION_H */
+

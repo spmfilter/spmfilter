@@ -35,3 +35,4 @@ void smf_lookup_sql_abort_handler(const char *error);
 #endif
 
 #endif  /* _SMF_LOOKUP_SQL_H */
+

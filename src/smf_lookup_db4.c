@@ -130,3 +130,4 @@ int smf_lookup_db4_update(const char *database, const char *key, const char *val
 
     return (ret == 0) ? ret : -1;
 }
+

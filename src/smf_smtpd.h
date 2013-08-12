@@ -58,3 +58,4 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings,SMFPr
 void smf_smtpd_handle_client(SMFSettings_T *settings, int client,SMFProcessQueue_T *q);
 
 #endif  /* _SMF_SMTPD_H */
+

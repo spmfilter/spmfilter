@@ -152,3 +152,4 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
       break;
   }
 }
+

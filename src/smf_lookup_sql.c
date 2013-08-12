@@ -335,3 +335,4 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, SMFSession_T *session, 
 
     return result;
 }
+

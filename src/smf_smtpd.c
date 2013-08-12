@@ -680,3 +680,4 @@ int load(SMFSettings_T *settings) {
     
     return 0;
 }
+

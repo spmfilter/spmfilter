@@ -167,3 +167,4 @@ void smf_envelope_set_message(SMFEnvelope_T *envelope, SMFMessage_T *message);
 SMFMessage_T *smf_envelope_get_message(SMFEnvelope_T *envelope);
 
 #endif  /* _SMF_ENVELOPE_H */
+

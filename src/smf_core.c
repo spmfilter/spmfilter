@@ -285,3 +285,4 @@ int smf_core_copy_to_fd(const char *source, int dest) {
 
     return nbytes;
 }
+

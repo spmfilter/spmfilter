@@ -125,3 +125,4 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
 
 
 #endif	/* _SMF_LOOKUP_H */
+

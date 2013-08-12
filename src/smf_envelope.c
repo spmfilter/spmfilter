@@ -171,3 +171,4 @@ SMFMessage_T *smf_envelope_get_message(SMFEnvelope_T *envelope) {
     assert(envelope);
     return envelope->message;
 }
+

@@ -37,3 +37,4 @@
 #cmakedefine HAVE_DB4
 
 #endif /* _SPMFILTER_CONFIG_H */
+

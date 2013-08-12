@@ -1574,3 +1574,4 @@ SMFList_T *smf_settings_group_get_list(SMFSettings_T *settings, char *group_name
 
     return list;
 }
+

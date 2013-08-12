@@ -70,3 +70,4 @@ int smf_list_map_new(SMFList_T *list, SMFList_T **new, void *(*func)(SMFListElem
         void *args), void *args) {
     return smf_list_map_new((CMimeList_T *)list,(CMimeList_T **)new,func,args);
 }
+

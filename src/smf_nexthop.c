@@ -142,3 +142,4 @@ NexthopFunction smf_nexthop_find(SMFSettings_T *settings) {
         return smtp_delivery_nexthop;
     }
 }
+
