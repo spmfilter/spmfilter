@@ -471,7 +471,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     client_sock = client;
 
     peer_len = sizeof(peer);
-    if (getpeername(client, &peer, &peer_len) == -1)
+    if (getpeername(client, (struct sockaddr *)&peer, &peer_len) == -1)
         TRACE(TRACE_ERR,"getpeername() failed: %s",strerror(errno));
     else
         STRACE(TRACE_INFO,session->id, "connect from %s",inet_ntoa(peer.sin_addr));
