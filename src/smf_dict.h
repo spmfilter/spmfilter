@@ -136,3 +136,4 @@ void smf_dict_map(SMFDict_T *dict, void(*func)(char *key,char *value, void *args
 #define smf_dict_count(dict) ((dict)->n)
 
 #endif  /* _SMF_DICT_H */
+

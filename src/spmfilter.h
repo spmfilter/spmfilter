@@ -39,3 +39,4 @@
 #include <smf/smf_trace.h>
 
 #endif /* SPMFILTER_H */
+

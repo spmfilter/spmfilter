@@ -156,3 +156,4 @@ int smf_email_address_is_empty(SMFEmailAddress_T *ea);
 SMFEmailAddress_T *smf_email_address_get_simplified(SMFEmailAddress_T *ea);
 
 #endif  /* _SMF_EMAIL_ADDRESS_H */
+

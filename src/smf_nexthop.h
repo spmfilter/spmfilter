@@ -42,3 +42,4 @@ typedef int (*NexthopFunction)(SMFSettings_T *settings, SMFSession_T *session);
 NexthopFunction smf_nexthop_find(SMFSettings_T *settings);
 
 #endif  /* _SMF_NEXTHOP_H */
+

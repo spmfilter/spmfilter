@@ -189,3 +189,4 @@ int smf_part_from_string(SMFPart_T **part, const char *content);
 #endif
 
 #endif  /* _SMF_PART_H */
+

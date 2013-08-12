@@ -72,3 +72,4 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
 #endif
 
 #endif  /* _SMF_SMTP_H */
+

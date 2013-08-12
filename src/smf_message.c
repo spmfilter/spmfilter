@@ -432,3 +432,4 @@ int smf_message_write_skip_header(FILE *src, FILE *dest) {
 
     return nwritten;
 }
+

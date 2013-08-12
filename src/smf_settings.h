@@ -953,3 +953,4 @@ int smf_settings_group_get_boolean(SMFSettings_T *settings, char *group_name, ch
 SMFList_T *smf_settings_group_get_list(SMFSettings_T *settings, char *group_name, char *key);
 
 #endif  /* _SMF_SETTINGS_H */
+

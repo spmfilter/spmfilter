@@ -71,3 +71,4 @@ char *smf_internal_generate_sid(void);
 #endif
 
 #endif  /* _SMF_INTERNAL_H */
+

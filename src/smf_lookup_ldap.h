@@ -30,3 +30,4 @@ LDAP *smf_lookup_ldap_get_connection(SMFSettings_T *settings);
 #endif
 
 #endif	/* _SMF_LOOKUP_LDAP_H */
+

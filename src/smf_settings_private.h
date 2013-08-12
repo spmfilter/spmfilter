@@ -36,3 +36,4 @@ void smf_settings_free(SMFSettings_T *settings);
 int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file);
 
 #endif	/* _SMF_SETTINGS_PRIVATE_H */
+

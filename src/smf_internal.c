@@ -392,3 +392,4 @@ char *smf_internal_generate_sid(void) {
 
     return sid;
 }
+

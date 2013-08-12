@@ -123,3 +123,4 @@ int smf_core_copy_file(const char *source, const char *dest);
 int smf_core_copy_to_fd(const char *source, int dest);
 
 #endif	/* _SMF_CORE_H */
+

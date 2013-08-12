@@ -131,3 +131,4 @@ SMFEmailAddress_T *smf_email_address_get_simplified(SMFEmailAddress_T *ea) {
 
     return result;
 }
+

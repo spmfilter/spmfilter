@@ -85,3 +85,4 @@ int smf_part_to_file(SMFPart_T *part, char *filename) {
 int smf_part_from_string(SMFPart_T **part, const char *content) {
     return cmime_part_from_string((CMimePart_T **)part,content);
 }
+

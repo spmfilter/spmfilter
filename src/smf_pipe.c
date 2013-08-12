@@ -153,3 +153,4 @@ int load(SMFSettings_T *settings) {
     smf_session_free(session);
     return ret;
 }
+
