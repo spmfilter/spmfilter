@@ -104,7 +104,7 @@ nexthop_fail_msg = Requested action aborted: local error in processing
 
 # List of available database hosts, separated by a semicolon.  Set to 
 # localhost if database is on the same host as spmfilter.
-#host =  127.0.0.1 ; db.treibsand.com 
+#host =  127.0.0.1  
 
 # Database name, or path to database if driver is set to sqlite.
 #name = test
