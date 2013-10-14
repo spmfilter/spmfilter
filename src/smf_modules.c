@@ -417,7 +417,7 @@ int smf_modules_process(
          * deliver
          */
         if (ret == 0 && (nexthop = smf_nexthop_find(settings)) != NULL) {
-            if ((ret = nexthop(settings, session)) != 0)
+            if ((ret = nexthop(settings, session)) != 0) 
                 q->nexthop_error(settings, session);
         }
     }
@@ -534,32 +534,3 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
 
     return 0;
 }
-
-int smf_modules_deliver_nexthop(SMFSettings_T *settings, SMFProcessQueue_T *q, SMFSession_T *session) {
-    SMFEnvelope_T *env = smf_session_get_envelope(session);
-    SMFSmtpStatus_T *status = NULL;
-
-    if (env->sender == NULL)
-        smf_envelope_set_sender(env, "<>");
-
-    if (env->recipients->size == 0) {
-        STRACE(TRACE_ERR,session->id,"got no recipients");
-        return -1;
-    }
-
-    if (env->nexthop == NULL)
-        smf_envelope_set_nexthop(env, settings->nexthop);
-
-    status = smf_smtp_deliver(env, settings->tls, session->message_file,session->id);
-    if (status->code != 250) {
-        STRACE(TRACE_ERR,session->id,"delivery to [%s] failed!",settings->nexthop);
-        STRACE(TRACE_ERR,session->id,"nexthop said: %d - %s", status->code,status->text);
-        q->nexthop_error(settings, session);
-        return -1;
-    }
-
-    smf_smtp_status_free(status);
-
-    return 0;
-}
-

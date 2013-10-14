@@ -59,8 +59,13 @@ static int smtp_delivery_nexthop(SMFSettings_T *settings, SMFSession_T *session)
         smf_envelope_set_nexthop(env, settings->nexthop);
 
     status = smf_smtp_deliver(env, settings->tls, session->message_file,session->id);
-    if (status->code != 250)
+    if (status->code != 250) {
         retval = -1;
+        if (status->code != -1) {
+            STRACE(TRACE_ERR,session->id,"delivery to [%s] failed!",settings->nexthop);
+            STRACE(TRACE_ERR,session->id,"nexthop said: %d - %s", status->code,status->text);
+        }
+    }
 
     smf_smtp_status_free(status);
 
