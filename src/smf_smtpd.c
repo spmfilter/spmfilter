@@ -354,6 +354,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     int found_from = 0;
     int found_date = 0;
     int found_header = 0;
+    int in_header = 1;
     regex_t regex;
     int reti;
     char *nl = NULL;
@@ -384,12 +385,15 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
         if ((strncasecmp(buf,".\r\n",3)==0)||(strncasecmp(buf,".\n",2)==0)) break;
         if (strncasecmp(buf,".",1)==0) smf_smtpd_stuffing(buf);
 
-        if (strncasecmp(buf,"Message-Id:",11)==0) found_mid = 1;
-        if (strncasecmp(buf,"Date:",5)==0) found_date = 1;
-        if (strncasecmp(buf,"To:",3)==0) found_to = 1;
-        if (strncasecmp(buf,"From:",5)==0) found_from = 1;
+        if ((strncasecmp(buf,"Message-Id:",11)==0)&& (in_header==1)) found_mid = 1;
+        if ((strncasecmp(buf,"Date:",5)==0) && (in_header==1)) found_date = 1;
+        if ((strncasecmp(buf,"To:",3)==0) && (in_header==1)) found_to = 1;
+        if ((strncasecmp(buf,"From:",5)==0) && (in_header==1)) found_from = 1;
 
         if (nl == NULL) nl = smf_internal_determine_linebreak(buf);
+
+        if ((strncmp(buf,"\n",1)==0)||(strncmp(buf,"\r\n",2)==0)||(strncmp(buf,"\r",1)==0))
+            in_header = 0;
 
         if (found_header == 0) {
             reti = regexec(&regex, buf, 0, NULL, 0);
