@@ -131,6 +131,7 @@ static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T 
 
 int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q) {
     int ret;
+    char *msg = NULL;
     /* now tun the process queue */
     ret = smf_modules_process(q,session,settings);
 
@@ -146,8 +147,12 @@ int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SM
         asprintf(&smtp_response,"250 %s\r\n",session->response_msg);
         smf_smtpd_string_reply(session->sock,smtp_response);
         free(smtp_response);
-    } else
-        smf_smtpd_string_reply(session->sock,CODE_250_ACCEPTED);
+    } else {
+        asprintf(&msg,"250 Ok: processed as %s\r\n",session->id);
+        smf_smtpd_string_reply(session->sock,msg);
+        free(msg);
+    
+    }
     return(0);
 }
 
