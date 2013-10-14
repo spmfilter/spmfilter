@@ -69,7 +69,7 @@ set_property(TARGET smf PROPERTY SOVERSION ${SMF_SO_VERSION})
 set_property(SOURCE spmfilter_config.h PROPERTY GENERATED TRUE)
 set_property(SOURCE spmfilter.pc PROPERTY GENERATED TRUE)
 
-add_library(smtpd SHARED smf_smtpd.c smf_session.c)
+add_library(smtpd SHARED smf_smtpd.c smf_session.c smf_server.c)
 set_property(TARGET smtpd PROPERTY VERSION ${SMF_VERSION})
 set_property(TARGET smtpd PROPERTY SOVERSION ${SMF_SO_VERSION})
 set_property(TARGET smtpd PROPERTY LINK_FLAGS ${_link_flags})

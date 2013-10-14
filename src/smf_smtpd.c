@@ -182,7 +182,7 @@ void smf_smtpd_stuffing(char chain[]) {
 }
 
 #define fputs_or_return(s, stream) \
-    if (fputs(s, stream)<=0) { \
+    if (fputs(s, stream)<0) { \
         STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno); \
         fclose(stream); \
         return -1; \
