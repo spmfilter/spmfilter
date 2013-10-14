@@ -147,9 +147,7 @@ void trace(SMFTrace_T level, const char *module, const char *function, int line,
   switch (debug_dest) {
     case TRACE_DEST_SYSLOG: trace_syslog(level, message); break;
     case TRACE_DEST_STDERR: trace_stderr(level, message); break;
-    default:                fprintf(stderr, "Unsupported trace-destination: %i", debug_dest);
-      abort();
-      break;
+    default: trace_stderr(level, message); break;
   }
 }
 
