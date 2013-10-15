@@ -206,7 +206,7 @@ with a 500 error code:
 @subsection sql The [sql] section
 
 - **driver**<br/>
-  SQL database driver. Supported drivers are mysql, pgsql, sqlite.
+  SQL database driver. Supported drivers are mysql, postgresql, sqlite.
 
 - **host**<br/>
   List of available database hosts, separated by a colon.  Set to 

@@ -279,7 +279,7 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
             if ((*settings)->sql_driver != NULL)
                 free((*settings)->sql_driver);
 
-            if ((strcmp(val,"mysql")==0)||(strcmp(val,"pgsql")==0)||(strcmp(val,"sqlite")==0))
+            if ((strcmp(val,"mysql")==0)||(strcmp(val,"postgresql")==0)||(strcmp(val,"sqlite")==0))
                 (*settings)->sql_driver = strdup(val);
         /** [sql]name **/
         } else if (strcmp(key, "name")==0) {
@@ -709,7 +709,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
                 return -1;
             }
 
-            if ((strcmp((*settings)->sql_driver,"mysql")==0)||(strcmp((*settings)->sql_driver,"pgsql")==0)) {
+            if ((strcmp((*settings)->sql_driver,"mysql")==0)||(strcmp((*settings)->sql_driver,"postgresql")==0)) {
                 if (smf_list_size((*settings)->sql_host)==0){
                     TRACE(TRACE_ERR, "no sql host set");
                     return -1;
@@ -721,7 +721,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
                     (*settings)->sql_port = 3306;
             }
 
-            if (strcmp((*settings)->sql_driver,"pgsql")==0) {
+            if (strcmp((*settings)->sql_driver,"postgresql")==0) {
                 if ((*settings)->sql_port == 0)
                     (*settings)->sql_port = 5432;
             }        

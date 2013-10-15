@@ -99,7 +99,7 @@ nexthop_fail_msg = Requested action aborted: local error in processing
 
 #[sql]
 
-# SQL database driver. Supported drivers are mysql, pgsql, sqlite.
+# SQL database driver. Supported drivers are mysql, postgresql, sqlite.
 #driver = mysql
 
 # List of available database hosts, separated by a semicolon.  Set to 
