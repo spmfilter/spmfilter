@@ -119,7 +119,7 @@ SMFDict_T *smf_internal_get_user_result(SMFSettings_T *settings, SMFSession_T *s
         
         e = e->next;
     }
-#elif defined HAVE_SQL
+#elif defined HAVE_ZDB
     if (e != NULL)
         d = (SMFDict_T *)smf_list_data(e);
 #endif
@@ -139,7 +139,7 @@ int smf_internal_query_user(SMFSettings_T *settings, SMFSession_T *session, char
     }
 
     result = smf_lookup_ldap_query(settings, session, query);
-#elif defined HAVE_SQL
+#elif defined HAVE_ZDB
     if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
         STRACE(TRACE_ERR, session->id, "failed to expand user query");
         return -1;
