@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 2.6)
 
 project(spmfilter)
 
+# include modules
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+include(${CMAKE_MODULE_PATH}/GNUInstallDirs.cmake)
+include(FindPkgConfig)
+include(SMFMacros)
+
 # check for build.properties
 include("${CMAKE_SOURCE_DIR}/build.properties" OPTIONAL)
 
@@ -10,22 +16,9 @@ if(PREFIX)
     SET(CMAKE_INSTALL_PREFIX ${PREFIX})
 endif(PREFIX)
 
-# check libdir
-if(NOT LIBDIR)
-        set(LIBDIR "lib")
-endif(NOT LIBDIR)
-
 # internal project settings
-set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${LIBDIR}/spmfilter")
+set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/spmfilter")
 message(STATUS "using smf library dir ${SMF_LIB_DIR}")
-
-# ********* NO NEED TO CHANGE ANYTHING BELOW **********
-# use our cmake moduels too
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
-# includes
-include(FindPkgConfig)
-include(SMFMacros)
 
 # * * * find packages first * * *
 find_package(Esmtp REQUIRED)
