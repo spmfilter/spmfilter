@@ -88,20 +88,23 @@ int smf_internal_user_match(SMFSession_T *session, SMFList_T *result_attributes,
 
 SMFDict_T *smf_internal_copy_user_data(SMFDict_T *origin) {
     SMFDict_T *d = smf_dict_new();
-    SMFList_T *keys = smf_dict_get_keys(origin); 
+    SMFList_T *keys = NULL;
     SMFListElem_T *e = NULL;
     char *k = NULL;
     char *v = NULL;
 
-    e = smf_list_head(keys);
-    while(e != NULL) {
-        k = (char *)smf_list_data(e);
-        v = smf_dict_get(origin,k);
-        smf_dict_set(d,k,v);
-        e = e->next;
-    }
+    if (origin != NULL) {
+        keys = smf_dict_get_keys(origin); 
+        e = smf_list_head(keys);
+        while(e != NULL) {
+            k = (char *)smf_list_data(e);
+            v = smf_dict_get(origin,k);
+            smf_dict_set(d,k,v);
+            e = e->next;
+        }
 
-    smf_list_free(keys);
+        smf_list_free(keys);
+    }
     return d;
 }
 
@@ -133,19 +136,24 @@ int smf_internal_query_user(SMFSettings_T *settings, SMFSession_T *session, char
     SMFUserData_T *user_data = NULL;
     
 #ifdef HAVE_LDAP
-    if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
-        STRACE(TRACE_ERR, session->id, "failed to expand user query");
-        return -1;
-    }
+    if (strcmp(settings->backend,"ldap")==0) {
+        if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
+            STRACE(TRACE_ERR, session->id, "failed to expand user query");
+            return -1;
+        }
 
-    result = smf_lookup_ldap_query(settings, session, query);
-#elif defined HAVE_ZDB
-    if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
-        STRACE(TRACE_ERR, session->id, "failed to expand user query");
-        return -1;
+        result = smf_lookup_ldap_query(settings, session, query);
     }
+#endif
 
-    result = smf_lookup_sql_query(settings, session, query);
+#ifdef HAVE_ZDB
+    if (strcmp(settings->backend,"sql")==0) {
+        if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
+            STRACE(TRACE_ERR, session->id, "failed to expand user query");
+            return -1;
+        }
+        result = smf_lookup_sql_query(settings, session, query);
+    }
 #endif
 
     if (result != NULL) {
