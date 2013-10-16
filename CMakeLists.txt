@@ -17,7 +17,7 @@ if(PREFIX)
 endif(PREFIX)
 
 # internal project settings
-set(SMF_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/spmfilter")
+set(SMF_LIB_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/spmfilter")
 message(STATUS "using smf library dir ${SMF_LIB_DIR}")
 
 # * * * find packages first * * *
