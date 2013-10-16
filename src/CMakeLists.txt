@@ -86,7 +86,7 @@ target_link_libraries(spmfilter smf)
 
 install(TARGETS smf smtpd pipe spmfilter
 	RUNTIME DESTINATION sbin
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/spmfilter
+	LIBRARY DESTINATION ${SMF_LIB_DIR}
 	PUBLIC_HEADER DESTINATION include/spmfilter
 	PRIVATE_HEADER DESTINATION include/spmfilter/smf
 )
