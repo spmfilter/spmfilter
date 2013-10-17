@@ -1,6 +1,6 @@
 prefix=@CMAKE_INSTALL_PREFIX@
 exec_prefix=@CMAKE_INSTALL_PREFIX@
-libdir=@CMAKE_INSTALL_LIBDIR@/spmfilter
+libdir=@CMAKE_INSTALL_FULL_LIBDIR@/spmfilter
 includedir=${prefix}/include/spmfilter
 
 Name: spmfilter
