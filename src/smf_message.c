@@ -407,7 +407,7 @@ int smf_message_write_skip_header(FILE *src, FILE *dest) {
             continue;
         }
         
-        if ((nbytes = fread(buf, 1, BUFSIZE, src)) == 0) {
+        if ((nbytes = fread(buf, 1, BUFSIZE, src)) < 0) {
             TRACE(TRACE_ERR, "failed to read queue file: %s (%d)", strerror(errno), errno);
             free(buf);
             return -1;
