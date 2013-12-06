@@ -258,13 +258,13 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int
     }
 
     while(!feof(old)) {
-        if ((len = fread(&buf,sizeof(char),BUFSIZE,old)) <= 0) {
+        if ((len = fread(&buf,sizeof(char),BUFSIZE,old)) < 0) {
             STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
             fclose(old);
             fclose(new);
             return -1;
         }
-        if (fwrite(buf,sizeof(char),len,new) <= 0) {
+        if (fwrite(buf,sizeof(char),len,new) < 0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
             fclose(old);
             fclose(new);
@@ -407,7 +407,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
             }
         }
 
-        if (fwrite(buf, sizeof(char), strlen(buf), spool_file)<=0) {
+        if (fwrite(buf, sizeof(char), strlen(buf), spool_file)<0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
             smf_smtpd_code_reply(session->sock, 451, settings->smtp_codes);
             fclose(spool_file);
