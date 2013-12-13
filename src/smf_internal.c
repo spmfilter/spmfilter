@@ -70,7 +70,7 @@ int smf_internal_user_match(SMFSession_T *session, SMFList_T *result_attributes,
             lookup_attr = (char *)smf_list_data(attr_elem);
             if (strcmp(lookup_attr,attr)==0) {
                 value = smf_dict_get(d, attr);
-                if (strcmp(value,addr)==0) {
+                if (strstr(value,addr)!=NULL) {
                     STRACE(TRACE_DEBUG,session->id,"found matching entry for address [%s] within attribute [%s]",addr,attr);
                     smf_list_free(keys);
                     return 1;
