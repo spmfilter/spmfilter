@@ -48,7 +48,6 @@ char *smf_header_get_name(SMFHeader_T *header) {
 
 void smf_header_set_value(SMFHeader_T *header, const char *value, int overwrite) {
     assert(header);
-    assert(value);
 
     cmime_header_set_value((CMimeHeader_T *)header,value,overwrite);
 }

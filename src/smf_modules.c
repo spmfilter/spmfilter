@@ -437,6 +437,8 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     int dirty = 0;
     int found = 0;
     int i = 0;
+    char *value1 = NULL;
+    char *value2 = NULL;
 
     STRACE(TRACE_DEBUG,session->id,"flushing header information to filesystem");
     
@@ -462,7 +464,9 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
                         dirty = 1;
                     } else {
                         for (i=0;i<smf_header_get_count(h_msg);i++) {
-                            if (strcmp(smf_header_get_value(h_msg,i),smf_header_get_value(h_init,i)) != 0) {
+                            value1 = smf_header_get_value(h_msg,i);
+                            value2 = smf_header_get_value(h_init,i);
+                            if ((value1 != NULL) && (value2 !=NULL) && (strcmp(value1,value2) != 0)) {
                                 dirty = 1;
                             }
                         }

@@ -27,7 +27,7 @@ if(ESMTP_FOUND)
     link_directories(${ESMTP_LIBRARY_DIR})
 endif(ESMTP_FOUND)
 
-pkg_search_module(LIBCMIME REQUIRED libcmime)
+pkg_search_module(LIBCMIME REQUIRED libcmime>=0.1.10)
 if(LIBCMIME_FOUND)
     include_directories(${LIBCMIME_INCLUDE_DIRS})
     link_directories(${LIBCMIME_LIBRARY_DIRS})
