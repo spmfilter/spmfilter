@@ -390,11 +390,8 @@ int smf_message_write_skip_header(FILE *src, FILE *dest) {
         size_t nbytes_dest;
 
         if (found == 0) {
-            if ((nbytes = getline(&buf, &len, src)) == -1) {
-                TRACE(TRACE_ERR, "failed to read queue_file");
-                free(buf);
-                return -1;
-            }
+            if ((nbytes = getline(&buf, &len, src)) == -1)
+                break;
 
             if ((strcmp(buf, LF) == 0) || (strcmp(buf, CRLF) == 0)) {
                 found = 1;
