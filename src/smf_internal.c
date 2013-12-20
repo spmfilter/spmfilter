@@ -135,6 +135,9 @@ int smf_internal_query_user(SMFSettings_T *settings, SMFSession_T *session, char
     SMFList_T *result = NULL;
     SMFUserData_T *user_data = NULL;
     
+    if (strlen(addr) == 0) 
+        return 0;
+
 #ifdef HAVE_LDAP
     if (strcmp(settings->backend,"ldap")==0) {
         if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
