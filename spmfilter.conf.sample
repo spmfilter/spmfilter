@@ -17,7 +17,7 @@ debug = true
 
 # Specifies the modules, which will be loaded at runtime. All modules  will 
 # be process in the same order, as listed. Module names have to be separated by a semicolon.
-modules = clamav;spamassassin
+modules = 
 
 # The nexthop parameter specifies the final destination, after a mail is
 # processed by spmfilter. The  value  can  be  a  hostname  or  IP
