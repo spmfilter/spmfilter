@@ -136,6 +136,9 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
 
 int smf_modules_engine_load(SMFSettings_T *settings);
 
+/** Check if there is an old modules state file... */
+char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session);
+
 #ifdef __cplusplus
 }
 #endif

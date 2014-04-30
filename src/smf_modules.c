@@ -26,6 +26,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <dlfcn.h>
+#include <dirent.h>
 
 #include "smf_modules.h"
 #include "smf_header.h"
@@ -305,7 +306,7 @@ int smf_modules_process(
     NexthopFunction nexthop;
 
     /* initialize message file  and load processed modules */
-    stf_filename = smf_modules_stf_path(settings,session);
+    stf_filename = smf_modules_get_stf_file(settings,session);
 
     stfh = fopen(stf_filename, "a+");
     if(stfh == NULL) {
@@ -537,4 +538,43 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     }
 
     return 0;
+}
+
+
+char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session) {
+    char *hex = NULL;
+    char *mid = NULL;
+    SMFMessage_T *msg = NULL;
+    DIR *dp;
+    struct dirent *ep;   
+    char *stf_filename = NULL;
+    char *t = NULL;
+
+    msg = smf_envelope_get_message(session->envelope);
+    mid = smf_message_get_message_id(msg);
+    hex = smf_core_md5sum(mid);
+
+    stf_filename = smf_modules_stf_path(settings,session); 
+
+    dp = opendir(settings->queue_dir);
+    if (dp != NULL) {
+        while((ep = readdir(dp)) != NULL) {
+          if (strstr(ep->d_name,hex) != NULL) {
+            STRACE(TRACE_INFO,session->id,"found old state file [%s], resuming session",ep->d_name);
+            asprintf(&t,"%s/%s",settings->queue_dir,ep->d_name);
+            if (rename(t,stf_filename) != 0) {
+                STRACE(TRACE_ERR,session->id,"failed to rename session file: %s (%d)",strerror(errno),errno);
+            }
+            free(t);
+            break;
+          }
+
+        }
+        closedir(dp);
+    } else
+        STRACE(TRACE_ERR,"failed to open queue directory: %s (%d)",strerror(errno),errno);
+
+    free(hex);
+
+    return stf_filename;
 }
