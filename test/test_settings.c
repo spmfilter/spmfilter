@@ -122,7 +122,7 @@ int main (int argc, char const *argv[]) {
     
     printf("* testing smf_settings_get_modules()...\t\t\t");
     list = smf_settings_get_modules(settings);
-    if (smf_list_size(list)!=3) {
+    if (smf_list_size(list)!=1) {
         printf("failed\n");
         return -1;
     }
