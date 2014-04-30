@@ -83,7 +83,7 @@ int main (int argc, char const *argv[]) {
             printf("* sending test message ...\t\t\t");
             asprintf(&msg_file, "%s/m0001.txt",SAMPLES_DIR);
 
-            smf_envelope_set_nexthop(env, "127.0.0.1:33332");
+            smf_envelope_set_nexthop(env, "127.0.0.1:25");
             smf_envelope_set_sender(env, test_email);
             smf_envelope_add_rcpt(env, test_email);
             status = smf_smtp_deliver(env, SMF_TLS_DISABLED, msg_file, NULL);
