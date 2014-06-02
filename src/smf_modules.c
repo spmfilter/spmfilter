@@ -133,16 +133,12 @@ SMFProcessQueue_T *smf_modules_pqueue_init(
 
 /* build full filename to modules states dir */
 static char *smf_modules_stf_path(SMFSettings_T *settings, SMFSession_T *session) {
-    char *hex = NULL;
-    char *mid = NULL;
     char *buf = NULL;
-    SMFMessage_T *msg = NULL;
-    msg = smf_envelope_get_message(session->envelope);
+    char *s = NULL;
 
-    mid = smf_message_get_message_id(msg);
-    hex = smf_core_md5sum(mid);
-    asprintf(&buf,"%s/%s.%s.modules", settings->queue_dir, session->id, hex);
-    free(hex);
+    s = smf_modules_build_stf_check_part(settings,session);
+    asprintf(&buf,"%s/%s.%s.modules", settings->queue_dir, session->id, s);
+    free(s);
 
     return(buf);
 }
@@ -542,24 +538,19 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
 
 
 char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session) {
-    char *hex = NULL;
-    char *mid = NULL;
-    SMFMessage_T *msg = NULL;
     DIR *dp;
     struct dirent *ep;   
     char *stf_filename = NULL;
     char *t = NULL;
-
-    msg = smf_envelope_get_message(session->envelope);
-    mid = smf_message_get_message_id(msg);
-    hex = smf_core_md5sum(mid);
+    char *check = NULL;
 
     stf_filename = smf_modules_stf_path(settings,session); 
+    check = smf_modules_build_stf_check_part(settings,session);
 
     dp = opendir(settings->queue_dir);
     if (dp != NULL) {
         while((ep = readdir(dp)) != NULL) {
-          if (strstr(ep->d_name,hex) != NULL) {
+          if (strstr(ep->d_name,check) != NULL) {
             STRACE(TRACE_INFO,session->id,"found old state file [%s], resuming session",ep->d_name);
             asprintf(&t,"%s/%s",settings->queue_dir,ep->d_name);
             if (rename(t,stf_filename) != 0) {
@@ -574,7 +565,31 @@ char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session) {
     } else
         STRACE(TRACE_ERR,"failed to open queue directory: %s (%d)",strerror(errno),errno);
 
-    free(hex);
+    free(check);
 
     return stf_filename;
+}
+
+char *smf_modules_build_stf_check_part(SMFSettings_T *settings, SMFSession_T *session) {
+    char *hex = NULL;
+    char *hex2 = NULL;
+    char *mid = NULL;
+    char *buf = NULL;
+    char *recipient = NULL;
+    SMFMessage_T *msg = NULL;
+    SMFListElem_T *e = NULL;
+    msg = smf_envelope_get_message(session->envelope);
+
+    mid = smf_message_get_message_id(msg);
+    hex = smf_core_md5sum(mid);
+
+    e = smf_list_head(session->envelope->recipients);
+    recipient = (char *)smf_list_data(e);
+    hex2 = smf_core_md5sum(recipient);
+
+    asprintf(&buf,"%s.%s", hex, hex2);
+    free(hex);
+    free(hex2);
+
+    return(buf);
 }

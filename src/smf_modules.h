@@ -139,6 +139,9 @@ int smf_modules_engine_load(SMFSettings_T *settings);
 /** Check if there is an old modules state file... */
 char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session);
 
+/** Generate unique part of stf file */
+char *smf_modules_build_stf_check_part(SMFSettings_T *settings, SMFSession_T *session);
+
 #ifdef __cplusplus
 }
 #endif
