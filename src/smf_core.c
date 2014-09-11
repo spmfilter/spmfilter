@@ -224,18 +224,19 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
                 memmove(out + offs + insert_len, out + offs + 2, strlen(out + offs + 2) + 1);
                 // Now insert the "insert"-string at the current position
                 memcpy(out + offs, insert, insert_len);
+                offs += strlen(addr);
+            } else {
+                offs++;
             }
 
-            offs++;
             rep_made++;
         }
 
         offs++;
     }
-
+    
     *buf = out;
     smf_core_strsplit_free(parts);
-
     return(rep_made);
 }
 
