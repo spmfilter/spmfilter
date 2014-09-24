@@ -140,7 +140,7 @@ int smf_internal_query_user(SMFSettings_T *settings, SMFSession_T *session, char
 
 #ifdef HAVE_LDAP
     if (strcmp(settings->backend,"ldap")==0) {
-        if (smf_core_expand_string(settings->ldap_user_query,addr,&query) == -1) {
+        if (smf_core_expand_string(settings->ldap_user_query,addr,&query) < 0) {
             STRACE(TRACE_ERR, session->id, "failed to expand user query");
             return -1;
         }
@@ -151,7 +151,7 @@ int smf_internal_query_user(SMFSettings_T *settings, SMFSession_T *session, char
 
 #ifdef HAVE_ZDB
     if (strcmp(settings->backend,"sql")==0) {
-        if (smf_core_expand_string(settings->sql_user_query,addr,&query) == -1) {
+        if (smf_core_expand_string(settings->sql_user_query,addr,&query) < 0) {
             STRACE(TRACE_ERR, session->id, "failed to expand user query");
             return -1;
         }
