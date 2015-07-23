@@ -235,21 +235,19 @@ LDAP *smf_lookup_ldap_get_connection(SMFSettings_T *settings) {
 }
 
 
-SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session, const char *q, ...) {
-    va_list ap;
+SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session, const char *query) {
     int i,value_count;
 
     LDAP *c = NULL;
     LDAPMessage *msg = NULL;
     LDAPMessage *entry = NULL;
   
-    char *query;
     struct berval **bvals;
     BerElement *ptr;
     SMFList_T *result;
     char *dn = NULL;
     
-    assert(q);
+    assert(query);
     assert(settings);
 
     if(settings->ldap_base == NULL) {
@@ -267,11 +265,6 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
     if (smf_list_new(&result,smf_internal_dict_list_destroy)!=0) {
         return NULL;
     } else {
-        va_start(ap, q);
-        vasprintf(&query,q,ap);
-        va_end(ap);
-        smf_core_strstrip(query);
-
         if (strlen(query) == 0) {
             smf_list_free(result);
             return NULL;
@@ -282,7 +275,6 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
 
         STRACE(TRACE_LOOKUP,session->id,"query [%s] returned [%d] entries",query, ldap_count_entries(c,msg));
         if(ldap_count_entries(c,msg) <= 0) { 
-            free(query);
             smf_list_free(result);
             ldap_msgfree(msg);
             if (smf_settings_get_lookup_persistent(settings) != 1)
@@ -324,7 +316,6 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
             }
 
             if (smf_list_append(result,d) != 0) {
-                free(query);
                 smf_list_free(result);
                 smf_dict_free(d);
                 if (smf_settings_get_lookup_persistent(settings) != 1)
@@ -337,7 +328,6 @@ SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session,
     }  
     ldap_msgfree(msg);
     ldap_msgfree(entry);
-    free(query);
 
     if (smf_settings_get_lookup_persistent(settings) != 1)
         smf_lookup_ldap_disconnect(settings);

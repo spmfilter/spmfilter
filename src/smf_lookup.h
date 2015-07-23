@@ -117,11 +117,10 @@ void smf_lookup_ldap_disconnect(SMFSettings_T *settings);
  * @brief query LDAP Server with given query string
  * @param settings Pointer to SMFSettings_T 
  * @param session Point to SMFSession_T
- * @param q format string pointer for ldap query
- * @param ... format string arguments
+ * @param query ldap query
  * @returns newly allocated SMFList_T
  */
-SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session, const char *q, ...);
+SMFList_T *smf_lookup_ldap_query(SMFSettings_T *settings, SMFSession_T *session, const char *query);
 
 
 #endif	/* _SMF_LOOKUP_H */
