@@ -72,7 +72,9 @@ char *smf_core_strcat_printf(char **s, const char *fmt, ...) {
     
     assert((*s));
 
-    vasprintf(&tmp,fmt,ap);
+    if (vasprintf(&tmp,fmt,ap) == -1) 
+        return (*s);
+
     va_end(ap);
     (*s) = (char *)realloc((*s),strlen((*s)) + strlen(tmp) + sizeof(char));
     strcat((*s),tmp);
@@ -120,7 +122,9 @@ static void smf_core_strsplit_free(char **parts) {
 int smf_core_gen_queue_file(const char *queue_dir, char **tempname, const char *sid) {
     int fd;
     
-    asprintf(&(*tempname),"%s/%s.XXXXXX",queue_dir,sid);
+    if (asprintf(&(*tempname),"%s/%s.XXXXXX",queue_dir,sid) == -1)
+        return -1;
+
     if ((fd = mkstemp(*tempname)) == -1)
         return -1;
     close(fd);
@@ -154,10 +158,13 @@ char *smf_core_get_maildir_filename(void) {
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
     
-    asprintf(&filename,"%lu.V%lu.%s",
-        (unsigned long) starttime.tv_sec,
-        (unsigned long) starttime.tv_usec,
-        hostname);
+    if (asprintf(&filename,"%lu.V%lu.%s",
+            (unsigned long) starttime.tv_sec,
+            (unsigned long) starttime.tv_usec,
+            hostname) == -1) {
+        free(hostname);
+        return NULL;
+    }
 
     free(hostname);
     return filename;
