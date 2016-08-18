@@ -209,7 +209,6 @@ void smf_smtp_event_cb (smtp_session_t session, int event_no, void *arg,...) {
 SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *msg_file, char *sid) {
     smtp_session_t session;
     smtp_message_t message;
-    smtp_recipient_t recipient;
     auth_context_t authctx = NULL;
     struct sigaction sa;
     const smtp_status_t *retstat;
@@ -358,7 +357,7 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     elem = smf_list_head(env->recipients);
     while(elem != NULL) {
         s = (char *)smf_list_data(elem);
-        recipient = smtp_add_recipient(message,s);
+        smtp_add_recipient(message,s);
         elem = elem->next;
     }
 
