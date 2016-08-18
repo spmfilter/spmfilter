@@ -279,7 +279,7 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
     for (;;) {
         pid = waitpid(-1, &status, 0);
 
-        if (daemon_exit)
+        if (daemon_exit == 1)
             break;
         
         if (pid > 0) {
