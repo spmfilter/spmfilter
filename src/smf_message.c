@@ -109,7 +109,8 @@ int smf_message_update_header(SMFMessage_T *message, const char *header, const c
     assert(header);
     assert(value);
 
-    asprintf(&header_value, "%s: %s", header, value);
+    if (asprintf(&header_value, "%s: %s", header, value) == -1)
+        return -1;
     result = cmime_message_set_header(message, header_value);
     free(header_value);
     
