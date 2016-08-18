@@ -135,10 +135,13 @@ SMFProcessQueue_T *smf_modules_pqueue_init(
 static char *smf_modules_stf_path(SMFSettings_T *settings, SMFSession_T *session) {
     char *buf = NULL;
     char *s = NULL;
-
+    int i = 0;
     s = smf_modules_build_stf_check_part(settings,session);
-    asprintf(&buf,"%s/%s.%s.modules", settings->queue_dir, session->id, s);
+    i = asprintf(&buf,"%s/%s.%s.modules", settings->queue_dir, session->id, s);
     free(s);
+
+    if (i == -1)
+        return NULL;
 
     return(buf);
 }
@@ -264,8 +267,7 @@ int smf_module_invoke(SMFSettings_T *settings, SMFModule_T *module, SMFSession_T
         runner = module->u.callback;
     }
     
-    if (session->message_file != NULL)
-      mtime_before = message_file_mtime(session);
+    mtime_before = message_file_mtime(session);
     
     result = runner(settings,session);
 
@@ -329,7 +331,8 @@ int smf_modules_process(
     }
 
     if (settings->add_header == 1)
-        asprintf(&header,"X-Spmfilter: ");
+        if (asprintf(&header,"X-Spmfilter: ") == -1)
+            return -1;
 
     /* fetch user data */
     if (smf_internal_fetch_user_data(settings,session) != 0)
@@ -552,7 +555,8 @@ char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session) {
         while((ep = readdir(dp)) != NULL) {
           if (strstr(ep->d_name,check) != NULL) {
             STRACE(TRACE_INFO,session->id,"found old state file [%s], resuming session",ep->d_name);
-            asprintf(&t,"%s/%s",settings->queue_dir,ep->d_name);
+            if (asprintf(&t,"%s/%s",settings->queue_dir,ep->d_name) == -1)
+                return NULL;;
             if (rename(t,stf_filename) != 0) {
                 STRACE(TRACE_ERR,session->id,"failed to rename session file: %s (%d)",strerror(errno),errno);
             }
@@ -576,6 +580,8 @@ char *smf_modules_build_stf_check_part(SMFSettings_T *settings, SMFSession_T *se
     char *mid = NULL;
     char *buf = NULL;
     char *recipient = NULL;
+    int i = 0;
+
     SMFMessage_T *msg = NULL;
     SMFListElem_T *e = NULL;
     msg = smf_envelope_get_message(session->envelope);
@@ -587,9 +593,12 @@ char *smf_modules_build_stf_check_part(SMFSettings_T *settings, SMFSession_T *se
     recipient = (char *)smf_list_data(e);
     hex2 = smf_core_md5sum(recipient);
 
-    asprintf(&buf,"%s.%s", hex, hex2);
+    i = asprintf(&buf,"%s.%s", hex, hex2);
     free(hex);
     free(hex2);
+
+    if (i == -1)
+        return NULL;
 
     return(buf);
 }
