@@ -33,8 +33,8 @@ extern "C" {
 #include "smf_settings.h"
 #include "smf_session.h"
 
-#define MAXLINE 512
-#define BUFSIZE 512
+#define MAXLINE 1024
+#define BUFSIZE 1024
 
 #define CRLF "\r\n"
 #define LF "\n"

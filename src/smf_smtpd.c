@@ -349,7 +349,7 @@ void smf_smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
 }
 
 void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q) {
-	ssize_t br;
+    ssize_t br;
     char buf[MAXLINE];
     void *rl = NULL;
     FILE *spool_file;
