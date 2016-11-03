@@ -359,6 +359,12 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     while(elem != NULL) {
         s = (char *)smf_list_data(elem);
         recipient = smtp_add_recipient(message,s);
+        if (recipient == NULL) {
+            if (sid != NULL)
+                STRACE(TRACE_ERR,sid,"failed to add recipient [%s]",s);
+            else
+                TRACE(TRACE_ERR,"failed to add recipient [%s]",s);
+        }
         elem = elem->next;
     }
 
