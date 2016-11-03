@@ -185,7 +185,6 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
     strncpy(out, format, out_size);
     out[out_size - 1] = '\0';
     offs = 0;
-
     while(out[offs] != '\0') {
         if(out[offs] == '%') {
             const char *insert = NULL;
@@ -224,7 +223,7 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
                 memmove(out + offs + insert_len, out + offs + 2, strlen(out + offs + 2) + 1);
                 // Now insert the "insert"-string at the current position
                 memcpy(out + offs, insert, insert_len);
-                offs += insert_len;
+                offs += insert_len - 1;
             } else {
                 offs++;
             }
@@ -234,7 +233,7 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
 
         offs++;
     }
-    
+
     *buf = out;
     smf_core_strsplit_free(parts);
     return(rep_made);
