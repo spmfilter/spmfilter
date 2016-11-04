@@ -33,11 +33,11 @@ static Suite *smf_suite() {
 	suite_add_tcase(s, core_tcase());
 	suite_add_tcase(s, messages_tcase());
 	suite_add_tcase(s, modules_tcase());
-  suite_add_tcase(s, nexthop_tcase());
-  suite_add_tcase(s, ea_tcase());
-  suite_add_tcase(s, env_tcase());
-  suite_add_tcase(s, dict_tcase());
-  suite_add_tcase(s, session_tcase());
+    suite_add_tcase(s, nexthop_tcase());
+    suite_add_tcase(s, ea_tcase());
+    suite_add_tcase(s, env_tcase());
+    suite_add_tcase(s, dict_tcase());
+    suite_add_tcase(s, session_tcase());
 
 	return s;
 }
