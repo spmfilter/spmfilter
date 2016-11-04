@@ -94,12 +94,14 @@ START_TEST(file_no_src) {
     NexthopFunction func;
 
     smf_settings_set_nexthop(settings, dest_file);
-    fail_if(chmod(spool_file, S_IWUSR) == -1);
-    
+    fail_if(unlink(spool_file) == -1);
+
     fail_unless((func = smf_nexthop_find(settings)) != NULL);
     fail_unless(func(settings, session) == -1);
+    create_spoolfile(session, SAMPLES_DIR "/m0001.txt"); // recreate spool file for teardown
 }
 END_TEST
+
 
 START_TEST(file_no_dest) {
     NexthopFunction func;
@@ -134,12 +136,13 @@ END_TEST
 
 START_TEST(smtp_no_src) {
     NexthopFunction func;
-    
-    fail_if(chmod(spool_file, S_IWUSR) == -1);
+
+    fail_if(unlink(spool_file) == -1);
     smf_settings_set_nexthop(settings, "localhost:25");
     
     fail_unless((func = smf_nexthop_find(settings)) != NULL);
     fail_unless(func(settings, session) == -1);
+    create_spoolfile(session, SAMPLES_DIR "/m0001.txt"); // recreate spool file for teardown
 }
 END_TEST
 
