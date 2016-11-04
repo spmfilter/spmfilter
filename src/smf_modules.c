@@ -544,7 +544,7 @@ char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session) {
     char *t = NULL;
     char *check = NULL;
 
-    stf_filename = smf_modules_stf_path(settings,session); 
+    stf_filename = smf_modules_stf_path(settings,session);
     check = smf_modules_build_stf_check_part(settings,session);
 
     dp = opendir(settings->queue_dir);
@@ -583,13 +583,16 @@ char *smf_modules_build_stf_check_part(SMFSettings_T *settings, SMFSession_T *se
     mid = smf_message_get_message_id(msg);
     hex = smf_core_md5sum(mid);
 
-    e = smf_list_head(session->envelope->recipients);
-    recipient = (char *)smf_list_data(e);
-    hex2 = smf_core_md5sum(recipient);
+    if (smf_list_size(session->envelope->recipients) > 0) {
+        e = smf_list_head(session->envelope->recipients);
+        recipient = (char *)smf_list_data(e);
+        hex2 = smf_core_md5sum(recipient);
 
-    asprintf(&buf,"%s.%s", hex, hex2);
+        asprintf(&buf,"%s.%s", hex, hex2);
+        free(hex2);
+    } else {
+        asprintf(&buf,"%s", hex);
+    }
     free(hex);
-    free(hex2);
-
     return(buf);
 }
