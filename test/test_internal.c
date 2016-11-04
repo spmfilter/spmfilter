@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner, Werner Detter and SpaceNet AG
+ * Copyright (C) 2009-2016 Axel Steiner, Werner Detter and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,7 @@
 #include <unistd.h>
 
 #include "test.h"
-#include "testdirs.h"
+#include "test_params.h"
 #include "../src/smf_internal.h"
  
 

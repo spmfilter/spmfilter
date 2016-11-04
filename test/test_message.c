@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2016 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,7 @@
 #include "../src/smf_header.h"
 #include "../src/smf_part.h"
 
-#include "testdirs.h"
+#include "test_params.h"
 
 static const char *test_files[] = {
     "m0001.txt","m0002.txt","m0003.txt","m0004.txt","m0005.txt",

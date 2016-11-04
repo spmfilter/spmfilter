@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2012-2016 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@
 #include "../src/smf_settings_private.h"
 
 #include "test.h"
-#include "testdirs.h"
+#include "test_params.h"
 
 struct cb_data {
     int count;

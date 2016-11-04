@@ -16,6 +16,10 @@ if(PREFIX)
     SET(CMAKE_INSTALL_PREFIX ${PREFIX})
 endif(PREFIX)
 
+if(NOT TEST_NEXTHOP)
+    SET(TEST_NEXTHOP localhost:25)
+endif(NOT TEST_NEXTHOP)
+
 # internal project settings
 set(SMF_LIB_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/spmfilter")
 message(STATUS "using smf library dir ${SMF_LIB_DIR}")
@@ -79,8 +83,8 @@ CONFIGURE_FILE(
 )
 
 CONFIGURE_FILE(
-    ${CMAKE_CURRENT_SOURCE_DIR}/test/testdirs.h.cmake
-    ${CMAKE_CURRENT_SOURCE_DIR}/test/testdirs.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/test_params.h.cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/test_params.h
 )
 
 # write spmfilter.pc

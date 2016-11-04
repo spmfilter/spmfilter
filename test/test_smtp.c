@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2016 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,7 +24,7 @@
 #include "../src/smf_envelope.h"
 #include "../src/smf_settings.h"
 #include "test.h"
-#include "testdirs.h"
+#include "test_params.h"
 
 int main (int argc, char const *argv[]) {
     SMFSmtpStatus_T *status = NULL;
@@ -35,8 +35,8 @@ int main (int argc, char const *argv[]) {
     printf("Start smf_smtp tests...\n");
     printf("============================================\n");
     printf("This test expects a running SMTP daemon, \n");
-    printf("listening on localhost:25, wich accepts \n");
-    printf("mails for user@example.org\n");
+    printf("listening on localhost:25 or TEST_NEXTHOP value,\n");
+    printf("wich accepts mails for user@example.org\n");
     printf("============================================\n");
 
     printf("* testing smf_smtp_status_new()...\t\t\t\t");
@@ -55,7 +55,7 @@ int main (int argc, char const *argv[]) {
     asprintf(&msg_file, "%s/m0001.txt",SAMPLES_DIR);
 
     printf("* testing smf_smtp_deliver() with file...\t\t\t");
-    smf_envelope_set_nexthop(env, "localhost:25");
+    smf_envelope_set_nexthop(env, TEST_NEXTHOP);
     smf_envelope_set_sender(env, test_email);
     smf_envelope_add_rcpt(env, test_email);
     

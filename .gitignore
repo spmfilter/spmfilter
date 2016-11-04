@@ -2,4 +2,4 @@ build.properties
 build/
 src/spmfilter.pc
 src/spmfilter_config.h
-test/testdirs.h
+test/test_params.h

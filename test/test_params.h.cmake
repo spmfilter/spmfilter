@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2016 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,6 +24,9 @@ extern "C" {
 
 #define SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test/samples"
 #define BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/test"
+
+/* test nexthop for smtp delivery. smtp-sink is a good choice for testing */
+#define TEST_NEXTHOP "${TEST_NEXTHOP}"
 
 #ifdef __cplusplus
 }
