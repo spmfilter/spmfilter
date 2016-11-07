@@ -112,6 +112,7 @@ if (ENABLE_TESTING)
     find_package(Check REQUIRED)
     include_directories(${CHECK_INCLUDES})
     add_subdirectory(test)
+    file(COPY "${CMAKE_SOURCE_DIR}/test/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/test")
 endif(ENABLE_TESTING)
 
 # build stuff in src directory

@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-#define SAMPLES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/test/samples"
+#define SAMPLES_DIR "samples"
 #define BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/test"
 
 /* test nexthop for smtp delivery. smtp-sink is a good choice for testing */
