@@ -142,6 +142,9 @@ set(CPACK_SOURCE_IGNORE_FILES
 "spmfilter-Makefile\\\\.mk"
 "spmfilter\\\\.pc$"
 "spmfilter_config\\\\.h$"
+"Vagrantfile"
+"\\\\.idea"
+"\\\\.vagrant"
 )
 
 include(CPack)
