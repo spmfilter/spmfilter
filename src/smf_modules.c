@@ -580,8 +580,6 @@ char *smf_modules_build_stf_check_part(SMFSettings_T *settings, SMFSession_T *se
     char *mid = NULL;
     char *buf = NULL;
     char *recipient = NULL;
-    int i = 0;
-
     SMFMessage_T *msg = NULL;
     SMFListElem_T *e = NULL;
     msg = smf_envelope_get_message(session->envelope);
