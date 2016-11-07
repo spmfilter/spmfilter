@@ -70,8 +70,8 @@ char *smf_lookup_db4_query(char *database, char *key) {
     ret = dbp->get(dbp, NULL, &db_key, &db_value, 0);
     
     if (ret == 0) {
-        asprintf(&db_res, "%s", (char *)db_value.data);
-        TRACE(TRACE_LOOKUP, "[%p] found value [%s]", dbp, db_res);
+        if (asprintf(&db_res, "%s", (char *)db_value.data) != -1)
+            TRACE(TRACE_LOOKUP, "[%p] found value [%s]", dbp, db_res);
     } else
         TRACE(TRACE_LOOKUP, "[%p] nothing found", dbp);
 

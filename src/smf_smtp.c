@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2010 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2016 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -209,7 +209,6 @@ void smf_smtp_event_cb (smtp_session_t session, int event_no, void *arg,...) {
 SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *msg_file, char *sid) {
     smtp_session_t session;
     smtp_message_t message;
-    smtp_recipient_t recipient;
     auth_context_t authctx = NULL;
     struct sigaction sa;
     const smtp_status_t *retstat;
@@ -241,18 +240,20 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
             smtp_set_server(session, env->nexthop);
         else {
             char *nexthop;
-            asprintf(&nexthop,"%s:25",env->nexthop);
-            smtp_set_server(session,nexthop);
-            free(nexthop);
+            if (asprintf(&nexthop,"%s:25",env->nexthop) != -1) {
+                smtp_set_server(session,nexthop);
+                free(nexthop);
+            }   
         }
     } else {
         smtp_destroy_session(session);
         status->code = -1;
-        asprintf(&status->text,"invalid smtp host");
-        if (sid != NULL)
-            STRACE(TRACE_ERR,sid,status->text);
-        else
-            TRACE(TRACE_ERR,status->text);
+        if (asprintf(&status->text,"invalid smtp host") != -1 ) {
+            if (sid != NULL)
+                STRACE(TRACE_ERR,sid,status->text);
+            else
+                TRACE(TRACE_ERR,status->text);
+        }
         return status;
     }
 
@@ -280,11 +281,14 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
         reverse_path = strdup(env->sender);
     } else {
         /* bounce sender */
-        asprintf(&reverse_path,"<>");
+        if (asprintf(&reverse_path,"<>") == -1)
+            TRACE(TRACE_ERR,"failed to set reverse_path");
     }
 
     if (smtp_set_reverse_path(message,reverse_path) == 0) {
-        asprintf(&status->text,"failed to set reverse_path");
+        if (asprintf(&status->text,"failed to set reverse_path") == -1 ) {
+            TRACE(TRACE_ERR,"failed to set status text");
+        }
         status->code = -1;
         free(reverse_path);
         if (sid != NULL)
@@ -300,7 +304,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
 
     if (msg_file != NULL) {
         if((fp = fopen(msg_file, "r"))==NULL) {
-            asprintf(&status->text,"unable to open file: %s (%d)",strerror(errno), errno);
+            if (asprintf(&status->text,"unable to open file: %s (%d)",strerror(errno), errno) == -1)
+                TRACE(TRACE_ERR,"failed to set status text");
             status->code = -1;
             if (sid != NULL)
                 STRACE(TRACE_ERR,sid,status->text);
@@ -316,7 +321,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
         if (env->message != NULL) {
             msg_string = smf_message_to_string(env->message);
             if (smtp_set_message_str(message,msg_string)==0) {
-                asprintf(&status->text,"failed to create message object");
+                if (asprintf(&status->text,"failed to create message object") == -1)
+                    TRACE(TRACE_ERR,"failed to set status text");
                 status->code = -1;
                 if (sid != NULL)
                     STRACE(TRACE_ERR,sid,status->text);
@@ -327,7 +333,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
                 return status;
             }
         } else {
-            asprintf(&status->text,"no message content provided");
+            if (asprintf(&status->text,"no message content provided") == -1)
+                TRACE(TRACE_ERR,"failed to set status text");
             status->code = -1;
             if (sid != NULL)
                 STRACE(TRACE_ERR,sid,status->text);
@@ -342,7 +349,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     
 
     if (env->recipients->size == 0) {
-        asprintf(&status->text,"no recipients provided");
+        if (asprintf(&status->text,"no recipients provided") == -1)
+            TRACE(TRACE_ERR,"failed to set status text");
         status->code = -1;
         if (sid != NULL)
             STRACE(TRACE_ERR,sid,"DID %s %s",did,status->text);
@@ -369,7 +377,8 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     }
 
     if (!smtp_start_session(session)) {
-        asprintf(&status->text,"failed to initialize smtp session");
+        if (asprintf(&status->text,"failed to initialize smtp session") == -1)
+            TRACE(TRACE_ERR,"failed to set status text");
         status->code = -1;
         if (sid != NULL)
             STRACE(TRACE_ERR,sid,"DID %s %s",did,status->text);

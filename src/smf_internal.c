@@ -179,23 +179,33 @@ int smf_internal_query_user(SMFSettings_T *settings, SMFSession_T *session, char
 char *smf_internal_build_module_path(const char *libdir, const char *modname) {
     char *path = NULL;
     char *t = NULL;
-
+    int i = 0;
     if (strncmp(modname,"lib",3)==0) {
 #ifdef __APPLE__
-        asprintf(&t,"%s.dylib",modname);
+        i = asprintf(&t,"%s.dylib",modname);
 #else
         t = strdup(modname);
 #endif
     } else {
 #ifdef __APPLE__
-        asprintf(&t,"lib%s.dylib", modname);
+        i = asprintf(&t,"lib%s.dylib", modname);
 #else
-        asprintf(&t,"lib%s.so",modname);
+        i = asprintf(&t,"lib%s.so",modname);
 #endif
     }
-    asprintf(&path,"%s/%s",libdir,t);
-    free(t);
 
+    if (i == -1) {
+        if (t != NULL)
+            free(t);
+        return NULL;
+    }
+
+    if (asprintf(&path,"%s/%s",libdir,t) == -1) {
+        free(t);
+        return NULL;
+    }
+    
+    free(t);
     return path;
 }
 

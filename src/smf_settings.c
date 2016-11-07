@@ -437,8 +437,8 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
         }
     /** custom sections */
     } else {
-        asprintf(&tmp,"%s:%s",section,key);
-        smf_dict_set((*settings)->groups,tmp,val);
+        if (asprintf(&tmp,"%s:%s",section,key) != -1)
+            smf_dict_set((*settings)->groups,tmp,val);
     }
 
 }
@@ -652,12 +652,13 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
                         ||(strcmp(clean_section,"ldap")==0)) {
                     _set_config_value(settings,clean_section,clean_key,clean_val);
                 } else {
-                    asprintf(&tmp,"%s:%s",clean_section,clean_key);
-                    if (smf_dict_set((*settings)->groups,tmp,clean_val)!=0) {
-                        errs++;
-                        TRACE(TRACE_ERR,"failed to set config value: %s:%s=>%s");
+                    if (asprintf(&tmp,"%s:%s",clean_section,clean_key) != -1 ) {
+                        if (smf_dict_set((*settings)->groups,tmp,clean_val)!=0) {
+                            errs++;
+                            TRACE(TRACE_ERR,"failed to set config value: %s:%s=>%s");
+                        }
+                        free(tmp);
                     }
-                    free(tmp);
                 }
                 break;
 
@@ -1208,15 +1209,15 @@ int smf_settings_get_syslog_facility(SMFSettings_T *settings) {
 
 int smf_settings_set_smtp_code(SMFSettings_T *settings, int code, char *msg) {
     char *strcode = NULL;
-    int res;
+    int res = -1;
 
     assert(settings);
     assert(msg);
 
-    asprintf(&strcode,"%d",code);
-
-    res = smf_dict_set(settings->smtp_codes,strcode,msg);
-    free(strcode);
+    if (asprintf(&strcode,"%d",code) != -1) {
+        res = smf_dict_set(settings->smtp_codes,strcode,msg);
+        free(strcode);
+    }
     return res;
 }
 
@@ -1226,9 +1227,10 @@ char *smf_settings_get_smtp_code(SMFSettings_T *settings, int code) {
 
     assert(settings);
 
-    asprintf(&strcode,"%d",code);
-    p = smf_dict_get(settings->smtp_codes,strcode);
-    free(strcode);
+    if (asprintf(&strcode,"%d",code) != -1) {
+        p = smf_dict_get(settings->smtp_codes,strcode);
+        free(strcode);
+    }
 
     return p;
 }
@@ -1505,9 +1507,10 @@ char *smf_settings_group_get(SMFSettings_T *settings, char *group_name, char *ke
     assert(group_name);
     assert(key);
 
-    asprintf(&tmp,"%s:%s",group_name,key);
-    s = smf_dict_get(settings->groups,tmp);
-    free(tmp);
+    if (asprintf(&tmp,"%s:%s",group_name,key) != -1) {
+        s = smf_dict_get(settings->groups,tmp);
+        free(tmp);
+    }
 
     return s;
 }
@@ -1520,9 +1523,10 @@ int smf_settings_group_get_integer(SMFSettings_T *settings, char *group_name, ch
     assert(group_name);
     assert(key);
 
-    asprintf(&tmp,"%s:%s",group_name,key);
-    s = smf_dict_get(settings->groups,tmp);
-    free(tmp);
+    if (asprintf(&tmp,"%s:%s",group_name,key) != -1) {
+        s = smf_dict_get(settings->groups,tmp);
+        free(tmp);
+    }
 
     return _get_integer(s);
 }
@@ -1535,9 +1539,10 @@ int smf_settings_group_get_boolean(SMFSettings_T *settings, char *group_name, ch
     assert(group_name);
     assert(key);
 
-    asprintf(&tmp,"%s:%s",group_name,key);
-    s = smf_dict_get(settings->groups,tmp);
-    free(tmp);
+    if (asprintf(&tmp,"%s:%s",group_name,key) != -1 ) {
+        s = smf_dict_get(settings->groups,tmp);
+        free(tmp);
+    }
 
     if (s!=NULL)
         return _get_boolean(s);
@@ -1559,19 +1564,19 @@ SMFList_T *smf_settings_group_get_list(SMFSettings_T *settings, char *group_name
     if (smf_list_new(&list,smf_internal_string_list_destroy)!=0) 
         return NULL;
 
-    asprintf(&tmp,"%s:%s",group_name,key);
-    s = smf_dict_get(settings->groups,tmp);
-    free(tmp);
+    if (asprintf(&tmp,"%s:%s",group_name,key) != -1) {
+        s = smf_dict_get(settings->groups,tmp);
+        free(tmp);
 
-    sl = smf_core_strsplit(s, ";", NULL);
-    p = sl;
-    while(*p != NULL) {
-        tmp = smf_core_strstrip(*p);
-        smf_list_append(list, tmp);
-        p++;
+        sl = smf_core_strsplit(s, ";", NULL);
+        p = sl;
+        while(*p != NULL) {
+            tmp = smf_core_strstrip(*p);
+            smf_list_append(list, tmp);
+            p++;
+        }
+        free(sl);
     }
-    free(sl);
-
     return list;
 }
 

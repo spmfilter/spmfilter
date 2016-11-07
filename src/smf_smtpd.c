@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2016 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -94,9 +94,11 @@ static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSessi
     } else if(retval == 1) {
         if (session->response_msg != NULL) {
             char *smtp_response;
-            asprintf(&smtp_response, "250 %s\r\n",session->response_msg);
-            smf_smtpd_string_reply(session->sock,smtp_response);
-            free(smtp_response);
+            if (asprintf(&smtp_response, "250 %s\r\n",session->response_msg) != -1) {
+                smf_smtpd_string_reply(session->sock,smtp_response);
+                free(smtp_response);
+            } else
+                smf_smtpd_string_reply(session->sock,CODE_250_ACCEPTED);
         } else
             smf_smtpd_string_reply(session->sock,CODE_250_ACCEPTED);
         return(1);
@@ -105,9 +107,11 @@ static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSessi
     } else {
         if (session->response_msg != NULL) {
             char *smtp_response;
-            asprintf(&smtp_response,"%d %s\r\n",retval,session->response_msg);
-            smf_smtpd_string_reply(session->sock,smtp_response);
-            free(smtp_response);
+            if (asprintf(&smtp_response,"%d %s\r\n",retval,session->response_msg) != -1) {
+                smf_smtpd_string_reply(session->sock,smtp_response);
+                free(smtp_response);
+            } else
+                smf_smtpd_code_reply(session->sock,retval,settings->smtp_codes);
         } else
             smf_smtpd_code_reply(session->sock,retval,settings->smtp_codes);
         return(1);
@@ -123,7 +127,8 @@ static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSessi
 /* handle nexthop delivery error */
 static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T *session) {
     char *out = NULL;
-    asprintf(&out, "%d %s\r\n",settings->nexthop_fail_code,settings->nexthop_fail_msg);
+    if (asprintf(&out, "%d %s\r\n",settings->nexthop_fail_code,settings->nexthop_fail_msg) == -1)
+        TRACE(TRACE_ERR,"failed to write nexthop error message");
     smf_smtpd_string_reply(session->sock,out);
     free(out);
     return 0;
@@ -144,14 +149,17 @@ int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SM
 
     if (session->response_msg != NULL) {
         char *smtp_response;
-        asprintf(&smtp_response,"250 %s\r\n",session->response_msg);
-        smf_smtpd_string_reply(session->sock,smtp_response);
-        free(smtp_response);
+        if (asprintf(&smtp_response,"250 %s\r\n",session->response_msg) != -1) {
+            smf_smtpd_string_reply(session->sock,smtp_response);
+            free(smtp_response);
+        } else
+            smf_smtpd_string_reply(session->sock,"250 Ok");
     } else {
-        asprintf(&msg,"250 Ok: processed as %s\r\n",session->id);
-        smf_smtpd_string_reply(session->sock,msg);
-        free(msg);
-    
+        if (asprintf(&msg,"250 Ok: processed as %s\r\n",session->id) != -1) {
+            smf_smtpd_string_reply(session->sock,msg);
+            free(msg);
+        } else
+            smf_smtpd_string_reply(session->sock,"250 Ok");
     }
     return(0);
 }
@@ -218,9 +226,10 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int
 
     if (mid==0) {
         t1 = smf_message_generate_message_id();
-        asprintf(&t2,"Message-Id: %s%s",t1,nl);
-        fputs_or_return(t2, new);
-        free(t2);
+        if (asprintf(&t2,"Message-Id: %s%s",t1,nl) != -1) {
+            fputs_or_return(t2, new);
+            free(t2);
+        }
         free(t1);
     }
 
@@ -234,21 +243,24 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int
     }
 
     if (from==0) {
-        asprintf(&t1,"From: %s%s",session->envelope->sender,nl);
-        fputs_or_return(t1, new);
-        free(t1);
+        if (asprintf(&t1,"From: %s%s",session->envelope->sender,nl) != -1) {
+            fputs_or_return(t1, new);
+            free(t1);
+        }
     }
 
     if (to==0) {
-        asprintf(&t1,"To: undisclosed-recipients:;%s",nl);
-        fputs_or_return(t1, new);
-        free(t1);
+        if (asprintf(&t1,"To: undisclosed-recipients:;%s",nl) != -1) {
+            fputs_or_return(t1, new);
+            free(t1);
+        }
     }
 
     if (headers==0) {
-        asprintf(&t1,"%s",nl);
-        fputs_or_return(t1, new);
-        free(t1);
+        if (asprintf(&t1,"%s",nl) != -1) {
+            fputs_or_return(t1, new);
+            free(t1);
+        }
     }
 
     if((old = fopen(session->message_file, "r"))==NULL) {
@@ -313,12 +325,14 @@ void smf_smtpd_code_reply(int sock, int code, SMFDict_T *codes) {
     char *out = NULL;
     ssize_t len = 0;
 
-    asprintf(&code_str,"%d",code);
-    code_msg = smf_dict_get(codes,code_str);
-    free(code_str);
-
+    if (asprintf(&code_str,"%d",code) != -1) {
+        code_msg = smf_dict_get(codes,code_str);
+        free(code_str);
+    }
+    
     if (code_msg!=NULL) {
-        asprintf(&out,"%d %s\r\n",code,code_msg);
+        if (asprintf(&out,"%d %s\r\n",code,code_msg) == -1)
+            TRACE(TRACE_ERR,"failed to write response message");
     } else {
         switch(code) {
             case 221:
@@ -484,17 +498,14 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     else
         STRACE(TRACE_INFO,session->id, "connect from %s",inet_ntoa(peer.sin_addr));
 
-
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
     smf_smtpd_string_reply(session->sock,"220 %s spmfilter\r\n",hostname);
-
 
     /* set timeout */
     action.sa_handler = smf_smtpd_sig_handler;
     sigemptyset(&action.sa_mask);
     action.sa_flags = 0;
-
     if (sigaction(SIGALRM, &action, NULL) < 0) {
         TRACE(TRACE_ERR,"sigaction (SIGALRM) failed: %s",strerror(errno));
         exit(EXIT_FAILURE);
@@ -504,9 +515,9 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
         exit(EXIT_FAILURE);
     }
     alarm(settings->smtpd_timeout);
-
+    
     for (;;) {
-        if ((br = smf_internal_readline(session->sock,req,MAXLINE,&rl)) < 1) 
+        if ((br = smf_internal_readline(session->sock,req,MAXLINE,&rl)) < 1)
             break; /* EOF or error */
 
         STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
@@ -517,6 +528,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
             state = ST_QUIT;
             break;
         } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
+            TRACE(TRACE_DEBUG,"EHLO");
             /* An EHLO command MAY be issued by a client later in the session.
              * If it is issued after the session begins, the SMTP server MUST
              * clear all buffers and reset the state exactly as if a RSET

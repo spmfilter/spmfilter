@@ -64,8 +64,8 @@ char *smf_lookup_ldap_get_uri(SMFSettings_T *settings, char *host) {
     assert(settings);
 
     if (host != NULL) {
-        asprintf(&uri,"ldap://%s:%d",host,settings->ldap_port);
-        return uri;
+        if (asprintf(&uri,"ldap://%s:%d",host,settings->ldap_port) != -1)
+            return uri;
     }
 
     if(settings->ldap_uri) {
@@ -79,7 +79,8 @@ char *smf_lookup_ldap_get_uri(SMFSettings_T *settings, char *host) {
             s = (char *)smf_list_data(e);
         }
         
-        asprintf(&uri,"ldap://%s:%d",s,settings->ldap_port);
+        if (asprintf(&uri,"ldap://%s:%d",s,settings->ldap_port) == -1)
+            TRACE(TRACE_ERR,"failed to set ldap uri");
     }
 
     return uri;

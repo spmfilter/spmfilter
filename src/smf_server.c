@@ -141,7 +141,10 @@ void smf_server_init(SMFSettings_T *settings, int sd) {
         close(STDOUT_FILENO);
         close(STDERR_FILENO);
 
-        chdir(settings->queue_dir);
+        if (chdir(settings->queue_dir) == -1) {
+            TRACE(TRACE_ERR, "can't change to queue dir %s",settings->queue_dir, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
         umask(0);
     }
 
@@ -196,7 +199,11 @@ int smf_server_listen(SMFSettings_T *settings) {
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
 
-    asprintf(&srvname,"%d",settings->bind_port);
+    if (asprintf(&srvname,"%d",settings->bind_port) == -1) {
+        TRACE(TRACE_ERR, "failed to set server name");
+        return -1;
+    }
+
     if ((status == getaddrinfo(settings->bind_ip,srvname,&hints,&ai)) == 0) {
         for (aptr = ai; aptr != NULL; aptr = aptr->ai_next) {
             if ((sd = socket(aptr->ai_family,aptr->ai_socktype, aptr->ai_protocol)) < 0)
@@ -279,7 +286,7 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
     for (;;) {
         pid = waitpid(-1, &status, 0);
 
-        if (daemon_exit)
+        if (daemon_exit == 1)
             break;
         
         if (pid > 0) {
