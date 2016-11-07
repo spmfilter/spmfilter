@@ -15,6 +15,8 @@
  * License along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _GNU_SOURCE
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <check.h>
@@ -211,26 +213,26 @@ END_TEST
 START_TEST(copy_file) {
     char fn[128];
     int fd, result;
-    char cmd[128];
-    
+    char *cmd;
+
     snprintf(fn, sizeof(fn), "/tmp/test_core_XXXXXX");
     fail_if((fd = mkstemp(fn)) == -1);
     close(fd);
 
     result = smf_core_copy_file(SAMPLES_DIR "/m0001.txt", fn);
     ck_assert_int_eq(result, 1295);
-    
-    snprintf(cmd, sizeof(cmd), "diff " SAMPLES_DIR "/m0001.txt %s", fn);
+    asprintf(&cmd, "diff \"%s/m0001.txt\" \"%s\"",SAMPLES_DIR, fn);
     fail_unless(system(cmd) == 0);
     
     fail_unless(unlink(fn) == 0);
+    free(cmd);
 }
 END_TEST
 
 START_TEST(copy_to_fd) {
     char fn[128];
     int fd, result;
-    char cmd[128];
+    char *cmd;
     
     snprintf(fn, sizeof(fn), "/tmp/test_core_XXXXXX");
     fail_if((fd = mkstemp(fn)) == -1);
@@ -238,8 +240,8 @@ START_TEST(copy_to_fd) {
     result = smf_core_copy_to_fd(SAMPLES_DIR "/m0001.txt", fd);
     close(fd);
     ck_assert_int_eq(result, 1295);
-        
-    snprintf(cmd, sizeof(cmd), "diff " SAMPLES_DIR "/m0001.txt %s", fn);
+
+    asprintf(&cmd, "diff \"%s/m0001.txt\" \"%s\"",SAMPLES_DIR, fn);
     fail_unless(system(cmd) == 0);
     
     fail_unless(unlink(fn) == 0);
