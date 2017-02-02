@@ -31,6 +31,12 @@ if(ESMTP_FOUND)
     link_directories(${ESMTP_LIBRARY_DIR})
 endif(ESMTP_FOUND)
 
+find_package(event REQUIRED)
+if(EVENT_FOUND)
+    include_directories(${EVENT_INCLUDE_DIRS})
+    link_directories(${EVENT_LIBRARY_DIR})
+endif(EVENT_FOUND)
+
 pkg_search_module(LIBCMIME REQUIRED libcmime>=0.1.10)
 if(LIBCMIME_FOUND)
     include_directories(${LIBCMIME_INCLUDE_DIRS})
