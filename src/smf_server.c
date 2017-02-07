@@ -31,11 +31,16 @@
 #include <pwd.h>
 #include <grp.h>
 
+#include <event.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+
 #include "smf_settings.h"
 #include "smf_trace.h"
 #include "smf_server.h"
 #include "smf_modules.h"
 #include "smf_settings_private.h"
+
 
 #define THIS_MODULE "server"
 
@@ -44,6 +49,26 @@ int num_clients = 0;
 int num_spare = 0;
 int daemon_exit = 0;
 int child[] = {};
+
+void setnonblock(int fd) {
+    int flags;
+
+    flags = fcntl(fd, F_GETFL);
+    flags |= O_NONBLOCK;
+    fcntl(fd, F_SETFL, flags);
+}
+
+void buf_error_callback(struct bufferevent *bev, short what, void *arg) {
+    SMFServerBufArgs_T *args = (SMFServerBufArgs_T *)arg;
+    struct client *client = args->client;
+    bufferevent_free(client->buf_ev);
+    close(client->fd);
+    free(client);
+}
+
+void buf_write_callback(struct bufferevent *bev, void *arg) {
+
+}
 
 void smf_server_sig_handler(int sig) {
     /**
@@ -54,15 +79,19 @@ void smf_server_sig_handler(int sig) {
         case SIGTERM:
         case SIGINT:
             daemon_exit = 1;
+            TRACE(TRACE_DEBUG,"DAEMON EXIT [%d] [%d] PID: %d",num_clients, num_spare,getpid());
             break;
         case SIGUSR1:
             num_clients++;
             num_spare--;
+            TRACE(TRACE_DEBUG,"NEW CHILD [%d] [%d] PID: %d",num_clients, num_spare,getpid());
             break;
         case SIGUSR2:
             num_clients--;
+            TRACE(TRACE_DEBUG,"CLOSE CHILD [%d] [%d] PID: %d",num_clients, num_spare,getpid());
             break;
         default:
+            TRACE(TRACE_DEBUG,"DEFAULT");
             break;
     }
 
@@ -98,14 +127,15 @@ void smf_server_sig_init(void) {
 
 }
 
-void smf_server_init(SMFSettings_T *settings, int sd) {
+void smf_server_init(SMFSettings_T *settings) {
     pid_t pid;
     FILE *pidfile;
     
     struct passwd *pwd = NULL;
     struct group *grp = NULL;
    
-    smf_server_sig_init();
+    // TODO: check sighandler
+    //smf_server_sig_init();
 
     /* switch to background */
     if (settings->foreground == 0) {        
@@ -186,11 +216,12 @@ void smf_server_init(SMFSettings_T *settings, int sd) {
     }
 }
 
-int smf_server_listen(SMFSettings_T *settings) {
-    int sd, reuseaddr;
+int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *accept_args) {
+    int fd, reuseaddr;
     int status = -1;
     struct addrinfo hints, *ai, *aptr;
     char *srvname = NULL;
+    struct event accept_event;
 
     assert(settings);
 
@@ -206,17 +237,25 @@ int smf_server_listen(SMFSettings_T *settings) {
 
     if ((status == getaddrinfo(settings->bind_ip,srvname,&hints,&ai)) == 0) {
         for (aptr = ai; aptr != NULL; aptr = aptr->ai_next) {
-            if ((sd = socket(aptr->ai_family,aptr->ai_socktype, aptr->ai_protocol)) < 0)
+            if ((fd = socket(aptr->ai_family,aptr->ai_socktype, aptr->ai_protocol)) < 0)
                 continue;
 
             reuseaddr = 1;
-            setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(int));
+            //setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(int));
 
-            if (bind(sd,aptr->ai_addr,aptr->ai_addrlen) == 0) {
-                if (listen(sd, settings->listen_backlog) >= 0)
+            if (bind(fd,aptr->ai_addr,aptr->ai_addrlen) == 0) {
+                if (listen(fd, settings->listen_backlog) >= 0)
                     break;
             }
-            close(sd);
+            setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,&reuseaddr,sizeof(reuseaddr));
+            setnonblock(fd);
+
+            // TODO: callback richtig setzen
+            event_set(&accept_event, fd, EV_READ|EV_PERSIST, smf_server_accept_handler, accept_args);
+            event_add(&accept_event,NULL);
+
+            event_dispatch();
+            close(fd);
         }
 
         freeaddrinfo(ai);
@@ -231,10 +270,9 @@ int smf_server_listen(SMFSettings_T *settings) {
     }
 
     free(srvname);
-
-    return sd;
+    return fd;
 }
-
+#if 0
 void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
     int pos = 0;
@@ -261,6 +299,7 @@ void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
     }
     num_procs++;
 }
+
 
 void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
@@ -321,13 +360,55 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
 
     unlink(settings->pid_file);
 }
+#endif 
 
-void smf_server_accept_handler(SMFSettings_T *settings, int sd, SMFProcessQueue_T *q, 
-        void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
-    int client;
-    socklen_t slen;
+void buf_read_callback(struct bufferevent *incoming, void *arg) {
+    struct evbuffer *evreturn;
+    char *req;
+
+    req = evbuffer_readline(incoming->input);
+    if (req == NULL)
+        return;
+
+    evreturn = evbuffer_new();
+    evbuffer_add_printf(evreturn, "You said %s\n",req);
+    bufferevent_write_buffer(incoming,evreturn);
+    evbuffer_free(evreturn);
+    free(req);
+}
+
+//void smf_server_accept_handler(SMFSettings_T *settings, int sd, SMFProcessQueue_T *q, 
+//        void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
+void smf_server_accept_handler(int fd, short ev, void *arg) {
+    int client_fd;
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    struct client *client;
+    SMFServerAcceptArgs_T *args = (SMFServerAcceptArgs_T *)arg;
+    SMFServerBufArgs_T *client_args;
+
+    client_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
+    if (client_fd > 0) {
+        TRACE(TRACE_ERR,"accept failed: %s", strerror(errno));
+        return;
+    }
+
+    setnonblock(client_fd);
+    
+    client = calloc(1, sizeof( *client));
+    client->fd = client_fd;
+
+    client_args = (SMFServerBufArgs_T *)calloc(1, sizeof(SMFServerBufArgs_T));
+    client_args->settings = args->settings;
+    client_args->client = client;
+    client->buf_ev = bufferevent_new(client_fd,buf_read_callback,buf_write_callback,buf_error_callback,client_args);
+    
+
+    bufferevent_enable(client->buf_ev, EV_READ);
+
+#if 0
     struct sockaddr_storage sa;
-
+    
     /* process incoming connection in an infinite loop */
     for (;;) {
         slen = sizeof(sa);
@@ -345,6 +426,6 @@ void smf_server_accept_handler(SMFSettings_T *settings, int sd, SMFProcessQueue_
         handle_client_func(settings,client,q);
         close(client);
     }
-
+#endif
 }
 

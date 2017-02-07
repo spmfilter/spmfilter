@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <regex.h>
+#include <event.h>
 
 #include "spmfilter_config.h"
 #include "smf_smtpd.h"
@@ -469,7 +470,21 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
         STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
 }
 
-void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
+//void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
+void smf_handle_client(struct bufferevent *incoming, void *arg) {
+    struct evbuffer *evreturn;
+    char *req;
+
+    req = evbuffer_readline(incoming->input);
+    if (req == NULL)
+        return;
+
+    evreturn = evbuffer_new();
+    evbuffer_add_printf(evreturn, "You said %s\n",req);
+    bufferevent_write_buffer(incoming,evreturn);
+    evbuffer_free(evreturn);
+    free(req);
+#if 0
     char *hostname = NULL;
     int br;
     void *rl = NULL;
@@ -477,6 +492,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     char *req_value = NULL;
     char *t = NULL;
     int state=ST_INIT;
+    SMFServerAcceptArgs_T *args = (SMFServerAcceptArgs_T *)arg;
     SMFSession_T *session = smf_session_new();
     SMFListElem_T *elem = NULL;
     struct tms start_acct;
@@ -671,11 +687,13 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     
     smf_settings_free(settings);
     exit(0);
+#endif
 }
 
 int load(SMFSettings_T *settings) {
     int sd;
     SMFProcessQueue_T *q;
+    SMFServerAcceptArgs_T *args;
 
     /* initialize the modules queue handler */
     q = smf_modules_pqueue_init(
@@ -684,17 +702,23 @@ int load(SMFSettings_T *settings) {
         smf_smtpd_handle_nexthop_error
     );
 
+    args = (SMFServerAcceptArgs_T *)calloc(1, sizeof(SMFServerAcceptArgs_T));
+    args->settings = settings;
+    args->q = q;
+    //args->handle_client_func = smf_smtpd_handle_client;
+
     if(q == NULL) {
         TRACE(TRACE_ERR,"failed to initialize module queue");
         return(-1);
     }
 
-    if ((sd = smf_server_listen(settings)) < 0) {
+    
+    if ((sd = smf_server_listen(settings,args)) < 0) {
         exit(EXIT_FAILURE);
     }
 
-    smf_server_init(settings,sd);
-    smf_server_loop(settings,sd,q,smf_smtpd_handle_client);
+    smf_server_init(settings);
+    //smf_server_loop(settings,sd);
 
     free(q);
     

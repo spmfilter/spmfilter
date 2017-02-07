@@ -18,24 +18,48 @@
 #ifndef _SMF_SERVER_H
 #define _SMF_SERVER_H
 
+#include <event.h>
+
 #include "smf_settings.h"
 #include "smf_modules.h"
 
-typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q);
+
+//typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q);
+
+typedef struct {
+  SMFSettings_T *settings;
+  SMFProcessQueue_T *q;
+//  void (*handle_client_func)(struct bufferevent *incoming, void *arg);
+} SMFServerAcceptArgs_T;
+
+struct client {
+    int fd;
+    struct bufferevent *buf_ev;
+};
+
+typedef struct {
+  SMFSettings_T *settings;
+  struct client *client;
+} SMFServerBufArgs_T;
 
 void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
-void smf_server_init(SMFSettings_T *settings, int sd);
-int smf_server_listen(SMFSettings_T *settings);
-void smf_server_fork(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
-    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
-void smf_server_loop(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
-    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
-void smf_server_accept_handler(
-    SMFSettings_T *settings, 
-    int sd, 
-    SMFProcessQueue_T *q,
-    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
+void smf_server_init(SMFSettings_T *settings);
+int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *args);
 
+
+//void smf_server_fork(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
+//    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
+//void smf_server_loop(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
+//    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
+
+//void smf_server_accept_handler(
+//    SMFSettings_T *settings, 
+//    int sd, 
+//    SMFProcessQueue_T *q,
+//    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
+
+
+void smf_server_accept_handler(int fd, short ev, void *arg);
 #endif  /* _SMF_SERVER_H */
 
