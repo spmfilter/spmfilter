@@ -18,29 +18,66 @@
 #ifndef _SMF_SERVER_H
 #define _SMF_SERVER_H
 
-#include <event.h>
+#include <pthread.h>
 
 #include "smf_settings.h"
 #include "smf_modules.h"
 
+typedef struct worker {
+    pthread_t thread;
+    int terminate;
+    struct workqueue *workqueue;
+    struct worker *prev;
+    struct worker *next;
+} SMFServerWorker_T;
+
+typedef struct job {
+    void (*job_function)(struct job *job);
+    void *user_data;
+    struct job *prev;
+    struct job *next;
+} SMFServerJob_t;
+
+typedef struct workqueue {
+    struct worker *workers;
+    struct job *waiting_jobs;
+    pthread_mutex_t jobs_mutex;
+    pthread_cond_t jobs_cond;
+} SMFServerWorkqueue_T;
+
+int smf_server_workqueue_init(SMFServerWorkqueue_T *workqueue, int numWorkers);
+
+void smf_server_workqueue_shutdown(SMFServerWorkqueue_T *workqueue);
+
+void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, job_t *job);
 
 //typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q);
 
+/**
+ * Struct to carry around connection (client)-specific data.
+ */
 typedef struct {
-  SMFSettings_T *settings;
-  SMFProcessQueue_T *q;
-//  void (*handle_client_func)(struct bufferevent *incoming, void *arg);
-} SMFServerAcceptArgs_T;
-
-struct client {
+    /* The client's socket. */
     int fd;
+
+    /* The event_base for this client. */
+    struct event_base *evbase;
+
+    /* The bufferedevent for this client. */
     struct bufferevent *buf_ev;
-};
+
+    /* The output buffer for this client. */
+    struct evbuffer *output_buffer;
+
+    /* Here you can add your own application-specific attributes which
+     * are connection-specific. */
+} SMFServerClient_T;
 
 typedef struct {
   SMFSettings_T *settings;
-  struct client *client;
-} SMFServerBufArgs_T;
+  SMFServerWorkqueue_T *workqueue;
+  SMFProcessQueue_T *q;
+} SMFServerCallbackArgs_T;
 
 void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
@@ -61,5 +98,8 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *args);
 
 
 void smf_server_accept_handler(int fd, short ev, void *arg);
+
+void buf_error_callback(struct bufferevent *bev, short what, void *arg);
+//void setnonblock(int fd);
 #endif  /* _SMF_SERVER_H */
 

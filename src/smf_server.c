@@ -31,7 +31,6 @@
 #include <pwd.h>
 #include <grp.h>
 
-#include <event.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 
@@ -50,6 +49,108 @@ int num_spare = 0;
 int daemon_exit = 0;
 int child[] = {};
 
+
+#define LL_ADD(item, list) { \
+    item->prev = NULL; \
+    item->next = list; \
+    list = item; \
+}
+
+#define LL_REMOVE(item, list) { \
+    if (item->prev != NULL) item->prev->next = item->next; \
+    if (item->next != NULL) item->next->prev = item->prev; \
+    if (list == item) list = item->next; \
+    item->prev = item->next = NULL; \
+}
+
+static void *smf_server_worker_function(void *ptr) {
+    SMFServerWorker_T *worker = (SMFServerWorker_T *)ptr;
+    job_t *job;
+
+    while (1) {
+        /* Wait until we get notified. */
+        pthread_mutex_lock(&worker->workqueue->jobs_mutex);
+        while (worker->workqueue->waiting_jobs == NULL) {
+            pthread_cond_wait(&worker->workqueue->jobs_cond,
+                              &worker->workqueue->jobs_mutex);
+        }
+        job = worker->workqueue->waiting_jobs;
+        if (job != NULL) {
+            LL_REMOVE(job, worker->workqueue->waiting_jobs);
+        }
+        pthread_mutex_unlock(&worker->workqueue->jobs_mutex);
+
+        /* If we're supposed to terminate, break out of our continuous loop. */
+        if (worker->terminate) break;
+
+        /* If we didn't get a job, then there's nothing to do at this time. */
+        if (job == NULL) continue;
+
+        /* Execute the job. */
+        job->job_function(job);
+    }
+
+    free(worker);
+    pthread_exit(NULL);
+}
+
+int smf_server_workqueue_init(SMFServerWorkqueue_T *workqueue, int numWorkers) {
+    int i;
+    SMFServerWorker_T *worker;
+    pthread_cond_t blank_cond = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t blank_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+    if (numWorkers < 1) numWorkers = 1;
+    memset(workqueue, 0, sizeof(*workqueue));
+    memcpy(&workqueue->jobs_mutex, &blank_mutex,
+           sizeof(workqueue->jobs_mutex));
+    memcpy(&workqueue->jobs_cond, &blank_cond, sizeof(workqueue->jobs_cond));
+
+    for (i = 0; i < numWorkers; i++) {
+        if ((worker = malloc(sizeof(worker_t))) == NULL) {
+            perror("Failed to allocate all workers");
+            return 1;
+        }
+        memset(worker, 0, sizeof(*worker));
+        worker->workqueue = workqueue;
+        if (pthread_create(&worker->thread, NULL, worker_function,
+                           (void *)worker)) {
+            perror("Failed to start all worker threads");
+            free(worker);
+            return 1;
+        }
+        LL_ADD(worker, worker->workqueue->workers);
+    }
+
+    return 0;
+}
+
+void smf_server_workqueue_shutdown(SMFServerWorkqueue_T *workqueue) {
+    SMFServerWorker_T *worker = NULL;
+
+    /* Set all workers to terminate. */
+    for (worker = workqueue->workers; worker != NULL; worker = worker->next) {
+        worker->terminate = 1;
+    }
+
+    /* Remove all workers and jobs from the work queue.
+     * wake up all workers so that they will terminate. */
+    pthread_mutex_lock(&workqueue->jobs_mutex);
+    workqueue->workers = NULL;
+    workqueue->waiting_jobs = NULL;
+    pthread_cond_broadcast(&workqueue->jobs_cond);
+    pthread_mutex_unlock(&workqueue->jobs_mutex);
+}
+
+void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, job_t *job) {
+    /* Add the job to the job queue, and notify a worker. */
+    pthread_mutex_lock(&workqueue->jobs_mutex);
+    LL_ADD(job, workqueue->waiting_jobs);
+    pthread_cond_signal(&workqueue->jobs_cond);
+    pthread_mutex_unlock(&workqueue->jobs_mutex);
+}
+
+/*
 void setnonblock(int fd) {
     int flags;
 
@@ -57,17 +158,13 @@ void setnonblock(int fd) {
     flags |= O_NONBLOCK;
     fcntl(fd, F_SETFL, flags);
 }
+*/
 
 void buf_error_callback(struct bufferevent *bev, short what, void *arg) {
-    SMFServerBufArgs_T *args = (SMFServerBufArgs_T *)arg;
-    struct client *client = args->client;
-    bufferevent_free(client->buf_ev);
-    close(client->fd);
-    free(client);
-}
-
-void buf_write_callback(struct bufferevent *bev, void *arg) {
-
+    SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
+    bufferevent_free(callback_args->client->buf_ev);
+    close(callback_args->client->fd);
+    free(callback_args->client);
 }
 
 void smf_server_sig_handler(int sig) {
@@ -270,6 +367,7 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *accept_arg
     }
 
     free(srvname);
+
     return fd;
 }
 #if 0
@@ -380,31 +478,31 @@ void buf_read_callback(struct bufferevent *incoming, void *arg) {
 //void smf_server_accept_handler(SMFSettings_T *settings, int sd, SMFProcessQueue_T *q, 
 //        void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
 void smf_server_accept_handler(int fd, short ev, void *arg) {
-    int client_fd;
-    struct sockaddr_in client_addr;
-    socklen_t client_len = sizeof(client_addr);
-    struct client *client;
-    SMFServerAcceptArgs_T *args = (SMFServerAcceptArgs_T *)arg;
-    SMFServerBufArgs_T *client_args;
+    //int client_fd;
+    //struct sockaddr_in client_addr;
+    //socklen_t client_len = sizeof(client_addr);
+    //struct client *client;
+   // SMFServerAcceptArgs_T *args = (SMFServerAcceptArgs_T *)arg;
+    //SMFServerBufArgs_T *client_args;
 
-    client_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
-    if (client_fd > 0) {
-        TRACE(TRACE_ERR,"accept failed: %s", strerror(errno));
-        return;
-    }
+    //client_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
+    //if (client_fd > 0) {
+    //    TRACE(TRACE_ERR,"accept failed: %s", strerror(errno));
+    //    return;
+   // }
 
-    setnonblock(client_fd);
+    //setnonblock(client_fd);
     
-    client = calloc(1, sizeof( *client));
-    client->fd = client_fd;
+    //client = calloc(1, sizeof( *client));
+    //client->fd = client_fd;
 
-    client_args = (SMFServerBufArgs_T *)calloc(1, sizeof(SMFServerBufArgs_T));
-    client_args->settings = args->settings;
-    client_args->client = client;
-    client->buf_ev = bufferevent_new(client_fd,buf_read_callback,buf_write_callback,buf_error_callback,client_args);
+//    client_args = (SMFServerBufArgs_T *)calloc(1, sizeof(SMFServerBufArgs_T));
+//    client_args->settings = args->settings;
+//    client_args->client = client;
+//    client->buf_ev = bufferevent_new(client_fd,buf_read_callback,buf_write_callback,buf_error_callback,client_args);
     
 
-    bufferevent_enable(client->buf_ev, EV_READ);
+//    bufferevent_enable(client->buf_ev, EV_READ);
 
 #if 0
     struct sockaddr_storage sa;

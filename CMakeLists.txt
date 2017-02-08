@@ -31,6 +31,12 @@ if(ESMTP_FOUND)
     link_directories(${ESMTP_LIBRARY_DIR})
 endif(ESMTP_FOUND)
 
+find_package(Threads REQUIRED)
+if(THREADS_FOUND)
+    include_directories(${THREADS_INCLUDE_DIRS})
+    link_directories(${THREADS_LIBRARY_DIR})
+endif(THREADS_FOUND)
+
 find_package(event REQUIRED)
 if(EVENT_FOUND)
     include_directories(${EVENT_INCLUDE_DIRS})
