@@ -85,52 +85,61 @@ void smf_smtpd_sig_handler(int sig) {
     exit(0);
 }
 
-static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session) {
-    switch (settings->module_fail) {
-        case 1: return(1);
-        case 2: smf_smtpd_code_reply(session->incoming,552,settings->smtp_codes);
-                return(0);
-        case 3: smf_smtpd_code_reply(session->incoming,451,settings->smtp_codes);
-                return(0);
+static void closeClient(SMFServerClient_T *client) {
+    if (client != NULL) {
+        if (client->fd >= 0) {
+            close(client->fd);
+            client->fd = -1;
+        }
     }
+}
+
+static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session) {
+    //switch (settings->module_fail) {
+    //    case 1: return(1);
+    //    case 2: smf_smtpd_code_reply(client,552,settings->smtp_codes);
+    //            return(0);
+    //    case 3: smf_smtpd_code_reply(client,451,settings->smtp_codes);
+    //            return(0);
+    //}
 
     return 0;
 }
 
 static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSession_T *session, int retval) {
-    if (retval == -1) {
-        switch (settings->module_fail) {
-            case 1: return(1);
-            case 2: smf_smtpd_code_reply(session->incoming,552,settings->smtp_codes);
-                    return(0);
-            case 3: smf_smtpd_code_reply(session->incoming,451,settings->smtp_codes);
-                    return(0);
-        }
-    } else if(retval == 1) {
-        if (session->response_msg != NULL) {
-            char *smtp_response;
-            if (asprintf(&smtp_response, "250 %s\r\n",session->response_msg) != -1) {
-                smf_smtpd_string_reply(session->incoming,smtp_response);
-                free(smtp_response);
-            } else
-                smf_smtpd_string_reply(session->incoming,CODE_250_ACCEPTED);
-        } else
-            smf_smtpd_string_reply(session->incoming,CODE_250_ACCEPTED);
-        return(1);
-    } else if(retval == 2) {
-        return(2);
-    } else {
-        if (session->response_msg != NULL) {
-            char *smtp_response;
-            if (asprintf(&smtp_response,"%d %s\r\n",retval,session->response_msg) != -1) {
-                smf_smtpd_string_reply(session->incoming,smtp_response);
-                free(smtp_response);
-            } else
-                smf_smtpd_code_reply(session->incoming,retval,settings->smtp_codes);
-        } else
-            smf_smtpd_code_reply(session->incoming,retval,settings->smtp_codes);
-        return(1);
-    }
+    //if (retval == -1) {
+    //    switch (settings->module_fail) {
+    //        case 1: return(1);
+    //        case 2: smf_smtpd_code_reply(session->incoming,552,settings->smtp_codes);
+    //                return(0);
+    //        case 3: smf_smtpd_code_reply(session->incoming,451,settings->smtp_codes);
+    //                return(0);
+    //    }
+    //} else if(retval == 1) {
+    //    if (session->response_msg != NULL) {
+    //        char *smtp_response;
+    //        if (asprintf(&smtp_response, "250 %s\r\n",session->response_msg) != -1) {
+    //            smf_smtpd_string_reply(session->incoming,smtp_response);
+    //            free(smtp_response);
+    //        } else
+    //            smf_smtpd_string_reply(session->incoming,CODE_250_ACCEPTED);
+    //    } else
+    //        smf_smtpd_string_reply(session->incoming,CODE_250_ACCEPTED);
+    //    return(1);
+    //} else if(retval == 2) {
+    //    return(2);
+    //} else {
+    //    if (session->response_msg != NULL) {
+    //        char *smtp_response;
+    //        if (asprintf(&smtp_response,"%d %s\r\n",retval,session->response_msg) != -1) {
+    //            smf_smtpd_string_reply(session->incoming,smtp_response);
+    //            free(smtp_response);
+    //        } else
+    //            smf_smtpd_code_reply(session->incoming,retval,settings->smtp_codes);
+    //    } else
+    //        smf_smtpd_code_reply(session->incoming,retval,settings->smtp_codes);
+    //    return(1);
+    //}
 
     /* if none of the above matched, halt processing, this is just
      * for safety purposes
@@ -144,7 +153,7 @@ static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T 
     char *out = NULL;
     if (asprintf(&out, "%d %s\r\n",settings->nexthop_fail_code,settings->nexthop_fail_msg) == -1)
         TRACE(TRACE_ERR,"failed to write nexthop error message");
-    smf_smtpd_string_reply(session->incoming,out);
+    //smf_smtpd_string_reply(session->incoming,out);
     free(out);
     return 0;
 }
@@ -165,16 +174,16 @@ int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SM
     if (session->response_msg != NULL) {
         char *smtp_response;
         if (asprintf(&smtp_response,"250 %s\r\n",session->response_msg) != -1) {
-            smf_smtpd_string_reply(session->incoming,smtp_response);
+            //smf_smtpd_string_reply(session->incoming,smtp_response);
             free(smtp_response);
-        } else
-            smf_smtpd_string_reply(session->incoming,"250 Ok");
+        } //else
+            //smf_smtpd_string_reply(session->incoming,"250 Ok");
     } else {
         if (asprintf(&msg,"250 Ok: processed as %s\r\n",session->id) != -1) {
-            smf_smtpd_string_reply(session->incoming,msg);
+            //smf_smtpd_string_reply(session->incoming,msg);
             free(msg);
-        } else
-            smf_smtpd_string_reply(session->incoming,"250 Ok");
+        } //else
+            //smf_smtpd_string_reply(session->incoming,"250 Ok");
     }
     return(0);
 }
@@ -315,9 +324,9 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int
 }
 
 /* smtp answer with format string as arg */
-void smf_smtpd_string_reply(struct bufferevent *incoming, const char *format, ...) {
-    struct evbuffer *evreturn;
-    ssize_t len = 0;
+void smf_smtpd_string_reply(SMFServerClient_T *client, const char *format, ...) {
+    
+    //ssize_t len = 0;
     //char *out = NULL;
     va_list ap;
 
@@ -328,15 +337,13 @@ void smf_smtpd_string_reply(struct bufferevent *incoming, const char *format, ..
     //    return;
     //}
 
-    evreturn = evbuffer_new();
     //if ((len = smf_internal_writen(sock,out,strlen(out))) != strlen(out)) {
     //    TRACE(TRACE_WARNING, "unexpected size [%d], expected [%d] bytes",strlen(out),len);
     //}
-    evbuffer_add_vprintf(evreturn,format,ap);
-    if ((len = bufferevent_write_buffer(incoming,evreturn)) != 0) {
-        TRACE(TRACE_ERR,"failed to write response message");
+    if (bufferevent_write_buffer(client->buf_ev, client->output_buffer)) {
+        TRACE(TRACE_ERR,"Error sending data to client on fd %d\n", client->fd);
+        closeClient(client);
     }
-    evbuffer_free(evreturn);
     //free(out);
     va_end(ap);
 }
@@ -415,7 +422,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
 	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
         STRACE(TRACE_ERR,session->id,"got no spool file path");
-        smf_smtpd_code_reply(session->incoming, 552,settings->smtp_codes);
+        //smf_smtpd_code_reply(session->incoming, 552,settings->smtp_codes);
         return;
     }
     
@@ -423,12 +430,12 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     spool_file = fopen(session->message_file, "w+");
     if(spool_file == NULL) {
         STRACE(TRACE_ERR,session->id,"unable to open spool file: %s (%d)",strerror(errno), errno);
-        smf_smtpd_code_reply(session->incoming, 451, settings->smtp_codes);
+        //smf_smtpd_code_reply(session->incoming, 451, settings->smtp_codes);
         return;
     }
 
     STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file); 
-    smf_smtpd_string_reply(session->incoming,"354 End data with <CR><LF>.<CR><LF>\r\n");
+    //smf_smtpd_string_reply(session->incoming,"354 End data with <CR><LF>.<CR><LF>\r\n");
 
 // TODO: FIX
 #if 0
@@ -474,11 +481,11 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     
     if ((session->message_size > smf_settings_get_max_size(settings))&&(smf_settings_get_max_size(settings) != 0)) {
         STRACE(TRACE_DEBUG,session->id,"max message size limit exceeded"); 
-        smf_smtpd_string_reply(session->incoming,"552 message size exceeds fixed maximium message size\r\n");
+        //smf_smtpd_string_reply(session->incoming,"552 message size exceeds fixed maximium message size\r\n");
     } else {
         if(smf_message_from_file(&message,session->message_file,1) != 0) {
             STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
-            smf_smtpd_code_reply(session->incoming, 451, settings->smtp_codes);
+            //smf_smtpd_code_reply(session->incoming, 451, settings->smtp_codes);
             return;
         }
 
@@ -503,31 +510,32 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
 }
 
 //void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
-void smf_smtpd_handle_client(struct bufferevent *incoming, void *arg) {
+void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     char *hostname = NULL;
     //int br;
     //void *rl = NULL;
-    char *req;
-    char *req_value = NULL;
-    char *t = NULL;
-    int state=ST_INIT;
+    //char *req;
+    //char *req_value = NULL;
+    //char *t = NULL;
+    //int state=ST_INIT;
     SMFSession_T *session = smf_session_new();
-    SMFListElem_T *elem = NULL;
-    struct tms start_acct;
-    struct sigaction action;
+    //SMFListElem_T *elem = NULL;
+    //struct tms start_acct;
+    //struct sigaction action;
     struct sockaddr_in peer;
     socklen_t peer_len;
     SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
-    struct client *client = callback_args->client;
-    SMFSettings_T *settings = callback_args->settings;
+    SMFServerClient_T *client = callback_args->client;
+    //SMFSettings_T *settings = callback_args->settings;
+    //struct evbuffer *input;
 
     
-    start_acct = smf_internal_init_runtime_stats();
+    // start_acct = smf_internal_init_runtime_stats();
 
     /* send signal to parent that we've got a new client */
-    kill(getppid(),SIGUSR1);
+    //kill(getppid(),SIGUSR1);
 
-    session->incoming = incoming;
+    //session->incoming = incoming;
     //client_sock = client->client_fd;
 
     peer_len = sizeof(peer);
@@ -538,8 +546,8 @@ void smf_smtpd_handle_client(struct bufferevent *incoming, void *arg) {
 
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
-    smf_smtpd_string_reply(incoming,"220 %s spmfilter\r\n",hostname);
-
+    smf_smtpd_string_reply(client,"220 %s spmfilter\r\n",hostname);
+#if 0
     /* set timeout */
     action.sa_handler = smf_smtpd_sig_handler;
     sigemptyset(&action.sa_mask);
@@ -712,6 +720,7 @@ void smf_smtpd_handle_client(struct bufferevent *incoming, void *arg) {
     smf_session_free(session);
     
     smf_settings_free(settings);
+#endif
 }
 
 void buf_write_callback(struct bufferevent *bev, void *arg) {
@@ -762,6 +771,28 @@ static void closeAndFreeClient(SMFServerClient_T *client) {
     }
 }
 
+/**
+ * Called by libevent when the write buffer reaches 0.  We only
+ * provide this because libevent expects it, but we don't use it.
+ */
+void buffered_on_write(struct bufferevent *bev, void *arg) {
+}
+
+/**
+ * Called by libevent when there is an error on the underlying socket
+ * descriptor.
+ */
+void buffered_on_error(struct bufferevent *bev, short what, void *arg) {
+    closeClient((SMFServerClient_T *)arg);
+}
+
+static void server_job_function(SMFServerJob_T *job) {
+    SMFServerClient_T *client = (SMFServerClient_T *)job->user_data;
+
+    event_base_dispatch(client->evbase);
+    closeAndFreeClient(client);
+    free(job);
+}
 
 /**
  * This function will be called by libevent when there is a connection
@@ -772,7 +803,7 @@ void on_accept(evutil_socket_t fd, short ev, void *arg) {
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
     SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
-    SMFServerWorkqueue_T *workqueue = callback_args->workqueue;
+    SMFServerWorkqueue_T *workqueue = (SMFServerWorkqueue_T *)callback_args->workqueue;
     SMFServerClient_T *client;
     SMFServerJob_T *job;
 
@@ -844,8 +875,8 @@ void on_accept(evutil_socket_t fd, short ev, void *arg) {
         closeAndFreeClient(client);
         return;
     }
-    bufferevent_setcb(client->buf_ev, buffered_on_read, buffered_on_write,
-                      buffered_on_error, client);
+    bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, buffered_on_write,
+                      buffered_on_error, callback_args);
 
     /* We have to enable it before our callbacks will be
      * called. */
@@ -853,7 +884,7 @@ void on_accept(evutil_socket_t fd, short ev, void *arg) {
 
     /* Create a job object and add it to the work queue. */
     if ((job = malloc(sizeof(*job))) == NULL) {
-        warn("failed to allocate memory for job state");
+        TRACE(TRACE_WARNING,"failed to allocate memory for job state");
         closeAndFreeClient(client);
         return;
     }
@@ -873,7 +904,7 @@ void killServer(void) {
         perror("Error shutting down server");
     }
     TRACE(TRACE_INFO, "Stopping workers.\n");
-    workqueue_shutdown(&workqueue);
+    smf_server_workqueue_shutdown(&workqueue);
 }
 
 
@@ -969,19 +1000,19 @@ int load(SMFSettings_T *settings) {
     if (smf_server_workqueue_init(&workqueue, NUM_THREADS)) {
         perror("Failed to create work queue");
         close(listenfd);
-        workqueue_shutdown(&workqueue);
+        smf_server_workqueue_shutdown(&workqueue);
         return 1;
     }
 
     callback_args = (SMFServerCallbackArgs_T *)calloc((size_t)1, sizeof(SMFServerCallbackArgs_T));
     callback_args->settings = settings;
     callback_args->q = q;
-    callback_args->workqueue = workqueue;
+    callback_args->workqueue = &workqueue;
 
     /* We now have a listening socket, we create a read event to
      * be notified when a client connects. */
     ev_accept = event_new(evbase_accept, listenfd, EV_READ|EV_PERSIST,
-                          on_accept, (void *)&callback_args);
+                          on_accept, (void *)callback_args);
     event_add(ev_accept, NULL);
 
     TRACE(TRACE_INFO,"Server running.\n");

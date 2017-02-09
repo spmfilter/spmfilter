@@ -65,7 +65,7 @@ int child[] = {};
 
 static void *smf_server_worker_function(void *ptr) {
     SMFServerWorker_T *worker = (SMFServerWorker_T *)ptr;
-    job_t *job;
+    SMFServerJob_T *job;
 
     while (1) {
         /* Wait until we get notified. */
@@ -107,13 +107,13 @@ int smf_server_workqueue_init(SMFServerWorkqueue_T *workqueue, int numWorkers) {
     memcpy(&workqueue->jobs_cond, &blank_cond, sizeof(workqueue->jobs_cond));
 
     for (i = 0; i < numWorkers; i++) {
-        if ((worker = malloc(sizeof(worker_t))) == NULL) {
+        if ((worker = malloc(sizeof(SMFServerWorker_T))) == NULL) {
             perror("Failed to allocate all workers");
             return 1;
         }
         memset(worker, 0, sizeof(*worker));
         worker->workqueue = workqueue;
-        if (pthread_create(&worker->thread, NULL, worker_function,
+        if (pthread_create(&worker->thread, NULL, smf_server_worker_function,
                            (void *)worker)) {
             perror("Failed to start all worker threads");
             free(worker);
@@ -142,7 +142,7 @@ void smf_server_workqueue_shutdown(SMFServerWorkqueue_T *workqueue) {
     pthread_mutex_unlock(&workqueue->jobs_mutex);
 }
 
-void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, job_t *job) {
+void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, SMFServerJob_T *job) {
     /* Add the job to the job queue, and notify a worker. */
     pthread_mutex_lock(&workqueue->jobs_mutex);
     LL_ADD(job, workqueue->waiting_jobs);
@@ -159,13 +159,6 @@ void setnonblock(int fd) {
     fcntl(fd, F_SETFL, flags);
 }
 */
-
-void buf_error_callback(struct bufferevent *bev, short what, void *arg) {
-    SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
-    bufferevent_free(callback_args->client->buf_ev);
-    close(callback_args->client->fd);
-    free(callback_args->client);
-}
 
 void smf_server_sig_handler(int sig) {
     /**
@@ -312,7 +305,7 @@ void smf_server_init(SMFSettings_T *settings) {
         }
     }
 }
-
+#if 0
 int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *accept_args) {
     int fd, reuseaddr;
     int status = -1;
@@ -370,6 +363,7 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *accept_arg
 
     return fd;
 }
+#endif 
 #if 0
 void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
@@ -460,20 +454,6 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
 }
 #endif 
 
-void buf_read_callback(struct bufferevent *incoming, void *arg) {
-    struct evbuffer *evreturn;
-    char *req;
-
-    req = evbuffer_readline(incoming->input);
-    if (req == NULL)
-        return;
-
-    evreturn = evbuffer_new();
-    evbuffer_add_printf(evreturn, "You said %s\n",req);
-    bufferevent_write_buffer(incoming,evreturn);
-    evbuffer_free(evreturn);
-    free(req);
-}
 
 //void smf_server_accept_handler(SMFSettings_T *settings, int sd, SMFProcessQueue_T *q, 
 //        void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {

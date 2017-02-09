@@ -36,7 +36,7 @@ typedef struct job {
     void *user_data;
     struct job *prev;
     struct job *next;
-} SMFServerJob_t;
+} SMFServerJob_T;
 
 typedef struct workqueue {
     struct worker *workers;
@@ -49,7 +49,7 @@ int smf_server_workqueue_init(SMFServerWorkqueue_T *workqueue, int numWorkers);
 
 void smf_server_workqueue_shutdown(SMFServerWorkqueue_T *workqueue);
 
-void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, job_t *job);
+void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, SMFServerJob_T *job);
 
 //typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q);
 
@@ -77,12 +77,13 @@ typedef struct {
   SMFSettings_T *settings;
   SMFServerWorkqueue_T *workqueue;
   SMFProcessQueue_T *q;
+  SMFServerClient_T *client;
 } SMFServerCallbackArgs_T;
 
 void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
 void smf_server_init(SMFSettings_T *settings);
-int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *args);
+//int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *args);
 
 
 //void smf_server_fork(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
@@ -98,8 +99,6 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *args);
 
 
 void smf_server_accept_handler(int fd, short ev, void *arg);
-
-void buf_error_callback(struct bufferevent *bev, short what, void *arg);
 //void setnonblock(int fd);
 #endif  /* _SMF_SERVER_H */
 
