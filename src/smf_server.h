@@ -19,6 +19,7 @@
 #define _SMF_SERVER_H
 
 #include <pthread.h>
+#include <event2/event.h>
 
 #include "smf_settings.h"
 #include "smf_modules.h"
@@ -78,11 +79,15 @@ typedef struct {
   SMFServerWorkqueue_T *workqueue;
   SMFProcessQueue_T *q;
   SMFServerClient_T *client;
+  void (*read_cb)(struct bufferevent *bev, void *arg);
+  void (*write_cb)(struct bufferevent *bev, void *arg);
+  void (*event_cb)(struct bufferevent *bev, short events, void *arg);
 } SMFServerCallbackArgs_T;
 
 void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
 void smf_server_init(SMFSettings_T *settings);
+int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb);
 //int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *args);
 
 
@@ -99,6 +104,7 @@ void smf_server_init(SMFSettings_T *settings);
 
 
 void smf_server_accept_handler(int fd, short ev, void *arg);
+void smf_server_close_client(SMFServerClient_T *client);
 //void setnonblock(int fd);
 #endif  /* _SMF_SERVER_H */
 

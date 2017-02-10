@@ -31,8 +31,10 @@
 #include <pwd.h>
 #include <grp.h>
 
-#include <fcntl.h>
-#include <netinet/in.h>
+#include <event2/bufferevent.h>
+#include <event2/buffer.h>
+#include <event2/util.h>
+#include <event2/listener.h>
 
 #include "smf_settings.h"
 #include "smf_trace.h"
@@ -48,6 +50,15 @@ int num_clients = 0;
 int num_spare = 0;
 int daemon_exit = 0;
 int child[] = {};
+
+// TODO: make configureable
+#define NUM_THREADS 2
+
+static struct event_base *evbase_accept;
+
+static SMFServerWorkqueue_T workqueue;
+/* Signal handler function (defined below). */
+static void sighandler(int signal);
 
 
 #define LL_ADD(item, list) { \
@@ -305,6 +316,298 @@ void smf_server_init(SMFSettings_T *settings) {
         }
     }
 }
+
+void smf_server_close_client(SMFServerClient_T *client) {
+    if (client != NULL) {
+        if (client->fd >= 0) {
+            close(client->fd);
+            client->fd = -1;
+        }
+    }
+}
+
+static void closeAndFreeClient(SMFServerClient_T *client) {
+    if (client != NULL) {
+        smf_server_close_client(client);
+        if (client->buf_ev != NULL) {
+            bufferevent_free(client->buf_ev);
+            client->buf_ev = NULL;
+        }
+        if (client->evbase != NULL) {
+            event_base_free(client->evbase);
+            client->evbase = NULL;
+        }
+        if (client->output_buffer != NULL) {
+            evbuffer_free(client->output_buffer);
+            client->output_buffer = NULL;
+        }
+        free(client);
+    }
+}
+
+static void server_job_function(SMFServerJob_T *job) {
+    SMFServerClient_T *client = (SMFServerClient_T *)job->user_data;
+
+    event_base_dispatch(client->evbase);
+    closeAndFreeClient(client);
+    free(job);
+}
+
+/**
+ * Kill the server.  This function can be called from another thread to kill
+ * the server, causing runServer() to return.
+ */
+void killServer(void) {
+    TRACE(TRACE_INFO, "Stopping socket listener event loop.\n");
+    if (event_base_loopexit(evbase_accept, NULL)) {
+        perror("Error shutting down server");
+    }
+    TRACE(TRACE_INFO, "Stopping workers.\n");
+    smf_server_workqueue_shutdown(&workqueue);
+}
+
+
+static void sighandler(int signal) {
+    TRACE(TRACE_INFO, "Received signal %d: %s.  Shutting down.\n", signal,
+            strsignal(signal));
+    killServer();
+}
+
+/**
+ * This function will be called by libevent when there is a connection
+ * ready to be accepted.
+ */
+void on_accept(struct evconnlistener *listener,
+    evutil_socket_t fd, struct sockaddr *address, int socklen,
+    void *arg) {
+    SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
+    SMFServerWorkqueue_T *workqueue = (SMFServerWorkqueue_T *)callback_args->workqueue;
+    SMFServerClient_T *client;
+    SMFServerJob_T *job;
+
+    /* We got a new connection! Set up a bufferevent for it. */
+    //struct event_base *base = evconnlistener_get_base(listener);
+    //struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    
+    /* Create a client object. */
+    if ((client = malloc(sizeof(*client))) == NULL) {
+        TRACE(TRACE_WARNING,"failed to allocate memory for client state");
+        return;
+    }
+    memset(client, 0, sizeof(*client));
+    client->fd = fd;
+    /* Add any custom code anywhere from here to the end of this function
+     * to initialize your application-specific attributes in the client struct.
+     */
+
+    if ((client->output_buffer = evbuffer_new()) == NULL) {
+        TRACE(TRACE_WARNING,"client output buffer allocation failed");
+        closeAndFreeClient(client);
+        return;
+    }
+
+    if ((client->evbase = event_base_new()) == NULL) {
+        TRACE(TRACE_WARNING,"client event_base creation failed");
+        closeAndFreeClient(client);
+        return;
+    }
+
+    client->buf_ev = bufferevent_socket_new(client->evbase, fd,
+                                            BEV_OPT_CLOSE_ON_FREE);
+    if ((client->buf_ev) == NULL) {
+        TRACE(TRACE_WARNING,"client bufferevent creation failed");
+        closeAndFreeClient(client);
+        return;
+    }
+
+    callback_args->client = client;
+
+
+
+    bufferevent_setcb(client->buf_ev, callback_args->read_cb, callback_args->write_cb, callback_args->event_cb, callback_args);
+
+    bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
+
+    /* Create a job object and add it to the work queue. */
+    if ((job = malloc(sizeof(*job))) == NULL) {
+        TRACE(TRACE_WARNING,"failed to allocate memory for job state");
+        closeAndFreeClient(client);
+        return;
+    }
+    job->job_function = server_job_function;
+    job->user_data = client;
+
+    smf_server_workqueue_add_job(workqueue, job);
+    TRACE(TRACE_DEBUG,"added job to workqueue");
+#if 0
+    int client_fd;
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
+    SMFServerWorkqueue_T *workqueue = (SMFServerWorkqueue_T *)callback_args->workqueue;
+    SMFServerClient_T *client;
+    SMFServerJob_T *job;
+
+    client_fd = accept(fd, (struct sockaddr *)&client_addr, &client_len);
+    if (client_fd < 0) {
+        TRACE(TRACE_WARNING,"accept failed");
+        return;
+    }
+
+    /* Set the client socket to non-blocking mode. */
+    if (evutil_make_socket_nonblocking(client_fd) < 0) {
+        TRACE(TRACE_WARNING,"failed to set client socket to non-blocking");
+        close(client_fd);
+        return;
+    }
+
+    /* Create a client object. */
+    if ((client = malloc(sizeof(*client))) == NULL) {
+        TRACE(TRACE_WARNING,"failed to allocate memory for client state");
+        close(client_fd);
+        return;
+    }
+    memset(client, 0, sizeof(*client));
+    client->fd = client_fd;
+    callback_args->client = client;
+
+    /* Add any custom code anywhere from here to the end of this function
+     * to initialize your application-specific attributes in the client struct.
+     */
+
+    if ((client->output_buffer = evbuffer_new()) == NULL) {
+        TRACE(TRACE_WARNING,"client output buffer allocation failed");
+        closeAndFreeClient(client);
+        return;
+    }
+
+    if ((client->evbase = event_base_new()) == NULL) {
+        TRACE(TRACE_WARNING,"client event_base creation failed");
+        closeAndFreeClient(client);
+        return;
+    }
+
+    /* Create the buffered event.
+     *
+     * The first argument is the file descriptor that will trigger
+     * the events, in this case the clients socket.
+     *
+     * The second argument is the callback that will be called
+     * when data has been read from the socket and is available to
+     * the application.
+     *
+     * The third argument is a callback to a function that will be
+     * called when the write buffer has reached a low watermark.
+     * That usually means that when the write buffer is 0 length,
+     * this callback will be called.  It must be defined, but you
+     * don't actually have to do anything in this callback.
+     *
+     * The fourth argument is a callback that will be called when
+     * there is a socket error.  This is where you will detect
+     * that the client disconnected or other socket errors.
+     *
+     * The fifth and final argument is to store an argument in
+     * that will be passed to the callbacks.  We store the client
+     * object here.
+     */
+    client->buf_ev = bufferevent_socket_new(client->evbase, client_fd,
+                                            BEV_OPT_CLOSE_ON_FREE);
+    if ((client->buf_ev) == NULL) {
+        TRACE(TRACE_WARNING,"client bufferevent creation failed");
+        closeAndFreeClient(client);
+        return;
+    }
+    bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, buffered_on_write,
+                      buffered_on_error, callback_args);
+
+    /* We have to enable it before our callbacks will be
+     * called. */
+    bufferevent_enable(client->buf_ev, EV_READ);
+
+    /* Create a job object and add it to the work queue. */
+    if ((job = malloc(sizeof(*job))) == NULL) {
+        TRACE(TRACE_WARNING,"failed to allocate memory for job state");
+        closeAndFreeClient(client);
+        return;
+    }
+    job->job_function = server_job_function;
+    job->user_data = client;
+
+    smf_server_workqueue_add_job(workqueue, job);
+    TRACE(TRACE_DEBUG,"added job to workqueue");
+#endif
+}
+
+static void
+accept_error_cb(struct evconnlistener *listener, void *ctx)
+{
+        struct event_base *base = evconnlistener_get_base(listener);
+        int err = EVUTIL_SOCKET_ERROR();
+        fprintf(stderr, "Got an error %d (%s) on the listener. "
+                "Shutting down.\n", err, evutil_socket_error_to_string(err));
+
+        event_base_loopexit(base, NULL);
+}
+
+int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb) {
+    struct evconnlistener *listener;
+    struct sockaddr_in listen_addr;
+
+    /* Set signal handlers */
+    // TODO: sighandler in smf_server aufnehmen
+    sigset_t sigset;
+    sigemptyset(&sigset);
+    struct sigaction siginfo = {
+        .sa_handler = sighandler,
+        .sa_mask = sigset,
+        .sa_flags = SA_RESTART,
+    };
+    sigaction(SIGINT, &siginfo, NULL);
+    sigaction(SIGTERM, &siginfo, NULL);
+
+    /* Initialize work queue. */
+    if (smf_server_workqueue_init(&workqueue, NUM_THREADS)) {
+        TRACE(TRACE_ERR,"Failed to create work queue");
+        smf_server_workqueue_shutdown(&workqueue);
+        return -1;
+    }
+
+    cb->workqueue = &workqueue;
+
+    /* Initialize socket */
+    memset(&listen_addr,0,sizeof(listen_addr));
+    listen_addr.sin_family = AF_INET;
+    listen_addr.sin_addr.s_addr = INADDR_ANY;
+    listen_addr.sin_port = htons(settings->bind_port);
+
+    if ((evbase_accept = event_base_new()) == NULL) {
+        TRACE(TRACE_ERR,"Unable to create socket accept event base");
+        smf_server_workqueue_shutdown(&workqueue);
+        return -1;
+    }
+
+    // TODO: listener free?
+    listener = evconnlistener_new_bind(evbase_accept, on_accept, (void *) cb,
+            LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1,
+            (struct sockaddr*)&listen_addr, sizeof(listen_addr));
+    if (!listener) {
+        TRACE(TRACE_ERR,"Couldn't create listener");
+        smf_server_workqueue_shutdown(&workqueue);
+        return -1;
+    }
+    evconnlistener_set_error_cb(listener, accept_error_cb);
+
+
+    TRACE(TRACE_INFO,"Server running.\n");
+
+    /* Start the event loop. */
+    event_base_dispatch(evbase_accept);
+    event_base_free(evbase_accept);
+
+    TRACE(TRACE_INFO,"Server shutdown.\n");
+    return 0;
+}
+
 #if 0
 int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *accept_args) {
     int fd, reuseaddr;
