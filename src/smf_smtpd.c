@@ -749,8 +749,6 @@ int load(SMFSettings_T *settings) {
         TRACE(TRACE_ERR,"failed to setup server");
         return -1;
     }
-    smf_server_init(settings);
-
     
     free(q);
 

@@ -96,14 +96,6 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb);
 //void smf_server_loop(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
 //    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
 
-//void smf_server_accept_handler(
-//    SMFSettings_T *settings, 
-//    int sd, 
-//    SMFProcessQueue_T *q,
-//    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
-
-
-void smf_server_accept_handler(int fd, short ev, void *arg);
 void smf_server_close_client(SMFServerClient_T *client);
 //void setnonblock(int fd);
 #endif  /* _SMF_SERVER_H */
