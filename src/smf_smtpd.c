@@ -493,21 +493,21 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
 
 //void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
 void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
-    char *hostname = NULL;
+    
     //int br;
     //void *rl = NULL;
     //char *req;
     //char *req_value  NULL;
     //char *t = NULL;
     //int state=ST_INIT;
-    SMFSession_T *session = smf_session_new();
+    //
     //SMFListElem_T *elem = NULL;
     //struct tms start_acct;
     //struct sigaction action;
-    struct sockaddr_in peer;
-    socklen_t peer_len;
-    SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
-    SMFServerClient_T *client = callback_args->client;
+    
+    
+    //SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
+    //SMFServerClient_T *client = callback_args->client;
 
     //SMFSettings_T *settings = callback_args->settings;
     //struct evbuffer *input;
@@ -521,15 +521,7 @@ void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     //session->incoming = incoming;
     //client_sock = client->client_fd;
 
-    peer_len = sizeof(peer);
-    if (getpeername(client->fd, (struct sockaddr *)&peer, &peer_len) == -1)
-        TRACE(TRACE_ERR,"getpeername() failed: %s",strerror(errno));
-    else
-        STRACE(TRACE_INFO,session->id, "connect from %s",inet_ntoa(peer.sin_addr));
-
-    hostname = (char *)malloc(MAXHOSTNAMELEN);
-    gethostname(hostname,MAXHOSTNAMELEN);
-    smf_smtpd_string_reply(client,"220 %s spmfilter\r\n",hostname);
+    
 #if 0
     /* set timeout */
     action.sa_handler = smf_smtpd_sig_handler;
@@ -709,8 +701,10 @@ void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
 
 
 
-static void
-smtp_event_cb(struct bufferevent *bev, short events, void *arg) {
+static void smtp_event_cb(struct bufferevent *bev, short events, void *arg) {
+    SMFServerCallbackArgs_T *cb = (SMFServerCallbackArgs_T *)arg;
+    SMFServerClient_T *client = cb->client;
+    TRACE(TRACE_DEBUG,"C: %s",client->engine_data);
     TRACE(TRACE_DEBUG,"smtp_event_cb");
     if (events & BEV_EVENT_ERROR)
         TRACE(TRACE_ERR,"Error from bufferevent");
@@ -719,6 +713,51 @@ smtp_event_cb(struct bufferevent *bev, short events, void *arg) {
     }
 }
 
+/**
+ * This function will be called by libevent when there is a connection
+ * ready to be accepted.
+ */
+void smf_smtpd_accept_handler(struct evconnlistener *listener,
+    evutil_socket_t fd, struct sockaddr *address, int socklen,
+    void *arg) {
+    SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
+    SMFServerWorkqueue_T *workqueue = (SMFServerWorkqueue_T *)callback_args->workqueue;
+    SMFServerClient_T *client = smf_server_client_create(fd);
+    SMFServerJob_T *job;
+    char *hostname = NULL;
+    socklen_t peer_len;
+    struct sockaddr_in peer;
+    SMFSession_T *session = smf_session_new();
+
+    callback_args->client = client;
+    bufferevent_setcb(client->buf_ev, callback_args->read_cb, callback_args->write_cb, callback_args->event_cb, callback_args);
+
+    bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
+
+    /* Create a job object and add it to the work queue. */
+    if ((job = malloc(sizeof(*job))) == NULL) {
+        TRACE(TRACE_WARNING,"failed to allocate memory for job state");
+        smf_server_close_and_free_client(client);
+        return;
+    }
+    job->job_function = smf_server_job_function;
+    job->user_data = client;
+
+    smf_server_workqueue_add_job(workqueue, job);
+    TRACE(TRACE_DEBUG,"added job to workqueue");
+
+    peer_len = sizeof(peer);
+    if (getpeername(client->fd, (struct sockaddr *)&peer, &peer_len) == -1)
+        TRACE(TRACE_ERR,"getpeername() failed: %s",strerror(errno));
+    else
+        STRACE(TRACE_INFO,session->id, "connect from %s",inet_ntoa(peer.sin_addr));
+
+    hostname = (char *)malloc(MAXHOSTNAMELEN);
+    gethostname(hostname,MAXHOSTNAMELEN);
+    smf_smtpd_string_reply(client,"220 %s spmfilter\r\n",hostname);
+
+    // TODO: add session to callback for events
+}
 
 
 int load(SMFSettings_T *settings) {
@@ -737,13 +776,13 @@ int load(SMFSettings_T *settings) {
         return -1;
     }
 
-
     callback_args = (SMFServerCallbackArgs_T *)calloc((size_t)1, sizeof(SMFServerCallbackArgs_T));
     callback_args->settings = settings;
     callback_args->q = q;
     callback_args->read_cb = smf_smtpd_handle_client;
     callback_args->write_cb = NULL;
     callback_args->event_cb = smtp_event_cb;
+    callback_args->accept_cb = smf_smtpd_accept_handler;
     
     if (smf_server_listen(settings,callback_args) != 0) {
         TRACE(TRACE_ERR,"failed to setup server");

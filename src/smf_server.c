@@ -34,7 +34,7 @@
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 #include <event2/util.h>
-#include <event2/listener.h>
+
 
 #include "smf_settings.h"
 #include "smf_trace.h"
@@ -99,7 +99,7 @@ static void *smf_server_worker_function(void *ptr) {
     pthread_exit(NULL);
 }
 
-static void smf_server_close_and_free_client(SMFServerClient_T *client) {
+void smf_server_close_and_free_client(SMFServerClient_T *client) {
     if (client != NULL) {
         smf_server_close_client(client);
         if (client->buf_ev != NULL) {
@@ -118,7 +118,7 @@ static void smf_server_close_and_free_client(SMFServerClient_T *client) {
     }
 }
 
-static void smf_server_job_function(SMFServerJob_T *job) {
+void smf_server_job_function(SMFServerJob_T *job) {
     SMFServerClient_T *client = (SMFServerClient_T *)job->user_data;
 
     event_base_dispatch(client->evbase);
@@ -369,26 +369,13 @@ static void sighandler(int signal) {
     smf_server_kill();
 }
 
-/**
- * This function will be called by libevent when there is a connection
- * ready to be accepted.
- */
-void smf_server_accept_handler(struct evconnlistener *listener,
-    evutil_socket_t fd, struct sockaddr *address, int socklen,
-    void *arg) {
-    SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
-    SMFServerWorkqueue_T *workqueue = (SMFServerWorkqueue_T *)callback_args->workqueue;
+SMFServerClient_T *smf_server_client_create(int fd) {
     SMFServerClient_T *client;
-    SMFServerJob_T *job;
 
-    /* We got a new connection! Set up a bufferevent for it. */
-    //struct event_base *base = evconnlistener_get_base(listener);
-    //struct bufferevent *bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-    
-    /* Create a client object. */
+     /* Create a client object. */
     if ((client = malloc(sizeof(*client))) == NULL) {
         TRACE(TRACE_WARNING,"failed to allocate memory for client state");
-        return;
+        return NULL;
     }
     memset(client, 0, sizeof(*client));
     client->fd = fd;
@@ -399,13 +386,13 @@ void smf_server_accept_handler(struct evconnlistener *listener,
     if ((client->output_buffer = evbuffer_new()) == NULL) {
         TRACE(TRACE_WARNING,"client output buffer allocation failed");
         smf_server_close_and_free_client(client);
-        return;
+        return NULL;
     }
 
     if ((client->evbase = event_base_new()) == NULL) {
         TRACE(TRACE_WARNING,"client event_base creation failed");
         smf_server_close_and_free_client(client);
-        return;
+        return NULL;
     }
 
     client->buf_ev = bufferevent_socket_new(client->evbase, fd,
@@ -413,29 +400,13 @@ void smf_server_accept_handler(struct evconnlistener *listener,
     if ((client->buf_ev) == NULL) {
         TRACE(TRACE_WARNING,"client bufferevent creation failed");
         smf_server_close_and_free_client(client);
-        return;
+        return NULL;
     }
 
-    callback_args->client = client;
-
-
-
-    bufferevent_setcb(client->buf_ev, callback_args->read_cb, callback_args->write_cb, callback_args->event_cb, callback_args);
-
-    bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
-
-    /* Create a job object and add it to the work queue. */
-    if ((job = malloc(sizeof(*job))) == NULL) {
-        TRACE(TRACE_WARNING,"failed to allocate memory for job state");
-        smf_server_close_and_free_client(client);
-        return;
-    }
-    job->job_function = smf_server_job_function;
-    job->user_data = client;
-
-    smf_server_workqueue_add_job(workqueue, job);
-    TRACE(TRACE_DEBUG,"added job to workqueue");
+    return client;
 }
+
+
 
 int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb) {
     struct evconnlistener *listener;
@@ -475,7 +446,7 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb) {
     }
 
     // TODO: listener free?
-    listener = evconnlistener_new_bind(evbase_accept, smf_server_accept_handler, (void *) cb,
+    listener = evconnlistener_new_bind(evbase_accept, cb->accept_cb, (void *) cb,
             LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1,
             (struct sockaddr*)&listen_addr, sizeof(listen_addr));
     if (!listener) {

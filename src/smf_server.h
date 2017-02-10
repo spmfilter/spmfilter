@@ -20,6 +20,7 @@
 
 #include <pthread.h>
 #include <event2/event.h>
+#include <event2/listener.h>
 
 #include "smf_settings.h"
 #include "smf_modules.h"
@@ -47,12 +48,8 @@ typedef struct workqueue {
 } SMFServerWorkqueue_T;
 
 int smf_server_workqueue_init(SMFServerWorkqueue_T *workqueue, int numWorkers);
-
 void smf_server_workqueue_shutdown(SMFServerWorkqueue_T *workqueue);
-
 void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, SMFServerJob_T *job);
-
-//typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q);
 
 /**
  * Struct to carry around connection (client)-specific data.
@@ -70,8 +67,7 @@ typedef struct {
     /* The output buffer for this client. */
     struct evbuffer *output_buffer;
 
-    /* Here you can add your own application-specific attributes which
-     * are connection-specific. */
+    void *engine_data;
 } SMFServerClient_T;
 
 typedef struct {
@@ -82,21 +78,18 @@ typedef struct {
   void (*read_cb)(struct bufferevent *bev, void *arg);
   void (*write_cb)(struct bufferevent *bev, void *arg);
   void (*event_cb)(struct bufferevent *bev, short events, void *arg);
+  void (*accept_cb)(struct evconnlistener *listener,
+    evutil_socket_t fd, struct sockaddr *address, int socklen,void *arg);
 } SMFServerCallbackArgs_T;
 
 void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
 void smf_server_init(SMFSettings_T *settings);
 int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb);
-//int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *args);
-
-
-//void smf_server_fork(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
-//    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
-//void smf_server_loop(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
-//    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
-
 void smf_server_close_client(SMFServerClient_T *client);
-//void setnonblock(int fd);
+void smf_server_close_and_free_client(SMFServerClient_T *client);
+void smf_server_job_function(SMFServerJob_T *job);
+SMFServerClient_T *smf_server_client_create(int fd);
+
 #endif  /* _SMF_SERVER_H */
 
