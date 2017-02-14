@@ -54,7 +54,7 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session,
     int headers, 
     char *nl);
 void smf_smtpd_string_reply(SMFServerClient_T *client, const char *format, ...);
-void smf_smtpd_code_reply(struct bufferevent *incoming, int code, SMFDict_T *codes);
+void smf_smtpd_code_reply(SMFServerClient_T *client, int code, SMFDict_T *codes);
 void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings,SMFProcessQueue_T *q);
 //void smf_smtpd_handle_client(SMFSettings_T *settings, int client,SMFProcessQueue_T *q);
 void smf_smtpd_handle_client(struct bufferevent *bev, void *arg);

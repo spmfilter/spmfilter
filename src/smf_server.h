@@ -35,7 +35,7 @@ typedef struct worker {
 
 typedef struct job {
     void (*job_function)(struct job *job);
-    void *user_data;
+    void *user_data; /**< SMFServerClient_T */
     struct job *prev;
     struct job *next;
 } SMFServerJob_T;
@@ -67,29 +67,30 @@ typedef struct {
     /* The output buffer for this client. */
     struct evbuffer *output_buffer;
 
-    void *engine_data;
+    char *client_addr;
 } SMFServerClient_T;
 
 typedef struct {
   SMFSettings_T *settings;
-  SMFServerWorkqueue_T *workqueue;
+  //SMFServerWorkqueue_T *workqueue;
   SMFProcessQueue_T *q;
   SMFServerClient_T *client;
-  void (*read_cb)(struct bufferevent *bev, void *arg);
-  void (*write_cb)(struct bufferevent *bev, void *arg);
-  void (*event_cb)(struct bufferevent *bev, short events, void *arg);
+  SMFSession_T *session;
+  //void (*read_cb)(struct bufferevent *bev, void *arg);
+  //void (*write_cb)(struct bufferevent *bev, void *arg);
+  //void (*event_cb)(struct bufferevent *bev, short events, void *arg);
   void (*accept_cb)(struct evconnlistener *listener,
     evutil_socket_t fd, struct sockaddr *address, int socklen,void *arg);
-} SMFServerCallbackArgs_T;
+} SMFServerEngineCtx_T;
 
 void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
 void smf_server_init(SMFSettings_T *settings);
-int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb);
+int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *cb);
 void smf_server_close_client(SMFServerClient_T *client);
 void smf_server_close_and_free_client(SMFServerClient_T *client);
 void smf_server_job_function(SMFServerJob_T *job);
-SMFServerClient_T *smf_server_client_create(int fd);
+SMFServerClient_T *smf_server_client_create(int fd, struct sockaddr *addr, int addrlen);
 
 #endif  /* _SMF_SERVER_H */
 

@@ -48,7 +48,7 @@
 // TODO: make configureable
 #define NUM_THREADS 2
 
-static struct event_base *evbase_accept;
+//static struct event_base *evbase;
 
 static SMFServerWorkqueue_T workqueue;
 /* Signal handler function (defined below). */
@@ -82,6 +82,7 @@ static void *smf_server_worker_function(void *ptr) {
         job = worker->workqueue->waiting_jobs;
         if (job != NULL) {
             LL_REMOVE(job, worker->workqueue->waiting_jobs);
+            TRACE(TRACE_DEBUG,"REMOVE JOB");
         }
         pthread_mutex_unlock(&worker->workqueue->jobs_mutex);
 
@@ -101,7 +102,7 @@ static void *smf_server_worker_function(void *ptr) {
 
 void smf_server_close_and_free_client(SMFServerClient_T *client) {
     if (client != NULL) {
-        smf_server_close_client(client);
+        
         if (client->buf_ev != NULL) {
             bufferevent_free(client->buf_ev);
             client->buf_ev = NULL;
@@ -114,6 +115,7 @@ void smf_server_close_and_free_client(SMFServerClient_T *client) {
             evbuffer_free(client->output_buffer);
             client->output_buffer = NULL;
         }
+        smf_server_close_client(client);
         free(client);
     }
 }
@@ -126,6 +128,7 @@ void smf_server_job_function(SMFServerJob_T *job) {
     free(job);
 }
 
+#if 0
 static void smf_server_accept_error_cb(struct evconnlistener *listener, void *ctx) {
     struct event_base *base = evconnlistener_get_base(listener);
     int err = EVUTIL_SOCKET_ERROR();
@@ -134,7 +137,7 @@ static void smf_server_accept_error_cb(struct evconnlistener *listener, void *ct
 
     event_base_loopexit(base, NULL);
 }
-
+#endif
 
 int smf_server_workqueue_init(SMFServerWorkqueue_T *workqueue, int numWorkers) {
     int i;
@@ -355,9 +358,9 @@ void smf_server_close_client(SMFServerClient_T *client) {
  */
 void smf_server_kill(void) {
     TRACE(TRACE_INFO, "Stopping socket listener event loop.\n");
-    if (event_base_loopexit(evbase_accept, NULL)) {
-        perror("Error shutting down server");
-    }
+//    if (event_base_loopexit(evbase, NULL)) {
+//        perror("Error shutting down server");
+//    }
     TRACE(TRACE_INFO, "Stopping workers.\n");
     smf_server_workqueue_shutdown(&workqueue);
 }
@@ -369,8 +372,10 @@ static void sighandler(int signal) {
     smf_server_kill();
 }
 
-SMFServerClient_T *smf_server_client_create(int fd) {
+SMFServerClient_T *smf_server_client_create(int fd, struct sockaddr *addr, int addrlen) {
     SMFServerClient_T *client;
+    char host[NI_MAXHOST];
+    int rv;
 
      /* Create a client object. */
     if ((client = malloc(sizeof(*client))) == NULL) {
@@ -395,6 +400,7 @@ SMFServerClient_T *smf_server_client_create(int fd) {
         return NULL;
     }
 
+    // TODO add BEV_OPT_THREADSAFE
     client->buf_ev = bufferevent_socket_new(client->evbase, fd,
                                             BEV_OPT_CLOSE_ON_FREE);
     if ((client->buf_ev) == NULL) {
@@ -403,14 +409,25 @@ SMFServerClient_T *smf_server_client_create(int fd) {
         return NULL;
     }
 
+    rv = getnameinfo(addr, (socklen_t)addrlen, host, sizeof(host), NULL, 0,
+                   NI_NUMERICHOST);
+    if (rv != 0) {
+        client->client_addr = strdup("(unknown)");
+    } else {
+        client->client_addr = strdup(host);
+    }
+
     return client;
 }
 
 
 
-int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb) {
-    struct evconnlistener *listener;
-    struct sockaddr_in listen_addr;
+int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *cb) {
+    struct addrinfo hints;
+    struct addrinfo *res, *rp;
+    int rv;
+    char *srvname = NULL;
+    struct event_base *evbase;
 
     /* Set signal handlers */
     // TODO: sighandler in smf_server aufnehmen
@@ -425,105 +442,65 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerCallbackArgs_T *cb) {
     sigaction(SIGTERM, &siginfo, NULL);
 
     /* Initialize work queue. */
-    if (smf_server_workqueue_init(&workqueue, NUM_THREADS)) {
-        TRACE(TRACE_ERR,"Failed to create work queue");
-        smf_server_workqueue_shutdown(&workqueue);
-        return -1;
-    }
+    // TODO: readd threading
+    //if (smf_server_workqueue_init(&workqueue, NUM_THREADS)) {
+    //    TRACE(TRACE_ERR,"Failed to create work queue");
+    //    smf_server_workqueue_shutdown(&workqueue);
+    //    return -1;
+    //}
 
-    cb->workqueue = &workqueue;
+    //cb->workqueue = &workqueue;
 
     /* Initialize socket */
-    memset(&listen_addr,0,sizeof(listen_addr));
-    listen_addr.sin_family = AF_INET;
-    listen_addr.sin_addr.s_addr = INADDR_ANY;
-    listen_addr.sin_port = htons(settings->bind_port);
-
-    if ((evbase_accept = event_base_new()) == NULL) {
-        TRACE(TRACE_ERR,"Unable to create socket accept event base");
-        smf_server_workqueue_shutdown(&workqueue);
-        return -1;
-    }
-
-    // TODO: listener free?
-    listener = evconnlistener_new_bind(evbase_accept, cb->accept_cb, (void *) cb,
-            LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1,
-            (struct sockaddr*)&listen_addr, sizeof(listen_addr));
-    if (!listener) {
-        TRACE(TRACE_ERR,"Couldn't create listener");
-        smf_server_workqueue_shutdown(&workqueue);
-        return -1;
-    }
-    evconnlistener_set_error_cb(listener, smf_server_accept_error_cb);
-
-    smf_server_init(settings);
-
-    TRACE(TRACE_INFO,"Server running.\n");
-
-    /* Start the event loop. */
-    event_base_dispatch(evbase_accept);
-    event_base_free(evbase_accept);
-
-    TRACE(TRACE_INFO,"Server shutdown.\n");
-    return 0;
-}
-
-#if 0
-int smf_server_listen(SMFSettings_T *settings, SMFServerAcceptArgs_T *accept_args) {
-    int fd, reuseaddr;
-    int status = -1;
-    struct addrinfo hints, *ai, *aptr;
-    char *srvname = NULL;
-    struct event accept_event;
-
-    assert(settings);
-
-    memset(&hints,0,sizeof(hints));
-    hints.ai_flags = AI_PASSIVE;
+    memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+#ifdef AI_ADDRCONFIG
+    hints.ai_flags |= AI_ADDRCONFIG;
+#endif /* AI_ADDRCONFIG */
 
     if (asprintf(&srvname,"%d",settings->bind_port) == -1) {
         TRACE(TRACE_ERR, "failed to set server name");
         return -1;
     }
 
-    if ((status == getaddrinfo(settings->bind_ip,srvname,&hints,&ai)) == 0) {
-        for (aptr = ai; aptr != NULL; aptr = aptr->ai_next) {
-            if ((fd = socket(aptr->ai_family,aptr->ai_socktype, aptr->ai_protocol)) < 0)
-                continue;
-
-            reuseaddr = 1;
-            //setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(int));
-
-            if (bind(fd,aptr->ai_addr,aptr->ai_addrlen) == 0) {
-                if (listen(fd, settings->listen_backlog) >= 0)
-                    break;
-            }
-            setsockopt(fd, SOL_SOCKET, SO_REUSEADDR,&reuseaddr,sizeof(reuseaddr));
-            setnonblock(fd);
-
-            // TODO: callback richtig setzen
-            event_set(&accept_event, fd, EV_READ|EV_PERSIST, smf_server_accept_handler, accept_args);
-            event_add(&accept_event,NULL);
-
-            event_dispatch();
-            close(fd);
-        }
-
-        freeaddrinfo(ai);
-
-        if (aptr == NULL) {
-            TRACE(TRACE_ERR,"can't listen on port %s: %s", srvname, strerror(errno));
-            return -1;
-        }
-    } else {
-        TRACE(TRACE_ERR,"getaddrinfo failed: %s",gai_strerror(status));
+    rv = getaddrinfo(settings->bind_ip, srvname, &hints, &res);
+    if (rv != 0) {
+        TRACE(TRACE_ERR,"getaddrinfo failed: %s",gai_strerror(rv));
         return -1;
     }
 
-    free(srvname);
+    if ((evbase = event_base_new()) == NULL) {
+        TRACE(TRACE_ERR,"Unable to create socket accept event base");
+        //smf_server_workqueue_shutdown(&workqueue);
+        return -1;
+    }
 
-    return fd;
+    for (rp = res; rp; rp = rp->ai_next) {
+        struct evconnlistener *listener;
+        listener = evconnlistener_new_bind(
+            evbase, cb->accept_cb, (void *) cb, LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE,
+            settings->listen_backlog, rp->ai_addr, (int)rp->ai_addrlen);
+        if (!listener) {
+            TRACE(TRACE_ERR,"Couldn't create listener");
+            //smf_server_workqueue_shutdown(&workqueue);
+            return -1;
+        }
+    }
+  
+    // evconnlistener_set_error_cb(listener, smf_server_accept_error_cb);
+
+    smf_server_init(settings);
+
+    TRACE(TRACE_INFO,"Server running.\n");
+
+    /* Start the event loop. */
+    event_base_dispatch(evbase);
+    event_base_free(evbase);
+
+    free(srvname);
+    TRACE(TRACE_INFO,"Server shutdown.\n");
+    return 0;
 }
-#endif 
+
