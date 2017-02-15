@@ -52,9 +52,6 @@ typedef struct {
   char *helo; /**< client's helo */
   char *xforward_addr; /**< xforward data */
   char *response_msg; /**< custom response message */
-  // FIXME
-  //struct bufferevent *bev; /**< bufferevent **/
-  //struct SMFServerClient_T *client;
   char *id; /**< session id **/
   SMFList_T *local_users; /**< list with local user data */
 } SMFSession_T;

@@ -70,6 +70,7 @@ typedef struct {
   void (*accept_cb)(struct evconnlistener *listener,
     evutil_socket_t fd, struct sockaddr *address, int socklen,void *arg);
   void *engine_data;
+  char *hostname;
 } SMFServerEngineCtx_T;
 
 void smf_server_sig_init(void);

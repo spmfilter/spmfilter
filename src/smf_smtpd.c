@@ -504,9 +504,10 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     SMFSettings_T *settings = ctx->settings;
     SMFSession_T *session = ctx->session;
     SMFServerClient_T *client = ctx->client;
-    //int state = (intptr_t)callback_args->session->engine_data;
+    //int state = (intptr_t)ctx->engine_data;
     struct evbuffer *input;
     char *req = NULL;
+    char *req_value = NULL;
     size_t len;
 
     // TODO catch errors on reading input buffer
@@ -519,12 +520,45 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'quit' received"); 
         smf_smtpd_code_reply(client,221,settings->smtp_codes);
         ctx->engine_data = (void *)ST_QUIT;
+    } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
+        TRACE(TRACE_DEBUG,"EHLO");
+        /* An EHLO command MAY be issued by a client later in the session.
+         * If it is issued after the session begins, the SMTP server MUST
+         * clear all buffers and reset the state exactly as if a RSET
+         * command had been issued.
+         */
+        //alarm(settings->smtpd_timeout);
+            
+        if ((intptr_t)ctx->engine_data != ST_INIT) {
+            smf_session_free(session);
+            /* reinit session */
+            session = smf_session_new();
+            ctx->session = session;
+            STRACE(TRACE_DEBUG,session->id,"session reset, helo/ehlo recieved not in init state");
+        }
+        STRACE(TRACE_DEBUG,session->id,"SMTP: 'helo/ehlo' received");
+        req_value = smf_smtpd_get_req_value(req,4);
+        smf_session_set_helo(session,req_value);
+            
+        if (strcmp(session->helo,"") == 0)  {
+            smf_smtpd_string_reply(client,"501 Syntax: HELO hostname\r\n");
+        } else {
+            STRACE(TRACE_DEBUG,session->id,"session->helo: [%s]",smf_session_get_helo(session));
+
+            if (strncasecmp(req, "ehlo", 4)==0) {
+                smf_smtpd_string_reply(client,
+                     "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",ctx->hostname,settings->max_size);
+            } else {
+                smf_smtpd_string_reply(client,"250 %s\r\n",ctx->hostname);
+            }
+            ctx->engine_data = (void *)ST_HELO;
+        }
+        free(req_value);
     }
 
     //int br;
     //void *rl = NULL;
     //char *req;
-    //char *req_value  NULL;
     //char *t = NULL;
     //int state=ST_INIT;
     //
@@ -570,46 +604,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
 
         STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
 
-        if (strncasecmp(req,"quit",4)==0) {
-            STRACE(TRACE_DEBUG,session->id,"SMTP: 'quit' received"); 
-            smf_smtpd_code_reply(incoming,221,settings->smtp_codes);
-            state = ST_QUIT;
-            //break;
-        } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
-            TRACE(TRACE_DEBUG,"EHLO");
-            /* An EHLO command MAY be issued by a client later in the session.
-             * If it is issued after the session begins, the SMTP server MUST
-             * clear all buffers and reset the state exactly as if a RSET
-             * command had been issued.
-             */
-            alarm(settings->smtpd_timeout);
-            
-            if (state != ST_INIT) {
-                smf_session_free(session);
-                /* reinit session */
-                session = smf_session_new();
-                session->incoming = incoming;
-                STRACE(TRACE_DEBUG,session->id,"session reset, helo/ehlo recieved not in init state");
-            }
-            STRACE(TRACE_DEBUG,session->id,"SMTP: 'helo/ehlo' received");
-            req_value = smf_smtpd_get_req_value(req,4);
-            smf_session_set_helo(session,req_value);
-            
-            if (strcmp(session->helo,"") == 0)  {
-                smf_smtpd_string_reply(incoming,"501 Syntax: HELO hostname\r\n");
-            } else {
-                STRACE(TRACE_DEBUG,session->id,"session->helo: [%s]",smf_session_get_helo(session));
-
-                if (strncasecmp(req, "ehlo", 4)==0) {
-                    smf_smtpd_string_reply(incoming,
-                        "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",hostname,settings->max_size);
-                } else {
-                    smf_smtpd_string_reply(incoming,"250 %s\r\n",hostname);
-                }
-                state = ST_HELO;
-            }
-            
-            free(req_value);
+        
         } else if (strncasecmp(req,"xforward",8)==0) {
             alarm(settings->smtpd_timeout);
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'xforward' received");
@@ -732,11 +727,11 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     //SMFServerWorkqueue_T *workqueue = (SMFServerWorkqueue_T *)callback_args->workqueue;
     SMFServerClient_T *client = smf_server_client_create(fd, addr, addrlen);
     SMFServerJob_T *job;
-    char *hostname = NULL;
     SMFSession_T *session = smf_session_new();
 
     ctx->client = client;
     ctx->session = session;
+    ctx->engine_data = (intptr_t)ST_INIT;
     bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, smf_smtpd_write_cb, smf_server_event_cb, ctx);
     bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
 
@@ -753,9 +748,7 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     TRACE(TRACE_DEBUG,"added job to workqueue");
 
     STRACE(TRACE_INFO,session->id, "connect from %s",client->client_addr);
-    hostname = (char *)malloc(MAXHOSTNAMELEN);
-    gethostname(hostname,MAXHOSTNAMELEN);
-    smf_smtpd_string_reply(client,"220 %s spmfilter\r\n",hostname);
+    smf_smtpd_string_reply(client,"220 %s spmfilter\r\n",ctx->hostname);
 }
 
 
