@@ -55,32 +55,21 @@ void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, SMFServerJob_
  * Struct to carry around connection (client)-specific data.
  */
 typedef struct {
-    /* The client's socket. */
-    int fd;
-
-    /* The event_base for this client. */
-    struct event_base *evbase;
-
-    /* The bufferedevent for this client. */
-    struct bufferevent *buf_ev;
-
-    /* The output buffer for this client. */
-    struct evbuffer *output_buffer;
-
+    int fd; /**< The client's socket. */
+    struct event_base *evbase; /**< The event_base for this client. */
+    struct bufferevent *buf_ev; /**< The bufferedevent for this client. */
     char *client_addr;
 } SMFServerClient_T;
 
 typedef struct {
   SMFSettings_T *settings;
-  //SMFServerWorkqueue_T *workqueue;
+  SMFServerWorkqueue_T *workqueue;
   SMFProcessQueue_T *q;
   SMFServerClient_T *client;
   SMFSession_T *session;
-  //void (*read_cb)(struct bufferevent *bev, void *arg);
-  //void (*write_cb)(struct bufferevent *bev, void *arg);
-  //void (*event_cb)(struct bufferevent *bev, short events, void *arg);
   void (*accept_cb)(struct evconnlistener *listener,
     evutil_socket_t fd, struct sockaddr *address, int socklen,void *arg);
+  void *engine_data;
 } SMFServerEngineCtx_T;
 
 void smf_server_sig_init(void);
@@ -91,6 +80,7 @@ void smf_server_close_client(SMFServerClient_T *client);
 void smf_server_close_and_free_client(SMFServerClient_T *client);
 void smf_server_job_function(SMFServerJob_T *job);
 SMFServerClient_T *smf_server_client_create(int fd, struct sockaddr *addr, int addrlen);
+void smf_server_event_cb(struct bufferevent *bev, short events, void *arg);
 
 #endif  /* _SMF_SERVER_H */
 

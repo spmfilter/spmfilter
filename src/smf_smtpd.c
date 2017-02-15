@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <regex.h>
 #include <stdint.h>
+#include <pthread.h>
 
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
@@ -309,6 +310,7 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int
 void smf_smtpd_string_reply(SMFServerClient_T *client, const char *format, ...) {
     char *out = NULL;
     va_list ap;
+    struct evbuffer *tmp = evbuffer_new();
 
     va_start(ap, format);
     
@@ -317,22 +319,22 @@ void smf_smtpd_string_reply(SMFServerClient_T *client, const char *format, ...) 
         return;
     }
 
-    evbuffer_add(client->output_buffer, out, strlen(out));
-    if (bufferevent_write_buffer(client->buf_ev, client->output_buffer)) {
+    evbuffer_add(tmp, out, strlen(out));
+    if (bufferevent_write_buffer(client->buf_ev, tmp)) {
         TRACE(TRACE_ERR,"Error sending data to client on fd %d\n", client->fd);
         smf_server_close_client(client);
     }
     free(out);
     va_end(ap);
-    evbuffer_free(client->output_buffer);
-    client->output_buffer = NULL;
+    evbuffer_free(tmp);
 }
 
 void smf_smtpd_code_reply(SMFServerClient_T *client, int code, SMFDict_T *codes) {
     char *code_msg = NULL;
     char *code_str = NULL;
     char *out = NULL;
-    
+    struct evbuffer *tmp = evbuffer_new();
+
     if (asprintf(&code_str,"%d",code) != -1) {
         code_msg = smf_dict_get(codes,code_str);
         free(code_str);
@@ -364,9 +366,13 @@ void smf_smtpd_code_reply(SMFServerClient_T *client, int code, SMFDict_T *codes)
         }
     }
 
-    evbuffer_add(client->output_buffer, out, strlen(out));
-    
-
+    evbuffer_add(tmp,out,strlen(out));
+    if (bufferevent_write_buffer(client->buf_ev, tmp)) {
+        TRACE(TRACE_ERR,"Error sending data to client on fd %d\n", client->fd);
+        smf_server_close_client(client);
+    }
+    evbuffer_free(tmp);
+    TRACE(TRACE_DEBUG,"SENT: %s",out);
     free(out);
 }
 
@@ -480,34 +486,24 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
         STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
 }
 
-void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
-    SMFServerEngineCtx_T *callback_args = (SMFServerEngineCtx_T *)arg;
-    SMFServerClient_T *client = callback_args->client;
-    //char *s = NULL;
-    //size_t len = 0;
+static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
+    SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
+    int state = (intptr_t)ctx->engine_data;
 
-    TRACE(TRACE_DEBUG,"WRITE CALLBACK");
-    //evbuffer_copyout(output, s, len);
-    //TRACE(TRACE_DEBUG,"BUF: %s LEN: %d",s,len);
+    TRACE(TRACE_DEBUG,"SMTPD STATE %d", state);
+    if (state == ST_QUIT) {
+        smf_server_close_and_free_client(ctx->client);
+    }
     
-    if (evbuffer_get_length(bufferevent_get_output(bev)) == 0) {
-        TRACE(TRACE_DEBUG,"RETURN");
-        return;
-    }
-    TRACE(TRACE_DEBUG,"BLA");
-    if (bufferevent_write_buffer(client->buf_ev, client->output_buffer)) {
-        TRACE(TRACE_ERR,"Error sending data to client on fd %d\n", client->fd);
-        smf_server_close_client(client);
-    }
-    TRACE(TRACE_DEBUG,"GNA");
+
 }
 
 //void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
-void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
-    SMFServerEngineCtx_T *callback_args = (SMFServerEngineCtx_T *)arg;
-    SMFSettings_T *settings = callback_args->settings;
-    SMFSession_T *session = callback_args->session;
-    SMFServerClient_T *client = callback_args->client;
+static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
+    SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
+    SMFSettings_T *settings = ctx->settings;
+    SMFSession_T *session = ctx->session;
+    SMFServerClient_T *client = ctx->client;
     //int state = (intptr_t)callback_args->session->engine_data;
     struct evbuffer *input;
     char *req = NULL;
@@ -518,13 +514,11 @@ void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     req = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF);
 
     STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
-    STRACE(TRACE_DEBUG,session->id,"CLIENT FD: %d", client->fd);
+
     if (strncasecmp(req,"quit",4)==0) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'quit' received"); 
         smf_smtpd_code_reply(client,221,settings->smtp_codes);
-        //state = ST_QUIT;
-        //smf_server_close_client(client);
-        smf_server_close_and_free_client(client);
+        ctx->engine_data = (void *)ST_QUIT;
     }
 
     //int br;
@@ -727,28 +721,6 @@ void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
 #endif
 }
 
-
-
-
-static void smtp_event_cb(struct bufferevent *bev, short events, void *arg) {
-    SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
-    
-    TRACE(TRACE_DEBUG, "%s connected\n", ctx->client->client_addr);
-#if 0
-    TRACE(TRACE_DEBUG,"EVENT CB");
-    TRACE(TRACE_DEBUG,"Got an event on socket %s%s%s%s",
-            (events&EV_TIMEOUT) ? " timeout" : "",
-            (events&EV_READ)    ? " read" : "",
-            (events&EV_WRITE)   ? " write" : "",
-            (events&EV_SIGNAL)  ? " signal" : "");
-    if (events & BEV_EVENT_ERROR)
-        TRACE(TRACE_ERR,"Error from bufferevent");
-    if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
-        bufferevent_free(bev);
-    }
-#endif
-}
-
 /**
  * This function will be called by libevent when there is a connection
  * ready to be accepted.
@@ -759,16 +731,13 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
     //SMFServerWorkqueue_T *workqueue = (SMFServerWorkqueue_T *)callback_args->workqueue;
     SMFServerClient_T *client = smf_server_client_create(fd, addr, addrlen);
-    //SMFServerJob_T *job;
-    //char *hostname = NULL;
-    //socklen_t peer_len;
-    //struct sockaddr_in peer;
+    SMFServerJob_T *job;
+    char *hostname = NULL;
     SMFSession_T *session = smf_session_new();
 
     ctx->client = client;
     ctx->session = session;
-    bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, smf_smtpd_write_cb, smtp_event_cb, ctx);
-#if 0
+    bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, smf_smtpd_write_cb, smf_server_event_cb, ctx);
     bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
 
     /* Create a job object and add it to the work queue. */
@@ -780,26 +749,19 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     job->job_function = smf_server_job_function;
     job->user_data = client;
 
-    smf_server_workqueue_add_job(workqueue, job);
+    smf_server_workqueue_add_job(ctx->workqueue, job);
     TRACE(TRACE_DEBUG,"added job to workqueue");
 
-    peer_len = sizeof(peer);
-    if (getpeername(client->fd, (struct sockaddr *)&peer, &peer_len) == -1)
-        TRACE(TRACE_ERR,"getpeername() failed: %s",strerror(errno));
-    else
-        STRACE(TRACE_INFO,session->id, "connect from %s",inet_ntoa(peer.sin_addr));
-
+    STRACE(TRACE_INFO,session->id, "connect from %s",client->client_addr);
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
     smf_smtpd_string_reply(client,"220 %s spmfilter\r\n",hostname);
-    callback_args->session->engine_data = (void *)ST_INIT;
-#endif
 }
 
 
 int load(SMFSettings_T *settings) {
     SMFProcessQueue_T *q;
-    SMFServerEngineCtx_T *callback_args;
+    SMFServerEngineCtx_T *ctx;
 
     /* initialize the modules queue handler */
     q = smf_modules_pqueue_init(
@@ -813,15 +775,12 @@ int load(SMFSettings_T *settings) {
         return -1;
     }
 
-    callback_args = (SMFServerEngineCtx_T *)calloc((size_t)1, sizeof(SMFServerEngineCtx_T));
-    callback_args->settings = settings;
-    callback_args->q = q;
-    //callback_args->read_cb = smf_smtpd_handle_client;
-    //callback_args->write_cb = smf_smtpd_write_cb;
-    //callback_args->event_cb = smtp_event_cb;
-    callback_args->accept_cb = smf_smtpd_accept_handler;
+    ctx = (SMFServerEngineCtx_T *)calloc((size_t)1, sizeof(SMFServerEngineCtx_T));
+    ctx->settings = settings;
+    ctx->q = q;
+    ctx->accept_cb = smf_smtpd_accept_handler;
     
-    if (smf_server_listen(settings,callback_args) != 0) {
+    if (smf_server_listen(settings,ctx) != 0) {
         TRACE(TRACE_ERR,"failed to setup server");
         return -1;
     }
