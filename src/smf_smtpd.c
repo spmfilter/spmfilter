@@ -490,12 +490,10 @@ static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
     SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
     int state = (intptr_t)ctx->engine_data;
 
-    TRACE(TRACE_DEBUG,"smtpd engine state: [%d]", state);
     if (state == ST_QUIT) {
         smf_server_close_and_free_client(ctx->client);
     }
     
-
 }
 
 //void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
@@ -526,9 +524,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
          * If it is issued after the session begins, the SMTP server MUST
          * clear all buffers and reset the state exactly as if a RSET
          * command had been issued.
-         */
-        //alarm(settings->smtpd_timeout);
-            
+         */ 
         if ((intptr_t)ctx->engine_data != ST_INIT) {
             smf_session_free(session);
             /* reinit session */
@@ -724,16 +720,20 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     evutil_socket_t fd, struct sockaddr *addr, int addrlen,
     void *arg) {
     SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
-    //SMFServerWorkqueue_T *workqueue = (SMFServerWorkqueue_T *)callback_args->workqueue;
     SMFServerClient_T *client = smf_server_client_create(fd, addr, addrlen);
     SMFServerJob_T *job;
     SMFSession_T *session = smf_session_new();
+    struct timeval tv;
 
     ctx->client = client;
     ctx->session = session;
     ctx->engine_data = (intptr_t)ST_INIT;
     bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, smf_smtpd_write_cb, smf_server_event_cb, ctx);
     bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
+
+    tv.tv_sec = ctx->settings->smtpd_timeout;
+    tv.tv_usec = 0;
+    bufferevent_set_timeouts(client->buf_ev, &tv, &tv);
 
     /* Create a job object and add it to the work queue. */
     if ((job = malloc(sizeof(*job))) == NULL) {

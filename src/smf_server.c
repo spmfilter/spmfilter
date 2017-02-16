@@ -366,7 +366,8 @@ static void sighandler(int signal) {
 /* eventcb for bufferevent */
 void smf_server_event_cb(struct bufferevent *bev, short events, void *arg) {
   SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
-  TRACE(TRACE_DEBUG,"EVENTCB");
+  SMFSession_T *session = ctx->session;
+
   if (events & BEV_EVENT_CONNECTED) {
     TRACE(TRACE_DEBUG,"%s connected",ctx->client->client_addr);
   }
@@ -376,7 +377,12 @@ void smf_server_event_cb(struct bufferevent *bev, short events, void *arg) {
   } else if (events & BEV_EVENT_ERROR) {
     TRACE(TRACE_ERR, "%s network error\n", ctx->client->client_addr);
   } else if (events & BEV_EVENT_TIMEOUT) {
-    TRACE(TRACE_ERR, "%s timeout\n", ctx->client->client_addr);
+    if (session != NULL)
+        STRACE(TRACE_INFO,ctx->session->id,"client %s timeout", ctx->client->client_addr);
+    else
+        TRACE(TRACE_INFO, "client %s timeout", ctx->client->client_addr);
+
+    smf_server_close_and_free_client(ctx->client);
   }
 }
 
@@ -399,7 +405,6 @@ SMFServerClient_T *smf_server_client_create(int fd, struct sockaddr *addr, int a
         return NULL;
     }
 
-    // TODO add BEV_OPT_THREADSAFE
     client->buf_ev = bufferevent_socket_new(client->evbase, fd, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_THREADSAFE );
     if ((client->buf_ev) == NULL) {
         TRACE(TRACE_WARNING,"client bufferevent creation failed");

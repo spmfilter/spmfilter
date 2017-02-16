@@ -58,7 +58,7 @@ typedef struct {
     int fd; /**< The client's socket. */
     struct event_base *evbase; /**< The event_base for this client. */
     struct bufferevent *buf_ev; /**< The bufferedevent for this client. */
-    char *client_addr;
+    char *client_addr; /**< client address */
 } SMFServerClient_T;
 
 typedef struct {
