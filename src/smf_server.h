@@ -61,6 +61,8 @@ typedef struct {
     char *client_addr; /**< client address */
     void *engine_data;
     SMFSession_T *session;
+    SMFSettings_T *settings;
+    SMFProcessQueue_T *q;
 } SMFServerClient_T;
 
 typedef struct {

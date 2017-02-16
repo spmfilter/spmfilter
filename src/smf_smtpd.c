@@ -486,21 +486,21 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
 }
 
 static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
-    SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
-    int state = (intptr_t)ctx->client->engine_data;
+    SMFServerClient_T *client = (SMFServerClient_T *)arg;
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
 
-    if (state == ST_QUIT) {
-        event_base_loopbreak(ctx->client->evbase);
+    if (rtd->state == ST_QUIT) {
+        event_base_loopbreak(client->evbase);
     }
     
 }
 
 //void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
 static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
-    SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
-    SMFSettings_T *settings = ctx->settings;
-    SMFServerClient_T *client = ctx->client;
+    SMFServerClient_T *client = (SMFServerClient_T *)arg;
+    SMFSettings_T *settings = client->settings;
     SMFSession_T *session = client->session;
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
     //int state = (intptr_t)ctx->engine_data;
     struct evbuffer *input;
     char *req = NULL;
@@ -516,7 +516,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     if (strncasecmp(req,"quit",4)==0) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'quit' received"); 
         smf_smtpd_code_reply(client,221,settings->smtp_codes);
-        ctx->client->engine_data = (void *)ST_QUIT;
+        rtd->state = ST_QUIT;
     } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
         TRACE(TRACE_DEBUG,"EHLO");
         /* An EHLO command MAY be issued by a client later in the session.
@@ -524,7 +524,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
          * clear all buffers and reset the state exactly as if a RSET
          * command had been issued.
          */ 
-        if ((intptr_t)client->engine_data != ST_INIT) {
+        if (rtd->state != ST_INIT) {
             smf_session_free(session);
             /* reinit session */
             session = smf_session_new();
@@ -542,11 +542,11 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
 
             if (strncasecmp(req, "ehlo", 4)==0) {
                 smf_smtpd_string_reply(client,
-                     "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",ctx->hostname,settings->max_size);
+                     "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",rtd->hostname,settings->max_size);
             } else {
-                smf_smtpd_string_reply(client,"250 %s\r\n",ctx->hostname);
+                smf_smtpd_string_reply(client,"250 %s\r\n",rtd->hostname);
             }
-            ctx->client->engine_data = (void *)ST_HELO;
+            rtd->state = ST_HELO;
         }
         free(req_value);
     }
@@ -721,13 +721,23 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
     SMFServerClient_T *client = smf_server_client_create(fd, addr, addrlen);
     SMFServerJob_T *job;
+    SMFSmtpdRuntimeData_T *rtd = NULL;
     SMFSession_T *session = smf_session_new();
     struct timeval tv;
 
-    ctx->client = client;
+    if ((rtd = malloc(sizeof(*rtd))) == NULL) {
+        TRACE(TRACE_ERR,"failed to allocate memory for smtpd runtime data");
+        return;
+    }
+    rtd->state = ST_INIT;
+    rtd->hostname = (char *)malloc(MAXHOSTNAMELEN);
+    gethostname(rtd->hostname,MAXHOSTNAMELEN);
+
     client->session = session;
-    client->engine_data = (intptr_t)ST_INIT;
-    bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, smf_smtpd_write_cb, smf_server_event_cb, ctx);
+    client->settings = ctx->settings;
+    client->q = ctx->q;
+    client->engine_data = (void *)rtd;
+    bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, smf_smtpd_write_cb, smf_server_event_cb, client);
     bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
 
     tv.tv_sec = ctx->settings->smtpd_timeout;
@@ -747,7 +757,7 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     TRACE(TRACE_DEBUG,"added job to workqueue");
 
     STRACE(TRACE_INFO,session->id, "connect from %s",client->client_addr);
-    smf_smtpd_string_reply(client,"220 %s spmfilter\r\n",ctx->hostname);
+    smf_smtpd_string_reply(client,"220 %s spmfilter\r\n",rtd->hostname);
 }
 
 

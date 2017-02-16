@@ -426,8 +426,6 @@ SMFServerClient_T *smf_server_client_create(int fd, struct sockaddr *addr, int a
     return client;
 }
 
-
-
 int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
     struct addrinfo hints;
     struct addrinfo *res, *rp;
@@ -454,8 +452,6 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
     }
 
     ctx->workqueue = &workqueue;
-    ctx->hostname = (char *)malloc(MAXHOSTNAMELEN);
-    gethostname(ctx->hostname,MAXHOSTNAMELEN);
 
     /* Initialize socket */
     memset(&hints, 0, sizeof(hints));
