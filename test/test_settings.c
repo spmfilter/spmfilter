@@ -317,23 +317,12 @@ int main (int argc, char const *argv[]) {
     } 
     printf("passed\n");
 
-    printf("* testing smf_settings_set_max_childs()...\t\t");
-    smf_settings_set_max_childs(settings, 30);
+    printf("* testing smf_settings_set_num_workers()...\t\t");
+    smf_settings_set_num_workers(settings, 5);
     printf("passed\n");
 
-    printf("* testing smf_settings_get_max_childs()...\t\t");
-    if(smf_settings_get_max_childs(settings) != 30) {
-        printf("failed\n");
-        return -1;
-    }
-    printf("passed\n");
-
-    printf("* testing smf_settings_set_spare_childs()...\t\t");
-    smf_settings_set_spare_childs(settings, 2);
-    printf("passed\n");
-
-    printf("* testing smf_settings_get_spare_childs()...\t\t");
-    if(smf_settings_get_spare_childs(settings) != 2) {
+    printf("* testing smf_settings_get_num_workers()...\t\t");
+    if(smf_settings_get_num_workers(settings) != 5) {
         printf("failed\n");
         return -1;
     }

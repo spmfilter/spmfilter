@@ -168,11 +168,8 @@ If true, spmfilter will use persistent connections to sql or ldap server.
 - **bind_port**<br/>
   Port to bind to
 
-- **max_childs**<br/>
-  Maximum number of child processes allowed
-
-- **spare_childs**<br/>
-  Unused children to always have available
+- **num_workers**<br/>
+  Number of worker threads
 
 - **listen_backlog**<br/>
   The maximum length of the queue of pending connections
@@ -306,8 +303,7 @@ backend = sql
 backend_connection = balance
 bind_ip = 127.0.0.1
 bind_port = 10025
-spare_childs = 5
-max_childs = 15
+num_workers = 2
 pid_file = /var/run/spmfilter.pid
 user = nobody
 group = mail

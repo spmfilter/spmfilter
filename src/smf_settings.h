@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2017 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -85,8 +85,7 @@ typedef struct {
     int foreground; /**< run daemon in foreground */
     char *user; /**< run daemon as user */
     char *group; /**< run daemon as group */
-    int max_childs; /**< maximum number of allowed processes (default 10) */
-    int spare_childs; /**< number of spare childs (default 2) */
+    int num_workers; /**< number of worker threads */
     int syslog_facility; /**< syslog facility **/
 
     SMFDict_T *smtp_codes; /**< user defined smtp return codes */
@@ -499,36 +498,20 @@ void smf_settings_set_group(SMFSettings_T *settings, char *group);
 char *smf_settings_get_group(SMFSettings_T *settings);
 
 /*!
- * @fn void smf_settings_set_max_childs(SMFSettings_T *settings, int max_childs)
- * @brief Set the number of maximal allowed processes
+ * @fn void smf_settings_set_num_workers(SMFSettings_T *settings, int num_workers)
+ * @brief Set the number of woker threads
  * @param settings a SMFSettings_T object
- * @param max_childs number of processes
+ * @param num_workers number of woker threads
  */
-void smf_settings_set_max_childs(SMFSettings_T *settings, int max_childs);
+void smf_settings_set_num_workers(SMFSettings_T *settings, int num_workers);
 
 /*!
- * @fn int smf_settings_get_max_childs(SMFSettings_T *settings)
- * @brief Get number of maxmimal allowed processes
+ * @fn int smf_settings_get_num_workers(SMFSettings_T *settings)
+ * @brief Get number of worker threads
  * @param settings a SMFSettings_T object
- * @returns number of processes
+ * @returns number of worker threads
  */
-int smf_settings_get_max_childs(SMFSettings_T *settings);
-
-/*!
- * @fn void smf_settings_set_spare_childs(SMFSettings_T *settings, int spare_childs)
- * @brief Set the number of spare child processes
- * @param settings a SMFSettings_T object
- * @param spare_childs number of spare processes
- */
-void smf_settings_set_spare_childs(SMFSettings_T *settings, int spare_childs);
-
-/*!
- * @fn int smf_settings_get_spare_childs(SMFSettings_T *settings)
- * @brief Get number of spare processes
- * @param settings a SMFSettings_T object
- * @returns number of spare processes
- */
-int smf_settings_get_spare_childs(SMFSettings_T *settings);
+int smf_settings_get_num_workers(SMFSettings_T *settings);
 
 /*!
  * @fn void smf_settings_set_syslog_facility(SMFSettings_T *settings, char *facility)

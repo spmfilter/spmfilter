@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2017 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -45,9 +45,6 @@
 
 
 #define THIS_MODULE "server"
-
-// TODO: make configureable
-#define NUM_THREADS 2
 
 static struct event_base *evbase;
 static SMFServerWorkqueue_T workqueue;
@@ -442,7 +439,7 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
     sigaction(SIGTERM, &siginfo, NULL);
 
     /* Initialize work queue. */
-    if (smf_server_workqueue_init(&workqueue, NUM_THREADS)) {
+    if (smf_server_workqueue_init(&workqueue, settings->num_workers)) {
         TRACE(TRACE_ERR,"Failed to create work queue");
         smf_server_workqueue_shutdown(&workqueue);
         return -1;
@@ -471,7 +468,7 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
         TRACE(TRACE_ERR,"getaddrinfo failed: %s",gai_strerror(rv));
         return -1;
     }
-    
+
     evthread_use_pthreads();
     if ((evbase = event_base_new()) == NULL) {
         TRACE(TRACE_ERR,"Unable to create socket accept event base");

@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2017 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -260,12 +260,9 @@ void _set_config_value(SMFSettings_T **settings, char *section, char *key, char 
                 free((*settings)->group);
 
             (*settings)->group = strdup(val);
-        /** [global]max_childs **/
-        } else if (strcmp(key,"max_childs")==0) {
-            (*settings)->max_childs = _get_integer(val);
-        /** [global]spare_childs **/
-        } else if (strcmp(key,"spare_childs")==0) {
-            (*settings)->spare_childs = _get_integer(val);
+        /** [global]num_workers **/
+        } else if (strcmp(key,"num_workers")==0) {
+            (*settings)->num_workers = _get_integer(val);
         /** [global]lookup_persistent **/
         } else if (strcmp(key,"lookup_persistent")==0) {
             (*settings)->lookup_persistent = _get_boolean(val);
@@ -470,8 +467,7 @@ SMFSettings_T *smf_settings_new(void) {
     settings->foreground = 0;
     settings->user = NULL;
     settings->group = NULL;
-    settings->max_childs = 10;
-    settings->spare_childs = 2;
+    settings->num_workers = 2;
     settings->lookup_persistent = 0;
     settings->syslog_facility = LOG_MAIL;
 
@@ -773,8 +769,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     TRACE(TRACE_DEBUG, "settings->foreground: [%d]", (*settings)->foreground);
     TRACE(TRACE_DEBUG, "settings->user: [%s]", (*settings)->user);
     TRACE(TRACE_DEBUG, "settings->group: [%s]", (*settings)->group);
-    TRACE(TRACE_DEBUG, "settings->max_childs: [%d]", (*settings)->max_childs);
-    TRACE(TRACE_DEBUG, "settings->spare_childs: [%d]", (*settings)->spare_childs);
+    TRACE(TRACE_DEBUG, "settings->num_wokers: [%d]", (*settings)->num_workers);
     TRACE(TRACE_DEBUG, "settings->lookup_persistent: [%d]", (*settings)->lookup_persistent);
     TRACE(TRACE_DEBUG, "settings->syslog_facility: [%d]", (*settings)->syslog_facility);
 
@@ -1141,24 +1136,14 @@ char *smf_settings_get_group(SMFSettings_T *settings) {
     return settings->group;
 }
 
-void smf_settings_set_max_childs(SMFSettings_T *settings, int max_childs) {
+void smf_settings_set_num_workers(SMFSettings_T *settings, int num_workers) {
     assert(settings);
-    settings->max_childs = max_childs;
+    settings->num_workers = num_workers;
 }
 
-int smf_settings_get_max_childs(SMFSettings_T *settings) {
+int smf_settings_get_num_workers(SMFSettings_T *settings) {
     assert(settings);
-    return settings->max_childs;
-}
-
-void smf_settings_set_spare_childs(SMFSettings_T *settings, int spare_childs) {
-    assert(settings);
-    settings->spare_childs = spare_childs;
-}
-
-int smf_settings_get_spare_childs(SMFSettings_T *settings) {
-    assert(settings);
-    return settings->spare_childs;
+    return settings->num_workers;
 }
 
 void smf_settings_set_syslog_facility(SMFSettings_T *settings, char *facility) {

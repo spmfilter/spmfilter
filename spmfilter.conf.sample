@@ -74,11 +74,8 @@ bind_ip = 127.0.0.1
 # Port to bind to
 bind_port = 10025
 
-# Maximum number of child processes allowed
-max_childs = 15
-
-# Unused children to always have availale
-spare_childs = 5
+# Number of worker threads (default 2)
+num_workers = 5
 
 # The maximum length of the queue of pending connections
 #listen_backlog = 

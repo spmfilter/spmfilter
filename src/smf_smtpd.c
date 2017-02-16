@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2016 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2017 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -490,7 +490,7 @@ static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
     SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
     int state = (intptr_t)ctx->engine_data;
 
-    TRACE(TRACE_DEBUG,"SMTPD STATE %d", state);
+    TRACE(TRACE_DEBUG,"smtpd engine state: [%d]", state);
     if (state == ST_QUIT) {
         smf_server_close_and_free_client(ctx->client);
     }

@@ -142,11 +142,8 @@ The IP addresses the daemon will bind to
 .IP "\fBbind_port\fR"
 Port to bind to
 
-.IP "\fBmax_childs\fR"
-Maximum number of child processes allowed
-
-.IP "\fBspare_childs\fR"
-Unused children to always have availale
+.IP "\fBnum_workers\fR"
+Number of worker threads (default 2)
 
 .IP "\fBlisten_backlog\fR"
 The maximum length of the queue of pending connections
@@ -285,8 +282,7 @@ backend = sql
 backend_connection = balance
 bind_ip = 127.0.0.1
 bind_port = 10025
-spare_childs = 5
-max_childs = 15
+num_workers = 2
 pid_file = /var/run/spmfilter.pid
 user = nobody
 group = mail
