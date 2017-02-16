@@ -34,6 +34,7 @@
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 #include <event2/util.h>
+#include <event2/thread.h>
 
 
 #include "smf_settings.h"
@@ -402,7 +403,7 @@ SMFServerClient_T *smf_server_client_create(int fd, struct sockaddr *addr, int a
     }
 
     // TODO add BEV_OPT_THREADSAFE
-    client->buf_ev = bufferevent_socket_new(client->evbase, fd, BEV_OPT_CLOSE_ON_FREE );
+    client->buf_ev = bufferevent_socket_new(client->evbase, fd, BEV_OPT_CLOSE_ON_FREE | BEV_OPT_THREADSAFE );
     if ((client->buf_ev) == NULL) {
         TRACE(TRACE_WARNING,"client bufferevent creation failed");
         smf_server_close_and_free_client(client);
@@ -470,7 +471,8 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
         TRACE(TRACE_ERR,"getaddrinfo failed: %s",gai_strerror(rv));
         return -1;
     }
-
+    
+    evthread_use_pthreads();
     if ((evbase = event_base_new()) == NULL) {
         TRACE(TRACE_ERR,"Unable to create socket accept event base");
         smf_server_workqueue_shutdown(&workqueue);
