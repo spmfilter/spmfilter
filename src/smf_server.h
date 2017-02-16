@@ -59,18 +59,18 @@ typedef struct {
     struct event_base *evbase; /**< The event_base for this client. */
     struct bufferevent *buf_ev; /**< The bufferedevent for this client. */
     char *client_addr; /**< client address */
+    void *engine_data;
+    SMFSession_T *session;
 } SMFServerClient_T;
 
 typedef struct {
-  SMFSettings_T *settings;
-  SMFServerWorkqueue_T *workqueue;
-  SMFProcessQueue_T *q;
-  SMFServerClient_T *client;
-  SMFSession_T *session;
-  void (*accept_cb)(struct evconnlistener *listener,
-    evutil_socket_t fd, struct sockaddr *address, int socklen,void *arg);
-  void *engine_data;
-  char *hostname;
+    SMFSettings_T *settings;
+    SMFServerWorkqueue_T *workqueue;
+    SMFProcessQueue_T *q;
+    SMFServerClient_T *client;
+    void (*accept_cb)(struct evconnlistener *listener,
+        evutil_socket_t fd, struct sockaddr *address, int socklen,void *arg);
+    char *hostname;
 } SMFServerEngineCtx_T;
 
 void smf_server_sig_init(void);

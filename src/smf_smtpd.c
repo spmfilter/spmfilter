@@ -372,7 +372,6 @@ void smf_smtpd_code_reply(SMFServerClient_T *client, int code, SMFDict_T *codes)
         smf_server_close_client(client);
     }
     evbuffer_free(tmp);
-    TRACE(TRACE_DEBUG,"SENT: %s",out);
     free(out);
 }
 
@@ -488,10 +487,10 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
 
 static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
     SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
-    int state = (intptr_t)ctx->engine_data;
+    int state = (intptr_t)ctx->client->engine_data;
 
     if (state == ST_QUIT) {
-        smf_server_close_and_free_client(ctx->client);
+        event_base_loopbreak(ctx->client->evbase);
     }
     
 }
@@ -500,8 +499,8 @@ static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
 static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
     SMFSettings_T *settings = ctx->settings;
-    SMFSession_T *session = ctx->session;
     SMFServerClient_T *client = ctx->client;
+    SMFSession_T *session = client->session;
     //int state = (intptr_t)ctx->engine_data;
     struct evbuffer *input;
     char *req = NULL;
@@ -517,7 +516,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     if (strncasecmp(req,"quit",4)==0) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'quit' received"); 
         smf_smtpd_code_reply(client,221,settings->smtp_codes);
-        ctx->engine_data = (void *)ST_QUIT;
+        ctx->client->engine_data = (void *)ST_QUIT;
     } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
         TRACE(TRACE_DEBUG,"EHLO");
         /* An EHLO command MAY be issued by a client later in the session.
@@ -525,11 +524,11 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
          * clear all buffers and reset the state exactly as if a RSET
          * command had been issued.
          */ 
-        if ((intptr_t)ctx->engine_data != ST_INIT) {
+        if ((intptr_t)client->engine_data != ST_INIT) {
             smf_session_free(session);
             /* reinit session */
             session = smf_session_new();
-            ctx->session = session;
+            client->session = session;
             STRACE(TRACE_DEBUG,session->id,"session reset, helo/ehlo recieved not in init state");
         }
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'helo/ehlo' received");
@@ -547,7 +546,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
             } else {
                 smf_smtpd_string_reply(client,"250 %s\r\n",ctx->hostname);
             }
-            ctx->engine_data = (void *)ST_HELO;
+            ctx->client->engine_data = (void *)ST_HELO;
         }
         free(req_value);
     }
@@ -726,8 +725,8 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     struct timeval tv;
 
     ctx->client = client;
-    ctx->session = session;
-    ctx->engine_data = (intptr_t)ST_INIT;
+    client->session = session;
+    client->engine_data = (intptr_t)ST_INIT;
     bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, smf_smtpd_write_cb, smf_server_event_cb, ctx);
     bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
 

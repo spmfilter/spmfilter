@@ -107,7 +107,10 @@ void smf_server_close_and_free_client(SMFServerClient_T *client) {
             event_base_free(client->evbase);
             client->evbase = NULL;
         }
-
+        if (client->session != NULL) {
+            smf_session_free(client->session);
+            client->session = NULL;
+        }
         smf_server_close_client(client);
         free(client);
     }
@@ -366,7 +369,7 @@ static void sighandler(int signal) {
 /* eventcb for bufferevent */
 void smf_server_event_cb(struct bufferevent *bev, short events, void *arg) {
   SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
-  SMFSession_T *session = ctx->session;
+  SMFSession_T *session = ctx->client->session;
 
   if (events & BEV_EVENT_CONNECTED) {
     TRACE(TRACE_DEBUG,"%s connected",ctx->client->client_addr);
@@ -378,11 +381,11 @@ void smf_server_event_cb(struct bufferevent *bev, short events, void *arg) {
     TRACE(TRACE_ERR, "%s network error\n", ctx->client->client_addr);
   } else if (events & BEV_EVENT_TIMEOUT) {
     if (session != NULL)
-        STRACE(TRACE_INFO,ctx->session->id,"client %s timeout", ctx->client->client_addr);
+        STRACE(TRACE_INFO,session->id,"client %s timeout", ctx->client->client_addr);
     else
         TRACE(TRACE_INFO, "client %s timeout", ctx->client->client_addr);
 
-    smf_server_close_and_free_client(ctx->client);
+    event_base_loopbreak(ctx->client->evbase);
   }
 }
 
