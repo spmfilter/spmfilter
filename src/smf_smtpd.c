@@ -711,6 +711,16 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
 #endif
 }
 
+void smf_smtpd_timeout_cb(struct client *client) {
+#if 0
+    char *hostname = NULL;
+    hostname = (char *)malloc(MAXHOSTNAMELEN);
+    gethostname(hostname,MAXHOSTNAMELEN);
+    smf_smtpd_string_reply(client,"421 %s Error: timeout exceeded\r\n",hostname);  
+    free(hostname);
+#endif
+}
+
 /**
  * This function will be called by libevent when there is a connection
  * ready to be accepted.
@@ -742,6 +752,7 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
 
     tv.tv_sec = ctx->settings->smtpd_timeout;
     tv.tv_usec = 0;
+    client->timeout_cb = smf_smtpd_timeout_cb;
     bufferevent_set_timeouts(client->buf_ev, &tv, &tv);
 
     /* Create a job object and add it to the work queue. */

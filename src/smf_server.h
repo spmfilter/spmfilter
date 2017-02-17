@@ -54,7 +54,7 @@ void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, SMFServerJob_
 /**
  * Struct to carry around connection (client)-specific data.
  */
-typedef struct {
+typedef struct client {
     int fd; /**< The client's socket. */
     struct event_base *evbase; /**< The event_base for this client. */
     struct bufferevent *buf_ev; /**< The bufferedevent for this client. */
@@ -63,6 +63,7 @@ typedef struct {
     SMFSession_T *session;
     SMFSettings_T *settings;
     SMFProcessQueue_T *q;
+    void (*timeout_cb)(struct client *client);
 } SMFServerClient_T;
 
 typedef struct {

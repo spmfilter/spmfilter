@@ -368,24 +368,28 @@ static void sighandler(int signal) {
 
 /* eventcb for bufferevent */
 void smf_server_event_cb(struct bufferevent *bev, short events, void *arg) {
-  SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
-  SMFSession_T *session = ctx->client->session;
-
+  //SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
+  SMFServerClient_T *client = (SMFServerClient_T *)arg;
+  SMFSession_T *session = client->session;
+  
   if (events & BEV_EVENT_CONNECTED) {
-    TRACE(TRACE_DEBUG,"%s connected",ctx->client->client_addr);
+    TRACE(TRACE_DEBUG,"%s connected",client->client_addr);
   }
 
   if (events & BEV_EVENT_EOF) {
-    TRACE(TRACE_ERR, "%s EOF\n", ctx->client->client_addr);
+    TRACE(TRACE_ERR, "%s EOF\n", client->client_addr);
   } else if (events & BEV_EVENT_ERROR) {
-    TRACE(TRACE_ERR, "%s network error\n", ctx->client->client_addr);
+    TRACE(TRACE_ERR, "%s network error\n", client->client_addr);
   } else if (events & BEV_EVENT_TIMEOUT) {
     if (session != NULL)
-        STRACE(TRACE_INFO,session->id,"client %s timeout", ctx->client->client_addr);
+        STRACE(TRACE_INFO,session->id,"client %s timeout", client->client_addr);
     else
-        TRACE(TRACE_INFO, "client %s timeout", ctx->client->client_addr);
+        TRACE(TRACE_INFO, "client %s timeout", client->client_addr);
 
-    event_base_loopbreak(ctx->client->evbase);
+    if (client->timeout_cb != NULL) 
+        client->timeout_cb(client);
+
+    event_base_loopbreak(client->evbase);
   }
 }
 
@@ -422,6 +426,8 @@ SMFServerClient_T *smf_server_client_create(int fd, struct sockaddr *addr, int a
     } else {
         client->client_addr = strdup(host);
     }
+
+    client->timeout_cb = NULL;
 
     return client;
 }
@@ -501,7 +507,7 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
     /* Start the event loop. */
     event_base_dispatch(evbase);
     event_base_free(evbase);
-
+    freeaddrinfo(res);
     free(srvname);
     TRACE(TRACE_INFO,"Server shutdown.\n");
     return 0;

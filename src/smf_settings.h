@@ -117,6 +117,7 @@ typedef struct {
     void *lookup_connection; /**< ldap or sql connection */
                                
     SMFDict_T *groups; /**< custom setting groups */
+    pthread_mutex_t settings_mutex;
 } SMFSettings_T;
 
 
