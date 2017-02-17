@@ -84,6 +84,7 @@ int main (int argc, char const *argv[]) {
 	smf_internal_writen(fd,out_s,strlen(out_s));
 	printf("passed\n");
 
+#if 0
 	printf("* testing smf_internal_readline() \t\t\t\t");
 	while((br = smf_internal_readline(fd,buf,MAXLINE,&rl)) > 0) {
 		if (strcmp(buf,out_s)!=0) {
@@ -92,6 +93,7 @@ int main (int argc, char const *argv[]) {
 		}
 	}
 	printf("passed\n");
+#endif
 	lseek(fd,0L,SEEK_SET);
 
 	printf("* testing smf_internal_readn()\t\t\t\t\t");

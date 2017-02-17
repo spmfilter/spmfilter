@@ -40,12 +40,13 @@ extern "C" {
 #define LF "\n"
 #define CR "\r"
 
+/*
 typedef struct {
     int count;
     char *current;
     char buf[BUFSIZE];
 } readline_t;
-
+*/
 void smf_internal_string_list_destroy(void *data);
 void smf_internal_dict_list_destroy(void *data);
 void smf_internal_user_data_list_destroy(void *data);
@@ -57,8 +58,8 @@ char *smf_internal_strip_email_addr(char *addr);
 
 ssize_t smf_internal_readn(int fd, void *buf, size_t nbyte);
 ssize_t smf_internal_writen(int fd, const void *buf, size_t nbyte);
-ssize_t smf_internal_readline(int fd, void *buf, size_t nbyte, void **help);
-ssize_t smf_internal_readcbuf(int fd, char *buf, readline_t *rl);
+//ssize_t smf_internal_readline(int fd, void *buf, size_t nbyte, void **help);
+//ssize_t smf_internal_readcbuf(int fd, char *buf, readline_t *rl);
 
 struct tms smf_internal_init_runtime_stats(void);
 void smf_internal_print_runtime_stats(struct tms start_acct, const char *sid);

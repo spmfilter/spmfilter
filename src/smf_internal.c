@@ -272,6 +272,7 @@ ssize_t smf_internal_writen(int fd, const void *buf, size_t nbyte) {
     return nbyte;
 }
 
+#if 0
 ssize_t smf_internal_readline(int fd, void *buf, size_t nbyte, void **help) {
     size_t n;
     ssize_t br;
@@ -321,7 +322,7 @@ ssize_t smf_internal_readcbuf(int fd, char *buf, readline_t *rl) {
 
     return 1;
 }
-
+#endif
 struct tms smf_internal_init_runtime_stats(void) {
     struct tms start_acct;
     times(&start_acct);
