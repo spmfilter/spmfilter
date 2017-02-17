@@ -36,13 +36,11 @@
 #include <event2/util.h>
 #include <event2/thread.h>
 
-
 #include "smf_settings.h"
 #include "smf_trace.h"
 #include "smf_server.h"
 #include "smf_modules.h"
 #include "smf_settings_private.h"
-
 
 #define THIS_MODULE "server"
 
@@ -50,8 +48,7 @@ static struct event_base *evbase;
 static SMFServerWorkqueue_T workqueue;
 
 /* Signal handler function (defined below). */
-static void sighandler(int signal);
-
+static void smf_server_sighandler(int signal);
 
 #define LL_ADD(item, list) { \
     item->prev = NULL; \
@@ -189,74 +186,12 @@ void smf_server_workqueue_add_job(SMFServerWorkqueue_T *workqueue, SMFServerJob_
     pthread_mutex_unlock(&workqueue->jobs_mutex);
 }
 
-#if 0
-// TODO: replace
-void smf_server_sig_handler(int sig) {
-    /**
-     * - SIGUSR1 => child got a new client
-     * - SIGUSR2 => child client closes connections
-     */
-    switch(sig) {
-        case SIGTERM:
-        case SIGINT:
-            TRACE(TRACE_DEBUG,"DAEMON EXIT [%d] [%d] PID: %d",num_clients, num_spare,getpid());
-            break;
-        case SIGUSR1:
-            num_clients++;
-            num_spare--;
-            TRACE(TRACE_DEBUG,"NEW CHILD [%d] [%d] PID: %d",num_clients, num_spare,getpid());
-            break;
-        case SIGUSR2:
-            num_clients--;
-            TRACE(TRACE_DEBUG,"CLOSE CHILD [%d] [%d] PID: %d",num_clients, num_spare,getpid());
-            break;
-        default:
-            TRACE(TRACE_DEBUG,"DEFAULT");
-            break;
-    }
-
-    return;
-}
-
-void smf_server_sig_init(void) {
-    struct sigaction action, old_action;
-
-    action.sa_handler = smf_server_sig_handler;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-
-    if (sigaction(SIGTERM, &action, &old_action) < 0) {
-        TRACE(TRACE_ERR,"sigaction (SIGTERM) failed: %s",strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    if (sigaction(SIGINT, &action, &old_action) < 0) {
-        TRACE(TRACE_ERR,"sigaction (SIGINT) failed: %s",strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    if (sigaction(SIGUSR1, &action, &old_action) < 0) {
-        TRACE(TRACE_ERR,"sigaction (SIGUSR1) failed: %s",strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    if (sigaction(SIGUSR2, &action, &old_action) < 0) {
-        TRACE(TRACE_ERR,"sigaction (SIGUSR2) failed: %s",strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-}
-#endif
-
 void smf_server_init(SMFSettings_T *settings) {
     pid_t pid;
     FILE *pidfile;
     
     struct passwd *pwd = NULL;
     struct group *grp = NULL;
-   
-    // TODO: check sighandler
-    //smf_server_sig_init();
 
     /* switch to background */
     if (settings->foreground == 0) {        
@@ -360,7 +295,7 @@ void smf_server_kill(void) {
 }
 
 
-static void sighandler(int signal) {
+static void smf_server_sighandler(int signal) {
     TRACE(TRACE_INFO, "Received signal %d: %s.  Shutting down.\n", signal,
             strsignal(signal));
     smf_server_kill();
@@ -368,7 +303,6 @@ static void sighandler(int signal) {
 
 /* eventcb for bufferevent */
 void smf_server_event_cb(struct bufferevent *bev, short events, void *arg) {
-  //SMFServerEngineCtx_T *ctx = (SMFServerEngineCtx_T *)arg;
   SMFServerClient_T *client = (SMFServerClient_T *)arg;
   SMFSession_T *session = client->session;
   
@@ -439,11 +373,10 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
     char *srvname = NULL;
 
     /* Set signal handlers */
-    // TODO: sighandler in smf_server aufnehmen
     sigset_t sigset;
     sigemptyset(&sigset);
     struct sigaction siginfo = {
-        .sa_handler = sighandler,
+        .sa_handler = smf_server_sighandler,
         .sa_mask = sigset,
         .sa_flags = SA_RESTART,
     };
