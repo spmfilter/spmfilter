@@ -483,11 +483,11 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     SMFSettings_T *settings = client->settings;
     SMFSession_T *session = client->session;
     SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
-    //int state = (intptr_t)ctx->engine_data;
     struct evbuffer *input;
     char *req = NULL;
     char *req_value = NULL;
     size_t len = 0;
+    char *t = NULL;
 
     input = bufferevent_get_input(bev);
     if (evbuffer_get_length(input) <= 0) {
@@ -535,32 +535,58 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
                 smf_smtpd_string_reply(client,"250 %s\r\n",rtd->hostname);
             }
             rtd->state = ST_HELO;
-        }
+        } 
         free(req_value);
+    } else if (strncasecmp(req,"xforward",8)==0) {
+        STRACE(TRACE_DEBUG,session->id,"SMTP: 'xforward' received");
+        t = strcasestr(req,"ADDR=");
+        if (t != NULL) {
+            t = strchr(t,'=');
+            smf_core_strstrip(++t);
+            smf_session_set_xforward_addr(session,t);
+            STRACE(TRACE_DEBUG,session->id,"session->xforward_addr: [%s]",smf_session_get_xforward_addr(session));
+            smf_smtpd_code_reply(client,250,settings->smtp_codes);
+            rtd->state = ST_XFWD;
+        } else {
+            smf_smtpd_string_reply(client,"501 Syntax: XFORWARD attribute=value...\r\n");
+        }
+    } else if (strncasecmp(req, "mail from:", 10)==0) {
+        /* The MAIL command begins a mail transaction. Once started, 
+         * a mail transaction consists of a transaction beginning command, 
+         * one or more RCPT commands, and a DATA command, in that order. 
+         * A mail transaction may be aborted by the RSET (or a new EHLO) 
+         * command. There may be zero or more transactions in a session. 
+         * MAIL MUST NOT be sent if a mail transaction is already open, 
+         * e.g., it should be sent only if no mail transaction had been 
+         * started in the session, or if the previous one successfully 
+         * concluded with a successful DATA command, or if the previous 
+         * one was aborted with a RSET.
+         */
+
+        STRACE(TRACE_DEBUG,session->id,"SMTP: 'mail from' received");
+        if (rtd->state == ST_MAIL) {
+            /* we already got the mail command */
+            smf_smtpd_string_reply(client,"503 Error: nested MAIL command\r\n");
+        } else {
+            req_value = smf_smtpd_get_req_value(req,10);
+            if (strcmp(req_value,"") == 0) {
+                /* empty mail from? */
+                smf_smtpd_string_reply(client,"501 Syntax: MAIL FROM:<address>\r\n");
+            } else {
+                smf_envelope_set_sender(session->envelope,req_value);
+                STRACE(TRACE_DEBUG,session->id,"session->envelope->sender: [%s]",session->envelope->sender);
+                smf_smtpd_code_reply(client,250,settings->smtp_codes);
+                rtd->state = ST_MAIL;
+            }
+            free(req_value);
+        }
     }
 
     //int br;
     //void *rl = NULL;
-    //char *req;
-    //char *t = NULL;
-    //int state=ST_INIT;
     //
     //SMFListElem_T *elem = NULL;
-    //struct sigaction action;
     
-    
-    //SMFServerCallbackArgs_T *callback_args = (SMFServerCallbackArgs_T *)arg;
-    //SMFServerClient_T *client = callback_args->client;
-
-    //SMFSettings_T *settings = callback_args->settings;
-    //struct evbuffer *input;
-
-    /* send signal to parent that we've got a new client */
-    //kill(getppid(),SIGUSR1);
-
-    //session->incoming = incoming;
-    //client_sock = client->client_fd;
-
     
 #if 0
     /* set timeout */
@@ -588,53 +614,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
         STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
 
         
-        } else if (strncasecmp(req,"xforward",8)==0) {
-            alarm(settings->smtpd_timeout);
-            STRACE(TRACE_DEBUG,session->id,"SMTP: 'xforward' received");
-            t = strcasestr(req,"ADDR=");
-            if (t != NULL) {
-                t = strchr(t,'=');
-                smf_core_strstrip(++t);
-                smf_session_set_xforward_addr(session,t);
-                STRACE(TRACE_DEBUG,session->id,"session->xforward_addr: [%s]",smf_session_get_xforward_addr(session));
-                smf_smtpd_code_reply(incoming,250,settings->smtp_codes);
-                state = ST_XFWD;
-            } else {
-                smf_smtpd_string_reply(incoming,"501 Syntax: XFORWARD attribute=value...\r\n");
-            }
-        } else if (strncasecmp(req, "mail from:", 10)==0) {
-            /* The MAIL command begins a mail transaction. Once started, 
-             * a mail transaction consists of a transaction beginning command, 
-             * one or more RCPT commands, and a DATA command, in that order. 
-             * A mail transaction may be aborted by the RSET (or a new EHLO) 
-             * command. There may be zero or more transactions in a session. 
-             * MAIL MUST NOT be sent if a mail transaction is already open, 
-             * e.g., it should be sent only if no mail transaction had been 
-             * started in the session, or if the previous one successfully 
-             * concluded with a successful DATA command, or if the previous 
-             * one was aborted with a RSET.
-             */
-
-            alarm(settings->smtpd_timeout);
-            STRACE(TRACE_DEBUG,session->id,"SMTP: 'mail from' received");
-            if (state == ST_MAIL) {
-                /* we already got the mail command */
-                smf_smtpd_string_reply(incoming,"503 Error: nested MAIL command\r\n");
-            } else {
-                req_value = smf_smtpd_get_req_value(req,10);
-                if (strcmp(req_value,"") == 0) {
-                    /* empty mail from? */
-                    smf_smtpd_string_reply(incoming,"501 Syntax: MAIL FROM:<address>\r\n");
-                } else {
-                    smf_envelope_set_sender(session->envelope,req_value);
-                    STRACE(TRACE_DEBUG,session->id,"session->envelope->sender: [%s]",session->envelope->sender);
-                    smf_smtpd_code_reply(incoming,250,settings->smtp_codes);
-                    state = ST_MAIL;
-                }
-                free(req_value);
-                
-            }
-        } else if (strncasecmp(req, "rcpt to:", 8)==0) {
+          else if (strncasecmp(req, "rcpt to:", 8)==0) {
             alarm(settings->smtpd_timeout);
             STRACE(TRACE_DEBUG,session->id,"SMTP: 'rcpt to' received");
             if ((state != ST_MAIL) && (state != ST_RCPT)) {
