@@ -59,24 +59,6 @@
 
 #define THIS_MODULE "smtpd"
 
-
-void smf_smtpd_sig_handler(int sig) {
-    if (sig == SIGALRM) {
-        char *hostname = NULL;
-        TRACE(TRACE_DEBUG,"session timeout exceeded");
-
-        hostname = (char *)malloc(MAXHOSTNAMELEN);
-        gethostname(hostname,MAXHOSTNAMELEN);
-        // TODO: FIX client sock
-        //smf_smtpd_string_reply(client_sock,"421 %s Error: timeout exceeded\r\n",hostname);
-        free(hostname);
-    }
-
-    TRACE(TRACE_NOTICE, "terminating child %i", getpid());
-    kill(getppid(),SIGUSR2);
-    exit(0);
-}
-
 static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session) {
     //switch (settings->module_fail) {
     //    case 1: return(1);
@@ -505,11 +487,17 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     struct evbuffer *input;
     char *req = NULL;
     char *req_value = NULL;
-    size_t len;
+    size_t len = 0;
 
-    // TODO catch errors on reading input buffer
     input = bufferevent_get_input(bev);
-    req = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF);
+    if (evbuffer_get_length(input) <= 0) {
+        STRACE(TRACE_ERR,session->id,"invalid input");
+        event_base_loopbreak(client->evbase);
+    }
+    if ((req = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF)) == NULL) {
+        STRACE(TRACE_ERR,session->id,"failed to read input");
+        event_base_loopbreak(client->evbase);
+    }
 
     STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
 
@@ -593,9 +581,9 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     if (req == NULL)
         return;
 
-    //for (;;) {
-    //    if ((br = smf_internal_readline(session->sock,req,MAXLINE,&rl)) < 1)
-    //        break; /* EOF or error */
+    for (;;) {
+        if ((br = smf_internal_readline(session->sock,req,MAXLINE,&rl)) < 1)
+            break; /* EOF or error */
 
         STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
 
