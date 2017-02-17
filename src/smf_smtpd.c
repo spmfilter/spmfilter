@@ -488,6 +488,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     char *req_value = NULL;
     size_t len = 0;
     char *t = NULL;
+    SMFListElem_T *elem = NULL;
 
     input = bufferevent_get_input(bev);
     if (evbuffer_get_length(input) <= 0) {
@@ -495,8 +496,8 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
         event_base_loopbreak(client->evbase);
     }
     if ((req = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF)) == NULL) {
-        STRACE(TRACE_ERR,session->id,"failed to read input");
-        event_base_loopbreak(client->evbase);
+        STRACE(TRACE_ERR,session->id,"failed to read input buffer");
+        return;
     }
 
     STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
@@ -580,12 +581,43 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
             }
             free(req_value);
         }
+    } else if (strncasecmp(req, "rcpt to:", 8)==0) {
+        STRACE(TRACE_DEBUG,session->id,"SMTP: 'rcpt to' received");
+        if ((rtd->state != ST_MAIL) && (rtd->state != ST_RCPT)) {
+            /* someone wants to break smtp rules... */
+            smf_smtpd_string_reply(client,"503 Error: need MAIL command\r\n");
+        } else {
+            req_value = smf_smtpd_get_req_value(req,8);
+            if (strcmp(req_value,"") == 0) {
+                /* empty rcpt to? */
+                smf_smtpd_string_reply(client,"501 Syntax: RCPT TO:<address>\r\n");
+            } else {
+                smf_envelope_add_rcpt(session->envelope, req_value);
+                smf_smtpd_code_reply(client,250,settings->smtp_codes);
+                elem = smf_list_tail(session->envelope->recipients);
+                STRACE(TRACE_DEBUG,session->id,"session->envelope->recipients: [%s]",(char *)smf_list_data(elem));
+                rtd->state = ST_RCPT;
+            }
+            free(req_value);
+        }
+    } else if (strncasecmp(req,"rset", 4)==0) {
+        STRACE(TRACE_DEBUG,session->id,"SMTP: 'rset' received");
+        smf_session_free(session);
+        /* reinit session */
+        session = smf_session_new();
+        client->session = session;
+        smf_smtpd_code_reply(client,250,settings->smtp_codes);
+        rtd->state = ST_INIT;
+    } else if (strncasecmp(req, "noop", 4)==0) {
+        STRACE(TRACE_DEBUG,session->id,"SMTP: 'noop' received");
+        smf_smtpd_code_reply(client,250,settings->smtp_codes);
+    } else {
+        STRACE(TRACE_DEBUG,session->id,"SMTP: got unknown command");
+        smf_smtpd_string_reply(client,"502 Error: command not recognized\r\n");
     }
 
     //int br;
     //void *rl = NULL;
-    //
-    //SMFListElem_T *elem = NULL;
     
     
 #if 0
@@ -614,27 +646,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
         STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
 
         
-          else if (strncasecmp(req, "rcpt to:", 8)==0) {
-            alarm(settings->smtpd_timeout);
-            STRACE(TRACE_DEBUG,session->id,"SMTP: 'rcpt to' received");
-            if ((state != ST_MAIL) && (state != ST_RCPT)) {
-                /* someone wants to break smtp rules... */
-                smf_smtpd_string_reply(incoming,"503 Error: need MAIL command\r\n");
-            } else {
-                req_value = smf_smtpd_get_req_value(req,8);
-                if (strcmp(req_value,"") == 0) {
-                    /* empty rcpt to? */
-                    smf_smtpd_string_reply(incoming,"501 Syntax: RCPT TO:<address>\r\n");
-                } else {
-                    smf_envelope_add_rcpt(session->envelope, req_value);
-                    smf_smtpd_code_reply(incoming,250,settings->smtp_codes);
-                    elem = smf_list_tail(session->envelope->recipients);
-                    STRACE(TRACE_DEBUG,session->id,"session->envelope->recipients: [%s]",(char *)smf_list_data(elem));
-                    state = ST_RCPT;
-                }
-                free(req_value);
-            }
-        } else if (strncasecmp(req,"data", 4)==0) {
+           else if (strncasecmp(req,"data", 4)==0) {
             alarm(settings->smtpd_timeout);
             if ((state != ST_RCPT) && (state != ST_MAIL)) {
                 /* someone wants to break smtp rules... */
@@ -647,24 +659,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
                 STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
                 smf_smtpd_process_data(session,settings,callback_args->q);
             }
-        } else if (strncasecmp(req,"rset", 4)==0) {
-            alarm(settings->smtpd_timeout);
-            STRACE(TRACE_DEBUG,session->id,"SMTP: 'rset' received");
-            smf_session_free(session);
-            /* reinit session */
-            session = smf_session_new();
-            session->incoming = incoming;
-            smf_smtpd_code_reply(incoming,250,settings->smtp_codes);
-            state = ST_INIT;
-        } else if (strncasecmp(req, "noop", 4)==0) {
-            alarm(settings->smtpd_timeout);
-            STRACE(TRACE_DEBUG,session->id,"SMTP: 'noop' received");
-            smf_smtpd_code_reply(incoming,250,settings->smtp_codes);
-        } else {
-            alarm(settings->smtpd_timeout);
-            STRACE(TRACE_DEBUG,session->id,"SMTP: got unknown command");
-            smf_smtpd_string_reply(incoming,"502 Error: command not recognized\r\n");
-        }
+        }   
     //}
     //free(rl);
     free(hostname);
