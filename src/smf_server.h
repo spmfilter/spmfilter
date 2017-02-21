@@ -64,6 +64,7 @@ typedef struct client {
     SMFSettings_T *settings;
     SMFProcessQueue_T *q;
     void (*timeout_cb)(struct client *client);
+    FILE *spool_file;
 } SMFServerClient_T;
 
 typedef struct {

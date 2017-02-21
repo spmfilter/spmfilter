@@ -357,93 +357,99 @@ void smf_smtpd_code_reply(SMFServerClient_T *client, int code, SMFDict_T *codes)
     free(out);
 }
 
-void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q) {
+void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
+    SMFSettings_T *settings = client->settings;
+    SMFSession_T *session = client->session;
+    //SMFProcessQueue_T *q = client->q;
     //ssize_t br;
     //char buf[MAXLINE];
-    void *rl = NULL;
-    FILE *spool_file;
-    SMFMessage_T *message = smf_message_new();
+    //char *req = NULL;
+    //FILE *spool_file;
+    //SMFMessage_T *message = smf_message_new();
     int found_mid = 0;
     int found_to = 0;
     int found_from = 0;
     int found_date = 0;
     int found_header = 0;
-    //int in_header = 1;
+    int in_header = 1;
+    size_t len = 0;
     regex_t regex;
-    //int reti;
+    int reti;
     char *nl = NULL;
-    char *mid = NULL;
-    SMFListElem_T *e = NULL;
+    //char *mid = NULL;
+    //SMFListElem_T *e = NULL;
 
     //reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
 
-	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
-        STRACE(TRACE_ERR,session->id,"got no spool file path");
-        //smf_smtpd_code_reply(session->incoming, 552,settings->smtp_codes);
-        return;
+	   if (smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id) != 0) {
+            STRACE(TRACE_ERR,session->id,"got no spool file path");
+            smf_smtpd_code_reply(client, 552,settings->smtp_codes);
+            // TODO: close client
+            return;
+        }
+
+        /* open the spool file */
+        client->spool_file = fopen(session->message_file, "w+");
+        if(client->spool_file == NULL) {
+            STRACE(TRACE_ERR,session->id,"unable to open spool file: %s (%d)",strerror(errno), errno);
+            smf_smtpd_code_reply(client, 451, settings->smtp_codes);
+            return;
+        }
+
+        STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file); 
+        smf_smtpd_string_reply(client,"354 End data with <CR><LF>.<CR><LF>\r\n");
     }
-    
-    /* open the spool file */
-    spool_file = fopen(session->message_file, "w+");
-    if(spool_file == NULL) {
-        STRACE(TRACE_ERR,session->id,"unable to open spool file: %s (%d)",strerror(errno), errno);
-        //smf_smtpd_code_reply(session->incoming, 451, settings->smtp_codes);
-        return;
-    }
+   
 
-    STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file); 
-    //smf_smtpd_string_reply(session->incoming,"354 End data with <CR><LF>.<CR><LF>\r\n");
+    //while((br = smf_internal_readline(session->incoming,buf,MAXLINE,&rl)) > 0) {
+        if ((strncasecmp(req,".\r\n",3)==0)||(strncasecmp(req,".\n",2)==0)) return;
+        if (strncasecmp(req,".",1)==0) smf_smtpd_stuffing(req);
 
-// TODO: FIX
-#if 0
-    while((br = smf_internal_readline(session->incoming,buf,MAXLINE,&rl)) > 0) {
-        if ((strncasecmp(buf,".\r\n",3)==0)||(strncasecmp(buf,".\n",2)==0)) break;
-        if (strncasecmp(buf,".",1)==0) smf_smtpd_stuffing(buf);
+        if ((strncasecmp(req,"Message-Id:",11)==0)&& (in_header==1)) found_mid = 1;
+        if ((strncasecmp(req,"Date:",5)==0) && (in_header==1)) found_date = 1;
+        if ((strncasecmp(req,"To:",3)==0) && (in_header==1)) found_to = 1;
+        if ((strncasecmp(req,"From:",5)==0) && (in_header==1)) found_from = 1;
 
-        if ((strncasecmp(buf,"Message-Id:",11)==0)&& (in_header==1)) found_mid = 1;
-        if ((strncasecmp(buf,"Date:",5)==0) && (in_header==1)) found_date = 1;
-        if ((strncasecmp(buf,"To:",3)==0) && (in_header==1)) found_to = 1;
-        if ((strncasecmp(buf,"From:",5)==0) && (in_header==1)) found_from = 1;
+        if (nl == NULL) nl = smf_internal_determine_linebreak(req);
 
-        if (nl == NULL) nl = smf_internal_determine_linebreak(buf);
-
-        if ((strncmp(buf,"\n",1)==0)||(strncmp(buf,"\r\n",2)==0)||(strncmp(buf,"\r",1)==0))
+        if ((strncmp(req,"\n",1)==0)||(strncmp(req,"\r\n",2)==0)||(strncmp(req,"\r",1)==0))
             in_header = 0;
 
         if (found_header == 0) {
-            reti = regexec(&regex, buf, 0, NULL, 0);
+            reti = regexec(&regex, req, 0, NULL, 0);
             if(reti == 0){
                 found_header = 1;
             }
         }
 
-        if (fwrite(buf, sizeof(char), strlen(buf), spool_file)<0) {
+        if (fwrite(req, sizeof(char), strlen(req), client->spool_file)<0) {
             STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
-            smf_smtpd_code_reply(session->incoming, 451, settings->smtp_codes);
-            fclose(spool_file);
+            smf_smtpd_code_reply(client, 451, settings->smtp_codes);
+            fclose(client->spool_file);
             return;
         }
-        session->message_size += br;
-    }
-#endif
-    if (rl !=NULL) free(rl);
-    regfree(&regex);
-    fclose(spool_file);
-  
+        session->message_size += len;
+    //}
+
+    if (req !=NULL) free(req);
+    //regfree(&regex);
+    fclose(client->spool_file);
+
+
     if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0)) 
         smf_smtpd_append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
     
-    
+#if 0    
     STRACE(TRACE_DEBUG,session->id,"data complete, message size: %d", (u_int32_t)session->message_size);
     
     if ((session->message_size > smf_settings_get_max_size(settings))&&(smf_settings_get_max_size(settings) != 0)) {
         STRACE(TRACE_DEBUG,session->id,"max message size limit exceeded"); 
-        //smf_smtpd_string_reply(session->incoming,"552 message size exceeds fixed maximium message size\r\n");
+        smf_smtpd_string_reply(client,"552 message size exceeds fixed maximium message size\r\n");
     } else {
         if(smf_message_from_file(&message,session->message_file,1) != 0) {
             STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
-            //smf_smtpd_code_reply(session->incoming, 451, settings->smtp_codes);
+            smf_smtpd_code_reply(client, 451, settings->smtp_codes);
             return;
         }
 
@@ -465,6 +471,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
     if (remove(session->message_file) != 0)
         STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
+#endif
 }
 
 static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
@@ -507,7 +514,6 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
         smf_smtpd_code_reply(client,221,settings->smtp_codes);
         rtd->state = ST_QUIT;
     } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
-        TRACE(TRACE_DEBUG,"EHLO");
         /* An EHLO command MAY be issued by a client later in the session.
          * If it is issued after the session begins, the SMTP server MUST
          * clear all buffers and reset the state exactly as if a RSET
@@ -611,67 +617,22 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     } else if (strncasecmp(req, "noop", 4)==0) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'noop' received");
         smf_smtpd_code_reply(client,250,settings->smtp_codes);
+    } else if ((strncasecmp(req,"data", 4)==0) || (rtd->state == ST_DATA)) {
+        if ((rtd->state != ST_DATA) && (rtd->state != ST_RCPT) && (rtd->state != ST_MAIL)) {
+            /* someone wants to break smtp rules... */
+            smf_smtpd_string_reply(client,"503 Error: need RCPT command\r\n");
+        } else if ((rtd->state != ST_RCPT) && (rtd->state == ST_MAIL)) {
+            /* we got the mail command but no rcpt to */
+            smf_smtpd_string_reply(client,"554 Error: no valid recipients\r\n");
+        } else {
+            rtd->state = ST_DATA;
+            STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
+            smf_smtpd_process_data(client,req);
+        } 
     } else {
         STRACE(TRACE_DEBUG,session->id,"SMTP: got unknown command");
         smf_smtpd_string_reply(client,"502 Error: command not recognized\r\n");
     }
-
-    //int br;
-    //void *rl = NULL;
-    
-    
-#if 0
-    /* set timeout */
-    action.sa_handler = smf_smtpd_sig_handler;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
-    if (sigaction(SIGALRM, &action, NULL) < 0) {
-        TRACE(TRACE_ERR,"sigaction (SIGALRM) failed: %s",strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    if (sigaction(SIGTERM, &action, NULL) < 0) {
-        TRACE(TRACE_ERR,"sigaction (SIGTERM) failed: %s",strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-    alarm(settings->smtpd_timeout);
-    
-    req = evbuffer_readline(incoming->input);
-    if (req == NULL)
-        return;
-
-    for (;;) {
-        if ((br = smf_internal_readline(session->sock,req,MAXLINE,&rl)) < 1)
-            break; /* EOF or error */
-
-        STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
-
-        
-           else if (strncasecmp(req,"data", 4)==0) {
-            alarm(settings->smtpd_timeout);
-            if ((state != ST_RCPT) && (state != ST_MAIL)) {
-                /* someone wants to break smtp rules... */
-                smf_smtpd_string_reply(incoming,"503 Error: need RCPT command\r\n");
-            } else if ((state != ST_RCPT) && (state == ST_MAIL)) {
-                /* we got the mail command but no rcpt to */
-                smf_smtpd_string_reply(incoming,"554 Error: no valid recipients\r\n");
-            } else {
-                state = ST_DATA;
-                STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
-                smf_smtpd_process_data(session,settings,callback_args->q);
-            }
-        }   
-    //}
-    //free(rl);
-    free(hostname);
-    
-    /* client has finished */
-    //kill(getppid(),SIGUSR2);
-
-    smf_internal_print_runtime_stats(start_acct,session->id);
-    smf_session_free(session);
-    
-    smf_settings_free(settings);
-#endif
 }
 
 void smf_smtpd_timeout_cb(struct client *client) {
