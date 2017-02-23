@@ -357,6 +357,51 @@ void smf_smtpd_code_reply(SMFServerClient_T *client, int code, SMFDict_T *codes)
     free(out);
 }
 
+void smf_smtpd_process_quit(SMFServerClient_T *client, char *req) {
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
+    STRACE(TRACE_DEBUG,client->session->id,"SMTP: 'quit' received"); 
+    smf_smtpd_code_reply(client,221,client->settings->smtp_codes);
+    rtd->state = ST_QUIT;
+}
+
+void smf_smtpd_process_helo(SMFServerClient_T *client, char *req) {
+    SMFSession_T *session = client->session;
+    SMFSettings_T *settings = client->settings;
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data; 
+    char *req_value = NULL;
+
+    /* An EHLO command MAY be issued by a client later in the session.
+     * If it is issued after the session begins, the SMTP server MUST
+     * clear all buffers and reset the state exactly as if a RSET
+     * command had been issued.
+     */ 
+    if (rtd->state != ST_INIT) {
+        smf_session_free(session);
+        /* reinit session */
+        session = smf_session_new();
+        client->session = session;
+        STRACE(TRACE_DEBUG,session->id,"session reset, helo/ehlo recieved not in init state");
+    }
+    STRACE(TRACE_DEBUG,session->id,"SMTP: 'helo/ehlo' received");
+    req_value = smf_smtpd_get_req_value(req,4);
+    smf_session_set_helo(session,req_value);
+            
+    if (strcmp(session->helo,"") == 0)  {
+        smf_smtpd_string_reply(client,"501 Syntax: HELO hostname\r\n");
+    } else {
+        STRACE(TRACE_DEBUG,session->id,"session->helo: [%s]",smf_session_get_helo(session));
+
+        if (strncasecmp(req, "ehlo", 4)==0) {
+            smf_smtpd_string_reply(client,
+                "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",rtd->hostname,settings->max_size);
+        } else {
+            smf_smtpd_string_reply(client,"250 %s\r\n",rtd->hostname);
+        }
+        rtd->state = ST_HELO;
+    } 
+    free(req_value);
+}
+
 void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
     SMFSettings_T *settings = client->settings;
     SMFSession_T *session = client->session;
@@ -510,40 +555,9 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
 
     if (strncasecmp(req,"quit",4)==0) {
-        STRACE(TRACE_DEBUG,session->id,"SMTP: 'quit' received"); 
-        smf_smtpd_code_reply(client,221,settings->smtp_codes);
-        rtd->state = ST_QUIT;
+        smf_smtpd_process_quit(client,req);
     } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
-        /* An EHLO command MAY be issued by a client later in the session.
-         * If it is issued after the session begins, the SMTP server MUST
-         * clear all buffers and reset the state exactly as if a RSET
-         * command had been issued.
-         */ 
-        if (rtd->state != ST_INIT) {
-            smf_session_free(session);
-            /* reinit session */
-            session = smf_session_new();
-            client->session = session;
-            STRACE(TRACE_DEBUG,session->id,"session reset, helo/ehlo recieved not in init state");
-        }
-        STRACE(TRACE_DEBUG,session->id,"SMTP: 'helo/ehlo' received");
-        req_value = smf_smtpd_get_req_value(req,4);
-        smf_session_set_helo(session,req_value);
-            
-        if (strcmp(session->helo,"") == 0)  {
-            smf_smtpd_string_reply(client,"501 Syntax: HELO hostname\r\n");
-        } else {
-            STRACE(TRACE_DEBUG,session->id,"session->helo: [%s]",smf_session_get_helo(session));
-
-            if (strncasecmp(req, "ehlo", 4)==0) {
-                smf_smtpd_string_reply(client,
-                     "250-%s\r\n250-XFORWARD ADDR\r\n250 SIZE %i\r\n",rtd->hostname,settings->max_size);
-            } else {
-                smf_smtpd_string_reply(client,"250 %s\r\n",rtd->hostname);
-            }
-            rtd->state = ST_HELO;
-        } 
-        free(req_value);
+        smf_smtpd_process_helo(client,req);
     } else if (strncasecmp(req,"xforward",8)==0) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'xforward' received");
         t = strcasestr(req,"ADDR=");

@@ -39,6 +39,11 @@
 #define ST_DATA 5
 #define ST_QUIT 6
 
+typedef struct {
+  int state;
+  char *hostname;
+} SMFSmtpdRuntimeData_T;
+
 static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session);
 static int smf_smtpd_handle_q_processing_error(SMFSettings_T *settings, SMFSession_T *session, int retval);
 static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T *session);
@@ -58,11 +63,10 @@ void smf_smtpd_code_reply(SMFServerClient_T *client, int code, SMFDict_T *codes)
 void smf_smtpd_process_data(SMFServerClient_T *client, char *req);
 //void smf_smtpd_handle_client(SMFSettings_T *settings, int client,SMFProcessQueue_T *q);
 //void smf_smtpd_handle_client(struct bufferevent *bev, void *arg);
+void smf_smtpd_process_helo(SMFServerClient_T *client, char *req);
+void smf_smtpd_process_quit(SMFServerClient_T *client, char *req);
 
-typedef struct {
-  int state;
-  char *hostname;
-} SMFSmtpdRuntimeData_T;
+
 
 #endif  /* _SMF_SMTPD_H */
 
