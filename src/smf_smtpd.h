@@ -67,7 +67,7 @@ void smf_smtpd_process_helo(SMFServerClient_T *client, char *req);
 void smf_smtpd_process_quit(SMFServerClient_T *client, char *req);
 void smf_smtpd_process_xforward(SMFServerClient_T *client, char *req);
 void smf_smtpd_process_from(SMFServerClient_T *client, char *req);
-
+void smf_smtpd_process_rcptto(SMFServerClient_T *client, char *req);
 
 
 #endif  /* _SMF_SMTPD_H */

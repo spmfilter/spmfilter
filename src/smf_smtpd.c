@@ -455,6 +455,31 @@ void smf_smtpd_process_from(SMFServerClient_T *client, char *req) {
     }
 }
 
+void smf_smtpd_process_rcptto(SMFServerClient_T *client, char *req) {
+    char *req_value = NULL;
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data; 
+    SMFListElem_T *elem = NULL;
+
+    STRACE(TRACE_DEBUG,client->session->id,"SMTP: 'rcpt to' received");
+    if ((rtd->state != ST_MAIL) && (rtd->state != ST_RCPT)) {
+        /* someone wants to break smtp rules... */
+        smf_smtpd_string_reply(client,"503 Error: need MAIL command\r\n");
+    } else {
+        req_value = smf_smtpd_get_req_value(req,8);
+        if (strcmp(req_value,"") == 0) {
+            /* empty rcpt to? */
+            smf_smtpd_string_reply(client,"501 Syntax: RCPT TO:<address>\r\n");
+        } else {
+            smf_envelope_add_rcpt(client->session->envelope, req_value);
+            smf_smtpd_code_reply(client,250,client->settings->smtp_codes);
+            elem = smf_list_tail(client->session->envelope->recipients);
+            STRACE(TRACE_DEBUG,client->session->id,"session->envelope->recipients: [%s]",(char *)smf_list_data(elem));
+            rtd->state = ST_RCPT;
+        }
+        free(req_value);
+    }
+}
+
 void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
     SMFSettings_T *settings = client->settings;
     SMFSession_T *session = client->session;
@@ -590,9 +615,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
     struct evbuffer *input;
     char *req = NULL;
-    char *req_value = NULL;
     size_t len = 0;
-    SMFListElem_T *elem = NULL;
 
     input = bufferevent_get_input(bev);
     if (evbuffer_get_length(input) <= 0) {
@@ -615,24 +638,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     } else if (strncasecmp(req, "mail from:", 10)==0) {
         smf_smtpd_process_from(client,req);
     } else if (strncasecmp(req, "rcpt to:", 8)==0) {
-        STRACE(TRACE_DEBUG,session->id,"SMTP: 'rcpt to' received");
-        if ((rtd->state != ST_MAIL) && (rtd->state != ST_RCPT)) {
-            /* someone wants to break smtp rules... */
-            smf_smtpd_string_reply(client,"503 Error: need MAIL command\r\n");
-        } else {
-            req_value = smf_smtpd_get_req_value(req,8);
-            if (strcmp(req_value,"") == 0) {
-                /* empty rcpt to? */
-                smf_smtpd_string_reply(client,"501 Syntax: RCPT TO:<address>\r\n");
-            } else {
-                smf_envelope_add_rcpt(session->envelope, req_value);
-                smf_smtpd_code_reply(client,250,settings->smtp_codes);
-                elem = smf_list_tail(session->envelope->recipients);
-                STRACE(TRACE_DEBUG,session->id,"session->envelope->recipients: [%s]",(char *)smf_list_data(elem));
-                rtd->state = ST_RCPT;
-            }
-            free(req_value);
-        }
+        smf_smtpd_process_rcptto(client,req);
     } else if (strncasecmp(req,"rset", 4)==0) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'rset' received");
         smf_session_free(session);
