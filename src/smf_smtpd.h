@@ -65,6 +65,7 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req);
 //void smf_smtpd_handle_client(struct bufferevent *bev, void *arg);
 void smf_smtpd_process_helo(SMFServerClient_T *client, char *req);
 void smf_smtpd_process_quit(SMFServerClient_T *client, char *req);
+void smf_smtpd_process_xforward(SMFServerClient_T *client, char *req);
 
 
 

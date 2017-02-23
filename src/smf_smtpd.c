@@ -364,6 +364,24 @@ void smf_smtpd_process_quit(SMFServerClient_T *client, char *req) {
     rtd->state = ST_QUIT;
 }
 
+void smf_smtpd_process_xforward(SMFServerClient_T *client, char *req) {
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
+    char *t = NULL;
+
+    STRACE(TRACE_DEBUG,client->session->id,"SMTP: 'xforward' received");
+    t = strcasestr(req,"ADDR=");
+    if (t != NULL) {
+        t = strchr(t,'=');
+        smf_core_strstrip(++t);
+        smf_session_set_xforward_addr(client->session,t);
+        STRACE(TRACE_DEBUG,client->session->id,"session->xforward_addr: [%s]",smf_session_get_xforward_addr(client->session));
+        smf_smtpd_code_reply(client,250,client->settings->smtp_codes);
+        rtd->state = ST_XFWD;
+    } else {
+        smf_smtpd_string_reply(client,"501 Syntax: XFORWARD attribute=value...\r\n");
+    }
+}
+
 void smf_smtpd_process_helo(SMFServerClient_T *client, char *req) {
     SMFSession_T *session = client->session;
     SMFSettings_T *settings = client->settings;
@@ -539,7 +557,6 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     char *req = NULL;
     char *req_value = NULL;
     size_t len = 0;
-    char *t = NULL;
     SMFListElem_T *elem = NULL;
 
     input = bufferevent_get_input(bev);
@@ -559,18 +576,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
         smf_smtpd_process_helo(client,req);
     } else if (strncasecmp(req,"xforward",8)==0) {
-        STRACE(TRACE_DEBUG,session->id,"SMTP: 'xforward' received");
-        t = strcasestr(req,"ADDR=");
-        if (t != NULL) {
-            t = strchr(t,'=');
-            smf_core_strstrip(++t);
-            smf_session_set_xforward_addr(session,t);
-            STRACE(TRACE_DEBUG,session->id,"session->xforward_addr: [%s]",smf_session_get_xforward_addr(session));
-            smf_smtpd_code_reply(client,250,settings->smtp_codes);
-            rtd->state = ST_XFWD;
-        } else {
-            smf_smtpd_string_reply(client,"501 Syntax: XFORWARD attribute=value...\r\n");
-        }
+        smf_smtpd_process_xforward(client,req);
     } else if (strncasecmp(req, "mail from:", 10)==0) {
         /* The MAIL command begins a mail transaction. Once started, 
          * a mail transaction consists of a transaction beginning command, 
