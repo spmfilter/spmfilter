@@ -455,6 +455,17 @@ void smf_smtpd_process_from(SMFServerClient_T *client, char *req) {
     }
 }
 
+void smf_smtpd_process_rset(SMFServerClient_T *client, char *req) {
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data; 
+
+    STRACE(TRACE_DEBUG,client->session->id,"SMTP: 'rset' received");
+    smf_session_free(client->session);
+    /* reinit session */
+    client->session = smf_session_new();
+    smf_smtpd_code_reply(client,250,client->settings->smtp_codes);
+    rtd->state = ST_INIT;
+}
+
 void smf_smtpd_process_rcptto(SMFServerClient_T *client, char *req) {
     char *req_value = NULL;
     SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data; 
@@ -640,13 +651,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     } else if (strncasecmp(req, "rcpt to:", 8)==0) {
         smf_smtpd_process_rcptto(client,req);
     } else if (strncasecmp(req,"rset", 4)==0) {
-        STRACE(TRACE_DEBUG,session->id,"SMTP: 'rset' received");
-        smf_session_free(session);
-        /* reinit session */
-        session = smf_session_new();
-        client->session = session;
-        smf_smtpd_code_reply(client,250,settings->smtp_codes);
-        rtd->state = ST_INIT;
+        smf_smtpd_process_rset(client,req);
     } else if (strncasecmp(req, "noop", 4)==0) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'noop' received");
         smf_smtpd_code_reply(client,250,settings->smtp_codes);
