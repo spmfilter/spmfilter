@@ -420,6 +420,41 @@ void smf_smtpd_process_helo(SMFServerClient_T *client, char *req) {
     free(req_value);
 }
 
+void smf_smtpd_process_from(SMFServerClient_T *client, char *req) {
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data; 
+    char *req_value = NULL;
+
+    /* The MAIL command begins a mail transaction. Once started, 
+     * a mail transaction consists of a transaction beginning command, 
+     * one or more RCPT commands, and a DATA command, in that order. 
+     * A mail transaction may be aborted by the RSET (or a new EHLO) 
+     * command. There may be zero or more transactions in a session. 
+     * MAIL MUST NOT be sent if a mail transaction is already open, 
+     * e.g., it should be sent only if no mail transaction had been 
+     * started in the session, or if the previous one successfully 
+     * concluded with a successful DATA command, or if the previous 
+     * one was aborted with a RSET.
+     */
+
+    STRACE(TRACE_DEBUG,client->session->id,"SMTP: 'mail from' received");
+    if (rtd->state == ST_MAIL) {
+        /* we already got the mail command */
+        smf_smtpd_string_reply(client,"503 Error: nested MAIL command\r\n");
+    } else {
+        req_value = smf_smtpd_get_req_value(req,10);
+        if (strcmp(req_value,"") == 0) {
+            /* empty mail from? */
+            smf_smtpd_string_reply(client,"501 Syntax: MAIL FROM:<address>\r\n");
+        } else {
+            smf_envelope_set_sender(client->session->envelope,req_value);
+            STRACE(TRACE_DEBUG,client->session->id,"session->envelope->sender: [%s]",client->session->envelope->sender);
+            smf_smtpd_code_reply(client,250,client->settings->smtp_codes);
+            rtd->state = ST_MAIL;
+        }
+        free(req_value);
+    }
+}
+
 void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
     SMFSettings_T *settings = client->settings;
     SMFSession_T *session = client->session;
@@ -578,35 +613,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     } else if (strncasecmp(req,"xforward",8)==0) {
         smf_smtpd_process_xforward(client,req);
     } else if (strncasecmp(req, "mail from:", 10)==0) {
-        /* The MAIL command begins a mail transaction. Once started, 
-         * a mail transaction consists of a transaction beginning command, 
-         * one or more RCPT commands, and a DATA command, in that order. 
-         * A mail transaction may be aborted by the RSET (or a new EHLO) 
-         * command. There may be zero or more transactions in a session. 
-         * MAIL MUST NOT be sent if a mail transaction is already open, 
-         * e.g., it should be sent only if no mail transaction had been 
-         * started in the session, or if the previous one successfully 
-         * concluded with a successful DATA command, or if the previous 
-         * one was aborted with a RSET.
-         */
-
-        STRACE(TRACE_DEBUG,session->id,"SMTP: 'mail from' received");
-        if (rtd->state == ST_MAIL) {
-            /* we already got the mail command */
-            smf_smtpd_string_reply(client,"503 Error: nested MAIL command\r\n");
-        } else {
-            req_value = smf_smtpd_get_req_value(req,10);
-            if (strcmp(req_value,"") == 0) {
-                /* empty mail from? */
-                smf_smtpd_string_reply(client,"501 Syntax: MAIL FROM:<address>\r\n");
-            } else {
-                smf_envelope_set_sender(session->envelope,req_value);
-                STRACE(TRACE_DEBUG,session->id,"session->envelope->sender: [%s]",session->envelope->sender);
-                smf_smtpd_code_reply(client,250,settings->smtp_codes);
-                rtd->state = ST_MAIL;
-            }
-            free(req_value);
-        }
+        smf_smtpd_process_from(client,req);
     } else if (strncasecmp(req, "rcpt to:", 8)==0) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'rcpt to' received");
         if ((rtd->state != ST_MAIL) && (rtd->state != ST_RCPT)) {
