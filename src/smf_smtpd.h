@@ -42,6 +42,13 @@
 typedef struct {
   int state;
   char *hostname;
+  int found_mid;
+  int found_date;
+  int found_to;
+  int found_from;
+  int found_header;
+  int in_header;
+  char *nl;
 } SMFSmtpdRuntimeData_T;
 
 static int smf_smtpd_handle_q_error(SMFSettings_T *settings, SMFSession_T *session);
@@ -50,14 +57,7 @@ static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T 
 int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q);
 char *smf_smtpd_get_req_value(char *req, int jmp);
 void smf_smtpd_stuffing(char chain[]);
-int smf_smtpd_append_missing_headers(SMFSession_T *session, 
-    char *queue_dir, 
-    int mid, 
-    int to, 
-    int from, 
-    int date, 
-    int headers, 
-    char *nl);
+int smf_smtpd_append_missing_headers(SMFServerClient_T *client);
 void smf_smtpd_string_reply(SMFServerClient_T *client, const char *format, ...);
 void smf_smtpd_code_reply(SMFServerClient_T *client, int code, SMFDict_T *codes);
 void smf_smtpd_process_data(SMFServerClient_T *client, char *req);

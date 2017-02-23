@@ -184,12 +184,13 @@ void smf_smtpd_stuffing(char chain[]) {
 
 #define fputs_or_return(s, stream) \
     if (fputs(s, stream)<0) { \
-        STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno); \
+        STRACE(TRACE_ERR,client->session->id,"failed to write queue file: %s (%d)",strerror(errno),errno); \
         fclose(stream); \
         return -1; \
     }
 
-int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int mid, int to, int from, int date, int headers, char *nl) {
+int smf_smtpd_append_missing_headers(SMFServerClient_T *client) {
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
     int fd;
     FILE *new = NULL;
     FILE *old = NULL;
@@ -200,73 +201,73 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int
     char *t1 = NULL;
     char *t2 = NULL;
 
-    snprintf(tmpname, sizeof(tmpname), "%s/XXXXXX", queue_dir);
+    snprintf(tmpname, sizeof(tmpname), "%s/XXXXXX", client->settings->queue_dir);
     if ((fd = mkstemp(tmpname)) == -1) {
-        STRACE(TRACE_ERR,session->id,"failed to create temporary file: %s (%d)",strerror(errno),errno);
+        STRACE(TRACE_ERR,client->session->id,"failed to create temporary file: %s (%d)",strerror(errno),errno);
         return -1;
     }
     
     close(fd);
     
     if((new = fopen(tmpname, "w"))==NULL) {
-        STRACE(TRACE_ERR,session->id,"unable to open temporary file: %s (%d)",strerror(errno), errno);
+        STRACE(TRACE_ERR,client->session->id,"unable to open temporary file: %s (%d)",strerror(errno), errno);
         return -1;
     }
 
-    if (mid==0) {
+    if (rtd->found_mid==0) {
         t1 = smf_message_generate_message_id();
-        if (asprintf(&t2,"Message-Id: %s%s",t1,nl) != -1) {
+        if (asprintf(&t2,"Message-Id: %s%s",t1,rtd->nl) != -1) {
             fputs_or_return(t2, new);
             free(t2);
         }
         free(t1);
     }
 
-    if (date==0) {
+    if (rtd->found_date==0) {
         time(&currtime);  
         t1 = calloc(BUFSIZE,sizeof(char));                                                   
         strftime(t1,BUFSIZE,"Date: %a, %d %b %Y %H:%M:%S %z (%Z)",localtime(&currtime));
-        smf_core_strcat_printf(&t1, "%s", nl);
+        smf_core_strcat_printf(&t1, "%s", rtd->nl);
         fputs_or_return(t1, new);
         free(t1);
     }
 
-    if (from==0) {
-        if (asprintf(&t1,"From: %s%s",session->envelope->sender,nl) != -1) {
+    if (rtd->found_from==0) {
+        if (asprintf(&t1,"From: %s%s",client->session->envelope->sender,rtd->nl) != -1) {
             fputs_or_return(t1, new);
             free(t1);
         }
     }
 
-    if (to==0) {
-        if (asprintf(&t1,"To: undisclosed-recipients:;%s",nl) != -1) {
+    if (rtd->found_to==0) {
+        if (asprintf(&t1,"To: undisclosed-recipients:;%s",rtd->nl) != -1) {
             fputs_or_return(t1, new);
             free(t1);
         }
     }
 
-    if (headers==0) {
-        if (asprintf(&t1,"%s",nl) != -1) {
+    if (rtd->found_header==0) {
+        if (asprintf(&t1,"%s",rtd->nl) != -1) {
             fputs_or_return(t1, new);
             free(t1);
         }
     }
 
-    if((old = fopen(session->message_file, "r"))==NULL) {
-        STRACE(TRACE_ERR,session->id,"unable to open queue file: %s (%d)",strerror(errno), errno);
+    if((old = fopen(client->session->message_file, "r"))==NULL) {
+        STRACE(TRACE_ERR,client->session->id,"unable to open queue file: %s (%d)",strerror(errno), errno);
         fclose(new);
         return -1;
     }
 
     while(!feof(old)) {
         if ((len = fread(&buf,sizeof(char),BUFSIZE,old)) < 0) {
-            STRACE(TRACE_ERR,session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
+            STRACE(TRACE_ERR,client->session->id,"failed to read queue file: %s (%d)",strerror(errno),errno);
             fclose(old);
             fclose(new);
             return -1;
         }
         if (fwrite(buf,sizeof(char),len,new) < 0) {
-            STRACE(TRACE_ERR,session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
+            STRACE(TRACE_ERR,client->session->id,"failed to write queue file: %s (%d)",strerror(errno),errno);
             fclose(old);
             fclose(new);
             return -1;
@@ -275,13 +276,13 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session, char *queue_dir, int
     fclose(old); 
     fclose(new);
 
-    if (unlink(session->message_file)!=0) {
-        STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
+    if (unlink(client->session->message_file)!=0) {
+        STRACE(TRACE_ERR,client->session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
         return -1;
     }
 
-    if (rename(tmpname,session->message_file)!=0) {
-        STRACE(TRACE_ERR,session->id,"failed to rename queue file: %s (%d)",strerror(errno),errno);
+    if (rename(tmpname,client->session->message_file)!=0) {
+        STRACE(TRACE_ERR,client->session->id,"failed to rename queue file: %s (%d)",strerror(errno),errno);
         return -1;
     }
 
@@ -494,26 +495,28 @@ void smf_smtpd_process_rcptto(SMFServerClient_T *client, char *req) {
 void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
     SMFSettings_T *settings = client->settings;
     SMFSession_T *session = client->session;
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
     //SMFProcessQueue_T *q = client->q;
     //ssize_t br;
     //char buf[MAXLINE];
     //char *req = NULL;
     //FILE *spool_file;
-    //SMFMessage_T *message = smf_message_new();
-    int found_mid = 0;
-    int found_to = 0;
-    int found_from = 0;
-    int found_date = 0;
-    int found_header = 0;
-    int in_header = 1;
+    SMFMessage_T *message = NULL;
+    //int found_mid = 0;
+    //int found_to = 0;
+    //int found_from = 0;
+    //int found_date = 0;
+    //int found_header = 0;
+    //int in_header = 1;
     size_t len = 0;
     regex_t regex;
     int reti;
-    char *nl = NULL;
+    //char *nl = NULL;
     //char *mid = NULL;
     //SMFListElem_T *e = NULL;
 
-    //reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
+    STRACE(TRACE_DEBUG,session->id, "REQ: [%s] [%s]",req,session->message_file);
+    reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
 
     if (session->message_file == NULL) {
 	   if (smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id) != 0) {
@@ -535,25 +538,23 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
         smf_smtpd_string_reply(client,"354 End data with <CR><LF>.<CR><LF>\r\n");
     }
    
-
-    //while((br = smf_internal_readline(session->incoming,buf,MAXLINE,&rl)) > 0) {
-        if ((strncasecmp(req,".\r\n",3)==0)||(strncasecmp(req,".\n",2)==0)) return;
+    if ((strncasecmp(req,".\r\n",3)!=0)&&(strncasecmp(req,".\n",2)!=0)) {
         if (strncasecmp(req,".",1)==0) smf_smtpd_stuffing(req);
 
-        if ((strncasecmp(req,"Message-Id:",11)==0)&& (in_header==1)) found_mid = 1;
-        if ((strncasecmp(req,"Date:",5)==0) && (in_header==1)) found_date = 1;
-        if ((strncasecmp(req,"To:",3)==0) && (in_header==1)) found_to = 1;
-        if ((strncasecmp(req,"From:",5)==0) && (in_header==1)) found_from = 1;
+        if ((strncasecmp(req,"Message-Id:",11)==0)&& (rtd->in_header==1)) rtd->found_mid = 1;
+        if ((strncasecmp(req,"Date:",5)==0) && (rtd->in_header==1)) rtd->found_date = 1;
+        if ((strncasecmp(req,"To:",3)==0) && (rtd->in_header==1)) rtd->found_to = 1;
+        if ((strncasecmp(req,"From:",5)==0) && (rtd->in_header==1)) rtd->found_from = 1;
 
-        if (nl == NULL) nl = smf_internal_determine_linebreak(req);
+        if (rtd->nl == NULL) rtd->nl = smf_internal_determine_linebreak(req);
 
         if ((strncmp(req,"\n",1)==0)||(strncmp(req,"\r\n",2)==0)||(strncmp(req,"\r",1)==0))
-            in_header = 0;
+            rtd->in_header = 0;
 
-        if (found_header == 0) {
+        if (rtd->found_header == 0) {
             reti = regexec(&regex, req, 0, NULL, 0);
-            if(reti == 0){
-                found_header = 1;
+            if(reti == 0) {
+                rtd->found_header = 1;
             }
         }
 
@@ -564,48 +565,45 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
             return;
         }
         session->message_size += len;
-    //}
-
-    if (req !=NULL) free(req);
-    //regfree(&regex);
-    fclose(client->spool_file);
-
-
-    if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0)) 
-        smf_smtpd_append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
+    } else{
+        fclose(client->spool_file);
+        STRACE(TRACE_DEBUG,session->id,"data complete, message size: %d", (u_int32_t)session->message_size);
+        if ((rtd->found_mid==0)||(rtd->found_to==0)||(rtd->found_from==0)||(rtd->found_date==0)) 
+            smf_smtpd_append_missing_headers(client);
     
-#if 0    
-    STRACE(TRACE_DEBUG,session->id,"data complete, message size: %d", (u_int32_t)session->message_size);
-    
-    if ((session->message_size > smf_settings_get_max_size(settings))&&(smf_settings_get_max_size(settings) != 0)) {
-        STRACE(TRACE_DEBUG,session->id,"max message size limit exceeded"); 
-        smf_smtpd_string_reply(client,"552 message size exceeds fixed maximium message size\r\n");
-    } else {
-        if(smf_message_from_file(&message,session->message_file,1) != 0) {
-            STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
-            smf_smtpd_code_reply(client, 451, settings->smtp_codes);
-            return;
+        if ((session->message_size > smf_settings_get_max_size(settings))&&(smf_settings_get_max_size(settings) != 0)) {
+            STRACE(TRACE_DEBUG,session->id,"max message size limit exceeded"); 
+            smf_smtpd_string_reply(client,"552 message size exceeds fixed maximium message size\r\n");
+        } else {
+            message = smf_message_new();
+            if(smf_message_from_file(&message,session->message_file,1) != 0) {
+                STRACE(TRACE_ERR, session->id, "smf_message_from_file() failed");
+                smf_smtpd_code_reply(client, 451, settings->smtp_codes);
+                return;
+            }
+
+        //    mid = strdup(smf_message_get_message_id(message));
+        //    mid = smf_core_strstrip(mid);
+        //    STRACE(TRACE_INFO,session->id,"message-id=%s",mid);
+        //    STRACE(TRACE_INFO,session->id,"from=<%s> size=%d",session->envelope->sender,(u_int32_t)session->message_size);
+        //    e = smf_list_head(session->envelope->recipients);
+        //    while(e != NULL) {
+        //        STRACE(TRACE_INFO,session->id,"to=<%s> relay=%s",(char *)smf_list_data(e),settings->nexthop);
+        //        e = e->next;
+        //    }
+
+        //    free(mid);
+        //    session->envelope->message = message;
+        //    smf_smtpd_process_modules(session,settings,q);
         }
 
-        mid = strdup(smf_message_get_message_id(message));
-        mid = smf_core_strstrip(mid);
-        STRACE(TRACE_INFO,session->id,"message-id=%s",mid);
-        STRACE(TRACE_INFO,session->id,"from=<%s> size=%d",session->envelope->sender,(u_int32_t)session->message_size);
-        e = smf_list_head(session->envelope->recipients);
-        while(e != NULL) {
-            STRACE(TRACE_INFO,session->id,"to=<%s> relay=%s",(char *)smf_list_data(e),settings->nexthop);
-            e = e->next;
-        }
 
-        free(mid);
-        session->envelope->message = message;
-        smf_smtpd_process_modules(session,settings,q);
+        STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
+        //if (remove(session->message_file) != 0)
+        //    STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
     }
 
-    STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
-    if (remove(session->message_file) != 0)
-        STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
-#endif
+    //regfree(&regex);
 }
 
 static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
@@ -629,16 +627,26 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     size_t len = 0;
 
     input = bufferevent_get_input(bev);
-    if (evbuffer_get_length(input) <= 0) {
+    if ((len = evbuffer_get_length(input)) <= 0) {
         STRACE(TRACE_ERR,session->id,"invalid input");
         event_base_loopbreak(client->evbase);
     }
+
+    req = calloc(len, sizeof(char));
+    if (evbuffer_remove(input, req, len) == -1) {
+        STRACE(TRACE_ERR,session->id,"failed to read input buffer");
+        return;
+    }
+    /*
     if ((req = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF)) == NULL) {
         STRACE(TRACE_ERR,session->id,"failed to read input buffer");
         return;
     }
-
-    STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
+    */
+    
+    // TODO: check states before cmd processing
+    if (rtd->state != ST_DATA)
+        STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
 
     if (strncasecmp(req,"quit",4)==0) {
         smf_smtpd_process_quit(client,req);
@@ -663,14 +671,18 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
             /* we got the mail command but no rcpt to */
             smf_smtpd_string_reply(client,"554 Error: no valid recipients\r\n");
         } else {
-            rtd->state = ST_DATA;
-            STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
+            if (rtd->state != ST_DATA) {
+                rtd->state = ST_DATA;
+                STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
+            }
             smf_smtpd_process_data(client,req);
         } 
     } else {
         STRACE(TRACE_DEBUG,session->id,"SMTP: got unknown command");
         smf_smtpd_string_reply(client,"502 Error: command not recognized\r\n");
     }
+
+    free(req);
 }
 
 void smf_smtpd_timeout_cb(struct client *client) {
@@ -703,6 +715,12 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     }
     rtd->state = ST_INIT;
     rtd->hostname = (char *)malloc(MAXHOSTNAMELEN);
+    rtd->found_mid = 0;
+    rtd->found_from = 0;
+    rtd->found_date = 0;
+    rtd->found_to = 0;
+    rtd->found_header = 0;
+    rtd->in_header = 1;
     gethostname(rtd->hostname,MAXHOSTNAMELEN);
 
     client->session = session;
