@@ -510,6 +510,22 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req, size_t len) {
     char *mid = NULL;
     SMFListElem_T *e = NULL;
 
+
+    if ((rtd->state != ST_DATA) && (rtd->state != ST_RCPT) && (rtd->state != ST_MAIL)) {
+        /* someone wants to break smtp rules... */
+        smf_smtpd_string_reply(client,"503 Error: need RCPT command\r\n");
+        return;
+    } else if ((rtd->state != ST_RCPT) && (rtd->state == ST_MAIL)) {
+        /* we got the mail command but no rcpt to */
+        smf_smtpd_string_reply(client,"554 Error: no valid recipients\r\n");
+        return;
+    } else {
+        if (rtd->state != ST_DATA) {
+            rtd->state = ST_DATA;
+            STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
+        }
+    } 
+
     reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
 
     if (session->message_file == NULL) {
@@ -530,6 +546,7 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req, size_t len) {
 
         STRACE(TRACE_DEBUG,session->id,"using spool file: '%s'", session->message_file); 
         smf_smtpd_string_reply(client,"354 End data with <CR><LF>.<CR><LF>\r\n");
+        return;
     }
    
     if ((strncasecmp(req,".\r\n",3)!=0)&&(strncasecmp(req,".\n",2)!=0)) {
@@ -652,19 +669,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
         STRACE(TRACE_DEBUG,session->id,"SMTP: 'noop' received");
         smf_smtpd_code_reply(client,250,settings->smtp_codes);
     } else if ((strncasecmp(req,"data", 4)==0) || (rtd->state == ST_DATA)) {
-        if ((rtd->state != ST_DATA) && (rtd->state != ST_RCPT) && (rtd->state != ST_MAIL)) {
-            /* someone wants to break smtp rules... */
-            smf_smtpd_string_reply(client,"503 Error: need RCPT command\r\n");
-        } else if ((rtd->state != ST_RCPT) && (rtd->state == ST_MAIL)) {
-            /* we got the mail command but no rcpt to */
-            smf_smtpd_string_reply(client,"554 Error: no valid recipients\r\n");
-        } else {
-            if (rtd->state != ST_DATA) {
-                rtd->state = ST_DATA;
-                STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
-            }
-            smf_smtpd_process_data(client,req,len);
-        } 
+        smf_smtpd_process_data(client,req,len);
     } else {
         STRACE(TRACE_DEBUG,session->id,"SMTP: got unknown command");
         smf_smtpd_string_reply(client,"502 Error: command not recognized\r\n");
