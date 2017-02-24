@@ -499,11 +499,6 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req, size_t len) {
     SMFSettings_T *settings = client->settings;
     SMFSession_T *session = client->session;
     SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
-    //SMFProcessQueue_T *q = client->q;
-    //ssize_t br;
-    //char buf[MAXLINE];
-    //char *req = NULL;
-    //FILE *spool_file;
     SMFMessage_T *message = NULL;
     regex_t regex;
     int reti;
@@ -610,8 +605,8 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req, size_t len) {
 
 
         STRACE(TRACE_DEBUG,session->id,"removing spool file %s",session->message_file);
-        //if (remove(session->message_file) != 0)
-        //    STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
+        if (remove(session->message_file) != 0)
+            STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
     }
 
     regfree(&regex);
@@ -693,9 +688,6 @@ void smf_smtpd_engine_data_free(SMFServerClient_T *client) {
    
     if (rtd->hostname != NULL)
         free(rtd->hostname);
-
-    if (rtd->nl != NULL)
-        free(rtd->nl);
 }
 
 /**
