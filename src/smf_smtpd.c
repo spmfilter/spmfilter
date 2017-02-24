@@ -123,7 +123,10 @@ static int smf_smtpd_handle_nexthop_error(SMFSettings_T *settings, SMFSession_T 
     return 0;
 }
 
-int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SMFProcessQueue_T *q) {
+int smf_smtpd_process_modules(SMFServerClient_T *client) {
+    SMFSession_T *session = client->session;
+    SMFSettings_T *settings = client->settings;
+    SMFProcessQueue_T *q = client->q;
     int ret;
     char *msg = NULL;
     /* now tun the process queue */
@@ -139,16 +142,16 @@ int smf_smtpd_process_modules(SMFSession_T *session, SMFSettings_T *settings, SM
     if (session->response_msg != NULL) {
         char *smtp_response;
         if (asprintf(&smtp_response,"250 %s\r\n",session->response_msg) != -1) {
-            //smf_smtpd_string_reply(session->incoming,smtp_response);
+            smf_smtpd_string_reply(client,smtp_response);
             free(smtp_response);
-        } //else
-            //smf_smtpd_string_reply(session->incoming,"250 Ok");
+        } else
+            smf_smtpd_string_reply(client,"250 Ok");
     } else {
         if (asprintf(&msg,"250 Ok: processed as %s\r\n",session->id) != -1) {
-            //smf_smtpd_string_reply(session->incoming,msg);
+            smf_smtpd_string_reply(client,msg);
             free(msg);
-        } //else
-            //smf_smtpd_string_reply(session->incoming,"250 Ok");
+        } else
+            smf_smtpd_string_reply(client,"250 Ok");
     }
     return(0);
 }
@@ -492,7 +495,7 @@ void smf_smtpd_process_rcptto(SMFServerClient_T *client, char *req) {
     }
 }
 
-void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
+void smf_smtpd_process_data(SMFServerClient_T *client, char *req, size_t len) {
     SMFSettings_T *settings = client->settings;
     SMFSession_T *session = client->session;
     SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
@@ -502,20 +505,11 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
     //char *req = NULL;
     //FILE *spool_file;
     SMFMessage_T *message = NULL;
-    //int found_mid = 0;
-    //int found_to = 0;
-    //int found_from = 0;
-    //int found_date = 0;
-    //int found_header = 0;
-    //int in_header = 1;
-    size_t len = 0;
     regex_t regex;
     int reti;
-    //char *nl = NULL;
-    //char *mid = NULL;
-    //SMFListElem_T *e = NULL;
+    char *mid = NULL;
+    SMFListElem_T *e = NULL;
 
-    STRACE(TRACE_DEBUG,session->id, "REQ: [%s] [%s]",req,session->message_file);
     reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
 
     if (session->message_file == NULL) {
@@ -582,19 +576,19 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
                 return;
             }
 
-        //    mid = strdup(smf_message_get_message_id(message));
-        //    mid = smf_core_strstrip(mid);
-        //    STRACE(TRACE_INFO,session->id,"message-id=%s",mid);
-        //    STRACE(TRACE_INFO,session->id,"from=<%s> size=%d",session->envelope->sender,(u_int32_t)session->message_size);
-        //    e = smf_list_head(session->envelope->recipients);
-        //    while(e != NULL) {
-        //        STRACE(TRACE_INFO,session->id,"to=<%s> relay=%s",(char *)smf_list_data(e),settings->nexthop);
-        //        e = e->next;
-        //    }
+            mid = strdup(smf_message_get_message_id(message));
+            mid = smf_core_strstrip(mid);
+            STRACE(TRACE_INFO,session->id,"message-id=%s",mid);
+            STRACE(TRACE_INFO,session->id,"from=<%s> size=%d",session->envelope->sender,(u_int32_t)session->message_size);
+            e = smf_list_head(session->envelope->recipients);
+            while(e != NULL) {
+                STRACE(TRACE_INFO,session->id,"to=<%s> relay=%s",(char *)smf_list_data(e),settings->nexthop);
+                e = e->next;
+            }
 
-        //    free(mid);
-        //    session->envelope->message = message;
-        //    smf_smtpd_process_modules(session,settings,q);
+            free(mid);
+            session->envelope->message = message;
+            smf_smtpd_process_modules(client);
         }
 
 
@@ -603,7 +597,7 @@ void smf_smtpd_process_data(SMFServerClient_T *client, char *req) {
         //    STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
     }
 
-    //regfree(&regex);
+    regfree(&regex);
 }
 
 static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
@@ -616,7 +610,6 @@ static void smf_smtpd_write_cb(struct bufferevent *bev, void *arg) {
     
 }
 
-//void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
 static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
     SMFServerClient_T *client = (SMFServerClient_T *)arg;
     SMFSettings_T *settings = client->settings;
@@ -632,18 +625,13 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
         event_base_loopbreak(client->evbase);
     }
 
-    req = calloc(len, sizeof(char));
+    req = calloc(sizeof(char), len + 1);
     if (evbuffer_remove(input, req, len) == -1) {
         STRACE(TRACE_ERR,session->id,"failed to read input buffer");
         return;
     }
-    /*
-    if ((req = evbuffer_readln(input, &len, EVBUFFER_EOL_CRLF)) == NULL) {
-        STRACE(TRACE_ERR,session->id,"failed to read input buffer");
-        return;
-    }
-    */
-    
+
+    req[len + 1] = '\0';
     // TODO: check states before cmd processing
     if (rtd->state != ST_DATA)
         STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
@@ -675,7 +663,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
                 rtd->state = ST_DATA;
                 STRACE(TRACE_DEBUG,session->id,"SMTP: 'data' received");
             }
-            smf_smtpd_process_data(client,req);
+            smf_smtpd_process_data(client,req,len);
         } 
     } else {
         STRACE(TRACE_DEBUG,session->id,"SMTP: got unknown command");
