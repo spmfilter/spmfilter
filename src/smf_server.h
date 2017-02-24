@@ -60,6 +60,7 @@ typedef struct client {
     struct bufferevent *buf_ev; /**< The bufferedevent for this client. */
     char *client_addr; /**< client address */
     void *engine_data;
+    void (*engine_data_free_func)(struct client *client);
     SMFSession_T *session;
     SMFSettings_T *settings;
     SMFProcessQueue_T *q;

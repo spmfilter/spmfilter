@@ -108,6 +108,12 @@ void smf_server_close_and_free_client(SMFServerClient_T *client) {
             smf_session_free(client->session);
             client->session = NULL;
         }
+        if (client->client_addr != NULL) {
+            free(client->client_addr);
+        }
+        if ((client->engine_data != NULL) && (client->engine_data_free_func != NULL)) {
+            client->engine_data_free_func(client);
+        }
         smf_server_close_client(client);
         free(client);
     }
@@ -362,6 +368,8 @@ SMFServerClient_T *smf_server_client_create(int fd, struct sockaddr *addr, int a
     }
 
     client->timeout_cb = NULL;
+    client->engine_data = NULL;
+    client->engine_data_free_func = NULL;
 
     return client;
 }

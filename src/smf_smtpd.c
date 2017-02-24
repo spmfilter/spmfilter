@@ -631,7 +631,7 @@ static void smf_smtpd_handle_client(struct bufferevent *bev, void *arg) {
         return;
     }
 
-    req[len + 1] = '\0';
+    req[len] = '\0';
     // TODO: check states before cmd processing
     if (rtd->state != ST_DATA)
         STRACE(TRACE_DEBUG,session->id,"client smtp dialog: [%s]",req);
@@ -683,6 +683,16 @@ void smf_smtpd_timeout_cb(struct client *client) {
 #endif
 }
 
+void smf_smtpd_engine_data_free(SMFServerClient_T *client) {
+    SMFSmtpdRuntimeData_T *rtd = (SMFSmtpdRuntimeData_T *)client->engine_data;
+   
+    if (rtd->hostname != NULL)
+        free(rtd->hostname);
+
+    if (rtd->nl != NULL)
+        free(rtd->nl);
+}
+
 /**
  * This function will be called by libevent when there is a connection
  * ready to be accepted.
@@ -710,11 +720,13 @@ void smf_smtpd_accept_handler(struct evconnlistener *listener,
     rtd->found_header = 0;
     rtd->in_header = 1;
     gethostname(rtd->hostname,MAXHOSTNAMELEN);
+    rtd->nl = NULL;
 
     client->session = session;
     client->settings = ctx->settings;
     client->q = ctx->q;
     client->engine_data = (void *)rtd;
+    client->engine_data_free_func = smf_smtpd_engine_data_free;
     bufferevent_setcb(client->buf_ev, smf_smtpd_handle_client, smf_smtpd_write_cb, smf_server_event_cb, client);
     bufferevent_enable(client->buf_ev, EV_READ|EV_WRITE);
 
