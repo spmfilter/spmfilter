@@ -394,7 +394,6 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
     /* Initialize work queue. */
     if (smf_server_workqueue_init(&workqueue, settings->num_workers)) {
         TRACE(TRACE_ERR,"Failed to create work queue");
-        smf_server_workqueue_shutdown(&workqueue);
         return -1;
     }
 
@@ -411,19 +410,27 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
 
     if (asprintf(&srvname,"%d",settings->bind_port) == -1) {
         TRACE(TRACE_ERR, "failed to set server name");
+        smf_server_workqueue_shutdown(&workqueue);
         return -1;
     }
 
     rv = getaddrinfo(settings->bind_ip, srvname, &hints, &res);
     if (rv != 0) {
         TRACE(TRACE_ERR,"getaddrinfo failed: %s",gai_strerror(rv));
+        if (srvname != NULL)
+            free(srvname);
+        smf_server_workqueue_shutdown(&workqueue);
         return -1;
     }
 
     evthread_use_pthreads();
     if ((evbase = event_base_new()) == NULL) {
         TRACE(TRACE_ERR,"Unable to create socket accept event base");
+        if (srvname != NULL)
+            free(srvname);
+        freeaddrinfo(res);
         smf_server_workqueue_shutdown(&workqueue);
+        event_base_free(evbase);
         return -1;
     }
     
@@ -433,8 +440,12 @@ int smf_server_listen(SMFSettings_T *settings, SMFServerEngineCtx_T *ctx) {
             evbase, ctx->accept_cb, (void *) ctx, LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE,
             settings->listen_backlog, rp->ai_addr, (int)rp->ai_addrlen);
         if (!listener) {
+            if (srvname != NULL)
+                free(srvname);
             TRACE(TRACE_ERR,"Couldn't create listener");
+            freeaddrinfo(res);
             smf_server_workqueue_shutdown(&workqueue);
+            event_base_free(evbase);
             return -1;
         }
         evconnlistener_set_error_cb(listener, smf_server_accept_error_cb);

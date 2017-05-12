@@ -3,3 +3,6 @@ build/
 src/spmfilter.pc
 src/spmfilter_config.h
 test/test_params.h
+.vagrant/
+spmfilter.xcworkspace/
+Vagrantfile

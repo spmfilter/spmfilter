@@ -771,6 +771,8 @@ int load(SMFSettings_T *settings) {
     ctx->accept_cb = smf_smtpd_accept_handler;
     
     if (smf_server_listen(settings,ctx) != 0) {
+        free(q);
+        free(ctx);
         TRACE(TRACE_ERR,"failed to setup server");
         return -1;
     }
