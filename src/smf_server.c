@@ -71,7 +71,6 @@ void smf_server_sig_init(void) {
 
     action.sa_handler = smf_server_sig_handler;
     sigemptyset(&action.sa_mask);
-    //action.sa_flags = SA_RESTART;
     action.sa_flags = 0;
 
     if (sigaction(SIGTERM, &action, &old_action) < 0) {
@@ -255,7 +254,7 @@ void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
             exit(EXIT_SUCCESS); /* quit child process */
             break;
         default: /* parent process: go on with accept */
-            TRACE(TRACE_ERR,"forked child [%d]",pid);
+            TRACE(TRACE_DEBUG,"forked child [%d]",pid);
             break;
     }
 }
@@ -282,8 +281,6 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         }
     }
 
-    TRACE(TRACE_ERR,"PROCS INIT: %d",num_procs);
-
     for (;;) {
         pid = waitpid(-1, &status, 0);
 
@@ -303,20 +300,17 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
             //}
         }
 
-        TRACE(TRACE_ERR,"NUM_PROCS: %d SPARE: %d", num_procs,num_spare);
-        if (num_procs < settings->max_childs) {
-            /* minimal number of childs is not running */
-            //while (num_spare < settings->spare_childs) {
-            while(num_procs < settings->max_childs) {
-                if (num_spare < settings->spare_childs) {
-                    smf_server_fork(settings,sd,q,handle_client_func);
-                    num_procs++;
-                    num_spare++;
-                    TRACE(TRACE_ERR, "FORK PROCS: %d SPARE %d", num_procs, num_spare);
-                } else
-                  break;
-            }      
-        }
+        TRACE(TRACE_ERR,"NUM_PROCS: %d SPARE: %d MAX: %d", num_procs,num_spare, settings->max_childs);
+        while(num_procs < settings->max_childs) {
+            if (num_spare < settings->spare_childs) {
+                smf_server_fork(settings,sd,q,handle_client_func);
+                num_procs++;
+                num_spare++;
+                TRACE(TRACE_ERR, "FORK PROCS: %d SPARE %d", num_procs, num_spare);
+            } else
+              break;
+        }      
+
     }
 
     TRACE(TRACE_NOTICE, "stopping spmfilter daemon");
