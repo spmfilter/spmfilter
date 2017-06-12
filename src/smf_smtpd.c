@@ -481,15 +481,10 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     struct sigaction action;
     struct sockaddr_in peer;
     socklen_t peer_len;
-//    sigset_t signal_set;
 
     start_acct = smf_internal_init_runtime_stats();
     /* send signal to parent that we've got a new client */
-//    sigemptyset(&signal_set);
-//    sigaddset(&signal_set, SIGUSR1);
-//    sigprocmask(SIG_BLOCK, &signal_set, NULL);
     kill(getppid(),SIGUSR1);
-//    sigprocmask(SIG_UNBLOCK, &signal_set, NULL);
     
     session->sock = client;
     client_sock = client;

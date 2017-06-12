@@ -56,9 +56,6 @@ void smf_server_sig_handler(int sig) {
         case SIGUSR1:
             num_spare--;
             break;
-//        case SIGCHLD:
-//            num_procs--;
-//            break;
         default:
             break;
     }
@@ -87,12 +84,6 @@ void smf_server_sig_init(void) {
         TRACE(TRACE_ERR,"sigaction (SIGUSR1) failed: %s",strerror(errno));
         exit(EXIT_FAILURE);
     }
-
-//    if (sigaction(SIGCHLD, &action, &old_action) < 0) {
-//        TRACE(TRACE_ERR,"sigaction (SIGCHLD) failed: %s",strerror(errno));
-//        exit(EXIT_FAILURE);
-//    }
-
 }
 
 void smf_server_init(SMFSettings_T *settings, int sd) {
@@ -287,7 +278,6 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         if (daemon_exit == 1)
             break;
         
-        //TRACE(TRACE_ERR,"RETURN PID %d",pid);
         if (pid > 0) {
             //for (i=0; i < settings->max_childs; i++) {
             //    TRACE(TRACE_ERR,"CHILD PID: %d", child[i]);
