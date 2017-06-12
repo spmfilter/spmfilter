@@ -39,16 +39,14 @@
 
 #define THIS_MODULE "server"
 
-int num_procs = 0;
-int num_clients = 0;
-int num_spare = 0;
-int daemon_exit = 0;
-int child[] = {};
+static int num_procs = 0;
+static int num_spare = 0;
+static int daemon_exit = 0;
+//int child[] = {};
 
 void smf_server_sig_handler(int sig) {
     /**
      * - SIGUSR1 => child got a new client
-     * - SIGUSR2 => child client closes connections
      */
     switch(sig) {
         case SIGTERM:
@@ -56,12 +54,11 @@ void smf_server_sig_handler(int sig) {
             daemon_exit = 1;
             break;
         case SIGUSR1:
-            num_clients++;
             num_spare--;
             break;
-        case SIGUSR2:
-            num_clients--;
-            break;
+//        case SIGCHLD:
+//            num_procs--;
+//            break;
         default:
             break;
     }
@@ -74,6 +71,7 @@ void smf_server_sig_init(void) {
 
     action.sa_handler = smf_server_sig_handler;
     sigemptyset(&action.sa_mask);
+    //action.sa_flags = SA_RESTART;
     action.sa_flags = 0;
 
     if (sigaction(SIGTERM, &action, &old_action) < 0) {
@@ -91,10 +89,10 @@ void smf_server_sig_init(void) {
         exit(EXIT_FAILURE);
     }
 
-    if (sigaction(SIGUSR2, &action, &old_action) < 0) {
-        TRACE(TRACE_ERR,"sigaction (SIGUSR2) failed: %s",strerror(errno));
-        exit(EXIT_FAILURE);
-    }
+//    if (sigaction(SIGCHLD, &action, &old_action) < 0) {
+//        TRACE(TRACE_ERR,"sigaction (SIGCHLD) failed: %s",strerror(errno));
+//        exit(EXIT_FAILURE);
+//    }
 
 }
 
@@ -238,28 +236,28 @@ int smf_server_listen(SMFSettings_T *settings) {
 void smf_server_fork(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q)) {
     int pos = 0;
+    pid_t pid;
 
-    for (pos=0; pos < settings->max_childs; pos++) {
-        if (child[pos] == 0) {
-            break;
-        }
-    }
+    //for (pos=0; pos < settings->max_childs; pos++) {
+    //    if (child[pos] == 0) {
+    //        break;
+    //    }
+    //}
 
-    switch(child[pos] = fork()) {
+    //switch(child[pos] = fork()) {
+    switch(pid = fork()) {
         case -1:
             TRACE(TRACE_ERR,"fork() failed: %s",strerror(errno));
             break;
         case 0:
-
             smf_server_accept_handler(settings,sd,q,handle_client_func);
             
             exit(EXIT_SUCCESS); /* quit child process */
             break;
         default: /* parent process: go on with accept */
-            TRACE(TRACE_DEBUG,"forked child [%d]",child[pos]);
+            TRACE(TRACE_ERR,"forked child [%d]",pid);
             break;
     }
-    num_procs++;
 }
 
 void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
@@ -270,18 +268,21 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
     TRACE(TRACE_NOTICE, "starting spmfilter daemon");
     TRACE(TRACE_NOTICE,"binding to %s:%d",settings->bind_ip,settings->bind_port);
 
-    for(i=0; i<settings->max_childs; i++)
-        child[i] = 0;
+    //for(i=0; i<settings->max_childs; i++)
+    //    child[i] = 0;
 
     /* prefork min. 1 child(s) */
     if(settings->spare_childs == 0) {
         smf_server_fork(settings,sd,q,handle_client_func);
     } else {
         for (i = 0; i < settings->spare_childs; i++) {
-            num_spare++;
             smf_server_fork(settings,sd,q,handle_client_func);
+            num_procs++;
+            num_spare++;
         }
     }
+
+    TRACE(TRACE_ERR,"PROCS INIT: %d",num_procs);
 
     for (;;) {
         pid = waitpid(-1, &status, 0);
@@ -289,22 +290,31 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
         if (daemon_exit == 1)
             break;
         
+        //TRACE(TRACE_ERR,"RETURN PID %d",pid);
         if (pid > 0) {
-
-            for (i=0; i < settings->max_childs; i++) {
-                if (pid == child[i]) {
-                    child[i] = 0; /* remove process id */
+            //for (i=0; i < settings->max_childs; i++) {
+            //    TRACE(TRACE_ERR,"CHILD PID: %d", child[i]);
+            //    if (pid == child[i]) {
+            //        child[i] = 0; /* remove process id */
                     num_procs--;
-                    break;
-                }
-            }
+                    TRACE(TRACE_ERR, "PROCS: %d SPARE %d", num_procs, num_spare);
+                    //break;
+            //    }
+            //}
         }
 
+        TRACE(TRACE_ERR,"NUM_PROCS: %d SPARE: %d", num_procs,num_spare);
         if (num_procs < settings->max_childs) {
             /* minimal number of childs is not running */
-            while (num_spare < settings->spare_childs) {
-                smf_server_fork(settings,sd,q,handle_client_func);
-                num_spare++;
+            //while (num_spare < settings->spare_childs) {
+            while(num_procs < settings->max_childs) {
+                if (num_spare < settings->spare_childs) {
+                    smf_server_fork(settings,sd,q,handle_client_func);
+                    num_procs++;
+                    num_spare++;
+                    TRACE(TRACE_ERR, "FORK PROCS: %d SPARE %d", num_procs, num_spare);
+                } else
+                  break;
             }      
         }
     }
@@ -313,11 +323,11 @@ void smf_server_loop(SMFSettings_T *settings,int sd, SMFProcessQueue_T *q,
 	
     close(sd);
 
-    for (i = 0; i < settings->max_childs; i++)
-        if (child[i] > 0)
-            kill(child[i],SIGTERM);
-    while(wait(NULL) > 0)
-        ;
+    //for (i = 0; i < settings->max_childs; i++)
+    //    if (child[i] > 0)
+    //        kill(child[i],SIGTERM);
+    //while(wait(NULL) > 0)
+    //    ;
 
     unlink(settings->pid_file);
 }

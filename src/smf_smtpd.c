@@ -66,7 +66,6 @@ void smf_smtpd_sig_handler(int sig) {
     }
 
     TRACE(TRACE_NOTICE, "terminating child %i", getpid());
-    kill(getppid(),SIGUSR2);
     exit(0);
 }
 
@@ -436,7 +435,6 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0)) 
         smf_smtpd_append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
     
-    
     STRACE(TRACE_DEBUG,session->id,"data complete, message size: %d", (u_int32_t)session->message_size);
     
     if ((session->message_size > smf_settings_get_max_size(settings))&&(smf_settings_get_max_size(settings) != 0)) {
@@ -483,12 +481,16 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     struct sigaction action;
     struct sockaddr_in peer;
     socklen_t peer_len;
-    
+//    sigset_t signal_set;
+
     start_acct = smf_internal_init_runtime_stats();
-
     /* send signal to parent that we've got a new client */
+//    sigemptyset(&signal_set);
+//    sigaddset(&signal_set, SIGUSR1);
+//    sigprocmask(SIG_BLOCK, &signal_set, NULL);
     kill(getppid(),SIGUSR1);
-
+//    sigprocmask(SIG_UNBLOCK, &signal_set, NULL);
+    
     session->sock = client;
     client_sock = client;
 
@@ -496,7 +498,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     if (getpeername(client, (struct sockaddr *)&peer, &peer_len) == -1)
         TRACE(TRACE_ERR,"getpeername() failed: %s",strerror(errno));
     else
-        STRACE(TRACE_INFO,session->id, "connect from %s",inet_ntoa(peer.sin_addr));
+        TRACE(TRACE_INFO,"connect from %s",inet_ntoa(peer.sin_addr));
 
     hostname = (char *)malloc(MAXHOSTNAMELEN);
     gethostname(hostname,MAXHOSTNAMELEN);
@@ -662,9 +664,6 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     }
     free(rl);
     free(hostname);
-    
-    /* client has finished */
-    kill(getppid(),SIGUSR2);
 
     smf_internal_print_runtime_stats(start_acct,session->id);
     smf_session_free(session);
