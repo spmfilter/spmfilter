@@ -26,6 +26,7 @@
 #include <sys/times.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/shm.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <netinet/in.h>
@@ -467,7 +468,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
         STRACE(TRACE_ERR,session->id,"failed to remove queue file: %s (%d)",strerror(errno),errno);
 }
 
-void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueue_T *q) {
+void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFServerState_T *server_state) {
     char *hostname = NULL;
     int br;
     void *rl = NULL;
@@ -481,10 +482,13 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
     struct sigaction action;
     struct sockaddr_in peer;
     socklen_t peer_len;
+    SMFProcessQueue_T *q = server_state->q;
 
     start_acct = smf_internal_init_runtime_stats();
     /* send signal to parent that we've got a new client */
     kill(getppid(),SIGUSR1);
+
+    smf_server_decrement_spare(server_state);
     
     session->sock = client;
     client_sock = client;
@@ -668,29 +672,28 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFProcessQueu
 }
 
 int load(SMFSettings_T *settings) {
-    int sd;
-    SMFProcessQueue_T *q;
+    SMFServerState_T *state;
+
+    state = (SMFServerState_T *)calloc(1, sizeof(SMFServerState_T));
 
     /* initialize the modules queue handler */
-    q = smf_modules_pqueue_init(
+    state->q = smf_modules_pqueue_init(
         smf_smtpd_handle_q_error,
         smf_smtpd_handle_q_processing_error,
         smf_smtpd_handle_nexthop_error
     );
 
-    if(q == NULL) {
+    if(state->q == NULL) {
         TRACE(TRACE_ERR,"failed to initialize module queue");
         return(-1);
     }
 
-    if ((sd = smf_server_listen(settings)) < 0) {
+    if ((state->sd = smf_server_listen(settings)) < 0) {
         exit(EXIT_FAILURE);
     }
 
-    smf_server_init(settings,sd);
-    smf_server_loop(settings,sd,q,smf_smtpd_handle_client);
-
-    free(q);
+    smf_server_init(settings,state);
+    smf_server_loop(settings,state,smf_smtpd_handle_client);
     
     return 0;
 }

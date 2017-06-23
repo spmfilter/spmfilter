@@ -21,21 +21,42 @@
 #include "smf_settings.h"
 #include "smf_modules.h"
 
-typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q);
+typedef struct {
+  int num_procs;
+  int num_spare;
+} SMFServerCounters_T;
+
+typedef struct {
+  int sem_id;
+  int shm_id;
+  key_t sem_key;
+  key_t shm_key;
+  int sd;
+  SMFProcessQueue_T *q;
+} SMFServerState_T;
+
+typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFServerState_T *state);
 
 void smf_server_sig_init(void);
 void smf_server_sig_handler(int sig);
-void smf_server_init(SMFSettings_T *settings, int sd);
+
+void smf_server_init(SMFSettings_T *settings, SMFServerState_T *state);
 int smf_server_listen(SMFSettings_T *settings);
-void smf_server_fork(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
-    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
-void smf_server_loop(SMFSettings_T *settings,int sd,SMFProcessQueue_T *q,
-    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
+
+void smf_server_fork(SMFSettings_T *settings, SMFServerState_T *state,
+    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFServerState_T *state));
+
+void smf_server_loop(SMFSettings_T *settings, SMFServerState_T *state,
+    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFServerState_T *state));
+
 void smf_server_accept_handler(
     SMFSettings_T *settings, 
-    int sd, 
-    SMFProcessQueue_T *q,
-    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFProcessQueue_T *q));
+    SMFServerState_T *state,
+    void (*handle_client_func)(SMFSettings_T *settings,int client,SMFServerState_T *state));
+
+void smf_server_increment_proc(SMFServerState_T *state);
+void smf_server_decrement_spare(SMFServerState_T *state);
+void smf_server_decrement_proc(SMFServerState_T *state);
 
 #endif  /* _SMF_SERVER_H */
 

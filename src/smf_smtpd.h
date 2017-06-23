@@ -21,6 +21,7 @@
 #include "smf_settings.h"
 #include "smf_session.h"
 #include "smf_modules.h"
+#include "smf_server.h"
 
 #define CODE_221 "221 Goodbye. Please recommend us to others!\r\n"
 #define CODE_250 "250 OK\r\n"
@@ -55,7 +56,7 @@ int smf_smtpd_append_missing_headers(SMFSession_T *session,
 void smf_smtpd_string_reply(int sock, const char *format, ...);
 void smf_smtpd_code_reply(int sock, int code, SMFDict_T *codes);
 void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings,SMFProcessQueue_T *q);
-void smf_smtpd_handle_client(SMFSettings_T *settings, int client,SMFProcessQueue_T *q);
+void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFServerState_T *server_state);
 
 #endif  /* _SMF_SMTPD_H */
 
