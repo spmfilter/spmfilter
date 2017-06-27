@@ -98,6 +98,8 @@ int main(int argc, char *argv[]) {
 
     openlog("spmfilter", LOG_PID, smf_settings_get_syslog_facility(settings));
 
+    smf_settings_log(settings);
+
     /* connect to database/ldap server, if necessary */
     if((settings->backend != NULL) && (settings->lookup_persistent == 1)) {
 #ifdef HAVE_LDAP

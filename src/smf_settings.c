@@ -578,9 +578,6 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     char section[MAX_LINE+1];
     char key[MAX_LINE+1];
     char val[MAX_LINE+1];
-    SMFList_T *list = NULL;
-    SMFListElem_T *elem = NULL;
-    char *s = NULL;
     int last=0;
     int len=0;
     int lineno=0;
@@ -589,7 +586,6 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
     char *clean_key = NULL;
     char *clean_val = NULL;
     char *tmp = NULL;
-    SMFModule_T *mod = NULL;
 
     assert(*settings);
 
@@ -750,87 +746,96 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         }
     }
 
-    TRACE(TRACE_DEBUG, "settings->queue_dir: [%s]", (*settings)->queue_dir);
-    TRACE(TRACE_DEBUG, "settings->engine: [%s]", (*settings)->engine);
-    elem = smf_list_head((*settings)->modules);
+    return 0;
+}
+
+void smf_settings_log(SMFSettings_T *settings) {
+    SMFList_T *list = NULL;
+    SMFListElem_T *elem = NULL;
+    SMFModule_T *mod = NULL;
+    char *s = NULL;
+
+    TRACE(TRACE_DEBUG, "settings->queue_dir: [%s]", settings->queue_dir);
+    TRACE(TRACE_DEBUG, "settings->engine: [%s]", settings->engine);
+    elem = smf_list_head(settings->modules);
     while(elem != NULL) {
         mod = (SMFModule_T *)smf_list_data(elem);
         TRACE(TRACE_DEBUG, "settings->modules: [%s]", mod->name);
         elem = elem->next;
     }
-    TRACE(TRACE_DEBUG, "settings->module_fail [%d]",(*settings)->module_fail);
-    TRACE(TRACE_DEBUG, "settings->nexthop: [%s]", (*settings)->nexthop);
-    TRACE(TRACE_DEBUG, "settings->backend: [%s]", (*settings)->backend);
-    TRACE(TRACE_DEBUG, "settings->backend_connection: [%s]", (*settings)->backend_connection);
-    TRACE(TRACE_DEBUG, "settings->add_header: [%d]", (*settings)->add_header);
-    TRACE(TRACE_DEBUG, "settings->max_size: [%d]", (*settings)->max_size);
-    TRACE(TRACE_DEBUG, "settings->tls: [%d]", (*settings)->tls);
-    TRACE(TRACE_DEBUG, "settings->lib_dir: [%s]", (*settings)->lib_dir);
-    TRACE(TRACE_DEBUG, "settings->pid_file: [%s]", (*settings)->pid_file);
-    TRACE(TRACE_DEBUG, "settings->bind_ip: [%s]", (*settings)->bind_ip);
-    TRACE(TRACE_DEBUG, "settings->bind_port: [%d]", (*settings)->bind_port);
-    TRACE(TRACE_DEBUG, "settings->listen_backlog: [%d]", (*settings)->listen_backlog);
-    TRACE(TRACE_DEBUG, "settings->foreground: [%d]", (*settings)->foreground);
-    TRACE(TRACE_DEBUG, "settings->user: [%s]", (*settings)->user);
-    TRACE(TRACE_DEBUG, "settings->group: [%s]", (*settings)->group);
-    TRACE(TRACE_DEBUG, "settings->max_childs: [%d]", (*settings)->max_childs);
-    TRACE(TRACE_DEBUG, "settings->spare_childs: [%d]", (*settings)->spare_childs);
-    TRACE(TRACE_DEBUG, "settings->lookup_persistent: [%d]", (*settings)->lookup_persistent);
-    TRACE(TRACE_DEBUG, "settings->syslog_facility: [%d]", (*settings)->syslog_facility);
+    TRACE(TRACE_DEBUG, "settings->module_fail [%d]",settings->module_fail);
+    TRACE(TRACE_DEBUG, "settings->nexthop: [%s]", settings->nexthop);
+    TRACE(TRACE_DEBUG, "settings->backend: [%s]", settings->backend);
+    TRACE(TRACE_DEBUG, "settings->backend_connection: [%s]", settings->backend_connection);
+    TRACE(TRACE_DEBUG, "settings->add_header: [%d]", settings->add_header);
+    TRACE(TRACE_DEBUG, "settings->max_size: [%d]", settings->max_size);
+    TRACE(TRACE_DEBUG, "settings->tls: [%d]", settings->tls);
+    TRACE(TRACE_DEBUG, "settings->lib_dir: [%s]", settings->lib_dir);
+    TRACE(TRACE_DEBUG, "settings->pid_file: [%s]", settings->pid_file);
+    TRACE(TRACE_DEBUG, "settings->bind_ip: [%s]", settings->bind_ip);
+    TRACE(TRACE_DEBUG, "settings->bind_port: [%d]", settings->bind_port);
+    TRACE(TRACE_DEBUG, "settings->listen_backlog: [%d]", settings->listen_backlog);
+    TRACE(TRACE_DEBUG, "settings->foreground: [%d]", settings->foreground);
+    TRACE(TRACE_DEBUG, "settings->user: [%s]", settings->user);
+    TRACE(TRACE_DEBUG, "settings->group: [%s]", settings->group);
+    TRACE(TRACE_DEBUG, "settings->max_childs: [%d]", settings->max_childs);
+    TRACE(TRACE_DEBUG, "settings->spare_childs: [%d]", settings->spare_childs);
+    TRACE(TRACE_DEBUG, "settings->lookup_persistent: [%d]", settings->lookup_persistent);
+    TRACE(TRACE_DEBUG, "settings->syslog_facility: [%d]", settings->syslog_facility);
 
-    TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", (*settings)->sql_driver);
-    TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", (*settings)->sql_name);
-    elem = smf_list_head((*settings)->sql_host);
+    TRACE(TRACE_DEBUG, "settings->sql_driver: [%s]", settings->sql_driver);
+    TRACE(TRACE_DEBUG, "settings->sql_name: [%s]", settings->sql_name);
+    elem = smf_list_head(settings->sql_host);
     while(elem != NULL) {
         s = (char *)smf_list_data(elem);
         TRACE(TRACE_DEBUG, "settings->sql_host: [%s]", s);
         elem = elem->next;
     }
-    TRACE(TRACE_DEBUG, "settings->sql_user: [%s]", (*settings)->sql_user);
-    TRACE(TRACE_DEBUG, "settings->sql_pass: [%s]", (*settings)->sql_pass);
-    TRACE(TRACE_DEBUG, "settings->sql_user_query: [%s]", (*settings)->sql_user_query);
-    TRACE(TRACE_DEBUG, "settings->encoding: [%s]", (*settings)->sql_encoding);
-    TRACE(TRACE_DEBUG, "settings->max_connections: [%d]", (*settings)->sql_max_connections);
-    TRACE(TRACE_DEBUG, "settings->port: [%d]", (*settings)->sql_port);
+    TRACE(TRACE_DEBUG, "settings->sql_user: [%s]", settings->sql_user);
+    TRACE(TRACE_DEBUG, "settings->sql_pass: [%s]", settings->sql_pass);
+    TRACE(TRACE_DEBUG, "settings->sql_user_query: [%s]", settings->sql_user_query);
+    TRACE(TRACE_DEBUG, "settings->encoding: [%s]", settings->sql_encoding);
+    TRACE(TRACE_DEBUG, "settings->max_connections: [%d]", settings->sql_max_connections);
+    TRACE(TRACE_DEBUG, "settings->port: [%d]", settings->sql_port);
 
-    TRACE(TRACE_DEBUG, "settings->ldap_uri: [%s]", (*settings)->ldap_uri);
-    elem = smf_list_head((*settings)->ldap_host);
+    TRACE(TRACE_DEBUG, "settings->ldap_uri: [%s]", settings->ldap_uri);
+    elem = smf_list_head(settings->ldap_host);
     while(elem != NULL) {
         s = (char *)smf_list_data(elem);
         TRACE(TRACE_DEBUG, "settings->ldap_host: [%s]", s);
         elem = elem->next;
     }
-    TRACE(TRACE_DEBUG, "settings->ldap_port: [%d]", (*settings)->ldap_port);
-    TRACE(TRACE_DEBUG, "settings->ldap_binddn: [%s]", (*settings)->ldap_binddn);
-    TRACE(TRACE_DEBUG, "settings->ldap_bindpw: [%s]", (*settings)->ldap_bindpw);
-    TRACE(TRACE_DEBUG, "settings->ldap_base: [%s]", (*settings)->ldap_base);
-    TRACE(TRACE_DEBUG, "settings->ldap_user_query: [%s]", (*settings)->ldap_user_query);
-    elem = smf_list_head((*settings)->ldap_result_attributes);
+    TRACE(TRACE_DEBUG, "settings->ldap_port: [%d]", settings->ldap_port);
+    TRACE(TRACE_DEBUG, "settings->ldap_binddn: [%s]", settings->ldap_binddn);
+    TRACE(TRACE_DEBUG, "settings->ldap_bindpw: [%s]", settings->ldap_bindpw);
+    TRACE(TRACE_DEBUG, "settings->ldap_base: [%s]", settings->ldap_base);
+    TRACE(TRACE_DEBUG, "settings->ldap_user_query: [%s]", settings->ldap_user_query);
+    elem = smf_list_head(settings->ldap_result_attributes);
     while(elem != NULL) {
         s = (char *)smf_list_data(elem);
         TRACE(TRACE_DEBUG, "settings->ldap_result_attributes: [%s]", s);
         elem = elem->next;
     }
-    TRACE(TRACE_DEBUG, "settings->ldap_scope: [%s]", (*settings)->ldap_scope);
-    TRACE(TRACE_DEBUG, "settings->ldap_referrals: [%d]", (*settings)->ldap_referrals);
+    TRACE(TRACE_DEBUG, "settings->ldap_scope: [%s]", settings->ldap_scope);
+    TRACE(TRACE_DEBUG, "settings->ldap_referrals: [%d]", settings->ldap_referrals);
 
     /** smtpd checks **/
-    if ((*settings)->nexthop_fail_msg == NULL)
-        (*settings)->nexthop_fail_msg = strdup("Requested action aborted: local error in processing");
+    if (settings->nexthop_fail_msg == NULL)
+        settings->nexthop_fail_msg = strdup("Requested action aborted: local error in processing");
 
-    TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: [%d]", (*settings)->nexthop_fail_code);
-    TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: [%s]", (*settings)->nexthop_fail_msg);
-    TRACE(TRACE_DEBUG, "settings->smtpd_timeout: [%d]\n", (*settings)->smtpd_timeout);
+    TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: [%d]", settings->nexthop_fail_code);
+    TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: [%s]", settings->nexthop_fail_msg);
+    TRACE(TRACE_DEBUG, "settings->smtpd_timeout: [%d]\n", settings->smtpd_timeout);
 
-    list = smf_dict_get_keys((*settings)->smtp_codes);
+    list = smf_dict_get_keys(settings->smtp_codes);
     elem = smf_list_head(list);
     while(elem != NULL) {
         s = (char *)smf_list_data(elem);
-        TRACE(TRACE_DEBUG, "settings->smtp_codes: append %s=%s",s,smf_dict_get((*settings)->smtp_codes,s));
+        TRACE(TRACE_DEBUG, "settings->smtp_codes: append %s=%s",s,smf_dict_get(settings->smtp_codes,s));
         elem = elem->next;
     }
+
     smf_list_free(list);
-    return 0;
 }
 
 int smf_settings_set_debug(SMFSettings_T *settings, int debug) {
