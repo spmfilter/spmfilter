@@ -489,6 +489,7 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFServerState
     kill(getppid(),SIGUSR1);
 
     smf_server_decrement_spare(server_state);
+    smf_server_add_active(server_state,getpid());
     
     session->sock = client;
     client_sock = client;

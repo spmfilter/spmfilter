@@ -49,10 +49,11 @@
 static volatile int daemon_exit = 0;
 static struct sembuf semaphore;
 
-int child[] = {};
-
-int _smf_server_init_ipc(SMFServerState_T *state) {
+int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
     SMFServerCounters_T *counters;
+    int size_mem;
+    int size_max_childs;
+    int i;
     state->sem_key = ftok(".", 's');
     state->sem_id = semget(state->sem_key, 0, IPC_PRIVATE);
     if (state->sem_id < 0) {
@@ -69,11 +70,16 @@ int _smf_server_init_ipc(SMFServerState_T *state) {
     }
 
     state->shm_key = ftok(".",'a');
-    state->shm_id = shmget(state->shm_key,sizeof(SMFServerCounters_T),0600 | IPC_CREAT);
+    size_max_childs = 2 * (CHILD_LIMIT * sizeof(int));
+    size_mem = sizeof(SMFServerCounters_T) + size_max_childs;
+
+    state->shm_id = shmget(state->shm_key,size_mem,0600 | IPC_CREAT);
     if (state->shm_id < 0) {
         TRACE(TRACE_ERR,"failed to create shm segment: %s", strerror(errno));
         return -1;
     }
+
+    
     TRACE(TRACE_DEBUG,"created shm segment: %d",state->shm_id);
     counters = (SMFServerCounters_T *)shmat(state->shm_id, (void *)0, 0);
     if (counters == (void *)(-1)) {
@@ -83,6 +89,12 @@ int _smf_server_init_ipc(SMFServerState_T *state) {
 
     counters->num_procs = 0;
     counters->num_spare = 0;
+    counters->max_childs = settings->max_childs;
+    
+    for (i=0; i < settings->max_childs; i++ ) {
+        counters->childs_active[i] = 0;
+        counters->childs[i] = 0;
+    }
 
     if (shmdt(counters) == -1) {
         TRACE(TRACE_ERR,"failed to detach shm segment: %s", strerror(errno));
@@ -120,13 +132,21 @@ void _smf_server_detach_counters(SMFServerCounters_T *counters) {
     }
 }
 
-void smf_server_increment_proc(SMFServerState_T *state) {
+void _smf_server_add_child(SMFServerState_T *state, pid_t pid) {
     SMFServerCounters_T *counters = _smf_server_get_counters(state->shm_id);
+    int i;
     _smf_server_sem_operation(SEM_LOCK,state->sem_id);
 
     counters->num_procs++;
     counters->num_spare++;
     
+    for(i=0; i<counters->max_childs; i++ ) {
+        if (counters->childs[i] == 0) {
+            counters->childs[i] = pid;
+            break;
+        }
+    }
+
     _smf_server_detach_counters(counters);
     _smf_server_sem_operation(SEM_UNLOCK,state->sem_id);
 }
@@ -141,7 +161,7 @@ void smf_server_decrement_spare(SMFServerState_T *state) {
     _smf_server_sem_operation(SEM_UNLOCK,state->sem_id);
 }
 
-void smf_server_decrement_proc(SMFServerState_T *state) {
+void _smf_server_decrement_proc(SMFServerState_T *state) {
     SMFServerCounters_T *counters = _smf_server_get_counters(state->shm_id);
     _smf_server_sem_operation(SEM_LOCK,state->sem_id);
 
@@ -149,6 +169,53 @@ void smf_server_decrement_proc(SMFServerState_T *state) {
     
     _smf_server_detach_counters(counters);
     _smf_server_sem_operation(SEM_UNLOCK,state->sem_id);
+}
+
+void smf_server_add_active(SMFServerState_T *state,int pid) {
+    SMFServerCounters_T *counters = _smf_server_get_counters(state->shm_id);
+    int i;
+    _smf_server_sem_operation(SEM_LOCK,state->sem_id);
+
+    for(i=0; i<counters->max_childs; i++ ) {
+        if (counters->childs_active[i] == 0) {
+            counters->childs_active[i] = pid;
+            break;
+        }
+    }
+
+    _smf_server_detach_counters(counters);
+    _smf_server_sem_operation(SEM_UNLOCK,state->sem_id);
+}
+
+void _smf_server_remove_active(SMFServerState_T *state,int pid) {
+    SMFServerCounters_T *counters = _smf_server_get_counters(state->shm_id);
+    int i;
+    int removed = -1;
+
+    _smf_server_sem_operation(SEM_LOCK,state->sem_id);
+    for(i=0; i<counters->max_childs; i++ ) {
+        if (counters->childs_active[i] == pid) {
+            counters->childs_active[i] = 0;
+            removed = 1;
+            break;
+        }
+    }
+
+    for(i=0; i<counters->max_childs; i++ ) {
+        if (counters->childs[i] == pid) {
+            counters->childs[i] = 0;
+            break;
+        }
+    }
+
+    _smf_server_detach_counters(counters);
+    _smf_server_sem_operation(SEM_UNLOCK,state->sem_id);
+
+    /* it seems we lost a spare child */
+    if (removed != 1) {
+        TRACE(TRACE_ERR,"lost spare child [%d]", pid);
+        smf_server_decrement_spare(state);
+    }
 }
 
 void smf_server_sig_handler(int sig) {
@@ -159,6 +226,8 @@ void smf_server_sig_handler(int sig) {
         case SIGTERM:
         case SIGINT:
             daemon_exit = 1;
+            break;
+        case SIGCHLD:
             break;
         default:
             break;
@@ -186,6 +255,11 @@ void smf_server_sig_init(void) {
 
     if (sigaction(SIGUSR1, &action, &old_action) < 0) {
         TRACE(TRACE_ERR,"sigaction (SIGUSR1) failed: %s",strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    if (sigaction(SIGCHLD, &action, &old_action) < 0) {
+        TRACE(TRACE_ERR,"sigaction (SIGCHLD) failed: %s",strerror(errno));
         exit(EXIT_FAILURE);
     }
 }
@@ -277,7 +351,7 @@ void smf_server_init(SMFSettings_T *settings, SMFServerState_T *state) {
         }
     }
 
-    if (_smf_server_init_ipc(state) < 0) {
+    if (_smf_server_init_ipc(settings,state) < 0) {
         TRACE(TRACE_ERR, "failed to initialize semaphore");
         exit(EXIT_FAILURE);
     }
@@ -334,15 +408,9 @@ int smf_server_listen(SMFSettings_T *settings) {
 
 void smf_server_fork(SMFSettings_T *settings, SMFServerState_T *state,
         void (*handle_client_func)(SMFSettings_T *settings,int client,SMFServerState_T *state)) {
-    int pos = 0;
+    pid_t pid;
 
-    for (pos=0; pos < settings->max_childs; pos++) {
-        if (child[pos] == 0) {
-            break;
-        }
-    }
-
-    switch(child[pos] = fork()) {
+    switch(pid = fork()) {
         case -1:
             TRACE(TRACE_ERR,"fork() failed: %s",strerror(errno));
             break;
@@ -352,11 +420,11 @@ void smf_server_fork(SMFSettings_T *settings, SMFServerState_T *state,
             exit(EXIT_SUCCESS); /* quit child process */
             break;
         default: /* parent process: go on with accept */
-            TRACE(TRACE_DEBUG,"forked child [%d]",child[pos]);
+            TRACE(TRACE_DEBUG,"forked child [%d]",pid);
             break;
     }
 
-    smf_server_increment_proc(state);
+    _smf_server_add_child(state,pid);
 }
 
 void smf_server_loop(SMFSettings_T *settings, SMFServerState_T *state,
@@ -367,9 +435,6 @@ void smf_server_loop(SMFSettings_T *settings, SMFServerState_T *state,
 
     TRACE(TRACE_NOTICE, "starting spmfilter daemon");
     TRACE(TRACE_NOTICE,"binding to %s:%d",settings->bind_ip,settings->bind_port);
-
-    for(i=0; i<settings->max_childs; i++)
-        child[i] = 0;
 
     /* prefork min. 1 child(s) */
     if(settings->spare_childs == 0) {
@@ -385,44 +450,36 @@ void smf_server_loop(SMFSettings_T *settings, SMFServerState_T *state,
 
         if (daemon_exit == 1)
             break;
-        
         if (pid > 0) {
-            for (i=0; i < settings->max_childs; i++) {
-                if (pid == child[i]) {
-                    child[i] = 0; /* remove process id */
-                    smf_server_decrement_proc(state);
-                    break;
-                }
-            }
+            _smf_server_decrement_proc(state);
+            _smf_server_remove_active(state,pid);
         }
 
-        counters = (SMFServerCounters_T *)shmat(state->shm_id, (void *)0, 0);
-        if (counters == (void *)(-1)) {
-            TRACE(TRACE_ERR,"failed to attach shm segment: %s", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
+        counters = _smf_server_get_counters(state->shm_id); 
 
         while(counters->num_procs < settings->max_childs) {
-            if (counters->num_spare < settings->spare_childs) {
+
+            if ((counters->num_spare < settings->spare_childs) || (counters->num_procs < counters->num_spare)) {
                 smf_server_fork(settings,state,handle_client_func);
             } else
               break;
         }      
-        if (shmdt(counters) == -1) {
-            TRACE(TRACE_ERR,"failed to detach shm segment: %s", strerror(errno));
-            exit(EXIT_FAILURE);
-        }
+
+        _smf_server_detach_counters(counters);
     }
 
     TRACE(TRACE_NOTICE, "stopping spmfilter daemon");
     close(state->sd);
 
+    counters = _smf_server_get_counters(state->shm_id); 
     for (i = 0; i < settings->max_childs; i++)
-        if (child[i] > 0) {
-            kill(child[i],SIGTERM);
+        if (counters->childs[i] > 0) {
+            kill(counters->childs[i],SIGTERM);
         }
     while(wait(NULL) > 0)
         ;
+
+    _smf_server_detach_counters(counters);
 
     if (semctl(state->sem_id, 0, IPC_RMID) < 0) {
         TRACE(TRACE_ERR,"failed to remove semaphore id %d: %s",state->sem_id,strerror(errno));

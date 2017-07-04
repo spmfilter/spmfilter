@@ -691,6 +691,11 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         return -1;
     }
 
+    if ((*settings)->max_childs > CHILD_LIMIT) {
+        TRACE(TRACE_ERR,"max_childs can not be larger than %d", CHILD_LIMIT);
+        return -1;
+    }
+
     if ((*settings)->backend_connection == NULL) 
         (*settings)->backend_connection = strdup("failover");
 

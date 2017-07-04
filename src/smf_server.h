@@ -24,6 +24,9 @@
 typedef struct {
   int num_procs;
   int num_spare;
+  int max_childs;
+  int childs_active[CHILD_LIMIT];
+  int childs[CHILD_LIMIT];
 } SMFServerCounters_T;
 
 typedef struct {
@@ -54,9 +57,8 @@ void smf_server_accept_handler(
     SMFServerState_T *state,
     void (*handle_client_func)(SMFSettings_T *settings,int client,SMFServerState_T *state));
 
-void smf_server_increment_proc(SMFServerState_T *state);
 void smf_server_decrement_spare(SMFServerState_T *state);
-void smf_server_decrement_proc(SMFServerState_T *state);
+void smf_server_add_active(SMFServerState_T *state, int pid);
 
 #endif  /* _SMF_SERVER_H */
 

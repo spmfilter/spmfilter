@@ -30,6 +30,8 @@
 #include "smf_dict.h"
 #include "smf_list.h"
 
+#define CHILD_LIMIT 1024
+
 /*!
  * @enum SMFTlsOption_T
  * @brief Possible types of TLS configuration 
