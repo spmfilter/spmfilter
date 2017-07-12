@@ -751,6 +751,10 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
         }
     }
 
+    /** smtpd checks **/
+    if ((*settings)->nexthop_fail_msg == NULL)
+        (*settings)->nexthop_fail_msg = strdup("Requested action aborted: local error in processing");
+
     return 0;
 }
 
@@ -823,10 +827,6 @@ void smf_settings_log(SMFSettings_T *settings) {
     }
     TRACE(TRACE_DEBUG, "settings->ldap_scope: [%s]", settings->ldap_scope);
     TRACE(TRACE_DEBUG, "settings->ldap_referrals: [%d]", settings->ldap_referrals);
-
-    /** smtpd checks **/
-    if (settings->nexthop_fail_msg == NULL)
-        settings->nexthop_fail_msg = strdup("Requested action aborted: local error in processing");
 
     TRACE(TRACE_DEBUG, "settings->nexthop_fail_code: [%d]", settings->nexthop_fail_code);
     TRACE(TRACE_DEBUG, "settings->nexthop_fail_msg: [%s]", settings->nexthop_fail_msg);
