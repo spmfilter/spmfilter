@@ -20,6 +20,13 @@
 
 #include "smf_settings.h"
 #include "smf_modules.h"
+#include "spmfilter_config.h"
+
+#ifdef HAVE_SEMAPHORE
+#include <semaphore.h>
+#define SHMOBJ_PATH "/shmspmfilter"
+#define SNAME "/spmfilter"
+#endif
 
 typedef struct {
   int num_procs;
@@ -30,12 +37,18 @@ typedef struct {
 } SMFServerCounters_T;
 
 typedef struct {
+#ifdef HAVE_SEMAPHORE
+  sem_t *sem_id;
+  int shm_fd;
+#else
   int sem_id;
   int shm_id;
   key_t sem_key;
   key_t shm_key;
+#endif
   int sd;
   SMFProcessQueue_T *q;
+  SMFServerCounters_T *counters;
 } SMFServerState_T;
 
 typedef void (*handle_client_func)(SMFSettings_T *settings,int client,SMFServerState_T *state);
