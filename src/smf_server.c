@@ -49,24 +49,30 @@
 static volatile int daemon_exit = 0;
 static struct sembuf semaphore;
 
+union semun {
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+};
+
 int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
     SMFServerCounters_T *counters;
     int size_mem;
     int size_max_childs;
     int i;
+    union semun semun;
     state->sem_key = ftok(".", 's');
-    state->sem_id = semget(state->sem_key, 0, IPC_PRIVATE);
+    state->sem_id = semget(state->sem_key, 1, IPC_CREAT | IPC_EXCL | 0600);
     if (state->sem_id < 0) {
-        state->sem_id = semget(state->sem_key, 1, IPC_CREAT | IPC_EXCL | 0600);
-        if (state->sem_id < 0) {
-            TRACE(TRACE_ERR,"failed to create semaphore: %s", strerror(errno));
-            return -1;
-        }
-        TRACE(TRACE_DEBUG,"created semaphore: %d\n", state->sem_id);
-        if (semctl(state->sem_id, 0, SETVAL, (int) 1) == -1) {
-            TRACE(TRACE_DEBUG,"failed to initialize semaphore: %s", strerror(errno));
-            return -1;
-        }
+        TRACE(TRACE_ERR,"failed to create semaphore: %s", strerror(errno));
+        return -1;
+    }
+
+    TRACE(TRACE_DEBUG,"created semaphore: %d\n", state->sem_id);
+    semun.val = 1;
+    if (semctl(state->sem_id, 0, SETVAL, semun) < 0) {
+        TRACE(TRACE_DEBUG,"failed to initialize semaphore: %s", strerror(errno));
+        return -1;
     }
 
     state->shm_key = ftok(".",'a');
@@ -105,10 +111,17 @@ int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
 }
 
 void _smf_server_sem_operation(int op, int sem_id) {
-    semaphore.sem_op = op;
-    semaphore.sem_flg = SEM_UNDO;
+    int err_status;
     
-    if( semop(sem_id, &semaphore, 1) == -1) {
+    semaphore.sem_op = op;
+    semaphore.sem_flg = 0;
+    semaphore.sem_num = 0;
+    
+    do {
+        err_status = semop(sem_id, &semaphore, 1);
+    } while (err_status < 0 && errno == EINTR);
+
+    if (err_status < 0) {
         TRACE(TRACE_ERR, "semop failed: %s", strerror(errno));
         exit (EXIT_FAILURE);
     }
@@ -161,16 +174,6 @@ void smf_server_decrement_spare(SMFServerState_T *state) {
     _smf_server_sem_operation(SEM_UNLOCK,state->sem_id);
 }
 
-void _smf_server_decrement_proc(SMFServerState_T *state) {
-    SMFServerCounters_T *counters = _smf_server_get_counters(state->shm_id);
-    _smf_server_sem_operation(SEM_LOCK,state->sem_id);
-
-    counters->num_procs--;
-    
-    _smf_server_detach_counters(counters);
-    _smf_server_sem_operation(SEM_UNLOCK,state->sem_id);
-}
-
 void smf_server_add_active(SMFServerState_T *state,int pid) {
     SMFServerCounters_T *counters = _smf_server_get_counters(state->shm_id);
     int i;
@@ -193,6 +196,7 @@ void _smf_server_remove_active(SMFServerState_T *state,int pid) {
     int removed = -1;
 
     _smf_server_sem_operation(SEM_LOCK,state->sem_id);
+    counters->num_procs--;
     for(i=0; i<counters->max_childs; i++ ) {
         if (counters->childs_active[i] == pid) {
             counters->childs_active[i] = 0;
@@ -451,7 +455,6 @@ void smf_server_loop(SMFSettings_T *settings, SMFServerState_T *state,
         if (daemon_exit == 1)
             break;
         if (pid > 0) {
-            _smf_server_decrement_proc(state);
             _smf_server_remove_active(state,pid);
         }
 
