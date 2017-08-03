@@ -39,6 +39,10 @@ if(HAVE_DB4)
 	list(APPEND LIB_SMF_SRC smf_lookup_db4.c)
 endif(HAVE_DB4)
 
+if(HAVE_SEMAPHORE)
+	list(APPEND COMMON_LIBS pthread rt)
+endif(HAVE_SEMAPHORE)
+
 list(REMOVE_DUPLICATES COMMON_LIBS)
 
 add_library(smf SHARED ${LIB_SMF_SRC})

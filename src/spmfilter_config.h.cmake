@@ -36,5 +36,8 @@
 /* db4 */
 #cmakedefine HAVE_DB4
 
+/* posix semaphores */
+#cmakedefine HAVE_SEMAPHORE
+
 #endif /* _SPMFILTER_CONFIG_H */
 

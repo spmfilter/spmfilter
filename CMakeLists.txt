@@ -7,6 +7,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 include(${CMAKE_MODULE_PATH}/GNUInstallDirs.cmake)
 include(FindPkgConfig)
 include(SMFMacros)
+include(CheckIncludeFiles)
 
 # check for build.properties
 include("${CMAKE_SOURCE_DIR}/build.properties" OPTIONAL)
@@ -36,6 +37,15 @@ if(LIBCMIME_FOUND)
     include_directories(${LIBCMIME_INCLUDE_DIRS})
     link_directories(${LIBCMIME_LIBRARY_DIRS})
 endif(LIBCMIME_FOUND)
+
+check_include_files(semaphore.h HAVE_SEMAPHORE)
+if(HAVE_SEMAPHORE)
+    find_package(Threads REQUIRED)
+    if(THREADS_FOUND)
+        include_directories(${THREADS_INCLUDE_DIRS})
+        link_directories(${THREADS_LIBRARY_DIR})
+    endif(THREADS_FOUND)
+endif(HAVE_SEMAPHORE)
 
 if(NOT WITHOUT_ZDB)
 	message(STATUS "checking for one of the modules 'libzdb'")
