@@ -378,7 +378,9 @@ SMFSmtpStatus_T *smf_smtp_deliver(SMFEnvelope_T *env, SMFTlsOption_T tls, char *
     }
 
     if (!smtp_start_session(session)) {
-        if (asprintf(&status->text,"failed to initialize smtp session") == -1)
+        char buf[128];
+
+        if (asprintf(&status->text,"failed to initialize smtp session: %s", smtp_strerror (smtp_errno (), buf, sizeof buf)) == -1)
             TRACE(TRACE_ERR,"failed to set status text");
         status->code = -1;
         if (sid != NULL)
