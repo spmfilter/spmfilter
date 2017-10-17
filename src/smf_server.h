@@ -22,7 +22,7 @@
 #include "smf_modules.h"
 #include "spmfilter_config.h"
 
-#ifdef HAVE_SEMAPHORE
+#ifdef HAVE_POSIX_SEMAPHORE
 #include <semaphore.h>
 #define SHMOBJ_PATH "/shmspmfilter"
 #define SNAME "/spmfilter"
@@ -37,10 +37,11 @@ typedef struct {
 } SMFServerCounters_T;
 
 typedef struct {
-#ifdef HAVE_SEMAPHORE
+#ifdef HAVE_POSIX_SEMAPHORE
   sem_t *sem_id;
   int shm_fd;
-#else
+#endif
+#ifdef HAVE_SYSV_SEMAPHORE
   int sem_id;
   int shm_id;
   key_t sem_key;

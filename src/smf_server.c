@@ -39,11 +39,12 @@
 #include "smf_modules.h"
 #include "smf_settings_private.h"
 
-#ifdef HAVE_SEMAPHORE
+#ifdef HAVE_POSIX_SEMAPHORE
 #include <semaphore.h>
 #include <sys/mman.h>
 #include <fcntl.h> 
-#else
+#endif
+#ifdef HAVE_SYSV_SEMAPHORE
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
@@ -56,7 +57,7 @@
 
 static volatile int daemon_exit = 0;
 
-#ifndef HAVE_SEMAPHORE
+#ifndef HAVE_POSIX_SEMAPHORE
 static struct sembuf semaphore;
 
 union semun {
@@ -71,7 +72,7 @@ int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
     int size_max_childs;
     int i;
 
-#ifdef HAVE_SEMAPHORE
+#ifdef HAVE_POSIX_SEMAPHORE
     sem_unlink(SNAME);
     state->sem_id = sem_open(SNAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
     if (state->sem_id == SEM_FAILED) {
@@ -79,7 +80,8 @@ int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
         return -1;
     }
 
-#else    
+#endif
+#ifdef HAVE_SYSV_SEMAPHORE    
     union semun semun;
     state->sem_key = ftok(".", 's');
     state->sem_id = semget(state->sem_key, 1, IPC_CREAT | IPC_EXCL | 0600);
@@ -99,7 +101,7 @@ int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
     size_max_childs = 2 * (CHILD_LIMIT * sizeof(int));
     size_mem = sizeof(SMFServerCounters_T) + size_max_childs;
 
-#ifdef HAVE_SEMAPHORE
+#ifdef HAVE_POSIX_SEMAPHORE
     shm_unlink(SHMOBJ_PATH);
     state->shm_fd = shm_open(SHMOBJ_PATH, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
     if (state->shm_fd < 0) {
@@ -117,7 +119,8 @@ int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
         TRACE(TRACE_ERR,"in mmap(): %s",strerror(errno));
         return -1;
     }
-#else
+#endif
+#ifdef HAVE_SYSV_SEMAPHORE
     state->shm_key = ftok(".",'a');
     state->shm_id = shmget(state->shm_key,size_mem,0600 | IPC_CREAT);
     if (state->shm_id < 0) {
@@ -146,12 +149,13 @@ int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
 }
 
 void _smf_server_sem_operation(int op, SMFServerState_T *state) {
-#ifdef HAVE_SEMAPHORE 
+#ifdef HAVE_POSIX_SEMAPHORE 
     if (op == SEM_LOCK)
         sem_wait(state->sem_id);
     else if (op == SEM_UNLOCK)
         sem_post(state->sem_id);
-#else
+#endif
+#ifdef HAVE_SYSV_SEMAPHORE
     int err_status;
 
     semaphore.sem_op = op;
@@ -513,7 +517,7 @@ void smf_server_loop(SMFSettings_T *settings, SMFServerState_T *state,
     while(wait(NULL) > 0)
         ;
 
-#ifdef HAVE_SEMAPHORE
+#ifdef HAVE_POSIX_SEMAPHORE
     if (sem_close(state->sem_id) < 0) {
         TRACE(TRACE_ERR,"sem_close failed: %s",strerror(errno));
     }
@@ -525,7 +529,8 @@ void smf_server_loop(SMFSettings_T *settings, SMFServerState_T *state,
     if (shm_unlink(SHMOBJ_PATH) < 0) {
         TRACE(TRACE_ERR,"shm_unlink failed: %s",strerror(errno));
     }
-#else
+#endif
+#ifdef HAVE_SYSV_SEMAPHORE
     if (semctl(state->sem_id, 0, IPC_RMID) < 0) {
         TRACE(TRACE_ERR,"failed to remove semaphore id %d: %s",state->sem_id,strerror(errno));
     }
