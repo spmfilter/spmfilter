@@ -86,11 +86,20 @@ int _smf_server_init_ipc(SMFSettings_T *settings, SMFServerState_T *state) {
     state->sem_key = ftok(".", 's');
     state->sem_id = semget(state->sem_key, 1, IPC_CREAT | IPC_EXCL | 0600);
     if (state->sem_id < 0) {
-        TRACE(TRACE_ERR,"failed to create semaphore: %s", strerror(errno));
-        return -1;
-    }
+        if (errno == EEXIST) {
+            if ((state->sem_id = semget(state->sem_key, 1, 0)) < 0) {
+                TRACE(TRACE_ERR,"failed to get semaphore: %s", strerror(errno));
+                return -1;
+            }
+            TRACE(TRACE_DEBUG,"reused semaphore: %d\n", state->sem_id);
+        } else {
+            TRACE(TRACE_ERR,"failed to create semaphore: %s", strerror(errno));
+            return -1;
+        }
+    } else
+        TRACE(TRACE_DEBUG,"created semaphore: %d\n", state->sem_id);
 
-    TRACE(TRACE_DEBUG,"created semaphore: %d\n", state->sem_id);
+    
     semun.val = 1;
     if (semctl(state->sem_id, 0, SETVAL, semun) < 0) {
         TRACE(TRACE_DEBUG,"failed to initialize semaphore: %s", strerror(errno));
