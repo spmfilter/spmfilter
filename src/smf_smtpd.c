@@ -375,12 +375,15 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     int found_header = 0;
     int in_header = 1;
     regex_t regex;
+    regex_t regex_message_id;
     int reti;
+    int reti_message_id;
     char *nl = NULL;
     char *mid = NULL;
     SMFListElem_T *e = NULL;
 
     reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
+    reti_message_id = regcomp(&regex_message_id, "^(?i)Message-Id:[\\s]*[\\S]+", 0);
 
 	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
@@ -404,7 +407,10 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
         if ((strncasecmp(buf,".\r\n",3)==0)||(strncasecmp(buf,".\n",2)==0)) break;
         if (strncasecmp(buf,".",1)==0) smf_smtpd_stuffing(buf);
 
-        if ((strncasecmp(buf,"Message-Id:",11)==0)&& (in_header==1)) found_mid = 1;
+        if ((found_mid == 0) && (in_header==1)) {
+            reti_message_id = regexec(&regex_message_id, buf, 0, NULL, 0);
+            if (reti_message_id == 0) found_mid = 1;
+        }
         if ((strncasecmp(buf,"Date:",5)==0) && (in_header==1)) found_date = 1;
         if ((strncasecmp(buf,"To:",3)==0) && (in_header==1)) found_to = 1;
         if ((strncasecmp(buf,"From:",5)==0) && (in_header==1)) found_from = 1;
@@ -431,6 +437,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     }
     if (rl !=NULL) free(rl);
     regfree(&regex);
+    regfree(&regex_message_id);
     fclose(spool_file);
   
     if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0)) 
@@ -530,7 +537,6 @@ void smf_smtpd_handle_client(SMFSettings_T *settings, int client, SMFServerState
             state = ST_QUIT;
             break;
         } else if( (strncasecmp(req, "helo", 4)==0) || (strncasecmp(req, "ehlo", 4)==0)) {
-            TRACE(TRACE_DEBUG,"EHLO");
             /* An EHLO command MAY be issued by a client later in the session.
              * If it is issued after the session begins, the SMTP server MUST
              * clear all buffers and reset the state exactly as if a RSET
