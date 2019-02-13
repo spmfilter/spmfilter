@@ -933,8 +933,8 @@ int smf_settings_add_module(SMFSettings_T *settings, char *module) {
     
     assert(settings); 
     assert(module);
-   
-    if ((m = smf_module_create(module)) == NULL)
+
+    if ((m = smf_module_create(settings, module)) == NULL)
         return -1;
     
     return smf_list_append(settings->modules, m);

@@ -81,11 +81,12 @@ SMFProcessQueue_T *smf_modules_pqueue_init(
  * build of the smpfilter. If name is the path of the shared-library, then the path
  * is not resolved and the library is laoded directly.
  *
+ * @param settings a SMFSettings_T object
  * @param name The name of the module. This is also the name of the library.
  * @return The module-instance. If the shared-library could not be loaded,
  *         NULL is returned.
  */
-SMFModule_T *smf_module_create(const char *name);
+SMFModule_T *smf_module_create(SMFSettings_T *settings, const char *name);
 
 /**
  * @brief Creates a new new module, which invokes the given callback.
@@ -93,6 +94,7 @@ SMFModule_T *smf_module_create(const char *name);
  * Instead of loading an external shared-object, a invocatio of smf_module_invoke()
  * will invoke the given callback.
  *
+ * @param settings a SMFSettings_T object
  * @param name The name of the module.
  * @param callback The callback which is invoked. If you pass NULL here, then
  *                 it still tries to load the shared-object (as fallback).
@@ -100,7 +102,7 @@ SMFModule_T *smf_module_create(const char *name);
  *         not be located, NULL is returned.
  * @see smf_module_create
  */
-SMFModule_T *smf_module_create_callback(const char *name, ModuleLoadFunction callback);
+SMFModule_T *smf_module_create_callback(SMFSettings_T *settings, const char *name, ModuleLoadFunction callback);
 
 /**
  * @brief Destroys the module-instance again.

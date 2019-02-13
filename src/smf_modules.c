@@ -179,34 +179,43 @@ static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
     return(0);
 }
 
-SMFModule_T *smf_module_create(const char *name) {
-    return smf_module_create_callback(name, NULL);
+SMFModule_T *smf_module_create(SMFSettings_T *settings, const char *name) {
+    return smf_module_create_callback(settings, name, NULL);
 }
 
-static void *smf_module_create_handle(const char *name) {
+static void *smf_module_create_handle(SMFSettings_T *settings, const char *name) {
     struct stat fstat;
     void *handle;
     char *path;
+    char *lib_path;
+
+    if (settings->lib_dir != NULL)
+        lib_path = strdup(settings->lib_dir);
+    else
+        lib_path = strdup(LIB_DIR);
 
     if (stat(name, &fstat) == 0 && S_ISREG(fstat.st_mode)) {
         path = strdup(name);
-    } else if ((path = smf_internal_build_module_path(LIB_DIR, name)) == NULL) {
+    } else if ((path = smf_internal_build_module_path(lib_path, name)) == NULL) {
         TRACE(TRACE_ERR, "failed to build module path for [%s]", name);
+        free(lib_path);
         return NULL;
     }
     
     if ((handle = dlopen(path, RTLD_LAZY)) == NULL) {
         TRACE(TRACE_ERR, "failed to load module [%s]: %s", name, dlerror());
         free(path);
+        free(lib_path);
         return NULL;
     }
         
     free(path);
-    
+    free(lib_path);
+
     return handle;
 }
 
-SMFModule_T *smf_module_create_callback(const char *name, ModuleLoadFunction callback) {
+SMFModule_T *smf_module_create_callback(SMFSettings_T *settings, const char *name, ModuleLoadFunction callback) {
     SMFModule_T *module;
 
     assert(name);
@@ -219,7 +228,7 @@ SMFModule_T *smf_module_create_callback(const char *name, ModuleLoadFunction cal
 
     if (callback == NULL) {
         module->type = 0;
-        module->u.handle = smf_module_create_handle(name);
+        module->u.handle = smf_module_create_handle(settings, name);
     } else {
         module->type = 1;
         module->u.callback = callback;

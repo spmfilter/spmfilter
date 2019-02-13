@@ -143,7 +143,8 @@ static int nexthop_error_cb(SMFSettings_T *set, SMFSession_T *ses) {
 
 static void setup() {
     fail_unless((settings = smf_settings_new()) != NULL);
-    smf_settings_set_queue_dir(settings, BINARY_DIR);  
+    smf_settings_set_queue_dir(settings, BINARY_DIR);
+    smf_settings_set_lib_dir(settings, BINARY_DIR);
     fail_unless((session = smf_session_new()) != NULL);
     
     queue = smf_modules_pqueue_init(error_cb, processing_error_cb, nexthop_error_cb);
@@ -170,8 +171,8 @@ static void teardown() {
 
 START_TEST(create_invoke_destroy) {
     SMFModule_T *module;
-    
-    fail_unless((module = smf_module_create(BINARY_DIR "/libtestmod1.so")) !=  NULL);
+
+    fail_unless((module = smf_module_create(settings, "testmod1")) !=  NULL);
     fail_unless(smf_module_invoke(settings, module, session) == 0);
     fail_unless(smf_module_destroy(module) == 0);
 }
@@ -181,7 +182,7 @@ START_TEST(create_invoke_destroy_callback) {
     SMFModule_T *module;
     
     fail_unless(mod1_data.count == 0);
-    fail_unless((module = smf_module_create_callback("foo", mod1)) != NULL);
+    fail_unless((module = smf_module_create_callback(settings, "foo", mod1)) != NULL);
     fail_unless(smf_module_invoke(settings, module, session) == 0);
     fail_unless(smf_module_destroy(module) == 0);
     fail_unless(mod1_data.count == 1);
@@ -189,9 +190,9 @@ START_TEST(create_invoke_destroy_callback) {
 END_TEST
 
 START_TEST(process_success) {
-    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
-    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
-    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod3", mod3));
     fail_unless(smf_list_size(settings->modules) == 3);
     
     
@@ -206,9 +207,9 @@ START_TEST(process_success) {
 END_TEST
 
 START_TEST(process_err_halt_queue) {
-    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
-    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
-    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod3", mod3));
     fail_unless(smf_list_size(settings->modules) == 3);
     
     mod2_data.rc = 1; // != 0 is that counts
@@ -236,9 +237,9 @@ START_TEST(process_err_halt_queue) {
 END_TEST
 
 START_TEST(process_err_stop_queue) {
-    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
-    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
-    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod3", mod3));
     fail_unless(smf_list_size(settings->modules) == 3);
     
     mod2_data.rc = 1; // != 0 is that counts
@@ -269,9 +270,9 @@ END_TEST
 START_TEST(process_err_nexthop) {
     smf_settings_set_nexthop(settings, "/dev/null");
         
-    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
-    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
-    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod3", mod3));
     fail_unless(smf_list_size(settings->modules) == 3);
     
     mod2_data.rc = 1; // != 0 is that counts
@@ -290,9 +291,9 @@ END_TEST
 START_TEST(process_err_nexthop_err) {
     smf_settings_set_nexthop(settings, "something_that_not_exists");
         
-    smf_list_append(settings->modules, smf_module_create_callback("mod1", mod1));
-    smf_list_append(settings->modules, smf_module_create_callback("mod2", mod2));
-    smf_list_append(settings->modules, smf_module_create_callback("mod3", mod3));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod1", mod1));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod2", mod2));
+    smf_list_append(settings->modules, smf_module_create_callback(settings, "mod3", mod3));
     fail_unless(smf_list_size(settings->modules) == 3);
         
     mod2_data.rc = 1; // != 0 is that counts
@@ -313,7 +314,7 @@ START_TEST(message_file_changed) {
   SMFMessage_T *old_msg_ptr;
 
   fail_unless((old_msg_ptr = session->envelope->message) != NULL);
-  fail_unless((module = smf_module_create_callback("foo", message_file_changed_cb)) != NULL);
+  fail_unless((module = smf_module_create_callback(settings, "foo", message_file_changed_cb)) != NULL);
   fail_unless(smf_module_invoke(settings, module, session) == 0);
   fail_unless(smf_module_destroy(module) == 0);
   fail_unless(old_msg_ptr != session->envelope->message); /* Reloaded */
