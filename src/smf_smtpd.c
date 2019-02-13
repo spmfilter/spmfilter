@@ -383,7 +383,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     SMFListElem_T *e = NULL;
 
     reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
-    reti_message_id = regcomp(&regex_message_id, "^(?i)Message-Id:[\\s]*[\\S]+", 0);
+    reti_message_id = regcomp(&regex_message_id, "^Message-ID:\\s*\\S+", REG_EXTENDED|REG_ICASE);
 
 	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
@@ -440,7 +440,7 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     regfree(&regex_message_id);
     fclose(spool_file);
   
-    if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0)) 
+    if ((found_mid==0)||(found_to==0)||(found_from==0)||(found_date==0))
         smf_smtpd_append_missing_headers(session, settings->queue_dir,found_mid,found_to,found_from,found_date,found_header,nl);
     
     STRACE(TRACE_DEBUG,session->id,"data complete, message size: %d", (u_int32_t)session->message_size);
