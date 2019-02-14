@@ -126,6 +126,12 @@ if (ENABLE_TESTING)
     include_directories(${CHECK_INCLUDES})
     add_subdirectory(test)
     file(COPY "${CMAKE_SOURCE_DIR}/test/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/test")
+
+    CONFIGURE_FILE(
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/samples/spmfilter.conf.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/test/samples/spmfilter.conf
+    )
+
 endif(ENABLE_TESTING)
 
 # build stuff in src directory
