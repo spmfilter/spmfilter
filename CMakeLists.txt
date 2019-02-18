@@ -131,7 +131,6 @@ if (ENABLE_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/test/samples/spmfilter.conf.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/test/samples/spmfilter.conf
     )
-
 endif(ENABLE_TESTING)
 
 # build stuff in src directory
