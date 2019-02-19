@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2016 Axel Steiner, Werner Detter and SpaceNet AG
+ * Copyright (C) 2009-2019 Axel Steiner, Werner Detter and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <pwd.h>
 #include <unistd.h>
-
+#include <syslog.h>
 
 #include "test.h"
 #include "test_params.h"
@@ -42,8 +42,6 @@
 #include "../src/smf_smtp.h"
 #include "../src/smf_envelope.h"
 
-int load(SMFSettings_T *settings);
-
 int main (int argc, char const *argv[]) {
     char *msg_file = NULL;
     SMFSmtpStatus_T *status = NULL;
@@ -51,22 +49,14 @@ int main (int argc, char const *argv[]) {
     SMFEnvelope_T *env = smf_envelope_new();
     pid_t pid;
 
-    smf_settings_set_pid_file(settings, "/tmp/smf_test_smtpd.pid");
-    smf_settings_set_bind_ip(settings, "127.0.0.1");
-    smf_settings_set_foreground(settings, 1);
-    smf_settings_set_spare_childs(settings, 0);
-    smf_settings_set_max_childs(settings,1);
-    smf_settings_set_debug(settings,1);
-    smf_settings_set_queue_dir(settings, BINARY_DIR);
-    smf_settings_set_engine(settings, "smtpd");
-
-    /* add test modules */
-    smf_settings_add_module(settings, BINARY_DIR "/libtestmod1.so");
-    smf_settings_add_module(settings, BINARY_DIR "/libtestmod2.so");
-    
     printf("Start smf_smtpd tests...\n");
 
     printf("* preparing smtpd engine...\t\t\t");
+
+    if (smf_settings_parse_config(&settings,"samples/spmfilter.conf") != 0) {
+        printf("failed\n");
+        return -1;
+    }
     
     printf("passed\n");
     switch(pid = fork()) {
@@ -74,28 +64,31 @@ int main (int argc, char const *argv[]) {
             printf("failed\n");
             break;
         case 0:
-            if (load(settings) != 0) {
+            if (smf_modules_engine_load(settings) != 0) {
                 return -1;
             }
+
             break;
 
         default:
+            sleep (1);
             printf("* sending test message ...\t\t\t");
             asprintf(&msg_file, "%s/m0001.txt",SAMPLES_DIR);
 
-            smf_envelope_set_nexthop(env, TEST_NEXTHOP);
+            smf_envelope_set_nexthop(env, "127.0.0.1:12525");
             smf_envelope_set_sender(env, test_email);
             smf_envelope_add_rcpt(env, test_email);
             status = smf_smtp_deliver(env, SMF_TLS_DISABLED, msg_file, NULL);
-            
+
             if (status->code == -1) {
                 kill(pid,SIGTERM);
                 printf("failed\n");
                 return -1;
             }
-            
+
             smf_smtp_status_free(status);
             printf("passed\n");
+
             kill(pid,SIGTERM);
             waitpid(pid, NULL, 0);
 
@@ -104,8 +97,7 @@ int main (int argc, char const *argv[]) {
 
     if(msg_file != NULL)
         free(msg_file);
-        
-    
+
     smf_settings_free(settings);
     smf_envelope_free(env);
 
