@@ -150,8 +150,8 @@ static void setup() {
     queue = smf_modules_pqueue_init(error_cb, processing_error_cb, nexthop_error_cb);
     fail_unless(queue != NULL);
     
-    create_sample_message(session, SAMPLES_DIR "/m0001.txt");
-    create_spoolfile(session, SAMPLES_DIR "/m0001.txt");
+    create_sample_message(session, SAMPLES_DIR "/m2004.txt");
+    create_spoolfile(session, SAMPLES_DIR "/m2004.txt");
         
     init_cb_data(&mod1_data);
     init_cb_data(&mod2_data);
