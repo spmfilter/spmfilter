@@ -17,10 +17,6 @@ if(PREFIX)
     SET(CMAKE_INSTALL_PREFIX ${PREFIX})
 endif(PREFIX)
 
-if(NOT TEST_NEXTHOP)
-    SET(TEST_NEXTHOP localhost:25)
-endif(NOT TEST_NEXTHOP)
-
 # internal project settings
 set(SMF_LIB_DIR "${CMAKE_INSTALL_FULL_LIBDIR}/spmfilter")
 message(STATUS "using smf library dir ${SMF_LIB_DIR}")
@@ -124,6 +120,19 @@ if (ENABLE_TESTING)
     message(STATUS "checking for test-modules")
     find_package(Check REQUIRED)
     include_directories(${CHECK_INCLUDES})
+
+    if(NOT TEST_NEXTHOP)
+        SET(TEST_NEXTHOP localhost:25)
+    endif(NOT TEST_NEXTHOP)
+
+    if(NOT TEST_BINDIP)
+        SET(TEST_BINDIP 127.0.0.1)
+    endif(NOT TEST_BINDIP)
+
+    if(NOT TEST_BINDPORT)
+        SET(TEST_BINDPORT 12525)
+    endif(NOT TEST_BINDPORT)
+
     add_subdirectory(test)
     file(COPY "${CMAKE_SOURCE_DIR}/test/samples" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/test")
 
