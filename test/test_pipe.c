@@ -60,7 +60,7 @@ int main (int argc, char const *argv[]) {
     smf_settings_add_module(settings, BINARY_DIR "/libtestmod1.so");
     smf_settings_add_module(settings, BINARY_DIR "/libtestmod2.so");
 
-    asprintf(&fname, "%s/m0001.txt",SAMPLES_DIR);
+    asprintf(&fname, "%s/m2004.txt",SAMPLES_DIR);
 
     switch (fork()) {
         case -1:
@@ -78,7 +78,7 @@ int main (int argc, char const *argv[]) {
             dup2(pipefd[0], 0);
             close(pipefd[0]); 
             printf("passed\n");
-            printf("* sending test message...\t\t\t\t");
+            printf("* sending test message...\t\t\t");
             if (load(settings) != 0) {
                 printf("failed\n");
                 return -1;
