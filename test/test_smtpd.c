@@ -48,6 +48,7 @@ int main (int argc, char const *argv[]) {
     SMFSettings_T *settings = smf_settings_new();
     SMFEnvelope_T *env = smf_envelope_new();
     pid_t pid;
+    char *delivery_destination = NULL;
 
     printf("Start smf_smtpd tests...\n");
 
@@ -73,14 +74,15 @@ int main (int argc, char const *argv[]) {
         default:
             sleep (1);
             printf("* sending test message ...\t\t\t");
-            asprintf(&msg_file, "%s/m0001.txt",SAMPLES_DIR);
+            asprintf(&msg_file, "%s/m2004.txt",SAMPLES_DIR);
 
-            smf_envelope_set_nexthop(env, "127.0.0.1:12525");
+            asprintf(&delivery_destination, "%s:%d",smf_settings_get_bind_ip(settings), smf_settings_get_bind_port(settings));
+            smf_envelope_set_nexthop(env, delivery_destination);
             smf_envelope_set_sender(env, test_email);
             smf_envelope_add_rcpt(env, test_email);
             status = smf_smtp_deliver(env, SMF_TLS_DISABLED, msg_file, NULL);
-
-            if (status->code == -1) {
+            free(delivery_destination);
+            if (status->code != 250) {
                 kill(pid,SIGTERM);
                 printf("failed\n");
                 return -1;

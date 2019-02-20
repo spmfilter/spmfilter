@@ -11,5 +11,5 @@ spare_childs = 2
 max_childs = 10
 pid_file = ${CMAKE_CURRENT_BINARY_DIR}/test/smf_test_smtpd.pid
 modules = testmod1, testmod2
-module_fail = 3
-debug = true
+module_fail = 2
+debug = false
