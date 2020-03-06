@@ -555,6 +555,8 @@ char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session) {
     char *stf_filename = NULL;
     char *t = NULL;
     char *check = NULL;
+    char *old_sid = NULL;
+    size_t len_sid = 12;
 
     stf_filename = smf_modules_stf_path(settings,session);
     check = smf_modules_build_stf_check_part(settings,session);
@@ -564,19 +566,51 @@ char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session) {
         while((ep = readdir(dp)) != NULL) {
           if (strstr(ep->d_name,check) != NULL) {
             STRACE(TRACE_INFO,session->id,"found old state file [%s], resuming session",ep->d_name);
+            old_sid = (char *)calloc(len_sid + 1, sizeof(char));
+            strncpy(old_sid,ep->d_name,len_sid);
+            old_sid[strlen(old_sid)] = '\0';
             if (asprintf(&t,"%s/%s",settings->queue_dir,ep->d_name) == -1)
-                return NULL;;
+                return NULL;
             if (rename(t,stf_filename) != 0) {
                 STRACE(TRACE_ERR,session->id,"failed to rename session file: %s (%d)",strerror(errno),errno);
             }
             free(t);
             break;
           }
-
         }
         closedir(dp);
     } else
-        STRACE(TRACE_ERR,"failed to open queue directory: %s (%d)",strerror(errno),errno);
+      STRACE(TRACE_ERR,"failed to open queue directory: %s (%d)",strerror(errno),errno);
+
+
+    /* Is there an old spool file? We have to loop queue dir again
+     * - file begins with SID
+     * - file does not contain .modules suffix
+     * - file does not contain string "spmfilter_" in name
+     * */
+    if (old_sid != NULL) {
+      dp = opendir(settings->queue_dir);
+      if (dp != NULL) {
+        while ((ep = readdir(dp)) != NULL) {
+          if ((strstr(ep->d_name, old_sid) != NULL) && (strstr(ep->d_name, ".modules") == NULL) &&
+              (strstr(ep->d_name, "spmfilter_") == NULL)) {
+            STRACE(TRACE_INFO, session->id, "found old spool file [%s], removing it", ep->d_name);
+            if (asprintf(&t,"%s/%s",settings->queue_dir,ep->d_name) == -1)
+              return NULL;
+
+            if (remove(t) != 0) {
+              STRACE(TRACE_ERR,"failed to remove spool file: %s (%d)",strerror(errno),errno);
+            }
+            free(t);
+            break;
+          }
+        }
+        closedir(dp);
+      } else
+        STRACE(TRACE_ERR, "failed to open queue directory: %s (%d)", strerror(errno), errno);
+
+      free(old_sid);
+    }
 
     free(check);
 
