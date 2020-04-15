@@ -383,9 +383,9 @@ void smf_smtpd_process_data(SMFSession_T *session, SMFSettings_T *settings, SMFP
     SMFListElem_T *e = NULL;
 
     reti = regcomp(&regex, "[A-Za-z0-9\\._-]*:.*", 0);
-    reti_message_id = regcomp(&regex_message_id, "^Message-ID:\\s*\\S+", REG_EXTENDED|REG_ICASE);
+    reti_message_id = regcomp(&regex_message_id, "^Message-ID:", REG_EXTENDED|REG_ICASE);
 
-	smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
+	  smf_core_gen_queue_file(settings->queue_dir, &session->message_file, session->id);
     if (session->message_file == NULL) {
         STRACE(TRACE_ERR,session->id,"got no spool file path");
         smf_smtpd_code_reply(session->sock, 552,settings->smtp_codes);
