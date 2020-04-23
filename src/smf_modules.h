@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Sebastian Jaekel, Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2020 Sebastian Jaekel, Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -137,12 +137,6 @@ int smf_modules_process(SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings
 int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFList_T *initial_headers);
 
 int smf_modules_engine_load(SMFSettings_T *settings);
-
-/** Check if there is an old modules state file... */
-char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session);
-
-/** Generate unique part of stf file */
-char *smf_modules_build_stf_check_part(SMFSettings_T *settings, SMFSession_T *session);
 
 #ifdef __cplusplus
 }

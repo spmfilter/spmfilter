@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2016 Sebastian Jaekel, Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2020 Sebastian Jaekel, Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -131,54 +131,6 @@ SMFProcessQueue_T *smf_modules_pqueue_init(
     return q;
 }
 
-/* build full filename to modules states dir */
-static char *smf_modules_stf_path(SMFSettings_T *settings, SMFSession_T *session) {
-    char *buf = NULL;
-    char *s = NULL;
-    int i = 0;
-    s = smf_modules_build_stf_check_part(settings,session);
-    i = asprintf(&buf,"%s/%s.%s.modules", settings->queue_dir, session->id, s);
-    free(s);
-
-    if (i == -1)
-        return NULL;
-
-    return(buf);
-}
-
-/* load the list of processed modules from file */
-static SMFDict_T *smf_modules_stf_processed_modules(FILE *fh) {
-    SMFDict_T *d;
-    char *buf = NULL;
-    size_t n;
-    char **parts = NULL;
-    int nparts;
-
-    d = smf_dict_new();
-    fseek(fh, 0, SEEK_SET); /* rewind the file */
-
-    while(getline(&buf,&n,fh) >= 0) {
-        parts = smf_core_strsplit(buf, ":", &nparts);
-        assert(nparts == 2);
-        smf_dict_set(d, parts[0], parts[1]);
-    }
-
-    free(buf);
-    if (parts != NULL) {
-        free(parts[0]);
-        free(parts[1]);
-        free(parts[2]);
-        free(parts);
-    }
-    return d;
-}
-
-/* write an entry to the state file */
-static int smf_modules_stf_write_entry(FILE *fh, char *mod) {
-    fprintf(fh, "%s:ok\n", mod);
-    return(0);
-}
-
 SMFModule_T *smf_module_create(SMFSettings_T *settings, const char *name) {
     return smf_module_create_callback(settings, name, NULL);
 }
@@ -300,9 +252,6 @@ int smf_module_invoke(SMFSettings_T *settings, SMFModule_T *module, SMFSession_T
 
 int smf_modules_process(
         SMFProcessQueue_T *q, SMFSession_T *session, SMFSettings_T *settings) {
-    FILE *stfh = NULL;
-    char *stf_filename = NULL;
-    SMFDict_T *modlist;
     SMFMessage_T *msg = NULL;
     SMFList_T *initial_headers = NULL;
     SMFListElem_T *elem = NULL;
@@ -312,23 +261,8 @@ int smf_modules_process(
     char *header = NULL;
     NexthopFunction nexthop;
 
-    /* initialize message file  and load processed modules */
-    stf_filename = smf_modules_get_stf_file(settings,session);
-
-    stfh = fopen(stf_filename, "a+");
-    if(stfh == NULL) {
-        STRACE(TRACE_ERR, session->id, "failed to open message state file %s: %s (%d)", stf_filename, strerror(errno),errno);
-
-        if(stf_filename != NULL)
-            free(stf_filename);
-
-        return -1;
-    }
-
     if (smf_list_new(&initial_headers,_header_destroy) != 0) {
         STRACE(TRACE_ERR,session->id, "failed to create header list");
-        free(stf_filename);
-        fclose(stfh);
         return -1;
     }
 
@@ -348,18 +282,10 @@ int smf_modules_process(
         STRACE(TRACE_ERR, session->id, "failed to load local user data"); 
 
     mod_count = 0;
-    modlist = smf_modules_stf_processed_modules(stfh);
     elem = smf_list_head(settings->modules);
     while(elem != NULL) {
         curmod = (SMFModule_T *)smf_list_data(elem);
         elem = elem->next;
-
-        /* check if the module is in our modlist, if yes, the module has
-         * already been processed and can be skipped */
-        if(smf_dict_get(modlist, curmod->name) != NULL) {
-            STRACE(TRACE_INFO, session->id, "skipping module [%s]", curmod->name);
-            continue;
-        }
 
         STRACE(TRACE_DEBUG,session->id,"invoke module [%s]", curmod->name);
         ret = smf_module_invoke(settings, curmod, session);
@@ -369,19 +295,11 @@ int smf_modules_process(
             
             if(ret == 0) {
                 STRACE(TRACE_ERR, session->id, "module [%s] failed, stopping processing!", curmod->name);
-                smf_dict_free(modlist);
-                fclose(stfh);
-                free(stf_filename);
                 free(header);
                 smf_list_free(initial_headers);
                 return -1;
             } else if(ret == 1) {
                 STRACE(TRACE_WARNING, session->id, "module [%s] stopped processing!", curmod->name);
-                smf_dict_free(modlist);
-                fclose(stfh);
-                if(unlink(stf_filename) != 0)
-                    STRACE(TRACE_ERR,session->id,"Failed to unlink state file [%s]", stf_filename);
-                free(stf_filename);
                 free(header);
                 smf_list_free(initial_headers);
                 return 1;
@@ -391,7 +309,6 @@ int smf_modules_process(
             }
         } else {
             STRACE(TRACE_DEBUG, session->id, "module [%s] finished successfully", curmod->name);
-            smf_modules_stf_write_entry(stfh, curmod->name);
         }
 
         mod_count++;
@@ -405,14 +322,7 @@ int smf_modules_process(
 
     /* close file, cleanup modlist and remove state file */
     STRACE(TRACE_DEBUG, session->id,"module processing finished successfully.");
-    fclose(stfh);
-    smf_dict_free(modlist);
 
-    if(unlink(stf_filename) != 0) {
-        STRACE(TRACE_ERR,session->id,"failed to unlink state file [%s]: %s (%d)", stf_filename,strerror(errno),errno);
-    }
-    free(stf_filename);
-   
     if ((ret == 0) || (ret == 2)) {
         if (settings->add_header == 1) {
             smf_message_set_header(msg, header);
@@ -546,100 +456,4 @@ int smf_modules_flush_dirty(SMFSettings_T *settings, SMFSession_T *session, SMFL
     }
 
     return 0;
-}
-
-
-char *smf_modules_get_stf_file(SMFSettings_T *settings, SMFSession_T *session) {
-    DIR *dp;
-    struct dirent *ep;   
-    char *stf_filename = NULL;
-    char *t = NULL;
-    char *check = NULL;
-    char *old_sid = NULL;
-    size_t len_sid = 12;
-
-    stf_filename = smf_modules_stf_path(settings,session);
-    check = smf_modules_build_stf_check_part(settings,session);
-
-    dp = opendir(settings->queue_dir);
-    if (dp != NULL) {
-        while((ep = readdir(dp)) != NULL) {
-          if (strstr(ep->d_name,check) != NULL) {
-            STRACE(TRACE_INFO,session->id,"found old state file [%s], resuming session",ep->d_name);
-            old_sid = (char *)calloc(len_sid + 1, sizeof(char));
-            strncpy(old_sid,ep->d_name,len_sid);
-            old_sid[strlen(old_sid)] = '\0';
-            if (asprintf(&t,"%s/%s",settings->queue_dir,ep->d_name) == -1)
-                return NULL;
-            if (rename(t,stf_filename) != 0) {
-                STRACE(TRACE_ERR,session->id,"failed to rename session file: %s (%d)",strerror(errno),errno);
-            }
-            free(t);
-            break;
-          }
-        }
-        closedir(dp);
-    } else
-      STRACE(TRACE_ERR,"failed to open queue directory: %s (%d)",strerror(errno),errno);
-
-
-    /* Is there an old spool file? We have to loop queue dir again
-     * - file begins with SID
-     * - file does not contain .modules suffix
-     * - file does not contain string "spmfilter_" in name
-     * */
-    if (old_sid != NULL) {
-      dp = opendir(settings->queue_dir);
-      if (dp != NULL) {
-        while ((ep = readdir(dp)) != NULL) {
-          if ((strstr(ep->d_name, old_sid) != NULL) && (strstr(ep->d_name, ".modules") == NULL) &&
-              (strstr(ep->d_name, "spmfilter_") == NULL)) {
-            STRACE(TRACE_INFO, session->id, "found old spool file [%s], removing it", ep->d_name);
-            if (asprintf(&t,"%s/%s",settings->queue_dir,ep->d_name) == -1)
-              return NULL;
-
-            if (remove(t) != 0) {
-              STRACE(TRACE_ERR,"failed to remove spool file: %s (%d)",strerror(errno),errno);
-            }
-            free(t);
-            break;
-          }
-        }
-        closedir(dp);
-      } else
-        STRACE(TRACE_ERR, "failed to open queue directory: %s (%d)", strerror(errno), errno);
-
-      free(old_sid);
-    }
-
-    free(check);
-
-    return stf_filename;
-}
-
-char *smf_modules_build_stf_check_part(SMFSettings_T *settings, SMFSession_T *session) {
-    char *hex = NULL;
-    char *hex2 = NULL;
-    char *mid = NULL;
-    char *buf = NULL;
-    char *recipient = NULL;
-    SMFMessage_T *msg = NULL;
-    SMFListElem_T *e = NULL;
-    msg = smf_envelope_get_message(session->envelope);
-
-    mid = smf_message_get_message_id(msg);
-    hex = smf_core_md5sum(mid);
-
-    if (smf_list_size(session->envelope->recipients) > 0) {
-        e = smf_list_head(session->envelope->recipients);
-        recipient = (char *)smf_list_data(e);
-        hex2 = smf_core_md5sum(recipient);
-
-        asprintf(&buf,"%s.%s", hex, hex2);
-        free(hex2);
-    } else {
-        asprintf(&buf,"%s", hex);
-    }
-    free(hex);
-    return(buf);
 }
