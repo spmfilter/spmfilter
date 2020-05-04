@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2016 Axel Steiner, Sebastian Jäkel and SpaceNet AG
+ * Copyright (C) 2009-2020 Axel Steiner, Sebastian Jäkel and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

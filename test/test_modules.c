@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2012-2016 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2012-2020 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -216,6 +216,7 @@ START_TEST(process_err_halt_queue) {
     processing_error_data.rc = 0; // halt the queue, can be continued
         
     fail_unless(smf_modules_process(queue, session, settings) == -1);
+
     fail_unless(mod1_data.count == 1);
     fail_unless(mod2_data.count == 1);
     fail_unless(mod3_data.count == 0);
@@ -227,7 +228,8 @@ START_TEST(process_err_halt_queue) {
     mod2_data.rc = 0;
     
     fail_unless(smf_modules_process(queue, session, settings) == 0);
-    fail_unless(mod1_data.count == 1); // Now skipped
+    
+    fail_unless(mod1_data.count == 2); // Retry
     fail_unless(mod2_data.count == 2); // Repeated, but now successful
     fail_unless(mod3_data.count == 1); // Now executed
     fail_unless(error_data.count == 0);
