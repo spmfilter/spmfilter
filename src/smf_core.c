@@ -183,10 +183,10 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
     assert(buf != NULL);
 
     out_size = strlen(format) + 1;
-	if ((out = malloc(out_size)) == NULL)  {
-		return -1;
-	}
-	
+    if ((out = malloc(out_size)) == NULL)  {
+        return -1;
+    }
+    
     // Prepare the result with the format.
     // The '%<x>'-expressions are replaced later.
     strncpy(out, format, out_size);
@@ -225,7 +225,7 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
                 const size_t insert_len = strlen(insert);
                 out_size += (insert_len - 2);
                 out = realloc(out, out_size);
-				
+                
                 // First move everything behind the option-characters
                 memmove(out + offs + insert_len, out + offs + 2, strlen(out + offs + 2) + 1);
                 // Now insert the "insert"-string at the current position
@@ -248,8 +248,8 @@ int smf_core_expand_string(const char *format, const char *addr, char **buf) {
 
 int smf_core_copy_file(const char *source, const char *dest) {
     int out, result;
-	
-	if ((out = open(dest, O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
+    
+    if ((out = open(dest, O_CREAT|O_WRONLY|O_TRUNC, S_IRUSR|S_IWUSR)) == -1)
         return 0;
     
     result = smf_core_copy_to_fd(source, out);
@@ -263,18 +263,18 @@ int smf_core_copy_to_fd(const char *source, int dest) {
     int in_fd;
     ssize_t nread;
     size_t nbytes = 0;
-	
+    
     if ((in_fd = open(source, O_RDONLY)) == -1)
         return -1;
-	
-	while ((nread = read(in_fd, buf, sizeof(buf))) != 0) {
-	    ssize_t nwritten = 0;
-	    
-	    if (nread == -1) {
+    
+    while ((nread = read(in_fd, buf, sizeof(buf))) != 0) {
+        ssize_t nwritten = 0;
+        
+        if (nread == -1) {
             close(in_fd);
             return -1;
         }
-	    
+        
         while (nwritten < nread) {
             ssize_t n;
             
@@ -286,8 +286,8 @@ int smf_core_copy_to_fd(const char *source, int dest) {
             nwritten += n;
             nbytes += n;
         }
-	}
-	
+    }
+    
     close(in_fd);
 
     return nbytes;
