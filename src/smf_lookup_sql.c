@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner, Werner Detter and SpaceNet AG
+ * Copyright (C) 2009-2020 Axel Steiner, Werner Detter and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -106,7 +106,10 @@ char *smf_lookup_sql_get_dsn(SMFSettings_T *settings, char *host) {
                 char *homedir;
                 if ((homedir = getenv ("HOME")) == NULL)
                     TRACE(TRACE_ERR,"can't expand ~ in db name");
-                asprintf(&settings->sql_name,"%s%s", homedir, &(settings->sql_name[1]));
+                if (asprintf(&settings->sql_name,"%s%s", homedir, &(settings->sql_name[1])) == -1) {
+                    TRACE(TRACE_ERR,"failed to allocate memory");
+                    return NULL;   
+                }
             }
 
             smf_core_strcat_printf(&sdsn, "%s", settings->sql_name);
@@ -280,7 +283,10 @@ SMFList_T *smf_lookup_sql_query(SMFSettings_T *settings, SMFSession_T *session, 
     int i;
 
     va_start(ap, q);
-    vasprintf(&query,q,ap);
+    if(vasprintf(&query,q,ap) == -1) {
+        TRACE(TRACE_ERR, "failed to allocate memory");
+        return NULL;
+    }
     va_end(ap);
     smf_core_strstrip(query);
 

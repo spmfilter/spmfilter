@@ -1,5 +1,5 @@
 /* spmfilter - mail filtering framework
- * Copyright (C) 2009-2012 Axel Steiner and SpaceNet AG
+ * Copyright (C) 2009-2020 Axel Steiner and SpaceNet AG
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -96,9 +96,9 @@ static void trace_syslog(SMFTrace_T level, const char *message) {
   }
   
   if ((level >= 128) && (debug_flag == 1)) 
-    syslog(priority, message);
+    syslog(priority, "%s", message);
   else if (level < 128)
-    syslog(priority, message);
+    syslog(priority, "%s", message);
 }
 
 static void trace_stderr(SMFTrace_T level, const char *message) {
