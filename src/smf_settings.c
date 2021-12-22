@@ -735,8 +735,7 @@ int smf_settings_parse_config(SMFSettings_T **settings, char *alternate_file) {
                 (*settings)->ldap_port = 389;
 
             if ((*settings)->ldap_base == NULL) {
-                TRACE(TRACE_ERR, "no ldap search base set");
-                return -1;
+                (*settings)->ldap_base = strdup("");
             }
 
             if ((*settings)->ldap_scope != NULL) {
